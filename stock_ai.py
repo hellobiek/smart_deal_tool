@@ -184,7 +184,7 @@ class StockAI:
             self.log.warn("get to url fail: ret=%d" % ret)
             return -5, "get order url failed"
         stock_info = json.loads(result)
-        return stock_info[0]['errorCode'], stock_info[0]['maxstkqty'] 
+        return int(stock_info[0]['errorCode']), stock_info[0]['maxstkqty'] 
    
 if '__main__' == __name__:
     with open(USER_FILE) as f:

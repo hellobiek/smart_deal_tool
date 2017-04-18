@@ -21,6 +21,8 @@ def main():
             if ret == 0:
                 time.sleep(15)
                 print quantAI.deal(stock, stock.price, amount, "B")
+            else:
+                print "get amount error"
 
 def get_all_quants():
 	with open(USER_FILE) as f:
