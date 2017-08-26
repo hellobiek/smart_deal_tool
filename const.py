@@ -6,16 +6,28 @@ NEW_STOCK_URL = "http://newstock.cfi.cn/"
 FUTU_HOST = "172.18.3.101"
 FUTU_PORT = 11111
 USER_FILE = "user.json"
-RETRY_TIMES = 3
 SLEEP_TIME = 3
-MARKET_SH = 1
+SHORT_SLEEP_TIME = 1
+SLEEP_INTERVAL = 30
+##########stock type##########
 MARKET_SZ = 0
+MARKET_SH = 1
+MARKET_CYB = 2
+MARKET_ALL = 3
+SUB_NEW_STOCK = 4 
 MARKET_ELSE = 10
 ##########order type##########
 SUBMITTED = 0
 ONGOING = 1
 ##############################
-
+DB_NAME = 'stock'
+DB_USER = 'root'
+DB_PASSWD = '123456'
+DB_HOSTNAME = 'localhost'
+UTF8 = "utf8"
+SQL = "select * from %s"
+RETRY_TIMES = 3
+##############################
 class gw_ret_code:
     # 150906130资金不足
     # 150906135股数不够
