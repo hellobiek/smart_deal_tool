@@ -1,7 +1,7 @@
 #!/home/tops/bin/python -u
 import sys
 from log import getLogger
-from collect import StockManager
+from stock import StockManager
 from optparse import OptionParser
 try:
     import gevent
