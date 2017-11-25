@@ -1,39 +1,24 @@
-#!/usr/bin/python
-# -*- coding:utf-8 -*-
-from const import MARKET_SH, MARKET_SZ, MARKET_ELSE
+##############################################################
+##collect dayily concept info
+##############################################################
+#data_times = pd.date_range('8/1/2017', periods=1, freq='D')
+#concept_infos = collect_concept_volume_price(data_times)
+#for c_name, c_info in concept_infos.items():
+#    if len(c_info) > 3:
+#        print "=================================================================S"
+#        print c_name
+#        print json.dumps(c_info, encoding="UTF-8", ensure_ascii=False, indent = 4)
+#        print "=================================================================E"
+##############################################################
 
-class Stock:
-    def __init__(self, code, name="" ,price = 0):
-        self.code = code 
-        self.price = price
-        self.name = name
-        self.market = self.market()
-        #self.industry = ""
-        #self.area = ""
-        #self.pe = 0
-        #self.pb = 0
-        #self.totals = 0
-        #self.outstanding = 0
-        #self.totalAssets = 0
-        #self.liquidAssets = 0
-        #self.fixedAssets = 0
-        #self.reserved = 0
-        #self.reservedPerShare = 0
-        #self.eps = 0
-        #self.bvps = 0
-        #self.timeToMarket = 0
-        #self.stockOwnerNum = 0
-
-    def market(self):
-        if (self.code.startswith("7") or self.code.startswith("6") or self.code.startswith("500") or self.code.startswith("550") or self.code.startswith("510")):
-            return MARKET_SH
-        elif (self.code.startswith("00") or self.code.startswith("30") or self.code.startswith("150") or self.code.startswith("159")):
-            return MARKET_SZ
-        else:
-            return MARKET_ELSE
-
-class HoldedStock(Stock):
-    def __init__(self, code, price = 0, buy_price = 0, amount = 0):
-        Stock.__init__(code, price)
-        self.amount = amount
-        self.buy_price = buy_price
+#===========================================================
+#print json.dumps(concept_infos, encoding="UTF-8", ensure_ascii=False, indent = 4)
+#stock_infos = get_stock_volumes(MARKET_ALL, data_times)
+#print stock_infos.sort_values(by = 'turnover')
+#print is_sub_new_stock('20170525')
+#print is_trading_day("2017-12-26") 
+#print is_trading_day("2017-12-03") 
+#print is_after_release('600476', '2017-12-26')
+#engine = create_engine('mysql://root:123456@localhost/stock?charset=utf8')
+#stock_turnover_rates.to_sql('turnover',engine,if_exists='replace',index=False) 
+#==============================================

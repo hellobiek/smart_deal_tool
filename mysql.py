@@ -1,3 +1,4 @@
+#encoding=utf-8
 import pandas as pd
 from time import sleep
 from const import SHORT_SLEEP_TIME

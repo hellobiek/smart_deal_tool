@@ -10,16 +10,25 @@ SLEEP_TIME = 3
 SHORT_SLEEP_TIME = 1
 SLEEP_INTERVAL = 30
 ##########stock type##########
-MARKET_SZ = 0
-MARKET_SH = 1
-MARKET_CYB = 2
-MARKET_ALL = 3
+MARKET_ALL = 0
+MARKET_SZ = 1
+MARKET_SH = 2
+MARKET_CYB = 3
 SUB_NEW_STOCK = 4 
+SZ50 = 5
+HS300 = 6
+ZZ500 = 7
+MSCI = 8
 MARKET_ELSE = 10
 ##########order type##########
 SUBMITTED = 0
 ONGOING = 1
 ##############################
+DB_INFO = {'user':'root',  
+           'password':'123456',  
+           'host':'localhost',  
+           'database':'stock'
+           }
 DB_NAME = 'stock'
 DB_USER = 'root'
 DB_PASSWD = '123456'
@@ -27,6 +36,12 @@ DB_HOSTNAME = 'localhost'
 UTF8 = "utf8"
 SQL = "select * from %s"
 RETRY_TIMES = 3
+START_DATE = '2017-01-01'
+INDENT_START_DATE = '1/1/2017'
+STOCK_LIST = ["SZ50","ZZ500","HS300","MSCI"]
+INDEX_LIST = ["000016_SH","000905_SH","000300_SH","000001_SH","399001_SZ","399006_CY"]
+AVERAGE_INDEX_LIST = ["700001_ALL", "700002_SH", "700003_SZ", "700004_CYB", "700005_SZ50", "700006_ZZ500", "700007_HS300", "700008_MSCI"]
+REAL_INDEX_LIST = ['sh', 'sz', 'cyb', 'sz50', 'hs300', 'zxb', 'zh500']
 ##############################
 class gw_ret_code:
     # 150906130资金不足
