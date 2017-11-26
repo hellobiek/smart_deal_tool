@@ -107,7 +107,6 @@ class StockManager:
         df = get(self.engine, SQL % table)
         df = df[['code', 'name', 'timeToMarket', 'cName', 'totals', 'outstanding', 'industry', 'area']]
         df['outstanding'] = df['outstanding'] * 1000000
-        code_list = list(df.code)
         if type_name == MARKET_SH:
             df = df.ix[df.code.str[0] == '6']
         elif type_name == MARKET_CYB: 
@@ -115,17 +114,13 @@ class StockManager:
         elif type_name == MARKET_SZ:
             df = df.ix[df.code.str[0] == '0']
         elif type_name == SZ50:
-            code_list = self.get_code_list("SZ50")
-            df = df.ix[df.code.isin(code_list)]
+            df = df.ix[df.code.isin(self.get_code_list("SZ50"))]
         elif type_name == HS300:
-            code_list = self.get_code_list("HS300")
-            df = df.ix[df.code.isin(code_list)]
+            df = df.ix[df.code.isin(self.get_code_list("HS300"))]
         elif type_name == ZZ500:
-            code_list = self.get_code_list("ZZ500")
-            df = df.ix[df.code.isin(code_list)]
+            df = df.ix[df.code.isin(self.get_code_list("ZZ500"))]
         elif type_name == MSCI:
-            code_list = self.get_code_list("MSCI")
-            df = df.ix[df.code.isin(code_list)]
+            df = df.ix[df.code.isin(self.get_code_list("MSCI"))]
         else:
             pass
         return df.sort_values('code').reset_index(drop=True)
@@ -160,8 +155,7 @@ class StockManager:
             t = time.strptime(str(time2Market), "%Y%m%d")
             y,m,d = t[0:3]
             time2Market = datetime(y,m,d)
-            if (datetime.strptime(_date, "%Y-%m-%d") - time2Market).days > 0:
-                return True
+            return (datetime.strptime(_date, "%Y-%m-%d") - time2Market).days > 0
         return False
 
     @trace_func(log = logger)
@@ -263,8 +257,7 @@ class StockManager:
             t = time.strptime(time2Market, "%Y%m%d")
             y,m,d = t[0:3]
             time2Market = datetime(y,m,d)
-            if (datetime.today()-time2Market).days < timeLimit:
-                return True
+            return (datetime.today()-time2Market).days < timeLimit
         return False
 
     @trace_func(log = logger)
@@ -480,7 +473,6 @@ class StockManager:
                 _tindex += 1
                 if df['isOpen'][_tindex] == 1:
                     return df['calendarDate'][_tindex]
-        return ""
 
     @trace_func(log = logger)
     def get_pre_trading_day(self, _date):
@@ -493,7 +485,6 @@ class StockManager:
                 _tindex -= 1
                 if df['isOpen'][_tindex] == 1:
                     return df['calendarDate'][_tindex]
-        return ""
 
     @trace_func(log = logger)
     def get_highest_time(self, code_id, pre_close_price, sdate):
@@ -506,7 +497,6 @@ class StockManager:
                 total_p_change = (cur_price - pre_close_price) * 100 / pre_close_price
                 if total_p_change > 9.8:
                     return tmp_df['date'][index]
-        return -1
 
     @trace_func(log = logger)
     def get_realtime_index_info(self):
