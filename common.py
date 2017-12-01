@@ -15,13 +15,13 @@ from const import MARKET_SH,MARKET_SZ,MARKET_CYB,SZ50,HS300,ZZ500,MSCI,MARKET_AL
 filterwarnings('error', category = db.Warning)
 log = getLogger(__name__)
 def gint(x):
-    if x > 9.7:
+    if x > 9.95:
         return 10
-    elif 9 <= x <= 9.7:
+    elif 9 <= x <= 9.95:
         return 9 
-    elif x < -9.7:
+    elif x < -9.95:
         return -10
-    elif -9.7 <= x <= -9:
+    elif -9.95 <= x <= -9:
         return -9
     else:
         return int(x)
@@ -32,7 +32,7 @@ def trace_func(*dargs, **dkargs):
             if 'log' not in dkargs:
                 print 'Start %s(%s, %s)...' % (func.__name__, args, kargs)
             else:
-                dkargs['log'].info('Start %s(%s, %s)...' % (func.__name__, args, kargs))
+                dkargs['log'].debug('Start %s(%s, %s)...' % (func.__name__, args, kargs))
             return func(*args, **kargs)
         return _wrapper
     return wrapper

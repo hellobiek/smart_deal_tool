@@ -15,7 +15,7 @@ from common import create_table,get_all_tables,_fprint,delta_days,get_market_nam
 from mysql import set,get,get_hist_data
 from sqlalchemy import create_engine
 from const import DB_NAME,DB_USER,DB_PASSWD,DB_HOSTNAME,UTF8,DB_INFO,STOCK_LIST,INDEX_LIST,REAL_INDEX_LIST,AVERAGE_INDEX_LIST
-from const import MARKET_SH,MARKET_SZ,MARKET_CYB,SZ50,HS300,ZZ500,MSCI,MARKET_ALL,SQL,SLEEP_INTERVAL,START_DATE,INDENT_START_DATE
+from const import MARKET_SH,MARKET_SZ,MARKET_CYB,SZ50,HS300,ZZ500,MSCI,MARKET_ALL,SQL,SLEEP_INTERVAL,START_DATE
 from log import getLogger
 
 pd.options.mode.chained_assignment = None #default='warn'
@@ -30,16 +30,17 @@ class StockManager:
     
     @trace_func(log = logger)
     def init(self):
-        self.init_trading_day()
-        self.init_concept()
-        self.init_stock_basic_info()
-        self.init_index_info()
-        self.init_realtime_index_info()
-        self.init_average_table_index()
-        self.init_realtime_stock_info()
-        self.init_realtime_static_info() 
-        self.init_trading_info()
-        self.init_constituent_stock()
+        if self.is_collecting_time():
+            self.init_trading_day()
+            self.init_concept()
+            self.init_stock_basic_info()
+            self.init_index_info()
+            self.init_realtime_index_info()
+            self.init_average_table_index()
+            self.init_realtime_stock_info()
+            self.init_realtime_static_info() 
+            self.init_trading_info()
+            self.init_constituent_stock()
 
     @trace_func(log = logger)
     def init_constituent_stock(self):
@@ -160,7 +161,6 @@ class StockManager:
 
     @trace_func(log = logger)
     def is_trading_day(self, _date):
-        return True
         table = "calendar"
         stock_dates_df = get(self.engine, SQL % table)
         return stock_dates_df.query('calendarDate=="%s"' % _date).isOpen.values[0] == 1
@@ -501,7 +501,7 @@ class StockManager:
     @trace_func(log = logger)
     def get_realtime_index_info(self):
         table = "realtime_indexes"
-        return set(self.engine, SQL % table)
+        return get(self.engine, SQL % table)
 
     @trace_func(log = logger)
     def set_realtime_index_info(self):
@@ -509,26 +509,32 @@ class StockManager:
         all_info = ts.get_realtime_quotes(REAL_INDEX_LIST)
         all_info = all_info[['name','code','open','pre_close','price','high','low','volume','date','time','amount']]
         all_info['p_change'] = 100 * (all_info['price'].astype(float) - all_info['pre_close'].astype(float)).divide(all_info['pre_close'].astype(float))
-        all_info['date'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        all_info['date'] = datetime.now().strftime('%Y-%m-%d')
         set(self.engine, all_info, table)
+
+    @trace_func(log = logger)
+    def get_average_index_info(self, tname):
+        return get(self.engine, SQL % tname)
 
     @trace_func(log = logger)
     def set_average_index_info(self):
         _today = datetime.now().strftime('%Y-%m-%d')
-        num_days = delta_days(START_DATE, _today)
-        data_times = pd.date_range(INDENT_START_DATE, periods=num_days, freq='D')
-        pydate_array = data_times.to_pydatetime()
-        date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(pydate_array)
         for tname in AVERAGE_INDEX_LIST:
-            _index = 0
-            total_data = None
             code = tname.split('_')[0]
+            existed_data = self.get_average_index_info(tname)
+            existed_data = existed_data[existed_data['close'] != 0]
+            start_date = START_DATE if 0 == len(existed_data) else self.get_post_trading_day(existed_data['date'][len(existed_data) - 1])
+            num_days = delta_days(start_date, _today)
+            start_date_dmy_format = time.strftime("%d/%m/%Y", time.strptime(start_date, "%Y-%m-%d"))
+            data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
+            date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
+            total_data = None
             market_name = get_market_name(tname.split('_')[1])
             for _date in date_only_array:
                 if self.is_trading_day(_date):
                     tmp_data = self.get_average_price(code, market_name, _date)
-                    total_data = tmp_data if _index == 0 else total_data.append(tmp_data).drop_duplicates(subset = 'date')
-                    _index += 1
+                    total_data = tmp_data if total_data is None else total_data.append(tmp_data).drop_duplicates(subset = 'date')
+            total_data = existed_data if total_data is None else existed_data.append(total_data)
             set(self.engine,total_data,tname)
 
     @trace_func(log = logger)
@@ -560,6 +566,7 @@ class StockManager:
         all_info[all_info["p_change"]<-9.9]['limit_down_time'] = now_time
         set(self.engine, all_info, table)
 
+    @trace_func(log = logger)
     def is_trading_time(self):
         now_time = datetime.now()
         _date = now_time.strftime('%Y-%m-%d')
@@ -574,11 +581,22 @@ class StockManager:
         aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
         return (mor_open_time < now_time < mor_close_time) or (aft_open_time < now_time < aft_close_time)
 
+    def is_collecting_time(self):
+        now_time = datetime.now()
+        _date = now_time.strftime('%Y-%m-%d')
+        y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
+        mor_open_hour,mor_open_minute,mor_open_second = (21,0,0)
+        mor_open_time = datetime(y,m,d,mor_open_hour,mor_open_minute,mor_open_second)
+        mor_close_hour,mor_close_minute,mor_close_second = (23,59,59)
+        mor_close_time = datetime(y,m,d,mor_close_hour,mor_close_minute,mor_close_second)
+        return mor_open_time < now_time < mor_close_time
+
     @trace_func(log = logger)
     def get_realtime_static_info(self):
         table = 'daily_statics'
         return get(self.engine, SQL % table)
 
+    #@trace_func(log = logger)
     #def collect_concept_volume_price(data_times):
     #    table = 'concept'
     #    engine = create_engine('mysql://%s:%s@%s/%s?charset=utf8' % (DB_USER,DB_PASSWD,DB_HOSTNAME,DB_NAME))
@@ -655,16 +673,14 @@ class StockManager:
             if self.is_trading_time():
                 data = self.get_realtime_stock_info()
                 if data is not None:
-                    _mdate = datetime.now().strftime('%Y-%m-%d %H-%M-%S')
-                    _row = range(21)
+                    _mdate = datetime.now().strftime('%Y-%m-%d')
+                    _mtime = datetime.now().strftime('%H-%M-%S')
+                    _row = [0 for i in xrange(21)]
                     p_change_list = [gint(x) for x in data['p_change'].tolist()]
                     for x in p_change_list:
-                        _row[p_change_list[x] + 10] += 1
-                    df = DataFrame({'date':[_mdate],'neg_10':[_row[0]],'neg_9':[_row[1]],'neg_8':[_row[2]],'neg_7':[_row[3]],'neg_6':[_row[4]],'neg_5':[_row[5]],'neg_4':[_row[6]],'neg_3':[_row[7]],'neg_2':[_row[8]],'neg_1':[_row[9]],'zero':[_row[10]],'pos_1':[_row[11]],'pos_2':[_row[12]],'pos_3':[_row[13]],'pos_4':[_row[14]],'pos_5':[_row[15]],'pos_6':[_row[16]],'pos_7':[_row[17]],'pos_8':[_row[18]],'pos_9':[_row[19]],'pos_10':[_row[20]]})
+                        _row[x + 10] += 1
+                    df = DataFrame({'time':[_mtime], 'date':[_mdate],'neg_10':[_row[0]],'neg_9':[_row[1]],'neg_8':[_row[2]],'neg_7':[_row[3]],'neg_6':[_row[4]],'neg_5':[_row[5]],'neg_4':[_row[6]],'neg_3':[_row[7]],'neg_2':[_row[8]],'neg_1':[_row[9]],'zero':[_row[10]],'pos_1':[_row[11]],'pos_2':[_row[12]],'pos_3':[_row[13]],'pos_4':[_row[14]],'pos_5':[_row[15]],'pos_6':[_row[16]],'pos_7':[_row[17]],'pos_8':[_row[18]],'pos_9':[_row[19]],'pos_10':[_row[20]]})
                     old_data = self.get_realtime_static_info()
                     old_data = df if old_data is None else old_data.append(df)
-                    old_data = old_data.drop_duplicates(subset = 'date')
+                    old_data = old_data.drop_duplicates(subset = ['date','time'])
                     set(self.engine,old_data,table)
-
-s = StockManager()
-s.set_realtime_static_info()
