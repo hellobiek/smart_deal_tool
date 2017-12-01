@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 # coding:utf-8
 import os
 from PIL import Image, ImageEnhance, ImageFilter

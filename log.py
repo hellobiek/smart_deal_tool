@@ -32,7 +32,7 @@ def getLogger(name, save_dir="/tmp/"):
     f = "%s/%s.log" % (save_dir, name)
     if not os.path.exists(f):
         open(f, "w").close()
-        os.chmod(f, 0777)
+        os.chmod(f, 0o777)
 
     # DEBUG not output
     ch = logging.FileHandler(f)

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 # -*- coding:utf-8 -*-
 from const import MARKET_SH, MARKET_SZ, MARKET_ELSE
 

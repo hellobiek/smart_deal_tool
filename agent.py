@@ -1,4 +1,4 @@
-#!/home/tops/bin/python2.7
+#!/usr/local/bin/python3
 # -*- coding: utf-8 -*-
 #(w) hellobiek@gmail.com
 

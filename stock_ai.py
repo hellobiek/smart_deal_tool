@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 # coding=utf-8
 import json,random,re,string,time
 from lxml import html
@@ -192,4 +192,4 @@ if '__main__' == __name__:
     stockAI = StockAI(quants[0]["account"], quants[0]["passwd_encrypted"], quants[0]["secuids_sh"], quants[0]["secuids_sz"])
     stock = Stock('300648','星云股份','15.74') 
     ret, num = stockAI.amounts(stock)
-    print stockAI.deal(stock, stock.price, num, "B") 
+    print(stockAI.deal(stock, stock.price, num, "B"))

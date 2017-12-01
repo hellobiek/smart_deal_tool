@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # coding=utf-8
 import sys
 import tempfile
@@ -15,13 +14,13 @@ from const import MARKET_SH,MARKET_SZ,MARKET_CYB,SZ50,HS300,ZZ500,MSCI,MARKET_AL
 filterwarnings('error', category = db.Warning)
 log = getLogger(__name__)
 def gint(x):
-    if x > 9.7:
+    if x > 9.95:
         return 10
-    elif 9 <= x <= 9.7:
+    elif 9 <= x <= 9.95:
         return 9 
-    elif x < -9.7:
+    elif x < -9.95:
         return -10
-    elif -9.7 <= x <= -9:
+    elif -9.95 <= x <= -9:
         return -9
     else:
         return int(x)
@@ -30,9 +29,9 @@ def trace_func(*dargs, **dkargs):
     def wrapper(func):
         def _wrapper(*args, **kargs):
             if 'log' not in dkargs:
-                print 'Start %s(%s, %s)...' % (func.__name__, args, kargs)
+                print('Start %s(%s, %s)...' % (func.__name__, args, kargs))
             else:
-                dkargs['log'].info('Start %s(%s, %s)...' % (func.__name__, args, kargs))
+                dkargs['log'].debug('Start %s(%s, %s)...' % (func.__name__, args, kargs))
             return func(*args, **kargs)
         return _wrapper
     return wrapper
@@ -48,9 +47,9 @@ def get_all_tables(dbuser, dbpasswd, dbname, dbhost):
         for table in all_tables:
             tables.append(table[0])
         conn.rollback()
-    except db.Warning, w:
+    except db.Warning as w:
         log.warn("Warning:%s" % str(w))
-    except db.Error, e:
+    except db.Error as e:
         log.error("Error:%s" % str(e))
     finally:
         if 'cur' in dir():
@@ -70,10 +69,10 @@ def create_table(dbuser, dbpasswd, dbname, dbhost, sql):
             cur.execute(sql)
             conn.commit()
             hasSucceed = True
-        except db.Warning, w:
+        except db.Warning as w:
             log.warn("Warning:%s" % str(w))
             hasSucceed = True
-        except db.Error, e:
+        except db.Error as e:
             log.error("Error:%s" % str(e))
         finally:
             if 'cur' in dir():
@@ -126,6 +125,6 @@ def get_market_name(_market):
         return MSCI
 
 def _fprint(obj):
-    print "***************************s"
-    print obj
-    print "***************************e"
+    print("***************************s")
+    print(obj)
+    print("***************************e")

@@ -1,16 +1,16 @@
-#!/home/tops/bin/python -u
-import sys
+#!/usr/local/bin/python3 -u
+import sys,time
 from log import getLogger
 from stock import StockManager
 from optparse import OptionParser
 try:
     import gevent
 except ImportError:
-    print "error: httpd require gevent package."
+    print("error: httpd require gevent package.")
     sys.exit(1)
 from gevent import monkey
 from gevent.pool import Pool
-import gevent.wsgi
+import gevent.pywsgi
 monkey.patch_all(subprocess=True)
 
 parser = OptionParser(usage="./%prog [host][port]", version="%prog v0.1")
@@ -18,15 +18,26 @@ parser.add_option("-H", "--host", default="0.0.0.0", help="default: %default", m
 parser.add_option("-P", "--port", default=20041, type="int", help="default: %default", metavar="PORT")
 (options, args) = parser.parse_args()
 
+s = StockManager()
 def init(sleep=0):
-    #init data for trade
-    s.init()
+    while True:
+        s.init()
+        time.sleep(sleep)
 
 def get_stock_realtime_info(sleep=0):
-    s.get_stock_realtime_info()
+    while True:
+        s.set_realtime_stock_info()
+        time.sleep(sleep)
 
-def get_index_realtime_info(sleep=0):
-    s.get_index_realtime_info()
+def get_realtime_index_info(sleep=0):
+    while True:
+        s.set_realtime_index_info()
+        time.sleep(sleep)
+
+def get_realtime_static_info(sleep=0):
+    while True:
+        s.set_realtime_static_info()
+        time.sleep(sleep)
 
 def application(environ, start_response):
     headers = [("Content-type", "text/html")]
@@ -37,12 +48,12 @@ def application(environ, start_response):
 def main():
     log = getLogger(__name__)
     gevent.spawn_later(5, init, 86400)
-    #gevent.spawn_later(10, get_stock_realtime_info, 10)
-    #gevent.spawn_later(10, get_index_realtime_info, 15)
+    gevent.spawn_later(10, get_stock_realtime_info, 10)
+    gevent.spawn_later(15, get_realtime_index_info, 15)
+    gevent.spawn_later(20, get_realtime_static_info, 20)
     log.info("serving on port %s:%s." % (options.host, options.port))
-    httpd = gevent.wsgi.WSGIServer((options.host, options.port), application)
+    httpd = gevent.pywsgi.WSGIServer((options.host, options.port), application)
     httpd.serve_forever()
 
-s = StockManager()
 if __name__ == "__main__":
     main()

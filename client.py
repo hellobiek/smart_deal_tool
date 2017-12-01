@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 # coding=utf-8
 import urllib, urllib2, cookielib, ssl
 import os,time,string

@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # coding=utf-8
 LOGIN_URL = "https://trade.cgws.com/cgi-bin/user/Login?function=tradeLogout"
 ENTRUST_QUERY = "https://trade.cgws.com/cgi-bin/stock/EntrustQuery?function=MyAccount"
@@ -27,8 +26,7 @@ ONGOING = 1
 DB_INFO = {'user':'root',  
            'password':'123456',  
            'host':'localhost',  
-           'database':'stock'
-           }
+           'database':'stock'}
 DB_NAME = 'stock'
 DB_USER = 'root'
 DB_PASSWD = '123456'
@@ -37,7 +35,6 @@ UTF8 = "utf8"
 SQL = "select * from %s"
 RETRY_TIMES = 3
 START_DATE = '2017-01-01'
-INDENT_START_DATE = '1/1/2017'
 STOCK_LIST = ["SZ50","ZZ500","HS300","MSCI"]
 INDEX_LIST = ["000016_SH","000905_SH","000300_SH","000001_SH","399001_SZ","399006_CY"]
 AVERAGE_INDEX_LIST = ["700001_ALL", "700002_SH", "700003_SZ", "700004_CYB", "700005_SZ50", "700006_ZZ500", "700007_HS300", "700008_MSCI"]
