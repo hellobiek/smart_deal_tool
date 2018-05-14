@@ -128,3 +128,4 @@ def _fprint(obj):
     print("***************************s")
     print(obj)
     print("***************************e")
+    sys.exit(0)

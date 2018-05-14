@@ -29,17 +29,26 @@ class StockManager:
     
     @trace_func(log = logger)
     def init(self):
-        if self.is_collecting_time():
-            self.init_trading_day()
-            self.init_concept()
-            self.init_stock_basic_info()
-            self.init_index_info()
-            self.init_realtime_index_info()
-            self.init_average_table_index()
-            self.init_realtime_stock_info()
-            self.init_realtime_static_info() 
-            self.init_trading_info()
-            self.init_constituent_stock()
+        self.init_trading_day()
+        self.init_concept()
+        self.init_stock_basic_info()
+        self.init_index_info()
+        self.init_realtime_index_info()
+        self.init_realtime_stock_info()
+        self.init_realtime_static_info()
+        self.init_trading_info()
+
+    @trace_func(log = logger)
+    def init_code_list(self, dtype="SZ50"):
+        if dtype == "SZ50":
+            return list(ts.get_sz50s())
+        elif dtype == "HS300":
+            return list(ts.get_hs300s())
+        elif dtype == "ZZ500":
+            return list(ts.get_zz500s())
+        else:
+            with codecs.open('concepts/msci.json', 'r') as f:
+                return json.load(f, ensure_ascii=False)
 
     @trace_func(log = logger)
     def init_constituent_stock(self):
@@ -57,18 +66,6 @@ class StockManager:
             df_concept = old_df_concept.append(new_df_concept)
             df_concept = df_concept.drop_duplicates()
             set(self.engine, df_concept, str(table))
-
-    @trace_func(log = logger)
-    def init_code_list(self, dtype="SZ50"):
-        if dtype == "SZ50":
-            return list(ts.get_sz50s().code.str.decode('utf-8'))
-        elif dtype == "HS300":
-            return list(ts.get_hs300s().code.str.decode('utf-8'))
-        elif dtype == "ZZ500":
-            return list(ts.get_zz500s().code.str.decode('utf-8'))
-        else:
-            with codecs.open('concepts/msci.json', 'r', 'utf-8') as f:
-                return json.load(f)
 
     @trace_func(log = logger)
     def get_average_price(self, _code, market=MARKET_ALL, _date=None):
@@ -193,40 +190,32 @@ class StockManager:
             set(self.engine, trading_day, str(table))
 
     @trace_func(log = logger)
-    def init_trading_info(self): 
+    def collect_trading_info(self, table_name, code_id):
+        mysql = 'create table if not exists `%s`(date varchar(10),\
+                                                open float,\
+                                                high float,\
+                                                close float,\
+                                                low float,\
+                                                volume float)' % table_name
+        if table_name not in self.tables: 
+            if not create_table(DB_USER, DB_PASSWD, DB_NAME, DB_HOSTNAME, mysql):
+                raise Exception("create table %s failed" % code_id)
+        old_data = get_hist_data(self.engine, table_name)
+        new_data = ts.get_k_data(code_id, retry_count = 10)
+        if not new_data.empty:
+            data = old_data.append(new_data)
+            data = data.drop_duplicates()
+            set(self.engine, data, table_name)
+
+
+    @trace_func(log = logger)
+    def init_trading_info(self):
         stock_info = self.get_stock_basic_info()
         for code_index,code_id in stock_info['code'].iteritems():
             self.log.info("stock id:%s" % code_id)
-            mysql = 'create table if not exists `%s`(date varchar(10),\
-                                                    open float,\
-                                                    high float,\
-                                                    close float,\
-                                                    low float,\
-                                                    volume float)' % code_id
-            mysql_5 = 'create table if not exists %s_5(date varchar(10),\
-                                                    open float,\
-                                                    high float,\
-                                                    close float,\
-                                                    low float,\
-                                                    volume float)' % code_id
-            if code_id not in self.tables: 
-                if not create_table(DB_USER, DB_PASSWD, DB_NAME, DB_HOSTNAME, mysql):
-                    raise Exception("create table %s failed" % code_id)
-            if code_id not in self.tables: 
-                if not create_table(DB_USER, DB_PASSWD, DB_NAME, DB_HOSTNAME, mysql_5):
-                    raise Exception("create table 5 minute %s failed" % code_id)
-            old_data = get_hist_data(self.engine, str(code_id))
-            new_data = ts.get_k_data(code_id, retry_count = 10)
-            if new_data is not None:
-                data = old_data.append(new_data)
-                data = data.drop_duplicates()
-                set(self.engine, data, str(code_id))
-            old_data_5 = get_hist_data(self.engine, "%s_5" % code_id)
-            new_data_5 = ts.get_k_data(code_id, retry_count = 10, ktype='5')
-            if new_data_5 is not None:
-                data_5 = old_data_5.append(new_data_5)
-                data_5 = data_5.drop_duplicates()
-                set(self.engine, data_5, "%s_5" % code_id)
+            tables = [str(code_id), "%s_5" % code_id]
+            for table in tables:
+                self.collect_trading_info(table, code_id)
 
     @trace_func(log = logger)
     def init_concept(self):
@@ -235,14 +224,24 @@ class StockManager:
         if table not in self.tables: 
             if not create_table(DB_USER, DB_PASSWD, DB_NAME, DB_HOSTNAME, sql):
                 raise Exception("create table %s failed" % table)
+
+        # get concepts from json file to new_df_concept
         df_concept_dict = {}
         concept_obj = {}
         with codecs.open('concepts/concepts.json', 'r', 'utf-8') as f:
             concept_obj = json.load(f)
+
         for key in concept_obj:
             df_concept_dict[key] = json.dumps(concept_obj[key])
+
+        df_items = list(df_concept_dict.items())
+        df_key_tuple, df_value_tuple = tuple(zip(*df_items))
+        new_df_concept = DataFrame({'cName':df_key_tuple,'code':df_value_tuple})
+
+        # get old concept form mysql database
         old_df_concept = get(self.engine, SQL % table)
-        new_df_concept = DataFrame({'cName':df_concept_dict.keys(),'code':df_concept_dict.values()})
+
+        # merge concept dict from file
         if new_df_concept is not None:
             df_concept = old_df_concept.append(new_df_concept)
             df_concept = df_concept.drop_duplicates()
@@ -305,17 +304,11 @@ class StockManager:
             if tname not in self.tables: 
                 if not create_table(DB_USER, DB_PASSWD, DB_NAME, DB_HOSTNAME, text):
                     raise Exception("create table %s failed" % tname)
+            # get data from mysql
             df_all = get(self.engine, SQL % tname)
+            # get data from tushare
             new_data = ts.get_k_data(tname.split('_')[0], index=True)
             if not new_data.empty:
-                for index,row in df_all.iterrows():
-                    for column in df_all.columns:
-                        if isinstance(df_all[column][index], str):
-                            df_all[column] = df_all[column].str.decode('utf-8')
-                for index,row in new_data.iterrows():
-                    for column in new_data.columns:
-                        if isinstance(new_data[column][index], str):
-                            new_data[column] = new_data[column].str.decode('utf-8')
                 df_all = df_all.append(new_data, ignore_index=True)
                 df_all = df_all.drop_duplicates(subset = 'date')
             set(self.engine,df_all,tname)
@@ -427,19 +420,17 @@ class StockManager:
         if table not in self.tables: 
             if not create_table(DB_USER, DB_PASSWD, DB_NAME, DB_HOSTNAME, text):
                 raise Exception("create table %s failed" % table)
+
+        #get old stock data info
         old_df_all = get(self.engine, SQL % table)
-        for index,row in old_df_all.iterrows():
-            for column in old_df_all.columns:
-                if isinstance(old_df_all[column][index], str):
-                    old_df_all[column] = old_df_all[column].str.decode('utf-8')
-        df = ts.get_stock_basics()
+
+        #get concepts from mysql
         concepts = self.get_concpet()
-        if df is not None:
-            df = df.reset_index().rename_axis({'index':'code'},axis="columns")
-            for index,_ in df.iterrows():
-                for column in df.columns:
-                    if isinstance(df[column][index], str):
-                        df[column] = df[column].str.decode('utf-8')
+
+        #get new stock data info
+        df = ts.get_stock_basics()
+        if not df.empty:
+            df = df.reset_index().rename({'index':'code'},axis="columns")
             df['limitUpNum'] = 0
             df['limitDownNum'] = 0
             df_concept_dict = {}
@@ -452,7 +443,7 @@ class StockManager:
                     if concept_name not in df_concept_dict[code_id]:
                         df_concept_dict[code_id].append(concept_name)
             for key in df_concept_dict:
-                df_concept_dict[key] = json.dumps(df_concept_dict[key])
+                df_concept_dict[key] = json.dumps(df_concept_dict[key], ensure_ascii = False)
             df_concept = DataFrame(list(df_concept_dict.items()), columns=['code', 'cName'])
             df_all = pd.merge(df,df_concept,how='left',on=['code'])
             df_all.reset_index(drop=True)
@@ -581,6 +572,7 @@ class StockManager:
         return (mor_open_time < now_time < mor_close_time) or (aft_open_time < now_time < aft_close_time)
 
     def is_collecting_time(self):
+        return True
         now_time = datetime.now()
         _date = now_time.strftime('%Y-%m-%d')
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]

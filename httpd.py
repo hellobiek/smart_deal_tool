@@ -1,24 +1,26 @@
 #!/usr/local/bin/python3 -u
-import sys,time
-from log import getLogger
-from stock import StockManager
-from optparse import OptionParser
 try:
     import gevent
 except ImportError:
     print("error: httpd require gevent package.")
     sys.exit(1)
 from gevent import monkey
+monkey.patch_all(subprocess=True)
 from gevent.pool import Pool
 import gevent.pywsgi
-monkey.patch_all(subprocess=True)
+import sys,time
+from log import getLogger
+from stock import StockManager
+from optparse import OptionParser
 
 parser = OptionParser(usage="./%prog [host][port]", version="%prog v0.1")
 parser.add_option("-H", "--host", default="0.0.0.0", help="default: %default", metavar="HOST")
 parser.add_option("-P", "--port", default=20041, type="int", help="default: %default", metavar="PORT")
 (options, args) = parser.parse_args()
 
+log = getLogger(__name__)
 s = StockManager()
+
 def init(sleep=0):
     while True:
         s.init()
@@ -46,14 +48,18 @@ def application(environ, start_response):
     return status_handler(environ, start_response)
 
 def main():
-    log = getLogger(__name__)
-    gevent.spawn_later(5, init, 86400)
-    gevent.spawn_later(10, get_stock_realtime_info, 10)
-    gevent.spawn_later(15, get_realtime_index_info, 15)
-    gevent.spawn_later(20, get_realtime_static_info, 20)
+    gevent.spawn_later(5, init, 28800)
+    #gevent.spawn_later(10, get_stock_realtime_info, 10)
+    #gevent.spawn_later(15, get_realtime_index_info, 15)
+    #gevent.spawn_later(20, get_realtime_static_info, 20)
     log.info("serving on port %s:%s." % (options.host, options.port))
     httpd = gevent.pywsgi.WSGIServer((options.host, options.port), application)
     httpd.serve_forever()
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        log.error(e)
+        sys.exit(0)
+        
