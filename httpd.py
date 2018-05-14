@@ -1,9 +1,5 @@
 #!/usr/local/bin/python3 -u
-try:
-    import gevent
-except ImportError:
-    print("error: httpd require gevent package.")
-    sys.exit(1)
+import gevent
 from gevent import monkey
 monkey.patch_all(subprocess=True)
 from gevent.pool import Pool
