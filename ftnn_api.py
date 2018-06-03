@@ -285,6 +285,7 @@ class Futu():
                         i = i - 1
                     i = i + 1
         return data
+
 if __name__ == '__main__':
     futu = Futu()
     #print futu.unlock("123123")
@@ -313,5 +314,3 @@ if __name__ == '__main__':
     # print futu.get_account_info("hk")
     # print futu.get_stock_info("hk","00700")
     # print futu.get_stock_info("us","CMCM")
-
-
