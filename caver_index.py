@@ -41,7 +41,6 @@ class CAverIndex(Combination):
 
     @trace_func(log = logger)
     def run(self):
-        #old_data = self.()
         new_data = self.compute(dtype='realtime')
         if not new_data.empty:
             data = old_data.append(new_data)
@@ -67,7 +66,6 @@ class CAverIndex(Combination):
                     tmp_data['code'] = code_id
                     tmp_data = tmp_data.reset_index(drop = True)
                     total_data = tmp_data if 0 == _index else total_data.append(tmp_data).drop_duplicates()
-
         open_price = 0
         close_price = 0
         low_price = 0

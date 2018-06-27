@@ -35,7 +35,7 @@ const.SLEEP_TIME = 3
 const.SHORT_SLEEP_TIME = 1
 const.LONG_SLEEP_TIME = 10800 
 const.SLEEP_INTERVAL = 30
-const.CONCEPT_INPUT = "concepts/concept.csv"
+const.CONCEPT_INPUT = "/code/concepts/concept.csv"
 ##########stock type##########
 const.MARKET_ALL = "MARKET_ALL"
 const.SZZS = "sh"
@@ -56,20 +56,25 @@ const.INDEX_INFO = {const.SZZS: "000001",
 const.SUBMITTED = 0
 const.ONGOING = 1
 ##############################
-const.DB_INFO = {'user':'root',  
-                 'password':'123456', 
-                 'host':'localhost',  
+const.DB_INFO = {'user':'root',
+                 'password':'123456',
+                 'host':'mysql-container',
                  'database':'stock'}
+const.STAT_INFO = {'user':'root',
+                 'password':'123456',
+                 'host':'mysql-container',
+                 'database':'statistical_information'}
 const.UTF8 = "utf8"
 const.SQL = "select * from %s"
 const.RETRY_TIMES = 3
 const.START_DATE = '2014-01-01'
 const.AVERAGE_INDEX_LIST = ["700001_ALL", "700002_SH", "700003_SZ", "700004_CYB", "700005_SZ50", "700006_ZZ500", "700007_HS300", "700008_MSCI"]
 const.C_INDEX = 1
-const.C_CONCEPT = 2
-const.C_STOCK = 3
-const.C_COMBINATION = 4
-const.C_AVERAGE = 5
+const.C_SELFD = 2
+const.C_INDUSTRY = 3
+const.C_STOCK = 4
+const.C_COMBINATION = 5
+const.C_AVERAGE = 6
 ##############################
 # 150906130资金不足
 # 150906135股数不够
@@ -96,3 +101,30 @@ const.REOPEN = 1
 #############################
 const.APPEND = 'append'
 const.REPLACE = 'replace'
+#############################
+const.SYNCSTOCK2REDIS = 'syncStock2Redis'
+const.STOCK_INFO = 'stockInfo'
+
+const.SYNCCAL2REDIS = 'syncCal2Redis'
+const.CALENDAR_INFO = 'calendarInfo'
+
+const.SYNC_COMBINATION_2_REDIS = 'synCombination2Redis'
+const.COMBINATION_INFO = 'combinationInfo'
+
+const.SYNC_HALTED_2_REDIS = 'synHalted2Redis'
+const.HALTED_INFO = 'haltedInfo'
+
+const.SYNC_DELISTED_2_REDIS = 'synDelisted2Redis'
+const.DELISTED_INFO = 'delistedInfo'
+#############################
+const.INDUSTRY_TABLE = 'industry'
+const.EMOTION_TABLE = 'emotion'
+#############################
+const.REDIS_HOST = 'redis-container'
+const.REDIS_PORT = 6379
+const.GEARMAND_HOST = 'gearmand-container'
+const.GEARMAND_PORT = 4730
+#############################
+const.TONG_DA_XIN_INDUSTRY_PATH = "/tongdaxin/incon.dat"
+const.TONG_DA_XIN_CODE_PATH = "/tongdaxin/T0002/hq_cache/tdxhy.cfg"
+const.TONG_DA_XIN_SELF_PATH = "/tongdaxin/T0002/blocknew"

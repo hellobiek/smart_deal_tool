@@ -5,38 +5,63 @@ import const as ct
 import pandas as pd
 from pandas import DataFrame
 from log import getLogger
-log = getLogger(__name__)
 import MySQLdb as db
 from sqlalchemy import create_engine
+from common import create_redis_obj
 from warnings import filterwarnings
 filterwarnings('error', category = db.Warning)
+
+log = getLogger(__name__)
+ALL_TABLES = 'all_tables'
+ALL_TRIGGERS = 'all_triggers'
 
 class CMySQL:
     def __init__(self, dbinfo):
         self.dbinfo = dbinfo
+        self.redis = create_redis_obj()
         self.engine = create_engine("mysql://%(user)s:%(password)s@%(host)s/%(database)s?charset=utf8" % dbinfo)
 
     def get_all_tables(self):
+        if self.redis.exists(ALL_TABLES):
+            return set(str(table, encoding = "utf8") for table in self.redis.smembers(ALL_TABLES))
+        else:
+            all_tables = self._get('SHOW TABLES', 'Tables_in_stock')
+            for table in all_tables: self.redis.sadd(ALL_TABLES, table)
+            return all_tables
+
+    def get_all_triggers(self):
+        if self.redis.exists(ALL_TRIGGERS):
+            return set(str(table, encoding = "utf8") for table in self.redis.smembers(ALL_TRIGGERS))
+        else:
+            all_triggers = self._get('SHOW TRIGGERS', 'Trigger')
+            for trigger in all_triggers: self.redis.sadd(ALL_TRIGGERS, trigger)
+            return all_triggers
+
+    def _get(self, sql, key):
         res = False
-        sql = 'SHOW TABLES'
         for i in range(ct.RETRY_TIMES):
             try:
                 df = pd.read_sql_query(sql, self.engine)
                 res = True
             except sqlalchemy.exc.OperationalError as e:
-                log.debug(e)
-            if True == res:return df['Tables_in_stock'].tolist() if not df.empty else list()
-        log.error("get all tables failed afer try %d times" % ct.RETRY_TIMES)
-        return None 
+                log.info(e)
+            if True == res:return set(df[key].tolist()) if not df.empty else set()
+        log.error("get all info failed afer try %d times" % ct.RETRY_TIMES)
+        return set()
 
-    def set(self, data_frame, table, method = ct.REPLACE):
+    def set(self, data_frame, table, method = ct.APPEND):
         res = False
         for i in range(ct.RETRY_TIMES):
             try:
                 data_frame.to_sql(table, self.engine, if_exists = method, index=False)
                 res = True
             except sqlalchemy.exc.OperationalError as e:
+                log.info(e)
+            except sqlalchemy.exc.ProgrammingError as e:
+                log.info(e)
+            except sqlalchemy.exc.IntegrityError as e:
                 log.debug(e)
+                res = True
             if True == res:return True
         log.error("write to %s failed afer try %d times" % (table, ct.RETRY_TIMES))
         return res 
@@ -53,7 +78,7 @@ class CMySQL:
         log.error("get %s failed afer try %d times" % (sql, ct.RETRY_TIMES))
         return None
 
-    def create(self, sql):
+    def exec_sql(self, sql):
         hasSucceed = False
         for i in range(ct.RETRY_TIMES):
             try:
@@ -72,10 +97,24 @@ class CMySQL:
                 if 'conn' in dir(): conn.close()
             if hasSucceed: return True
             time.sleep(ct.SHORT_SLEEP_TIME)
-        log.error("create %s failed" % sql)
+        log.error("%s failed" % sql)
+        return False
+
+    def register(self, sql, register):
+        if self.exec_sql(sql):
+            self.redis.sadd(ALL_TRIGGERS, register)
+            return True
+        return False
+
+    def create(self, sql, table):
+        if self.exec_sql(sql):
+            self.redis.sadd(ALL_TABLES, table)
+            return True
         return False
 
 if __name__ == '__main__':
+    import tushare as ts
+    df = ts.get_stock_basics()
+    df = df.reset_index(drop = Fasle)
     obj = CMySQL(ct.DB_INFO)
-    sql = "select * from info"
-    obj.create(sql)
+    obj.set(df, 'stock', ct.APPEND)

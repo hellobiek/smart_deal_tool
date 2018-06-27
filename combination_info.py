@@ -1,12 +1,14 @@
 # coding=utf-8
 import json
+import _pickle
 import cmysql
 import const as ct
 import tushare as ts
 import pandas as pd
 from log import getLogger
 from pandas import DataFrame
-from common import trace_func
+from pytdx.reader import CustomerBlockReader
+from common import trace_func, create_redis_obj, df_delta
 
 logger = getLogger(__name__)
 
@@ -15,54 +17,47 @@ class CombinationInfo:
     @trace_func(log = logger)
     def __init__(self, dbinfo, table_name):
         self.table = table_name
-        self.dbinfo = dbinfo
+        self.redis = create_redis_obj()
+        if not self.init(): raise Exception("init combination table failed")
+        self.trigger = ct.SYNC_COMBINATION_2_REDIS
         self.mysql_client = cmysql.CMySQL(dbinfo)
         if not self.create(): raise Exception("create combination table failed")
+        if not self.register(): raise Exception("create combination trigger failed")
 
     @trace_func(log = logger)
     def create(self):
-        sql = 'create table if not exists %s(name varchar(50), code varchar(10), cType int, content varchar(10000), best varchar(1000))' % self.table
-        return True if self.table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql)
+        sql = 'create table if not exists %s(name varchar(50), code varchar(10), cType int, content varchar(20000), best varchar(1000), PRIMARY KEY (code))' % self.table
+        return True if self.table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.table)
+
+    @trace_func(log = logger)
+    def register(self):
+        sql = "create trigger %s after insert on %s for each row set @set=gman_do_background('%s', json_object('name', NEW.name, 'code', NEW.code, 'cType', NEW.cType, 'content', NEW.content, 'best', NEW.best));" % (self.trigger, self.table, self.trigger)
+        return True if self.trigger in self.mysql_client.get_all_triggers() else self.mysql_client.register(sql, self.trigger)
 
     @trace_func(log = logger)
     def init(self):
-        # average index for new data
-        df_concept = DataFrame({'name':['average'],'code':['800000'],'cType':[ct.C_AVERAGE],'content':[str(list())]})
-
-        # get concepts from csv file to new_concept_df_concept
-        new_concept_df_concept = pd.read_csv(ct.CONCEPT_INPUT)
-        new_concept_df_concept['cType'] = ct.C_CONCEPT
-
-        # get old concept form mysql database
-        old_df_concept = self.mysql_client.get(ct.SQL % self.table)
-        # merge concept dict from file
-        if new_concept_df_concept is not None:
-            _tmp_df = old_df_concept.append(new_concept_df_concept)
-            df_concept = df_concept.append(_tmp_df)
-
-        # get indexes form net to new_index_df_concept
-        df_index_dict = {}
-        df_index_key_tuple = tuple(ct.INDEX_INFO.keys())
-        df_index_code_tuple = tuple(ct.INDEX_INFO.values())
-        df_index_type_tuple = tuple([ct.C_INDEX for i in range(len(df_index_key_tuple))])
-        df_index_key_list = []
-        for i in range(len(df_index_key_tuple)):
-            constituents = ts.get_index_constituent(df_index_key_tuple[i])
-            if constituents is not None:
-                df_index_key_list.append(json.dumps(constituents['code'].tolist(), ensure_ascii = False))
-        new_index_df_concept = DataFrame({'name':df_index_key_tuple,'code':df_index_code_tuple,'cType':df_index_type_tuple,'content':df_index_key_list})
-
-        # merge concept dict from file
-        if new_index_df_concept is not None:
-            df_concept = df_concept.append(new_index_df_concept)
-            df_concept.reindex()
-            df_concept = df_concept.drop_duplicates('name')
-
-        if df_concept is not None:
-            df_concept = df_concept.reset_index(drop = True)
-            self.mysql_client.set(df_concept, str(self.table))
+        new_df = DataFrame()
+        new_self_defined_df = self.read_self_defined()
+        new_self_defined_df['cType'] = ct.C_SELFD
+        new_self_defined_df['best'] = '0'
+        new_df = new_df.append(new_self_defined_df)
+        new_df = new_df.reset_index(drop = True)
+        return self.redis.set(ct.COMBINATION_INFO, _pickle.dumps(new_df, 2))
 
     @trace_func(log = logger)
-    def get(self, index_type = ct.C_INDEX):
-        sql = "select * from %s where cType = %s" % (self.table, index_type)
-        return self.mysql_client.get(sql)
+    def read_self_defined(self):
+        df = CustomerBlockReader().get_df(ct.TONG_DA_XIN_SELF_PATH, 1)
+        df = df[['block_type','blockname','code_list']]
+        df.columns = ['code', 'name', 'content']
+        return df
+        
+    @trace_func(log = logger)
+    def get(self, index_type = None):
+        df_byte = self.redis.get(ct.COMBINATION_INFO) 
+        if df_byte is None: return pd.DataFrame() 
+        df = _pickle.loads(df_byte)
+        if index_type is None: return df
+        return df[[df.cType == index_type]]
+
+if __name__ == '__main__':
+    cm = CombinationInfo(ct.DB_INFO, ct.COMBINATION_INFO_TABLE)
