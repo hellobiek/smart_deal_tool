@@ -40,7 +40,6 @@ def _fprint(obj):
     print("***************************s")
     print(obj)
     print("***************************e")
-    sys.exit(0)
 
 def delta_days(_from, _to):
     _from = time.strptime(_from,"%Y-%m-%d")
@@ -69,3 +68,16 @@ def delta_days(_from, _to):
     _from = datetime(_from[0],_from[1],_from[2])
     _to = datetime(_to[0],_to[1],_to[2])
     return (_to - _from).days
+
+def create_redis_obj(host = ct.REDIS_HOST, port = ct.REDIS_PORT, decode_responses = False):
+    import redis
+    pool = redis.ConnectionPool(host = host, port = port, decode_responses = decode_responses)
+    return redis.StrictRedis(connection_pool=pool)
+
+def df_delta(pos_df, neg_df, subset_list, keep = False):
+    pos_df = pos_df.append(neg_df)
+    pos_df = pos_df.append(neg_df)
+    return pos_df.drop_duplicates(subset=subset_list, keep=False)
+
+def get_redis_name(code_id):
+    return "RealTime%s" % code_id

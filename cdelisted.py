@@ -1,6 +1,7 @@
 #coding=utf-8
 from pandas import DataFrame
 import time
+import _pickle
 import datetime
 from datetime import datetime
 import const as ct
@@ -9,56 +10,68 @@ import pandas as pd
 import tushare as ts
 from log import getLogger
 from cmysql import CMySQL
-from common import trace_func, _fprint
+from common import trace_func, create_redis_obj, df_delta
 
 logger = getLogger(__name__)
 
 class CDelisted:
     @trace_func(log = logger)
     def __init__(self, dbinfo, table_name):
-        self.dbinfo = dbinfo
         self.table = table_name
+        self.trigger = ct.SYNC_DELISTED_2_REDIS
         self.mysql_client = CMySQL(dbinfo)
-        if not self.create(): raise Exception("create delisted info table:%s failed" % self.table)
+        self.redis = create_redis_obj()
+        if not self.create(): raise Exception("create delisted table failed")
+        if not self.init(True): raise Exception("init delisted table failed")
+        if not self.register(): raise Exception("create delisted trigger failed")
+
+    @trace_func(log = logger)
+    def register(self):
+        sql = "create trigger %s after insert on %s for each row set @set=gman_do_background('%s', json_object('name', NEW.name, 'code', NEW.code, 'oDate', NEW.oDate, 'tDate', NEW.tDate));" % (self.trigger, self.table, self.trigger)
+        return True if self.trigger in self.mysql_client.get_all_triggers() else self.mysql_client.register(sql, self.trigger)
 
     @trace_func(log = logger)
     def create(self):
-        sql = 'create table if not exists %s(code varchar(6),\
-                                              name varchar(8),\
-                                              oDate varchar(10),\
-                                              tDate varchar(10))' % self.table
-        return True if self.table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql)
+        sql = 'create table if not exists %s(code varchar(6), name varchar(8), oDate varchar(10), tDate varchar(10))' % self.table
+        return True if self.table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.table)
     
     @trace_func(log = logger)
-    def init(self):
+    def init(self, status):
+        #get new delisted data info
+        df_terminated = ts.get_terminated()
+        if df_terminated is None:return False
+        if not df_terminated.empty:
+            df = df_terminated
+        df_suspended = ts.get_suspended()
+        if df_suspended is None:return False
+        if not df_suspended.empty:
+            df = df.append(df_suspended)
+        if not df.empty:
+            df = df.reset_index(drop = True)
         #get old delisted data info
-        old_df_all = self.mysql_client.get(ct.SQL % self.table)
-        if old_df_all is not None:
-            #get new delisted data info
-            df_terminated = ts.get_terminated()
-            if not df_terminated.empty:
-                df = df_terminated
-            df_suspended = ts.get_suspended()
-            if not df_suspended.empty:
-                df = df.append(df_suspended)
-            if not df.empty:
-                df = df.reset_index(drop = True)
-                if not old_df_all.empty:
-                    old_df_all = old_df_all.reset_index(drop = True)
-                    df_all = old_df_all.append(df)
-                    df = df_all.drop_duplicates(subset = 'code')
-            self.mysql_client.set(df,self.table)
+        old_df_all = self.get()
+        if not old_df_all.empty:
+            df = df_delta(df, old_df_all, ['code'])
+        if df.empty: return True
+        res = self.mysql_client.set(df, self.table)
+        if not res: return False
+        if status: return self.redis.set(ct.DELISTED_INFO, _pickle.dumps(df, 2))
+
+    @trace_func(log = logger)
+    def get_list(self):
+        old_df_all = self.get()
+        return old_df_all['code'].tolist()
 
     @trace_func(log = logger)
     def get(self, code = None, column = None):
-        if code is None:return self.mysql_client.get(ct.SQL % self.table)
+        df_byte = self.redis.get(ct.DELISTED_INFO)
+        if df_byte is None: return pd.DataFrame()
+        df = _pickle.loads(df_byte)
+        if code is None: return df
         if column is None:
-            sql = "select * from %s where code=\"%s\"" % (self.table, code)
-            return self.mysql_client.get(sql)
+            return df.loc[df.code == code]
         else:
-            sql = "select %s from %s where code=\"%s\"" % (column, self.table, code)
-            df = self.mysql_client.get(sql)
-            return df[column][0]
+            return df.loc[df.code == code][column][0]
 
     @trace_func(log = logger)
     def is_dlisted(self, code_id, _date):
@@ -72,11 +85,6 @@ class CDelisted:
             return (datetime.strptime(_date, "%Y-%m-%d") - terminatedTime).days > 0
         return False
 
-    @trace_func(log = logger)
-    def get_list(self):
-        old_df_all = self.mysql_client.get(ct.SQL % self.table)
-        return old_df_all['code'].tolist()
-
 if __name__ == '__main__':
     cdlist = CDelisted(ct.DB_INFO, 'delisted')
-    print(cdlist.init())
+    cdlist.init()

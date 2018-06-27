@@ -1,5 +1,6 @@
 #coding=utf-8
 import time
+import _pickle
 import datetime
 from datetime import datetime
 import const as ct
@@ -10,65 +11,62 @@ from log import getLogger
 import ccalendar
 from cmysql import CMySQL
 from cstock_info import CStockInfo
-from common import trace_func, is_trading_time
-
+from common import trace_func, is_trading_time, create_redis_obj, df_delta
 logger = getLogger(__name__)
 
 class CHalted:
     @trace_func(log = logger)
-    def __init__(self, dbinfo, table, stock_info_table, calendar_table):
-        self.stock_info_client = CStockInfo(dbinfo, stock_info_table)
-        self.cal_client = ccalendar.CCalendar(dbinfo, calendar_table)
+    def __init__(self, dbinfo, table):
         self.table = table
+        self.trigger = ct.SYNC_HALTED_2_REDIS
         self.mysql_client = CMySQL(dbinfo)
-        if not self.create(): raise Exception("create chalted table:%s failed" % table)
+        self.redis = create_redis_obj()
+        if not self.create(): raise Exception("create chalted table failed")
+        if not self.init(True): raise Exception("init chalted table failed")
+        if not self.register(): raise Exception("create chalted trigger failed")
 
     @trace_func(log = logger)
     def create(self):
-        sql = 'create table if not exists %s(code varchar(6),\
-                                             name varchar(20),\
-                                             market varchar(20),\
-                                             date datetime,\
-                                             reason varchar(100))' % self.table
-        return True if self.table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql)
-   
+        sql = 'create table if not exists %s(code varchar(6), name varchar(20), market varchar(20), date varchar(10), stopReason varchar(100))' % self.table
+        return True if self.table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.table)
+  
     @trace_func(log = logger)
-    def choose(self, df):
-        stocks_all = self.stock_info_client.get()
-        return df[df['code'].isin(stocks_all['code'].tolist())]
+    def register(self):
+        sql = "create trigger %s after insert on %s for each row set @set=gman_do_background('%s', json_object('name', NEW.name, 'code', NEW.code, 'market', NEW.market, 'date', NEW.date, 'stopReason', NEW.stopReason));" % (self.trigger, self.table, self.trigger)
+        return True if self.trigger in self.mysql_client.get_all_triggers() else self.mysql_client.register(sql, self.trigger)
+
+    #@trace_func(log = logger)
+    #def choose(self, df):
+    #    stocks_all = self.redis.get(ct.STOCK_INFO)
+    #    return df[df['code'].isin(stocks_all['code'].tolist())]
 
     @trace_func(log = logger)
-    def init(self):
+    def init(self, status):
         df = ts.get_halted()
-        df = self.choose(df)
+        if df is None: return False
         old_df = self.get()
+        if old_df is None: return False
         if not old_df.empty:
-            df = old_df.append(df)
-            df = df.drop_duplicates(subset = ['date', 'code'])
-        self.mysql_client.set(df, self.table)
-
-    @trace_func(log = logger)
-    def run(self, sleep_time):
-        while True:
-            if not self.cal_client.is_trading_day(): 
-                time.sleep(ct.LONG_SLEEP_TIME)
-            else:
-                if is_trading_time(): 
-                    self.init()
-                time.sleep(sleep_time)
+            df = df_delta(df, old_df, ['date', 'code'])
+        if df.empty: return True
+        res = self.mysql_client.set(df, self.table)
+        if not res: return False
+        if status: return self.redis.set(ct.HALTED_INFO, _pickle.dumps(df, 2))
 
     @trace_func(log = logger)
     def is_halted(self, code_id, _date = None):
         if _date is None: _date = datetime.now().strftime('%Y-%m-%d') 
         df = self.get(_date)
-        if df is not None:
-            return True if code_id in df['code'].tolist() else False
-        #else: get failed from mysql 
+        if df is None: raise Exception("get chalted list failed") 
+        if df.empty: return False
+        return True if code_id in df['code'].tolist() else False
 
     @trace_func(log = logger)
     def get(self, _date = None):
+        df_byte = self.redis.get(ct.HALTED_INFO)
+        if df_byte is None: return pd.DataFrame()
+        df = _pickle.loads(df_byte)
         if _date is None:
-            sql = "select * from %s" % self.table
+            return df
         else:
-            sql = "select * from %s where date = %s" % (self.table, _date)
-        return self.mysql_client.get(sql)
+            return df.loc[df.date == _date]

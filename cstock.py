@@ -1,5 +1,6 @@
 #coding=utf-8
 import time
+import _pickle
 import datetime
 from datetime import datetime
 import const as ct
@@ -8,23 +9,20 @@ import tushare as ts
 import cstock_info as cs_info
 from cmysql import CMySQL
 from log import getLogger
-from common import trace_func,is_trading_time,_fprint
+from common import trace_func,is_trading_time,df_delta,create_redis_obj,get_redis_name
 
 logger = getLogger(__name__)
 
 class CStock:
-    #@trace_func(log = logger)
-    def __init__(self, dbinfo, code, info_table):
+    def __init__(self, dbinfo, code):
         self.code = code
+        self.redis = create_redis_obj()
+        self.name = self.get('name')
         self.data_type_dict = {'D':"%s_D" % code}
         self.realtime_table = "%s_realtime" % self.code
-        self.info_table = info_table
-        self.info_client = cs_info.CStockInfo(dbinfo, self.info_table)
         self.mysql_client = CMySQL(dbinfo)
-        self.name = self.get('name')
         if not self.create(): raise Exception("create stock %s table failed" % self.code)
 
-    #@trace_func(log = logger)
     def is_subnew(self, time2Market = None, timeLimit = 365):
         if time2Market == '0': return False #for stock has not been in market
         if time2Market == None: time2Market = self.get('timeToMarket')
@@ -33,20 +31,13 @@ class CStock:
         time2Market = datetime(y,m,d)
         return True if (datetime.today()-time2Market).days < timeLimit else False
 
-    #@trace_func(log = logger)
     def create_static(self):
         for _, table_name in self.data_type_dict.items():
             if table_name not in self.mysql_client.get_all_tables():
-                sql = 'create table if not exists %s(date varchar(10),\
-                                                    open float,\
-                                                    high float,\
-                                                    close float,\
-                                                    low float,\
-                                                    volume float)' % table_name
-                if not self.mysql_client.create(sql): return False
+                sql = 'create table if not exists %s(date varchar(10), open float, high float, close float, low float, volume float, code varchar(6))' % table_name 
+                if not self.mysql_client.create(sql, table_name): return False
         return True
 
-    #@trace_func(log = logger)
     def create_realtime(self):
         sql = 'create table if not exists %s(date varchar(25),\
                                               name varchar(20),\
@@ -84,59 +75,53 @@ class CStock:
                                               turnover float,\
                                               p_change float,\
                                               outstanding float,\
-                                              limit_dowm_time varchar(20),\
+                                              limit_down_time varchar(20),\
                                               limit_up_time varchar(20))' % self.realtime_table
-        return True if self.realtime_table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql)
+        return True if self.realtime_table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.realtime_table)
 
-    #@trace_func(log = logger)
-    def get(self, attribute):
-        sql = "select %s from %s where code = %s" % (attribute, self.info_table, self.code)
-        _info = self.mysql_client.get(sql)
-        return _info.loc[0, attribute]
-
-    #@trace_func(log = logger)
     def create(self):
         return self.create_static() and self.create_realtime()
 
-    #@trace_func(log = logger)
     def init(self):
-        old_data = self.get_k_data()
         _today = datetime.now().strftime('%Y-%m-%d')
         for d_type,d_table_name in self.data_type_dict.items():
-            new_data = ts.get_k_data(self.code,ktype=d_type,start=ct.START_DATE,end=_today,retry_count = ct.RETRY_TIMES)
+            new_data = ts.get_k_data(self.code, ktype=d_type, start=ct.START_DATE, end=_today, retry_count = ct.RETRY_TIMES)
             if not new_data.empty:
-                data = old_data.append(new_data)
-                data = data.drop_duplicates(subset = 'date').reset_index(drop=True)
-                self.mysql_client.set(data, d_table_name)
+                df = new_data.reset_index(drop=True)
+                self.mysql_client.set(df, d_table_name)
 
-    #@trace_func(log = logger)
+    def get(self, attribute):
+        df_byte = self.redis.get(ct.STOCK_INFO)
+        if df_byte is None: return None
+        df = _pickle.loads(df_byte)
+        return df.loc[df.code == self.code][attribute].values[0]
+
     def run(self, evt):
-        data = evt.get()
-        _info = data[data.name == self.name]
-        self.mysql_client.set(_info, self.realtime_table, method = ct.APPEND)
+        all_info = evt.get()
+        if all_info is not None:
+            _info = all_info[all_info.code == self.code]
+            _info['outstanding'] = self.get('outstanding')
+            _info['turnover'] = _info['volume'].astype(float).divide(_info['outstanding'])
+            self.redis.set(get_redis_name(self.code), _pickle.dumps(_info, 2))
+            self.mysql_client.set(_info, self.realtime_table)
 
-    ##collect realtime data
-    #@trace_func(log = logger)
-    #def run(self, sem, evt, data):
-    #    sem.acquire()
-    #    if is_trading_time():
-    #        _info = ts.get_realtime_quotes(self.code)
-    #        if _info is not None:
-    #            _info['limit_up_time'] = 0
-    #            _info['limit_down_time'] = 0
-    #            _info['outstanding'] = self.get('outstanding')
-    #            _info['turnover'] = _info['volume'].astype(float).divide(_info['outstanding'])
-    #            _info['p_change'] = 100 * (_info['price'].astype(float) - _info['pre_close'].astype(float)).divide(_info['pre_close'].astype(float))
-    #            now_time = datetime.now().strftime('%H-%M-%S')
-    #            _info['limit_up_time'] = now_time if _info['p_change'][0] > 9.9 else 0
-    #            _info['limit_down_time'] = now_time if _info['p_change'][0] < -9.9 else 0
-    #            sql = "select * from %s" % self.realtime_table
-    #            old_data = self.mysql_client.get(sql)
-    #            _info = old_data.append(_info)
-    #            self.mysql_client.set(_info, self.realtime_table)
-    #    sem.release()
+    def arun(self): 
+        _info = ts.get_realtime_quotes(self.code)
+        if _info is not None and not _info.empty:
+            ############################
+            ##### something to do  #####
+            _info['limit_up_time'] = 0
+            _info['limit_down_time'] = 0
+            ############################
+            convert_list = ['b1_v', 'b2_v', 'b3_v', 'b4_v', 'b5_v', 'a1_v', 'a2_v', 'a3_v', 'a4_v', 'a5_v']
+            for conver_str in convert_list:
+                _info[conver_str] = pd.to_numeric(_info[conver_str], errors='coerce')
+            _info['outstanding'] = self.get('outstanding')
+            _info['turnover'] = _info['volume'].astype(float).divide(_info['outstanding'])
+            _info['p_change'] = 100 * (_info['price'].astype(float) - _info['pre_close'].astype(float)).divide(_info['pre_close'].astype(float))
+            self.redis.set(get_redis_name(self.code), _pickle.dumps(_info, 2))
+            self.mysql_client.set(_info, self.realtime_table)
 
-    #@trace_func(log = logger)
     def get_k_data(self, date = None, dtype = 'D'):
         table_name = self.data_type_dict[dtype] 
         if date is not None:
@@ -145,10 +130,12 @@ class CStock:
             sql = "select * from %s" % table_name
         return self.mysql_client.get(sql)
 
-    #@trace_func(log = logger)
     def is_after_release(self, code_id, _date):
         time2Market = self.get('timeToMarket')
         t = time.strptime(str(time2Market), "%Y%m%d")
         y,m,d = t[0:3]
         time2Market = datetime(y,m,d)
         return (datetime.strptime(_date, "%Y-%m-%d") - time2Market).days > 0
+
+if __name__ == '__main__':
+    CStock(ct.DB_INFO, '300747')

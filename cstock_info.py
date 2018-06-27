@@ -1,24 +1,33 @@
 #coding=utf-8
 import time
-import datetime
-from datetime import datetime
 import cmysql
+import _pickle
+import datetime
+import combination 
+from datetime import datetime
 import pandas as pd
 import const as ct
 import tushare as ts
-import combination 
 from log import getLogger
-from common import trace_func
+from common import trace_func, create_redis_obj, df_delta
 
 logger = getLogger(__name__)
 
 class CStockInfo:
     @trace_func(log = logger)
-    def __init__(self,dbinfo,table_name):
+    def __init__(self, dbinfo, table_name):
         self.table = table_name
-        self.dbinfo = dbinfo
+        self.trigger = ct.SYNCSTOCK2REDIS
         self.mysql_client = cmysql.CMySQL(dbinfo)
+        self.redis = create_redis_obj()
         if not self.create(): raise Exception("create stock info table:%s failed" % self.table)
+        if not self.init(): raise Exception("init stock info table failed")
+        if not self.register(): raise Exception("create trigger info table:%s failed" % self.trigger)
+
+    @trace_func(log = logger)
+    def register(self):
+        sql = "create trigger %s after insert on %s for each row set @set=gman_do_background('%s',json_object('code',NEW.code,'name',NEW.name,'industry',NEW.industry,'area',NEW.area,'pe',NEW.pe,'outstanding',NEW.outstanding,'totals',NEW.totals,'totalAssets',NEW.totalAssets,'fixedAssets',NEW.fixedAssets,'liquidAssets',NEW.liquidAssets,'reserved',NEW.reserved,'reservedPerShare',NEW.reservedPerShare,'esp',NEW.esp,'bvps',NEW.bvps,'pb',NEW.pb,'timeToMarket',NEW.timeToMarket,'undp',NEW.undp,'perundp',NEW.perundp,'rev',NEW.rev,'profit',NEW.profit,'gpr',NEW.gpr,'npr',NEW.npr,'limitUpNum',NEW.limitUpNum,'limitDownNum',NEW.limitDownNum,'holders',NEW.holders));" % (self.trigger,self.table,self.trigger)
+        return True if self.trigger in self.mysql_client.get_all_triggers() else self.mysql_client.register(sql, self.trigger)
 
     @trace_func(log = logger)
     def create(self):
@@ -38,8 +47,8 @@ class CStockInfo:
                                               esp float,\
                                               bvps float,\
                                               pb float,\
-                                              timeToMarket datetime,\
-                                              timeLeaveMarket datetime,\
+                                              timeToMarket varchar(20),\
+                                              timeLeaveMarket varchar(20),\
                                               undp float,\
                                               perundp float,\
                                               rev float,\
@@ -49,50 +58,31 @@ class CStockInfo:
                                               limitUpNum int,\
                                               limitDownNum int,\
                                               holders int)' % self.table
-        return True if self.table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql)
-
-    @trace_func(log = logger)
-    def get_stock_data(self, code, date, dtype):
-        table_name = "%s_D" % code if dtype == 'D' else "%s_realtime" % code
-        if date is not None:
-            sql = "select * from %s where date=\"%s\"" % (table_name, date)
-            return self.mysql_client.get(sql)
-        else:
-            sql = "select * from %s" % table_name
-            data = self.mysql_client.get(sql)
-            #################################
-            # test in real time to collect info
-            #################################
+        return True if self.table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.table)
 
     @trace_func(log = logger)
     def init(self):
-        #get old stock data info
-        old_df_all = self.mysql_client.get(ct.SQL % self.table)
-        #get new stock data info
         df = ts.get_stock_basics()
-        if not df.empty:
-            df['limitUpNum'] = 0
-            df['limitDownNum'] = 0
-            df = df.reset_index(drop = False)
-            if not old_df_all.empty:
-                df_all = old_df_all.append(df, ignore_index=True)
-                df = df_all.drop_duplicates(subset = 'code')
-            self.mysql_client.set(df,self.table)
+        if df is None: return False 
+        df = df.reset_index(drop = False)
+        df['limitUpNum'] = 0
+        df['limitDownNum'] = 0
+        return self.redis.set(ct.STOCK_INFO, _pickle.dumps(df, 2))
 
     @trace_func(log = logger)
     def get(self, code = None, column = None):
-        if code is None:return self.mysql_client.get(ct.SQL % self.table)
+        df_byte = self.redis.get(ct.STOCK_INFO)
+        if df_byte is None: return pd.DataFrame()
+        df = _pickle.loads(df_byte)
+        if code is None: return df
         if column is None:
-            sql = "select * from %s where code=\"%s\"" % (self.table, code)
-            return self.mysql_client.get(sql)
+            return df.loc[df.code == code]
         else:
-            sql = "select %s from %s where code=\"%s\"" % (column, self.table, code)
-            df = self.mysql_client.get(sql)
-            return df[column][0]
+            return df.loc[df.code == code][column].values[0]
 
     @trace_func(log = logger)
     def get_classified_stocks(self, code_list = list()):
-        df = self.mysql_client.get(ct.SQL % self.table)
+        df = self.get()
         df = df[['code','name','timeToMarket','totals','outstanding','industry','area']]
         df['outstanding'] = df['outstanding'] * 1000000
         if len(code_list) > 0:
@@ -137,3 +127,19 @@ class CStockInfo:
     #    all_info[all_info["p_change"]>9.9]['limit_up_time'] = now_time
     #    all_info[all_info["p_change"]<-9.9]['limit_down_time'] = now_time
     #    self.mysql_client.set(all_info, table)
+
+    #@trace_func(log = logger)
+    #def get_stock_data(self, code, date, dtype):
+    #    table_name = "%s_D" % code if dtype == 'D' else "%s_realtime" % code
+    #    if date is not None:
+    #        sql = "select * from %s where date=\"%s\"" % (table_name, date)
+    #        return self.mysql_client.get(sql)
+    #    else:
+    #        sql = "select * from %s" % table_name
+    #        data = self.mysql_client.get(sql)
+    #        #################################
+    #        # test in real time to collect info
+    #        #################################
+
+if __name__ == '__main__':
+    CStockInfo(ct.DB_INFO, ct.STOCK_INFO_TABLE)
