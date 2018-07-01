@@ -7,6 +7,7 @@ import tushare as ts
 from log import getLogger
 from datetime import datetime
 from common import trace_func, create_redis_obj, df_delta
+
 logger = getLogger(__name__)
 
 class CCalendar:

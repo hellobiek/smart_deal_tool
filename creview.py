@@ -161,6 +161,7 @@ class CReivew:
             label_name = "%s:%s" % (df.loc[i]['name'], amount_list[i]/sum_amount)
             plt.bar(x, amount_list[i], width = 0.35, color=colors[i], bottom=base_line, align='center', label=label_name)
             base_line += amount_list[i]
+
         plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
         plt.gca().xaxis.set_major_locator(mdates.DayLocator())
         plt.xlabel('x轴', fontproperties = get_chinese_font())
@@ -177,6 +178,7 @@ class CReivew:
             else: total += changepercent
         aver = total / len(changepercent_list)
         data = {'date':["%s" % datetime.now().strftime('%Y-%m-%d')], 'score':[aver]}
+
         df = pd.DataFrame.from_dict(data)
         if not self.mysql_client.set(df, self.emotion_table):
             raise Exception("set data to emotion failed")
@@ -227,6 +229,7 @@ class CReivew:
         mor_open_hour,mor_open_minute,mor_open_second = (16,0,0)
         mor_open_time = datetime(y,m,d,mor_open_hour,mor_open_minute,mor_open_second)
         mor_close_hour,mor_close_minute,mor_close_second = (21,59,59)
+
         mor_close_time = datetime(y,m,d,mor_close_hour,mor_close_minute,mor_close_second)
         return mor_open_time < now_time < mor_close_time
 
@@ -296,6 +299,7 @@ class CReivew:
                     if data_dict[key][_index] > 5.0:
                         ax1.text(time_list[_index], data_dict[key][_index]*4, key, font_properties = get_chinese_font())
                 ax1.legend(fontsize = 'xx-small', bbox_to_anchor = (1.0, 1.0), ncol = 7, fancybox = True, prop = get_chinese_font())
+
         style.use('fivethirtyeight')
         Writer = animation.writers['ffmpeg']
         writer = Writer(fps=1, metadata=dict(artist='biek'), bitrate=1800)

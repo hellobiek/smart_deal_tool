@@ -22,8 +22,6 @@ def main():
     threadList.append(CThread(cr.update, 43200))
     threadList.append(CThread(cr.run, 0))
 
-    print(len(threadList))
-
     for thread in threadList:
         thread.start()
 
