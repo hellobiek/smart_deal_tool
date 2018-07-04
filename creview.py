@@ -16,12 +16,15 @@ from matplotlib import style
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 import matplotlib.dates as mdates
+import matplotlib.ticker as ticker
 import matplotlib.animation as animation
 from matplotlib.font_manager import FontProperties
 from cmysql import CMySQL
 from cdoc import CDoc
 import ccalendar
-from common import create_redis_obj, get_redis_name, is_trading_time
+from common import create_redis_obj, get_redis_name, is_trading_time, is_afternoon
+from log import getLogger
+logger = getLogger(__name__)
 
 def get_chinese_font():
     return FontProperties(fname='/conf/fonts/PingFang.ttc')
@@ -228,13 +231,13 @@ class CReivew:
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
         mor_open_hour,mor_open_minute,mor_open_second = (16,0,0)
         mor_open_time = datetime(y,m,d,mor_open_hour,mor_open_minute,mor_open_second)
-        mor_close_hour,mor_close_minute,mor_close_second = (21,59,59)
-
+        mor_close_hour,mor_close_minute,mor_close_second = (23,59,59)
         mor_close_time = datetime(y,m,d,mor_close_hour,mor_close_minute,mor_close_second)
         return mor_open_time < now_time < mor_close_time
 
     def update(self, sleep_time):
         while True:
+            logger.info("enter update function")
             try:
                 if self.cal_client.is_trading_day():
                     if self.is_collecting_time():
@@ -242,6 +245,7 @@ class CReivew:
                         _date = datetime.now().strftime('%Y-%m-%d')
                         dir_name = os.path.join(self.sdir, "%s-StockReView" % _date)
                         if not os.path.exists(dir_name):
+                            logger.info("create daily info")
                             os.makedirs(dir_name)
                             self.collect_industry_info()
                             df = self.gen_today_industry()
@@ -255,6 +259,7 @@ class CReivew:
                 traceback.print_exc()
 
     def run(self, sleep_time):
+        time.sleep(300)
         while True:
             try:
                 if self.cal_client.is_trading_day():
@@ -276,29 +281,34 @@ class CReivew:
         def animate(i):
             cdict = self.get_combination_dict()
             if len(cdict) > 0:
-                df = ts.get_realtime_quotes('sh')
-                p_change = 100 * (float(df.price.tolist()[0]) - float(df.pre_close.tolist()[0]))/float(df.pre_close.tolist()[0])
-                data_dict['上证指数'].append(p_change)
-                now_time = time.mktime(datetime.now().timetuple())
-                time_list.append(now_time)
-                for code in cdict:
-                    key = cdict[code]
-                    if key not in data_dict: data_dict[key] = list()
-                    df_byte = self.redis.get(get_redis_name(code))
-                    df = _pickle.loads(df_byte)
-                    p_change = 100 * (float(df.price.tolist()[0]) - float(df.pre_close.tolist()[0])) / float(df.pre_close.tolist()[0])
-                    data_dict[key].append(p_change)
-                ax1.clear()
-                plt.title('盯盘', fontproperties=get_chinese_font())
-                plt.xlabel('时间', fontproperties=get_chinese_font())
-                plt.ylabel('增长', fontproperties=get_chinese_font())
-                plt.ylim((-10, 50))
-                _index = len(time_list) - 1
-                for key in data_dict:
-                    ax1.plot(time_list, data_dict[key], label = key, linewidth = 1.5)
-                    if data_dict[key][_index] > 5.0:
-                        ax1.text(time_list[_index], data_dict[key][_index]*4, key, font_properties = get_chinese_font())
-                ax1.legend(fontsize = 'xx-small', bbox_to_anchor = (1.0, 1.0), ncol = 7, fancybox = True, prop = get_chinese_font())
+                try:
+                    df = ts.get_realtime_quotes('sh')
+                    p_change = 100 * (float(df.price.tolist()[0]) - float(df.pre_close.tolist()[0]))/float(df.pre_close.tolist()[0])
+                    data_dict['上证指数'].append(p_change)
+                    time_list.append(datetime.fromtimestamp(time.time()))
+                    for code in cdict:
+                        key = cdict[code]
+                        if key not in data_dict: data_dict[key] = list()
+                        df_byte = self.redis.get(get_redis_name(code))
+                        if df_byte is None: continue
+                        df = _pickle.loads(df_byte)
+                        p_change = 100 * (float(df.price.tolist()[0]) - float(df.pre_close.tolist()[0])) / float(df.pre_close.tolist()[0])
+                        data_dict[key].append(p_change)
+                    ax1.clear()
+                    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
+                    ax1.xaxis.set_major_locator(mdates.DayLocator())
+                    ax1.set_title('盯盘', fontproperties=get_chinese_font())
+                    ax1.set_xlabel('时间', fontproperties=get_chinese_font())
+                    ax1.set_ylabel('增长', fontproperties=get_chinese_font())
+                    ax1.set_ylim((-10, 50))
+                    _index = len(time_list) - 1
+                    for key in data_dict:
+                        ax1.plot(time_list, data_dict[key], label = key, linewidth = 1.5)
+                        if data_dict[key][_index] > 3.0:
+                            ax1.text(time_list[_index], data_dict[key][_index]*2, key, font_properties = get_chinese_font())
+                    ax1.legend(fontsize = 'xx-small', bbox_to_anchor = (1.0, 1.0), ncol = 7, fancybox = True, prop = get_chinese_font())
+                except Exception as e:
+                    traceback.print_exc()
 
         style.use('fivethirtyeight')
         Writer = animation.writers['ffmpeg']
@@ -306,4 +316,11 @@ class CReivew:
         fig = plt.figure()
         ax1 = fig.add_subplot(1,1,1)
         ani = animation.FuncAnimation(fig, animate, frames = condition, interval = 60000, repeat = False)
-        ani.save('/data/animation/%s_animation.mp4' % datetime.now().strftime('%Y-%m-%d'), writer = writer)
+        _date = datetime.now().strftime('%Y-%m-%d')
+        file_name = "morning_%s" % _date if is_afternoon() else "afternoon_%s" % _date
+        ani.save('/data/animation/%s_animation.mp4' % file_name, writer = writer)
+        plt.close(fig)
+
+if __name__ == '__main__':
+    creview = CReivew(ct.STAT_INFO)
+    creview.update(0)

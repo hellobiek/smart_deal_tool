@@ -27,30 +27,19 @@ class CHalted:
 
     @trace_func(log = logger)
     def create(self):
-        sql = 'create table if not exists %s(code varchar(6) not null, name varchar(20), market varchar(20), date varchar(10), stopReason varchar(100), PRIMARY KEY (code))' % self.table
+        sql = 'create table if not exists %s(code varchar(6) not null, name varchar(20), market varchar(20), stopReason varchar(100), PRIMARY KEY (code))' % self.table
         return True if self.table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.table)
   
     @trace_func(log = logger)
     def register(self):
-        sql = "create trigger %s after insert on %s for each row set @set=gman_do_background('%s', json_object('name', NEW.name, 'code', NEW.code, 'market', NEW.market, 'date', NEW.date, 'stopReason', NEW.stopReason));" % (self.trigger, self.table, self.trigger)
+        sql = "create trigger %s after insert on %s for each row set @set=gman_do_background('%s', json_object('name', NEW.name, 'code', NEW.code, 'market', NEW.market, 'stopReason', NEW.stopReason));" % (self.trigger, self.table, self.trigger)
         return True if self.trigger in self.mysql_client.get_all_triggers() else self.mysql_client.register(sql, self.trigger)
-
-    #@trace_func(log = logger)
-    #def choose(self, df):
-    #    stocks_all = self.redis.get(ct.STOCK_INFO)
-    #    return df[df['code'].isin(stocks_all['code'].tolist())]
 
     @trace_func(log = logger)
     def init(self, status):
         df = ts.get_halted()
         if df is None: return False
-        old_df = self.get()
-        if old_df is None: return False
-        if not old_df.empty:
-            df = df_delta(df, old_df, ['date', 'code'])
-        if df.empty: return True
-        res = self.mysql_client.set(df, self.table)
-        if not res: return False
+        if not self.mysql_client.set(df, self.table): return False
         if status: return self.redis.set(ct.HALTED_INFO, _pickle.dumps(df, 2))
 
     @trace_func(log = logger)

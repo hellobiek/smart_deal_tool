@@ -19,7 +19,7 @@ def main():
     threadList.append(CThread(dm.update, 3600))
 
     cr = CReivew(ct.STAT_INFO)
-    threadList.append(CThread(cr.update, 43200))
+    threadList.append(CThread(cr.update, 10800))
     threadList.append(CThread(cr.run, 0))
 
     for thread in threadList:
