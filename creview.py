@@ -317,7 +317,7 @@ class CReivew:
         ax1 = fig.add_subplot(1,1,1)
         ani = animation.FuncAnimation(fig, animate, frames = condition, interval = 60000, repeat = False)
         _date = datetime.now().strftime('%Y-%m-%d')
-        file_name = "morning_%s" % _date if is_afternoon() else "afternoon_%s" % _date
+        file_name = "afternoon_%s" % _date if is_afternoon() else "morning_%s" % _date
         ani.save('/data/animation/%s_animation.mp4' % file_name, writer = writer)
         plt.close(fig)
 
