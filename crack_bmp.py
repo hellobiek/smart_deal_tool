@@ -83,14 +83,3 @@ class crack_bmp:
             # print max_similarity_index
             code_str = code_str + str(max_similarity_index)
         return code_str
-
-        # new_name = os.path.splitext(file_name)[0]+"_1.jpg"
-        # im.save(new_name)
-
-        # if len(sys.argv) < 2:
-        #    print 'Usage: ./crackbmp.py file_name'
-        #    sys.exit()
-
-        # file_name=sys.argv[1]
-        # crack_bmp = crack_bmp()
-        # print crack_bmp.decode_from_file(file_name)

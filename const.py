@@ -35,7 +35,6 @@ const.SLEEP_TIME = 3
 const.SHORT_SLEEP_TIME = 1
 const.LONG_SLEEP_TIME = 10800 
 const.SLEEP_INTERVAL = 30
-const.CONCEPT_INPUT = "/code/concepts/concept.csv"
 ##########stock type##########
 const.MARKET_ALL = "MARKET_ALL"
 const.SZZS = "sh"
