@@ -9,9 +9,10 @@ import tushare as ts
 import cstock_info as cs_info
 from cmysql import CMySQL
 from log import getLogger
-from common import trace_func,is_trading_time,df_delta,create_redis_obj,get_redis_name
-
+from common import trace_func,is_trading_time,df_delta,create_redis_obj,get_redis_name,delta_days
 logger = getLogger(__name__)
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
 
 class CStock:
     def __init__(self, dbinfo, code):
@@ -20,6 +21,7 @@ class CStock:
         self.name = self.get('name')
         self.data_type_dict = {'D':"%s_D" % code}
         self.realtime_table = "%s_realtime" % self.code
+        self.ticket_table = "%s_ticket" % self.code
         self.mysql_client = CMySQL(dbinfo)
         if not self.create(): raise Exception("create stock %s table failed" % self.code)
 
@@ -37,6 +39,11 @@ class CStock:
                 sql = 'create table if not exists %s(date varchar(10), open float, high float, close float, low float, volume float, code varchar(6))' % table_name 
                 if not self.mysql_client.create(sql, table_name): return False
         return True
+
+    def create_ticket(self):
+        #sql = 'create table if not exists %s(date varchar(10) not null, ctime varchar(8) not null, price float(5,2), cchange varchar(10), volume int not null, amount int not null, ctype varchar(6) not null, PRIMARY KEY (date, ctime, volume, amount, ctype))' % self.ticket_table
+        sql = 'create table if not exists %s(date varchar(10) not null, ctime varchar(8) not null, price float(5,2), cchange varchar(10), volume int not null, amount int not null, ctype varchar(6) not null)' % self.ticket_table
+        return True if self.ticket_table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.ticket_table)
 
     def create_realtime(self):
         sql = 'create table if not exists %s(date varchar(25),\
@@ -80,7 +87,7 @@ class CStock:
         return True if self.realtime_table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.realtime_table)
 
     def create(self):
-        return self.create_static() and self.create_realtime()
+        return self.create_static() and self.create_realtime() and self.create_ticket()
 
     def init(self):
         _today = datetime.now().strftime('%Y-%m-%d')
@@ -105,22 +112,23 @@ class CStock:
             self.redis.set(get_redis_name(self.code), _pickle.dumps(_info, 2))
             self.mysql_client.set(_info, self.realtime_table)
 
-    def arun(self): 
-        _info = ts.get_realtime_quotes(self.code)
-        if _info is not None and not _info.empty:
-            ############################
-            ##### something to do  #####
-            _info['limit_up_time'] = 0
-            _info['limit_down_time'] = 0
-            ############################
-            convert_list = ['b1_v', 'b2_v', 'b3_v', 'b4_v', 'b5_v', 'a1_v', 'a2_v', 'a3_v', 'a4_v', 'a5_v']
-            for conver_str in convert_list:
-                _info[conver_str] = pd.to_numeric(_info[conver_str], errors='coerce')
-            _info['outstanding'] = self.get('outstanding')
-            _info['turnover'] = _info['volume'].astype(float).divide(_info['outstanding'])
-            _info['p_change'] = 100 * (_info['price'].astype(float) - _info['pre_close'].astype(float)).divide(_info['pre_close'].astype(float))
-            self.redis.set(get_redis_name(self.code), _pickle.dumps(_info, 2))
-            self.mysql_client.set(_info, self.realtime_table)
+    def set_ticket(self, cdate = None):
+        cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
+        df = ts.get_tick_data(self.code, date=cdate)
+        if df is None: return
+        if df.empty: return
+        if df.loc[0]['time'].find("当天没有数据") != -1: return
+        logger.info("code_id:%s, date:%s" % (self.code, cdate))
+        df.columns = ['ctime', 'price', 'cchange', 'volume', 'amount', 'ctype']
+        df['date'] = cdate
+        #df = df.drop_duplicates(subset = ['ctime', 'date', 'amount', 'volume', 'ctype']).reset_index(drop = True)
+        self.mysql_client.set(df, self.ticket_table)
+
+    def get_ma():
+        pass
+
+    def get_vmacd():
+        pass
 
     def get_k_data(self, date = None, dtype = 'D'):
         table_name = self.data_type_dict[dtype] 
@@ -137,5 +145,6 @@ class CStock:
         time2Market = datetime(y,m,d)
         return (datetime.strptime(_date, "%Y-%m-%d") - time2Market).days > 0
 
-if __name__ == '__main__':
-    CStock(ct.DB_INFO, '300747')
+if __name__ == "__main__":
+    cs = CStock(ct.DB_INFO, '300011')
+    cs.set_ticket('2014-01-02')

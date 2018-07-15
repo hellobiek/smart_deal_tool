@@ -5,8 +5,8 @@ import datetime
 import traceback
 from datetime import datetime
 import tushare as ts
-from MarkdownWriter import MarkdownWriter
-from MarkdownTable import MarkdownTable
+from markdown_writer import MarkdownWriter
+from markdown_table import MarkdownTable
 
 class CDoc:
     def __init__(self, fpath_dir):

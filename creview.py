@@ -236,8 +236,8 @@ class CReivew:
         return mor_open_time < now_time < mor_close_time
 
     def update(self, sleep_time):
+        time.sleep(300)
         while True:
-            logger.info("enter update function")
             try:
                 if self.cal_client.is_trading_day():
                     if self.is_collecting_time():
@@ -260,15 +260,13 @@ class CReivew:
 
     def run(self, sleep_time):
         time.sleep(300)
+        logger.info("enter run function")
         while True:
-            try:
-                if self.cal_client.is_trading_day():
-                    if is_trading_time() and False == self.animate_started:
-                        self.animate_started = True
-                        self.review_animate()
-                time.sleep(sleep_time)
-            except Exception as e:
-                traceback.print_exc()
+            if self.cal_client.is_trading_day():
+                if is_trading_time() and False == self.animate_started:
+                    self.animate_started = True
+                    self.review_animate()
+            time.sleep(sleep_time)
 
     def review_animate(self):
         def condition():
@@ -277,38 +275,45 @@ class CReivew:
             self.animate_started = False
 
         time_list = list()
-        data_dict = {'上证指数':list()}
+        data_dict = dict()
+        last_pchange = 0
         def animate(i):
             cdict = self.get_combination_dict()
             if len(cdict) > 0:
+                logger.info("enter run function %s" % i)
                 try:
                     df = ts.get_realtime_quotes('sh')
                     p_change = 100 * (float(df.price.tolist()[0]) - float(df.pre_close.tolist()[0]))/float(df.pre_close.tolist()[0])
+                    if '上证指数' not in data_dict: data_dict['上证指数'] = list()
                     data_dict['上证指数'].append(p_change)
-                    time_list.append(datetime.fromtimestamp(time.time()))
-                    for code in cdict:
-                        key = cdict[code]
-                        if key not in data_dict: data_dict[key] = list()
-                        df_byte = self.redis.get(get_redis_name(code))
-                        if df_byte is None: continue
-                        df = _pickle.loads(df_byte)
-                        p_change = 100 * (float(df.price.tolist()[0]) - float(df.pre_close.tolist()[0])) / float(df.pre_close.tolist()[0])
-                        data_dict[key].append(p_change)
-                    ax1.clear()
-                    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
-                    ax1.xaxis.set_major_locator(mdates.DayLocator())
-                    ax1.set_title('盯盘', fontproperties=get_chinese_font())
-                    ax1.set_xlabel('时间', fontproperties=get_chinese_font())
-                    ax1.set_ylabel('增长', fontproperties=get_chinese_font())
-                    ax1.set_ylim((-10, 50))
-                    _index = len(time_list) - 1
-                    for key in data_dict:
-                        ax1.plot(time_list, data_dict[key], label = key, linewidth = 1.5)
-                        if data_dict[key][_index] > 3.0:
-                            ax1.text(time_list[_index], data_dict[key][_index]*2, key, font_properties = get_chinese_font())
-                    ax1.legend(fontsize = 'xx-small', bbox_to_anchor = (1.0, 1.0), ncol = 7, fancybox = True, prop = get_chinese_font())
+                    last_pchange = p_change
                 except Exception as e:
-                    traceback.print_exc()
+                    if '上证指数' not in data_dict: data_dict['上证指数'] = list()
+                    data_dict['上证指数'].append(last_pchange)
+                    logger.info(e)
+                for code in cdict:
+                    key = cdict[code]
+                    if key not in data_dict: data_dict[key] = list()
+                    df_byte = self.redis.get(get_redis_name(code))
+                    if df_byte is None: continue
+                    df = _pickle.loads(df_byte)
+                    p_change = 100 * (float(df.price.tolist()[0]) - float(df.pre_close.tolist()[0])) / float(df.pre_close.tolist()[0])
+                    data_dict[key].append(p_change)
+                time_list.append(datetime.fromtimestamp(time.time()))
+                ax1.clear()
+                ax1.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
+                ax1.xaxis.set_major_locator(mdates.DayLocator())
+                ax1.set_title('盯盘', fontproperties=get_chinese_font())
+                ax1.set_xlabel('时间', fontproperties=get_chinese_font())
+                ax1.set_ylabel('增长', fontproperties=get_chinese_font())
+                ax1.set_ylim((-10, 50))
+                _index = len(time_list) - 1
+                for key in data_dict:
+                    logger.debug("x:%s, y:%s" % (time_list, data_dict[key]))
+                    ax1.plot(time_list, data_dict[key], label = key, linewidth = 1.5)
+                    if data_dict[key][_index] > 3.0:
+                        ax1.text(time_list[_index], data_dict[key][_index]*2, key, font_properties = get_chinese_font())
+                ax1.legend(fontsize = 'xx-small', bbox_to_anchor = (1.0, 1.0), ncol = 7, fancybox = True, prop = get_chinese_font())
 
         style.use('fivethirtyeight')
         Writer = animation.writers['ffmpeg']

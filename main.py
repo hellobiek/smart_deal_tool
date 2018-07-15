@@ -17,6 +17,7 @@ def main():
     dm = DataManager(ct.DB_INFO, ct.STOCK_INFO_TABLE, ct.COMBINATION_INFO_TABLE, ct.CALENDAR_TABLE, ct.DELISTED_INFO_TABLE, ct.HALTED_TABLE)
     threadList.append(CThread(dm.run, 0))
     threadList.append(CThread(dm.update, 3600))
+    threadList.append(CThread(dm.collect, 10800))
 
     cr = CReivew(ct.STAT_INFO)
     threadList.append(CThread(cr.update, 10800))

@@ -66,7 +66,7 @@ const.STAT_INFO = {'user':'root',
                  'database':'statistical_information'}
 const.UTF8 = "utf8"
 const.SQL = "select * from %s"
-const.RETRY_TIMES = 3
+const.RETRY_TIMES = 1
 const.START_DATE = '2014-01-01'
 const.AVERAGE_INDEX_LIST = ["700001_ALL", "700002_SH", "700003_SZ", "700004_CYB", "700005_SZ50", "700006_ZZ500", "700007_HS300", "700008_MSCI"]
 const.C_INDEX = 1

@@ -18,14 +18,16 @@ import cdelisted
 import combination
 import combination_info
 import const as ct
+import numpy as np
 import pandas as pd
 import tushare as ts
 from pandas import DataFrame
 from log import getLogger
 from datetime import datetime
-from common import trace_func,is_trading_time
+from common import trace_func,is_trading_time,delta_days,create_redis_obj
 pd.options.mode.chained_assignment = None #default='warn'
-pd.set_option('max_rows', 200)
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
 logger = getLogger(__name__)
 
 class DataManager:
@@ -48,6 +50,18 @@ class DataManager:
         mor_close_hour,mor_close_minute,mor_close_second = (23,59,59)
         mor_close_time = datetime(y,m,d,mor_close_hour,mor_close_minute,mor_close_second)
         return mor_open_time < now_time < mor_close_time
+
+    def collect(self, sleep_time):
+        time.sleep(30)
+        while True:
+            try:
+                #if self.cal_client.is_trading_day():
+                #    if self.is_collecting_time():
+                self.init_all_stock_tick()
+                time.sleep(sleep_time)
+            except Exception as e:
+                logger.error(e)
+                traceback.print_exc()
 
     def run(self, sleep_time):
         while True:
@@ -96,6 +110,32 @@ class DataManager:
         for _, code_id in trading_info['code'].iteritems():
             if str(code_id) not in self.objs: 
                 self.objs[str(code_id)] = combination.Combination(self.dbinfo, code_id)
+
+    def init_all_stock_tick(self):
+        df = self.stock_info_client.get()
+        start_date = ct.START_DATE
+        _today = datetime.now().strftime('%Y-%m-%d')
+        num_days = delta_days(start_date, _today)
+        start_date_dmy_format = time.strftime("%d/%m/%Y", time.strptime(start_date, "%Y-%m-%d"))
+        data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
+        date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
+        total_data = None
+        from cmysql import CMySQL
+        _mysql = CMySQL(self.dbinfo)
+        _redis = create_redis_obj()
+        for _date in date_only_array:
+            if self.cal_client.is_trading_day(_date):
+                for _, code_id in df.code.iteritems():
+                    #_table_name = "%s_ticket" % code_id
+                    #_mysql.exec_sql("drop table %s;" % _table_name)
+                    #_redis.srem('all_tables', _table_name)
+                    if code_id not in self.objs:
+                        self.objs[code_id] = cstock.CStock(self.dbinfo, code_id)
+                    try:
+                        self.objs[code_id].set_ticket(_date)
+                        time.sleep(3)
+                    except Exception as e:
+                        logger.info(e)
 
     def init_real_stock_info(self):
         concerned_list = self.get_concerned_list()

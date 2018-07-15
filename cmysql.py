@@ -60,7 +60,7 @@ class CMySQL:
             except sqlalchemy.exc.ProgrammingError as e:
                 log.info(e)
             except sqlalchemy.exc.IntegrityError as e:
-                log.debug(e)
+                log.info(e)
                 res = True
             if True == res:return True
         log.error("write to %s failed afer try %d times" % (table, ct.RETRY_TIMES))

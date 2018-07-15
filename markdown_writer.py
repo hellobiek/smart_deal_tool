@@ -1,5 +1,5 @@
 #-*- coding: utf-8 -*-
-from MarkdownTable import MarkdownTable
+from markdown_table import MarkdownTable
 class MarkdownWriter():
 	def __init__( self, stream="" ):
 		self.stream = stream
