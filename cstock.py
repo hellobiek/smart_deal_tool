@@ -6,6 +6,7 @@ from datetime import datetime
 import const as ct
 import pandas as pd
 import tushare as ts
+from pytdx.hq import TdxHq_API
 import cstock_info as cs_info
 from cmysql import CMySQL
 from log import getLogger
@@ -13,7 +14,6 @@ from common import trace_func,is_trading_time,df_delta,create_redis_obj,get_redi
 logger = getLogger(__name__)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
-
 class CStock:
     def __init__(self, dbinfo, code):
         self.code = code
@@ -41,8 +41,7 @@ class CStock:
         return True
 
     def create_ticket(self):
-        #sql = 'create table if not exists %s(date varchar(10) not null, ctime varchar(8) not null, price float(5,2), cchange varchar(10), volume int not null, amount int not null, ctype varchar(6) not null, PRIMARY KEY (date, ctime, volume, amount, ctype))' % self.ticket_table
-        sql = 'create table if not exists %s(date varchar(10) not null, ctime varchar(8) not null, price float(5,2), cchange varchar(10), volume int not null, amount int not null, ctype varchar(6) not null)' % self.ticket_table
+        sql = 'create table if not exists %s(date varchar(10) not null, ctime varchar(8) not null, price float(5,2), cchange varchar(10) not null, volume int not null, amount int not null, ctype varchar(6) not null, PRIMARY KEY (date, ctime, cchange, volume, amount, ctype))' % self.ticket_table
         return True if self.ticket_table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.ticket_table)
 
     def create_realtime(self):
@@ -112,16 +111,43 @@ class CStock:
             self.redis.set(get_redis_name(self.code), _pickle.dumps(_info, 2))
             self.mysql_client.set(_info, self.realtime_table)
 
+    def merge_ticket(self, df):
+        ex = df[df.duplicated(keep=False)]
+        dlist = list(ex.index)
+        while len(dlist) > 0:
+            snum = 1
+            sindex = dlist[0]
+            for _index in range(1, len(dlist)):
+                if sindex + 1 == dlist[_index]: 
+                    snum += 1
+                    if _index == len(dlist) -1:
+                        df.drop_duplicates(keep='first', inplace=True)
+                        df.set_value(sindex, 'volume', snum * df.loc[sindex]['volume'])
+                        df.set_value(sindex, 'amount', snum * df.loc[sindex]['amount'])
+                else:
+                    df.drop_duplicates(keep='first', inplace=True)
+                    df.set_value(sindex, 'volume', snum * df.loc[sindex]['volume'])
+                    df.set_value(sindex, 'amount', snum * df.loc[sindex]['amount'])
+                    sindex = dlist[_index]
+                    snum = 1
+            df = df.reset_index(drop = True)
+            ex = df[df.duplicated(keep=False)]
+            dlist = list(ex.index)
+        return df
+
+    def get_market(self):
+        return 1 if self.code.startswith('6') else 0
+
     def set_ticket(self, cdate = None):
         cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
         df = ts.get_tick_data(self.code, date=cdate)
         if df is None: return
         if df.empty: return
         if df.loc[0]['time'].find("当天没有数据") != -1: return
-        logger.info("code_id:%s, date:%s" % (self.code, cdate))
         df.columns = ['ctime', 'price', 'cchange', 'volume', 'amount', 'ctype']
         df['date'] = cdate
-        #df = df.drop_duplicates(subset = ['ctime', 'date', 'amount', 'volume', 'ctype']).reset_index(drop = True)
+        df = self.merge_ticket(df)
+        logger.info("code:%s, date:%s" % (self.code, cdate))
         self.mysql_client.set(df, self.ticket_table)
 
     def get_ma():
@@ -146,5 +172,5 @@ class CStock:
         return (datetime.strptime(_date, "%Y-%m-%d") - time2Market).days > 0
 
 if __name__ == "__main__":
-    cs = CStock(ct.DB_INFO, '300011')
-    cs.set_ticket('2014-01-02')
+    cs = CStock(ct.DB_INFO, '300016')
+    cs.set_ticket('2018-07-03')

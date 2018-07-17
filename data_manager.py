@@ -55,9 +55,9 @@ class DataManager:
         time.sleep(30)
         while True:
             try:
-                #if self.cal_client.is_trading_day():
-                #    if self.is_collecting_time():
-                self.init_all_stock_tick()
+                if self.cal_client.is_trading_day():
+                    #if self.is_collecting_time():
+                    self.init_all_stock_tick()
                 time.sleep(sleep_time)
             except Exception as e:
                 logger.error(e)
@@ -119,16 +119,10 @@ class DataManager:
         start_date_dmy_format = time.strftime("%d/%m/%Y", time.strptime(start_date, "%Y-%m-%d"))
         data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
         date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
-        total_data = None
-        from cmysql import CMySQL
-        _mysql = CMySQL(self.dbinfo)
-        _redis = create_redis_obj()
+        logger.info("init_all_stock_tick")
         for _date in date_only_array:
             if self.cal_client.is_trading_day(_date):
                 for _, code_id in df.code.iteritems():
-                    #_table_name = "%s_ticket" % code_id
-                    #_mysql.exec_sql("drop table %s;" % _table_name)
-                    #_redis.srem('all_tables', _table_name)
                     if code_id not in self.objs:
                         self.objs[code_id] = cstock.CStock(self.dbinfo, code_id)
                     try:

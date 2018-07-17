@@ -23,6 +23,9 @@ class Combination:
         self.realtime_table = "c%s_realtime" % code
         if not self.create(): raise Exception("create combination table failed")
 
+    def __del__(self):
+        self.redis.connection_pool.disconnect()
+
     def create_static(self):
         for _, table_name in self.data_type_dict.items():
             if table_name not in self.mysql_client.get_all_tables():
@@ -49,6 +52,7 @@ class Combination:
         df = all_info[all_info.code.isin(code_list)]
         trading_df = df[df.volume != '0']
         num = len(trading_df)
+        if 0 == num: return df
         _price = trading_df.price.astype(float).sum()/num
         _pre_close = trading_df.pre_close.astype(float).sum()/num
         _amount = trading_df.amount.astype(float).sum()/num

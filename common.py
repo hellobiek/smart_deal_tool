@@ -1,6 +1,7 @@
 # coding=utf-8
 import sys
 import time
+import redis
 import tempfile
 import datetime
 from datetime import datetime,timedelta
@@ -80,7 +81,6 @@ def delta_days(_from, _to):
     return (_to - _from).days
 
 def create_redis_obj(host = ct.REDIS_HOST, port = ct.REDIS_PORT, decode_responses = False):
-    import redis
     pool = redis.ConnectionPool(host = host, port = port, decode_responses = decode_responses)
     return redis.StrictRedis(connection_pool=pool)
 

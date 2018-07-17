@@ -41,10 +41,13 @@ class CMySQL:
         res = False
         for i in range(ct.RETRY_TIMES):
             try:
-                df = pd.read_sql_query(sql, self.engine)
+                conn = self.engine.connect()
+                df = pd.read_sql(sql, conn)
                 res = True
             except sqlalchemy.exc.OperationalError as e:
                 log.info(e)
+            finally: 
+                if 'conn' in dir(): conn.close()
             if True == res:return set(df[key].tolist()) if not df.empty else set()
         log.error("get all info failed afer try %d times" % ct.RETRY_TIMES)
         return set()
@@ -53,15 +56,18 @@ class CMySQL:
         res = False
         for i in range(ct.RETRY_TIMES):
             try:
-                data_frame.to_sql(table, self.engine, if_exists = method, index=False)
+                conn = self.engine.connect()
+                data_frame.to_sql(table, conn, if_exists = method, index=False)
                 res = True
             except sqlalchemy.exc.OperationalError as e:
                 log.info(e)
             except sqlalchemy.exc.ProgrammingError as e:
-                log.info(e)
+                log.debug(e)
             except sqlalchemy.exc.IntegrityError as e:
-                log.info(e)
+                log.debug(e)
                 res = True
+            finally:
+                if 'conn' in dir(): conn.close()
             if True == res:return True
         log.error("write to %s failed afer try %d times" % (table, ct.RETRY_TIMES))
         return res 
@@ -70,10 +76,13 @@ class CMySQL:
         res = False
         for i in range(ct.RETRY_TIMES):
             try:
-                data = pd.read_sql_query(sql, self.engine)
+                conn = self.engine.connect()
+                data = pd.read_sql_query(sql, conn)
                 res = True
             except sqlalchemy.exc.OperationalError as e:
                 log.debug(e)
+            finally:
+                if 'conn' in dir(): conn.close()
             if True == res: return data
         log.error("get %s failed afer try %d times" % (sql, ct.RETRY_TIMES))
         return None
@@ -92,6 +101,7 @@ class CMySQL:
                 hasSucceed = True
             except db.Error as e:
                 log.debug("error:%s" % str(e))
+                if 'conn' in dir(): conn.rollback()
             finally:
                 if 'cur' in dir(): cur.close()
                 if 'conn' in dir(): conn.close()
