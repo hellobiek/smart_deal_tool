@@ -113,7 +113,7 @@ class DataManager:
 
     def init_all_stock_tick(self):
         df = self.stock_info_client.get()
-        start_date = ct.START_DATE
+        start_date = '2017-06-09'
         _today = datetime.now().strftime('%Y-%m-%d')
         num_days = delta_days(start_date, _today)
         start_date_dmy_format = time.strftime("%d/%m/%Y", time.strptime(start_date, "%Y-%m-%d"))

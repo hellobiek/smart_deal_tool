@@ -173,4 +173,4 @@ class CStock:
 
 if __name__ == "__main__":
     cs = CStock(ct.DB_INFO, '300016')
-    cs.set_ticket('2018-07-03')
+    cs.set_ticket('2017-05-09')
