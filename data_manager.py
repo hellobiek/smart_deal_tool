@@ -4,8 +4,6 @@ from gevent import monkey
 monkey.patch_all(subprocess=True)
 from gevent.pool import Pool
 from gevent.event import AsyncResult
-import sys
-import pdb
 import time
 import json
 import datetime

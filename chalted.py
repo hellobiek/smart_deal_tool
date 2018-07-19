@@ -27,12 +27,12 @@ class CHalted:
 
     @trace_func(log = logger)
     def create(self):
-        sql = 'create table if not exists %s(code varchar(6) not null, name varchar(20), market varchar(20), stopReason varchar(100), PRIMARY KEY (code))' % self.table
+        sql = 'create table if not exists %s(code varchar(6) not null, name varchar(20), stopTime varchar(20), stopDate varchar(20), showDate varchar(20), market varchar(20), stopReason varchar(100), PRIMARY KEY (code))' % self.table
         return True if self.table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.table)
   
     @trace_func(log = logger)
     def register(self):
-        sql = "create trigger %s after insert on %s for each row set @set=gman_do_background('%s', json_object('name', NEW.name, 'code', NEW.code, 'market', NEW.market, 'stopReason', NEW.stopReason));" % (self.trigger, self.table, self.trigger)
+        sql = "create trigger %s after insert on %s for each row set @set=gman_do_background('%s', json_object('name', NEW.name, 'code', NEW.code, 'market', NEW.market, 'stopReason', NEW.stopReason, 'showDate', NEW.showDate, 'stopDate', NEW.stopDate, 'stopTime', NEW.stopTime));" % (self.trigger, self.table, self.trigger)
         return True if self.trigger in self.mysql_client.get_all_triggers() else self.mysql_client.register(sql, self.trigger)
 
     @trace_func(log = logger)

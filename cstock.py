@@ -140,11 +140,12 @@ class CStock:
 
     def is_date_exists(self, cdate):
         if self.redis.exists(self.ticket_table):
-            return cdate in set(str(cdate) for table in self.redis.smembers(self.ticket_table))
+            return cdate in set(str(table) for table in self.redis.smembers(self.ticket_table))
         return False
 
     def set_ticket(self, cdate = None):
         cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
+        logger.info("scode:%s, date:%s" % (self.code, cdate))
         if self.is_date_exists(cdate): return
         df = ts.get_tick_data(self.code, date=cdate)
         if df is None: return
