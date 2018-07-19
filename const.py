@@ -83,6 +83,11 @@ const.NOT_ENOUGH_STOCK = 2
 const.SETTLEMENT_TIME = 3 #999003088
 const.NOT_DEAL_TIME =4 #990297020
 const.NOT_RIGHT_ORDER_ID = 5 #990268040订单号不对
+const.NOT_CORRECT_PRICE = 6  #990265060价位不对
+const.PASSWORD_ERROR = 7 #980023096 账号或者密码不对
+const.SHENGOU_LIMIT = 8 #申购数量超过可申购额度
+const.REPEATED_SHENGOU = 9  #"-150906090新股配售同一只证券代码不允许重复委托!"
+const.NO_SUCH_CODE = 10  #no such code
 const.LOGIN_FAIL = 100 #login fail
 const.OTHER_ERROR = 999
 #############################
@@ -129,3 +134,7 @@ const.TONG_DA_XIN_CODE_PATH = "/tongdaxin/T0002/hq_cache/tdxhy.cfg"
 const.TONG_DA_XIN_SELF_PATH = "/tongdaxin/T0002/blocknew"
 const.TONG_DA_XIN_IP = '221.231.141.60'
 const.TONG_DA_XIN_PORT = 7709
+#############################
+const.MARKET_SH   = 1
+const.MARKET_SZ   = 0
+const.MARKET_OTHER = 10

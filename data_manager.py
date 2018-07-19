@@ -51,13 +51,27 @@ class DataManager:
         mor_close_time = datetime(y,m,d,mor_close_hour,mor_close_minute,mor_close_second)
         return mor_open_time < now_time < mor_close_time
 
+    def is_tcket_time(self, now_time = None):
+        if now_time is None:now_time = datetime.now()
+        _date = now_time.strftime('%Y-%m-%d')
+        y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
+        mor_open_hour,mor_open_minute,mor_open_second = (0,0,0)
+        mor_open_time = datetime(y,m,d,mor_open_hour,mor_open_minute,mor_open_second)
+        mor_close_hour,mor_close_minute,mor_close_second = (0,9,0)
+        mor_close_time = datetime(y,m,d,mor_close_hour,mor_close_minute,mor_close_second)
+        aft_open_hour,aft_open_minute,aft_open_second = (15,10,0)
+        aft_open_time = datetime(y,m,d,aft_open_hour,aft_open_minute,aft_open_second)
+        aft_close_hour,aft_close_minute,aft_close_second = (23,59,59)
+        aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
+        return (mor_open_time < now_time < mor_close_time) or (aft_open_time < now_time < aft_close_time)
+
     def collect(self, sleep_time):
         time.sleep(30)
         while True:
             try:
                 if self.cal_client.is_trading_day():
-                    #if self.is_collecting_time():
-                    self.init_all_stock_tick()
+                    if self.is_tcket_time():
+                        self.init_all_stock_tick()
                 time.sleep(sleep_time)
             except Exception as e:
                 logger.error(e)
@@ -119,7 +133,6 @@ class DataManager:
         start_date_dmy_format = time.strftime("%d/%m/%Y", time.strptime(start_date, "%Y-%m-%d"))
         data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
         date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
-        logger.info("init_all_stock_tick")
         for _date in date_only_array:
             if self.cal_client.is_trading_day(_date):
                 for _, code_id in df.code.iteritems():

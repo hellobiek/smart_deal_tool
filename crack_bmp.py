@@ -1,4 +1,3 @@
-#!/usr/local/bin/python3
 # coding:utf-8
 import os
 from PIL import Image, ImageEnhance, ImageFilter
@@ -54,7 +53,7 @@ class crack_bmp:
             val = valueList[i]
             row = i / total_col
             col = i % total_col
-            num_index = (col - 6) / 13
+            num_index = (int)((col - 6) / 13)
             #if i % total_col == 0 and i / total_col > 0:
             #    print "\n",
             if row < begin_row or row > end_row or col < begin_col or col > end_col:
@@ -83,3 +82,14 @@ class crack_bmp:
             # print max_similarity_index
             code_str = code_str + str(max_similarity_index)
         return code_str
+
+        # new_name = os.path.splitext(file_name)[0]+"_1.jpg"
+        # im.save(new_name)
+
+        # if len(sys.argv) < 2:
+        #    print 'Usage: ./crackbmp.py file_name'
+        #    sys.exit()
+
+        # file_name=sys.argv[1]
+        # crack_bmp = crack_bmp()
+        # print crack_bmp.decode_from_file(file_name)

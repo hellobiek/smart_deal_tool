@@ -8,6 +8,7 @@ import const as ct
 from log import getLogger
 from creview import CReivew
 from data_manager import DataManager
+from new_purchase import buy_new_stock 
 from cthread import CThread
 log = getLogger(__name__)
 

@@ -2,7 +2,7 @@
 import sys
 import time
 import redis
-import tempfile
+from tempfile import TemporaryFile
 import datetime
 from datetime import datetime,timedelta
 import const as ct
@@ -32,10 +32,9 @@ def gint(x):
         return int(x)
 
 def get_verified_code(tmp_buff):
-    temp = tempfile.TemporaryFile()
-    with open(temp.name, 'wb') as verify_pic:
+    with open('/tmp/1.jpg','wb') as verify_pic:
         verify_pic.write(tmp_buff)
-    return crack_bmp().decode_from_file(temp.name)
+    return crack_bmp().decode_from_file('/tmp/1.jpg')
 
 def _fprint(obj):
     print("***************************s")
@@ -91,3 +90,25 @@ def df_delta(pos_df, neg_df, subset_list, keep = False):
 
 def get_redis_name(code_id):
     return "RealTime%s" % code_id
+
+def get_market_name(stock_code):
+    if (stock_code.startswith("6") or stock_code.startswith("500") or stock_code.startswith("550") or stock_code.startswith("510")):
+        return "sh"
+    elif (stock_code.startswith("00") or stock_code.startswith("30") or stock_code.startswith("150") or stock_code.startswith("159")):
+        return "sz"
+    else:
+        return "none"
+
+def get_market(stock_code):
+    if (stock_code.startswith("6") or stock_code.startswith("500") or stock_code.startswith("550") or stock_code.startswith("510")) or stock_code.startswith("7"):
+        return ct.MARKET_SH
+    elif (stock_code.startswith("00") or stock_code.startswith("30") or stock_code.startswith("150") or stock_code.startswith("159")):
+        return ct.MARKET_SZ
+    else:
+        return ct.MARKET_OTHER
+
+def add_prifix(stock_code):
+    if get_market_name(stock_code) == "sh":
+        return "SH." + stock_code
+    else:
+        return "SZ." + stock_code

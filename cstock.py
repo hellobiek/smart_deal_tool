@@ -138,8 +138,14 @@ class CStock:
     def get_market(self):
         return 1 if self.code.startswith('6') else 0
 
+    def is_date_exists(self, cdate):
+        if self.redis.exists(self.ticket_table):
+            return cdate in set(str(cdate) for table in self.redis.smembers(self.ticket_table))
+        return False
+
     def set_ticket(self, cdate = None):
         cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
+        if self.is_date_exists(cdate): return
         df = ts.get_tick_data(self.code, date=cdate)
         if df is None: return
         if df.empty: return
@@ -148,7 +154,8 @@ class CStock:
         df['date'] = cdate
         df = self.merge_ticket(df)
         logger.info("code:%s, date:%s" % (self.code, cdate))
-        self.mysql_client.set(df, self.ticket_table)
+        if self.mysql_client.set(df, self.ticket_table):
+            self.redis.sadd(self.ticket_table, cdate)
 
     def get_ma():
         pass
@@ -172,5 +179,5 @@ class CStock:
         return (datetime.strptime(_date, "%Y-%m-%d") - time2Market).days > 0
 
 if __name__ == "__main__":
-    cs = CStock(ct.DB_INFO, '300016')
-    cs.set_ticket('2017-05-09')
+    cs = CStock(ct.DB_INFO, '601318')
+    cs.set_ticket('2018-07-17')

@@ -1,13 +1,16 @@
 #!/usr/local/bin/python3
 # coding=utf-8
-import json,random,re,string,time
+import json
+import re
+import time
+import random
+import string
+import const as ct
 from lxml import html
-from log import getLogger
+from html_parser import *
 from client import Client
-from stock import Stock
-from html_parser import html_parser
-from common import get_verified_code
-from const import MARKET_SH,MARKET_SZ,gw_ret_code,USER_FILE,SUBMITTED,ONGOING
+from log import getLogger
+from common import get_verified_code, get_market
 
 VALIDATE_IMG_URL = "https://trade.cgws.com/cgi-bin/img/validateimg"
 LOGIN_URL = "https://trade.cgws.com/cgi-bin/user/Login"
@@ -15,38 +18,36 @@ DEAL_URL = "https://trade.cgws.com/cgi-bin/stock/StockEntrust?function=StockBusi
 CANCEL_ORDER_URL = "https://trade.cgws.com/cgi-bin/stock/StockEntrust?function=StockCancel"
 SUBMITTED_ORDER_URL = "https://trade.cgws.com/cgi-bin/stock/EntrustQuery?function=MyStock&stktype=0"
 ACCOUNT_URL = "https://trade.cgws.com/cgi-bin/stock/EntrustQuery?function=MyAccount"
+HOLDING_URL = "https://trade.cgws.com/cgi-bin/stock/EntrustQuery?function=MyStock&stktype=0"
 STOCK_INFO_URL = "https://trade.cgws.com/cgi-bin/stock/EntrustQuery?function=QueryStockInfo"
 STOCK_MONUT = "https://trade.cgws.com/cgi-bin/stock/EntrustQuery"
 
-class StockAI:
+class Trader:
     def __init__(self, account, passwd, sh_id, sz_id):
-        self.stocks = []
         self.secuids = {
-            MARKET_SH: sh_id,
-            MARKET_SZ: sz_id
+            ct.MARKET_SH: sh_id,
+            ct.MARKET_SZ: sz_id
         }
+        self.log = getLogger(__name__)
         self.passwd = passwd
         self.account = account
         self.client = Client()
-        self.log = getLogger(__name__)
+        ret = self.prepare()
+        if ret != 0: raise Exception("login failed, return value:%s" % ret)
 
-    #get the cooikie from stock
     def prepare(self):
         #preprea for login
-        (ret, result) = self.client.prepare()
+        ret= self.client.prepare()
         if ret != 0:
-            self.log.warn("get verified code fail: ret=%d" % ret)
+            self.log.warn("prepare fail: ret=%d" % ret)
             return -5
         #get verify img
-        text_body = {
-            "rand": random.random()
-        }
+        text_body = {"rand": random.random()}
         (ret, tmp_buff) = self.client.get(VALIDATE_IMG_URL, text_body)
         if ret != 0:
             self.log.warn("get verified code fail: ret=%d" % ret)
             return -10
         verify_code = get_verified_code(tmp_buff)
-        ##################login######################
         post_data={
             'ticket': verify_code,
             'retUrl':'',
@@ -58,17 +59,12 @@ class StockAI:
             'isSaveAccount':'1',
             'normalpassword':'',
         }
-        (ret, result) = self.client.post(LOGIN_URL, post_data)
-        if ret != 0:
-            return -15
-        return 0
+        (ret, _) = self.client.post(LOGIN_URL, post_data)
+        return ret
 
-    def deal(self, stock, deal_price, amount, action):
-        ret = self.prepare()
-        if ret != 0:
-            return gw_ret_code.LOGIN_FAIL, "login failed"
-        self.log.info("%s action: %s, current price:%s deal price:%s, amount:%s" % (stock.code,action,stock.price,deal_price,amount))
-        market_id  = stock.market
+    #action: "B" for buy, "S" for sell
+    def deal(self, code, price, amount, action):
+        market_id = get_market(code) 
         up_limit = 0 
         down_limit = 0
         secuid = self.secuids[market_id]
@@ -80,81 +76,88 @@ class StockAI:
             "down_limit": down_limit,
             "stktype": "0",
             "secuid": secuid,
-            "stkcode": stock.code,
+            "stkcode": code,
             "stockName":"",
-            "price": deal_price,
+            "price": price,
             "fundavl": "1.00",
             "maxBuy": maxBuy,
             "amount": amount
         }
         (ret, result) = self.client.post(DEAL_URL, post_data)
+        self.log.info("%s action: %s, current price:%s, amount:%s" % (code, action, price, amount))
         if ret != 0:
             self.log.warn("post to url fail: ret=%d" % ret)
-            return -10;
+            return -10
         #check if has error
-        reg = re.compile(ur'.*alert.*\[-(\d{6,})\]')
-        match = reg.search(result)
+        reg = re.compile(r'.*alert.*\[-(\d{6,})\]')
+        match = reg.search(result.decode('gbk', "ignore"))
         if match:
             if match.group(1) == "150906130":
-                return gw_ret_code.NOT_ENOUGH_MONEY, "no enough money"
+                return ct.NOT_ENOUGH_MONEY, "no enough money"
             elif match.group(1) == "150906135":
-                return gw_ret_code.NOT_ENOUGH_STOCK, "no enough stocks for sell"
+                return ct.NOT_ENOUGH_STOCK, "no enough stocks for sell"
             elif match.group(1) == "999003088":
-                return gw_ret_code.SETTLEMENT_TIME,  "deal forbidden"
+                return ct.SETTLEMENT_TIME,  "deal forbidden"
             elif match.group(1) == "990297020":
-                return gw_ret_code.NOT_DEAL_TIME, "not in deal time"
+                return ct.NOT_DEAL_TIME, "not in deal time"
+            elif match.group(1) == "990265060":
+                return ct.NOT_CORRECT_PRICE, "price is not right"
+            elif match.group(1) == "150906090":
+                return ct.REPEATED_SHENGOU, "new stock can not be duplicated delegation."
+            elif match.group(1) == "990221020":
+                return ct.NO_SUCH_CODE, "not such code:%s." % code
             else:
-                return gw_ret_code.OTHER_ERROR, "other err"
+                return ct.OTHER_ERROR, "other err"
+        else:
+            reg = re.compile('.*alert.*新股申购数量超出.*\[(\d{3,})\]')
+            match = reg.search(result.decode('gbk', "ignore"))
+            if match:
+                return ct.SHENGOU_LIMIT, match.group(1)
+            else:
+                return ct.OTHER_ERROR, "other error"
         #parse the deal id. if not exist return ""
-        self.log.info(result.decode("gbk"))
-        reg = re.compile(ur'alert.*(\d{4})')
-        match = reg.search(result)
+        reg = re.compile(r'alert.*(\d{4})')
+        match = reg.search(result.decode("gbk", "ignore"))
         if match:
-            self.log.info("deal id :%s" % match.group(1))
             return 0, match.group(1)
         else:
             return -5, "err happened need check."
 
     def cancel(self, order_id):
-        ret = self.prepare()
-        if ret != 0:
-            return  gw_ret_code.LOGIN_FAIL, "login failed"
-        ############ post buy order #######################
-        post_data={
-            "id": order_id
-        }
+        post_data = {"id": order_id}
         (ret, result) = self.client.post(CANCEL_ORDER_URL, post_data)
         if ret != 0:
             self.log.warn("get to url fail: ret=%d" % ret)
             return -5, None
         # check if has error
-        reg = re.compile(ur'.*alert.*\[-(\d{6,})\]')
-        match = reg.search(result)
+        reg = re.compile(r'.*alert.*\[-(\d{6,})\]')
+        match = reg.search(result.decode("gbk", "ignore"))
         if match:
             if match.group(1) == "990268040":
-                return gw_ret_code.NOT_RIGHT_ORDER_ID, "order id:%s is not right" % order_id 
+                return ct.NOT_RIGHT_ORDER_ID, "order id:%s is not right" % order_id 
             else:
-                return gw_ret_code.OTHER_ERROR, "other error"
+                return ct.OTHER_ERROR, "other error"
         return 0, None
 
     #query account info
     def accounts(self):
-        ret = self.prepare()
-        if ret != 0:
-            return  gw_ret_code.LOGIN_FAIL, "login failed"
-        (ret, result) = self.client.get(ACCOUNT_URL, "")
+        (ret, result) = self.client.get(ACCOUNT_URL)
         if ret != 0:
             self.log.warn("get to url fail: ret=%d" % ret)
             return -5, "get accounts url failed"
         return 0, html_parser(result).get_account()
 
+    def holdings(self):
+        (ret, result) = self.client.get(HOLDING_URL)
+        if ret != 0:
+            logging.warn("get to url fail: ret=%d" % ret)
+            return -5, None
+        return 0, html_parser(result).get_holdings()
+
     #query orders if order_type = SUBMITTED get the submitted order, 
     #ONGOING get the onging order 
     def orders(self, order_type):
-        ret = self.prepare()
-        if ret != 0:
-            return  gw_ret_code.LOGIN_FAIL, "login failed"
-        if order_type == ONGOING:
+        if order_type == ct.ONGOING:
             query_url = CANCEL_ORDER_URL
         else:
             query_url = SUBMITTED_ORDER_URL
@@ -164,19 +167,16 @@ class StockAI:
             return -5, "get order url failed"
         return 0, html_parser(result).get_onging_orders()
 
-    #query max stock for new stock first appear in market 
-    def amounts(self, stock):
-        ret = self.prepare()
-        if ret != 0:
-            return  gw_ret_code.LOGIN_FAIL, "login failed"
+    def max_amounts(self, code, price):
         randNum = str(int(time.time())) + "".join(map(lambda x:random.choice(string.digits), range(3)))
+        market_id = get_market(code)
         text_body = {
             "function": "ajaxMaxAmount",
-            "market": stock.market,
-            "secuid": self.secuids[stock.market],
-            "stkcode": stock.code,
+            "market": market_id,
+            "secuid": self.secuids[market_id],
+            "stkcode": code,
             "bsflag": "B",
-            "price": stock.price,
+            "price": price,
             "rand": randNum
         } 
         (ret, result) = self.client.get(STOCK_MONUT, text_body)
@@ -184,12 +184,15 @@ class StockAI:
             self.log.warn("get to url fail: ret=%d" % ret)
             return -5, "get order url failed"
         stock_info = json.loads(result)
-        return int(stock_info[0]['errorCode']), stock_info[0]['maxstkqty'] 
-   
+        return int(stock_info[0]['errorCode']), stock_info[0]['maxstkqty']
+
 if '__main__' == __name__:
-    with open(USER_FILE) as f:
-        quants = json.load(f)
-    stockAI = StockAI(quants[0]["account"], quants[0]["passwd_encrypted"], quants[0]["secuids_sh"], quants[0]["secuids_sz"])
-    stock = Stock('300648','星云股份','15.74') 
-    ret, num = stockAI.amounts(stock)
-    print(stockAI.deal(stock, stock.price, num, "B"))
+    with open(ct.USER_FILE) as f:
+        infos = json.load(f)
+    trader = Trader(infos[0]["account"], infos[0]["passwd_encrypted"], infos[0]["secuids_sh"], infos[0]["secuids_sz"])
+    print(trader.deal('002321', 6.27, 100, 'S'))
+    print(trader.accounts())
+    print(trader.holdings())
+    print(trader.orders(ct.ONGOING))
+    print(trader.orders(ct.SUBMITTED))
+    print(trader.orders(ct.SUBMITTED))

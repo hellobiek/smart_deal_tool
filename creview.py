@@ -278,6 +278,7 @@ class CReivew:
         data_dict = dict()
         last_pchange = 0
         def animate(i):
+            global last_pchange
             cdict = self.get_combination_dict()
             if len(cdict) > 0:
                 logger.info("enter run function %s" % i)
