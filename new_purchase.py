@@ -6,9 +6,9 @@ import pandas as pd
 import tushare as ts
 from trader import Trader
 from log import getLogger
-from const import USER_FILE
+import const as ct
 
-STOCK_NUM = 40
+STOCK_NUM = 30
 IPO_DATE_HEAD = 'ipo_date'
 IPO_CODE_HEAD = 'xcode'
 IPO_PRICE_HEAD = 'price'
@@ -35,3 +35,6 @@ def get_new_stock_list():
             price = stocks_info.at[i, IPO_PRICE_HEAD]
             stock_list.append(tuple(code, price))
     return stock_list
+
+if __name__ == "__main__":
+    buy_new_stock()

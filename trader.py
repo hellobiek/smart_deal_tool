@@ -84,7 +84,7 @@ class Trader:
             "amount": amount
         }
         (ret, result) = self.client.post(DEAL_URL, post_data)
-        self.log.info("%s action: %s, current price:%s, amount:%s" % (code, action, price, amount))
+        self.log.debug("%s action: %s, current price:%s, amount:%s" % (code, action, price, amount))
         if ret != 0:
             self.log.warn("post to url fail: ret=%d" % ret)
             return -10

@@ -37,7 +37,7 @@ class DataManager:
         self.comb_info_client = combination_info.CombinationInfo(dbinfo, combination_info_table)
         self.stock_info_client = cstock_info.CStockInfo(dbinfo, stock_info_table)
         self.delisted_info_client = cdelisted.CDelisted(dbinfo, delisted_table)
-        self.halted_info_client = chalted.CHalted(dbinfo, halted_table)
+        #self.halted_info_client = chalted.CHalted(dbinfo, halted_table)
 
     def is_collecting_time(self, now_time = None):
         if now_time is None:now_time = datetime.now()
@@ -55,7 +55,7 @@ class DataManager:
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
         mor_open_hour,mor_open_minute,mor_open_second = (0,0,0)
         mor_open_time = datetime(y,m,d,mor_open_hour,mor_open_minute,mor_open_second)
-        mor_close_hour,mor_close_minute,mor_close_second = (0,9,0)
+        mor_close_hour,mor_close_minute,mor_close_second = (9,0,0)
         mor_close_time = datetime(y,m,d,mor_close_hour,mor_close_minute,mor_close_second)
         aft_open_hour,aft_open_minute,aft_open_second = (15,10,0)
         aft_open_time = datetime(y,m,d,aft_open_hour,aft_open_minute,aft_open_second)
@@ -67,9 +67,7 @@ class DataManager:
         time.sleep(30)
         while True:
             try:
-                if self.cal_client.is_trading_day():
-                    if self.is_tcket_time():
-                        self.init_all_stock_tick()
+                self.init_all_stock_tick()
                 time.sleep(sleep_time)
             except Exception as e:
                 logger.error(e)
@@ -104,7 +102,7 @@ class DataManager:
         self.comb_info_client.init()
         self.stock_info_client.init()
         self.delisted_info_client.init(status)
-        self.halted_info_client.init(status)
+        #self.halted_info_client.init(status)
 
     def get_concerned_list(self):
         combination_info = self.comb_info_client.get()
@@ -137,8 +135,9 @@ class DataManager:
                     if code_id not in self.objs:
                         self.objs[code_id] = cstock.CStock(self.dbinfo, code_id)
                     try:
+                        logger.info("start code:%s, date:%s" % (code_id, _date))
                         self.objs[code_id].set_ticket(_date)
-                        time.sleep(3)
+                        time.sleep(1)
                     except Exception as e:
                         logger.info(e)
 

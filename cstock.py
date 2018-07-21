@@ -25,6 +25,17 @@ class CStock:
         self.mysql_client = CMySQL(dbinfo)
         if not self.create(): raise Exception("create stock %s table failed" % self.code)
 
+    def has_on_market(self, cdate):
+        time2Market = self.get('timeToMarket')
+        t = time.strptime(str(time2Market), "%Y%m%d")
+        y,m,d = t[0:3]
+        time2Market = datetime(y,m,d)
+
+        t = time.strptime(cdate, "%Y-%m-%d")
+        y,m,d = t[0:3]
+        time4Date = datetime(y,m,d)
+        return True if (time4Date - time2Market).days > 0 else False
+
     def is_subnew(self, time2Market = None, timeLimit = 365):
         if time2Market == '0': return False #for stock has not been in market
         if time2Market == None: time2Market = self.get('timeToMarket')
@@ -112,7 +123,7 @@ class CStock:
             self.mysql_client.set(_info, self.realtime_table)
 
     def merge_ticket(self, df):
-        ex = df[df.duplicated(keep=False)]
+        ex = df[df.duplicated(subset = ['ctime', 'cchange', 'volume', 'amount', 'ctype'], keep=False)]
         dlist = list(ex.index)
         while len(dlist) > 0:
             snum = 1
@@ -122,16 +133,16 @@ class CStock:
                     snum += 1
                     if _index == len(dlist) -1:
                         df.drop_duplicates(keep='first', inplace=True)
-                        df.set_value(sindex, 'volume', snum * df.loc[sindex]['volume'])
-                        df.set_value(sindex, 'amount', snum * df.loc[sindex]['amount'])
+                        df.at[sindex, 'volume'] = snum * df.loc[sindex]['volume']
+                        df.at[sindex, 'amount'] = snum * df.loc[sindex]['amount']
                 else:
                     df.drop_duplicates(keep='first', inplace=True)
-                    df.set_value(sindex, 'volume', snum * df.loc[sindex]['volume'])
-                    df.set_value(sindex, 'amount', snum * df.loc[sindex]['amount'])
+                    df.at[sindex, 'volume'] = snum * df.loc[sindex]['volume']
+                    df.at[sindex, 'amount'] = snum * df.loc[sindex]['amount']
                     sindex = dlist[_index]
                     snum = 1
             df = df.reset_index(drop = True)
-            ex = df[df.duplicated(keep=False)]
+            ex = df[df.duplicated(subset = ['ctime', 'cchange', 'volume', 'amount', 'ctype'], keep=False)]
             dlist = list(ex.index)
         return df
 
@@ -140,17 +151,27 @@ class CStock:
 
     def is_date_exists(self, cdate):
         if self.redis.exists(self.ticket_table):
-            return cdate in set(str(table) for table in self.redis.smembers(self.ticket_table))
+            return cdate in set(str(table, encoding = "utf8") for table in self.redis.smembers(self.ticket_table))
         return False
 
     def set_ticket(self, cdate = None):
         cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
-        logger.info("scode:%s, date:%s" % (self.code, cdate))
-        if self.is_date_exists(cdate): return
+        if not self.has_on_market(cdate):
+            logger.info("not on market code:%s, date:%s" % (self.code, cdate))
+            return
+        if self.is_date_exists(cdate): 
+            logger.info("existed code:%s, date:%s" % (self.code, cdate))
+            return
         df = ts.get_tick_data(self.code, date=cdate)
-        if df is None: return
-        if df.empty: return
-        if df.loc[0]['time'].find("当天没有数据") != -1: return
+        if df is None: 
+            logger.info("nonedata code:%s, date:%s" % (self.code, cdate))
+            return
+        if df.empty: 
+            logger.info("emptydata code:%s, date:%s" % (self.code, cdate))
+            return
+        if df.loc[0]['time'].find("当天没有数据") != -1: 
+            logger.info("nodata code:%s, date:%s" % (self.code, cdate))
+            return
         df.columns = ['ctime', 'price', 'cchange', 'volume', 'amount', 'ctype']
         df['date'] = cdate
         df = self.merge_ticket(df)
@@ -180,5 +201,6 @@ class CStock:
         return (datetime.strptime(_date, "%Y-%m-%d") - time2Market).days > 0
 
 if __name__ == "__main__":
-    cs = CStock(ct.DB_INFO, '601318')
-    cs.set_ticket('2018-07-17')
+    cs = CStock(ct.DB_INFO, '600874')
+    cs.set_ticket('2017-09-08')
+    print(cs.has_on_market('2017-09-08'))
