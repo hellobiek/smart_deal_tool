@@ -19,7 +19,7 @@ class CMySQL:
     def __init__(self, dbinfo):
         self.dbinfo = dbinfo
         self.redis = create_redis_obj()
-        self.engine = create_engine("mysql://%(user)s:%(password)s@%(host)s/%(database)s?charset=utf8" % dbinfo)
+        self.engine = create_engine("mysql://%(user)s:%(password)s@%(host)s/%(database)s?charset=utf8" % dbinfo, pool_size=0 , max_overflow=-1, pool_recycle=1200)
 
     def get_all_tables(self):
         if self.redis.exists(ALL_TABLES):
@@ -42,11 +42,18 @@ class CMySQL:
         for i in range(ct.RETRY_TIMES):
             try:
                 conn = self.engine.connect()
+                #trans = conn.begin()
+                #cur = conn.cursor()
                 df = pd.read_sql(sql, conn)
                 res = True
             except sqlalchemy.exc.OperationalError as e:
+                #if 'trans' in dir(): trans.rollback()
                 log.info(e)
+            except Exception as e:
+                #if 'trans' in dir(): trans.rollback()
+                log.debug(e)
             finally: 
+                #if 'cur' in dir(): cur.close()
                 if 'conn' in dir(): conn.close()
             if True == res:return set(df[key].tolist()) if not df.empty else set()
         log.error("get all info failed afer try %d times" % ct.RETRY_TIMES)
@@ -57,16 +64,22 @@ class CMySQL:
         for i in range(ct.RETRY_TIMES):
             try:
                 conn = self.engine.connect()
+                #trans = conn.begin()
+                #cur = conn.cursor()
                 data_frame.to_sql(table, conn, if_exists = method, index=False)
                 res = True
             except sqlalchemy.exc.OperationalError as e:
+                #if 'trans' in dir(): trans.rollback()
                 log.info(e)
             except sqlalchemy.exc.ProgrammingError as e:
+                #if 'trans' in dir(): trans.rollback()
                 log.debug(e)
             except sqlalchemy.exc.IntegrityError as e:
+                #if 'trans' in dir(): trans.rollback()
                 log.debug(e)
                 res = True
             finally:
+                #if 'cur' in dir(): cur.close()
                 if 'conn' in dir(): conn.close()
             if True == res:return True
         log.error("write to %s failed afer try %d times" % (table, ct.RETRY_TIMES))
@@ -77,11 +90,15 @@ class CMySQL:
         for i in range(ct.RETRY_TIMES):
             try:
                 conn = self.engine.connect()
+                #trans = conn.begin()
+                #cur = conn.cursor()
                 data = pd.read_sql_query(sql, conn)
                 res = True
             except sqlalchemy.exc.OperationalError as e:
+                #if 'trans' in dir(): trans.rollback()
                 log.debug(e)
             finally:
+                #if 'cur' in dir(): cur.close()
                 if 'conn' in dir(): conn.close()
             if True == res: return data
         log.error("get %s failed afer try %d times" % (sql, ct.RETRY_TIMES))
@@ -92,16 +109,18 @@ class CMySQL:
         for i in range(ct.RETRY_TIMES):
             try:
                 conn = db.connect(host=self.dbinfo['host'],user=self.dbinfo['user'],passwd=self.dbinfo['password'],db=self.dbinfo['database'],charset=ct.UTF8)
+                conn.ping(True)
                 cur = conn.cursor()
                 cur.execute(sql)
                 conn.commit()
                 hasSucceed = True
             except db.Warning as w:
+                if 'conn' in dir(): conn.rollback()
                 log.debug("warning:%s" % str(w))
                 hasSucceed = True
             except db.Error as e:
-                log.debug("error:%s" % str(e))
                 if 'conn' in dir(): conn.rollback()
+                log.debug("error:%s" % str(e))
             finally:
                 if 'cur' in dir(): cur.close()
                 if 'conn' in dir(): conn.close()
@@ -121,10 +140,3 @@ class CMySQL:
             self.redis.sadd(ALL_TABLES, table)
             return True
         return False
-
-if __name__ == '__main__':
-    import tushare as ts
-    df = ts.get_stock_basics()
-    df = df.reset_index(drop = Fasle)
-    obj = CMySQL(ct.DB_INFO)
-    obj.set(df, 'stock', ct.APPEND)

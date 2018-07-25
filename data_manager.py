@@ -37,7 +37,6 @@ class DataManager:
         self.comb_info_client = combination_info.CombinationInfo(dbinfo, combination_info_table)
         self.stock_info_client = cstock_info.CStockInfo(dbinfo, stock_info_table)
         self.delisted_info_client = cdelisted.CDelisted(dbinfo, delisted_table)
-        #self.halted_info_client = chalted.CHalted(dbinfo, halted_table)
 
     def is_collecting_time(self, now_time = None):
         if now_time is None:now_time = datetime.now()
@@ -64,16 +63,18 @@ class DataManager:
         return (mor_open_time < now_time < mor_close_time) or (aft_open_time < now_time < aft_close_time)
 
     def collect(self, sleep_time):
-        time.sleep(30)
+        time.sleep(300)
         while True:
             try:
-                self.init_all_stock_tick()
+                if self.is_collecting_time():
+                    self.init_all_stock_tick()
                 time.sleep(sleep_time)
             except Exception as e:
                 logger.error(e)
                 traceback.print_exc()
 
     def run(self, sleep_time):
+        time.sleep(300)
         while True:
             try:
                 if self.cal_client.is_trading_day():
@@ -122,24 +123,27 @@ class DataManager:
                 self.objs[str(code_id)] = combination.Combination(self.dbinfo, code_id)
 
     def init_all_stock_tick(self):
-        df = self.stock_info_client.get()
         start_date = '2017-06-09'
         _today = datetime.now().strftime('%Y-%m-%d')
         num_days = delta_days(start_date, _today)
-        start_date_dmy_format = time.strftime("%d/%m/%Y", time.strptime(start_date, "%Y-%m-%d"))
+        start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(start_date, "%Y-%m-%d"))
         data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
         date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
-        for _date in date_only_array:
-            if self.cal_client.is_trading_day(_date):
-                for _, code_id in df.code.iteritems():
-                    if code_id not in self.objs:
-                        self.objs[code_id] = cstock.CStock(self.dbinfo, code_id)
+        date_only_array = date_only_array[::-1]
+        obj_pool = Pool(60)
+        obj_list = self.objs.keys()
+        df = self.stock_info_client.get()
+        for _, code_id in df.code.iteritems():
+            _obj = self.objs[code_id] if code_id in self.objs else cstock.CStock(self.dbinfo, code_id)
+            for _date in date_only_array:
+                if self.cal_client.is_trading_day(_date):
                     try:
-                        logger.info("start code:%s, date:%s" % (code_id, _date))
-                        self.objs[code_id].set_ticket(_date)
-                        time.sleep(1)
+                        if obj_pool.full(): obj_pool.join()
+                        obj_pool.spawn(_obj.set_ticket, _date)
                     except Exception as e:
                         logger.info(e)
+        obj_pool.join()
+        obj_pool.kill()
 
     def init_real_stock_info(self):
         concerned_list = self.get_concerned_list()
@@ -169,7 +173,6 @@ class DataManager:
             all_info[all_info["p_change"]<-9.9]['limit_down_time'] = now_time
         #too often visit will cause net error 
         time.sleep(1)
-        #logger.info("get_all_info_from_remote:%s" % all_info)
         self.evt.set(all_info)
 
     def collect_realtime_info(self):

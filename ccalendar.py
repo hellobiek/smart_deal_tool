@@ -7,9 +7,7 @@ import tushare as ts
 from log import getLogger
 from datetime import datetime
 from common import trace_func, create_redis_obj, df_delta
-
 logger = getLogger(__name__)
-
 class CCalendar:
     def __init__(self, dbinfo = ct.DB_INFO, table_name = ct.CALENDAR_TABLE, without_init = True):
         self.table = table_name
@@ -52,10 +50,7 @@ class CCalendar:
         df_byte = self.redis.get(ct.CALENDAR_INFO)
         if df_byte is None: return pd.DataFrame() 
         df = _pickle.loads(df_byte)
-        if _date is None:
-            return df
-        else:
-            return df.loc[df.calendarDate == _date]
+        return df if _date is None else df.loc[df.calendarDate == _date]
 
     def pre_trading_day(self, _date):
         df = self.get()

@@ -52,7 +52,7 @@ class Combination:
         df = all_info[all_info.code.isin(code_list)]
         trading_df = df[df.volume != '0']
         num = len(trading_df)
-        if 0 == num: return df
+        if 0 == num: return pd.DataFrame()
         _price = trading_df.price.astype(float).sum()/num
         _pre_close = trading_df.pre_close.astype(float).sum()/num
         _amount = trading_df.amount.astype(float).sum()/num

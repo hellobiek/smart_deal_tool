@@ -18,6 +18,7 @@ class CStock:
     def __init__(self, dbinfo, code):
         self.code = code
         self.redis = create_redis_obj()
+        self.failed_date_ticks = list()
         self.name = self.get('name')
         self.data_type_dict = {'D':"%s_D" % code}
         self.realtime_table = "%s_realtime" % self.code
@@ -27,6 +28,7 @@ class CStock:
 
     def has_on_market(self, cdate):
         time2Market = self.get('timeToMarket')
+        if str(time2Market) == '0': return False
         t = time.strptime(str(time2Market), "%Y%m%d")
         y,m,d = t[0:3]
         time2Market = datetime(y,m,d)
@@ -175,7 +177,7 @@ class CStock:
         df.columns = ['ctime', 'price', 'cchange', 'volume', 'amount', 'ctype']
         df['date'] = cdate
         df = self.merge_ticket(df)
-        logger.info("code:%s, date:%s" % (self.code, cdate))
+        logger.info("write data code:%s, date:%s" % (self.code, cdate))
         if self.mysql_client.set(df, self.ticket_table):
             self.redis.sadd(self.ticket_table, cdate)
 
@@ -202,5 +204,5 @@ class CStock:
 
 if __name__ == "__main__":
     cs = CStock(ct.DB_INFO, '600874')
-    cs.set_ticket('2017-09-08')
-    print(cs.has_on_market('2017-09-08'))
+    #cs.set_ticket('2017-09-08')
+    #print(cs.has_on_market('2017-09-08'))

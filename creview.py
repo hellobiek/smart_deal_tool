@@ -33,7 +33,6 @@ class CReivew:
     def __init__(self, dbinfo):
         self.sdir = '/data/docs/blog/hellobiek.github.io/source/_posts'
         self.doc = CDoc(self.sdir)
-        self.animate_started = False
         self.redis = create_redis_obj()
         self.mysql_client = CMySQL(dbinfo)
         self.cal_client = ccalendar.CCalendar(without_init = True)
@@ -137,6 +136,7 @@ class CReivew:
         df = self.mysql_client.get(sql)
 
         fig = plt.figure()
+        fig.autofmt_xdate()
         x = df.date.tolist()
         xn = range(len(x))
         y = df.score.tolist()
@@ -155,6 +155,7 @@ class CReivew:
     def industry_plot(self, df, dir_name):
         colors = ['#F5DEB3', '#A0522D', '#1E90FF', '#FFE4C4', '#00FFFF', '#DAA520', '#3CB371', '#808080', '#ADFF2F', '#4B0082', '#ADD8E6']
         fig = plt.figure()
+        fig.autofmt_xdate()
         sum_amount = df.amount.sum()/10000000000
         amount_list = df.amount.tolist()
         amount_list = [i/100000000 for i in amount_list]
@@ -206,6 +207,7 @@ class CReivew:
                 name_list.append("%s-%s" % (pchange, p_max_change))
     
         fig = plt.figure()
+        fig.autofmt_xdate()
         for i in range(len(num_list)):
             plt.bar(i, num_list[i], color = colors[i % len(colors)], width=0.1)
             plt.text(i, 1.1 * num_list[i], '个数:%s' % num_list[i], ha='center', font_properties = get_chinese_font())
@@ -256,28 +258,50 @@ class CReivew:
                             self.doc.generate()
                 time.sleep(sleep_time)
             except Exception as e:
+                time.sleep(120)
                 traceback.print_exc()
 
     def run(self, sleep_time):
         time.sleep(300)
-        logger.info("enter run function")
         while True:
+            logger.info("enter run")
             if self.cal_client.is_trading_day():
-                if is_trading_time() and False == self.animate_started:
-                    self.animate_started = True
+                if self.is_animate_time():
+                    logger.info("animate time enter run")
                     self.review_animate()
             time.sleep(sleep_time)
 
+    def is_sleep_time(self):
+        now_time = datetime.now()
+        _date = now_time.strftime('%Y-%m-%d')
+        y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
+        mor_open_hour,mor_open_minute,mor_open_second = (11,30,0)
+        mor_open_time = datetime(y,m,d,mor_open_hour,mor_open_minute,mor_open_second)
+        aft_close_hour,aft_close_minute,aft_close_second = (13,0,0)
+        aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
+        return mor_open_time < now_time < aft_close_time
+
+    def is_animate_time(self):
+        now_time = datetime.now()
+        _date = now_time.strftime('%Y-%m-%d')
+        y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
+        mor_open_hour,mor_open_minute,mor_open_second = (9,10,0)
+        mor_open_time = datetime(y,m,d,mor_open_hour,mor_open_minute,mor_open_second)
+        aft_close_hour,aft_close_minute,aft_close_second = (15,5,0)
+        aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
+        return mor_open_time < now_time < aft_close_time
+
     def review_animate(self):
         def condition():
-            while is_trading_time():
+            while self.is_animate_time():
                 yield 0
-            self.animate_started = False
 
         time_list = list()
         data_dict = dict()
         last_pchange = 0
         def animate(i):
+            logger.info("enter run function %s" % i)
+            if self.is_sleep_time(): return
             global last_pchange
             cdict = self.get_combination_dict()
             if len(cdict) > 0:
@@ -301,30 +325,30 @@ class CReivew:
                     p_change = 100 * (float(df.price.tolist()[0]) - float(df.pre_close.tolist()[0])) / float(df.pre_close.tolist()[0])
                     data_dict[key].append(p_change)
                 time_list.append(datetime.fromtimestamp(time.time()))
-                ax1.clear()
-                ax1.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
-                ax1.xaxis.set_major_locator(mdates.DayLocator())
-                ax1.set_title('盯盘', fontproperties=get_chinese_font())
-                ax1.set_xlabel('时间', fontproperties=get_chinese_font())
-                ax1.set_ylabel('增长', fontproperties=get_chinese_font())
-                ax1.set_ylim((-10, 50))
+                ax.clear()
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
+                ax.xaxis.set_major_locator(mdates.DayLocator())
+                ax.set_title('盯盘', fontproperties=get_chinese_font())
+                ax.set_xlabel('时间', fontproperties=get_chinese_font())
+                ax.set_ylabel('增长', fontproperties=get_chinese_font())
+                ax.set_ylim((-10, 50))
                 _index = len(time_list) - 1
                 for key in data_dict:
                     logger.debug("x:%s, y:%s" % (time_list, data_dict[key]))
-                    ax1.plot(time_list, data_dict[key], label = key, linewidth = 1.5)
+                    ax.plot(time_list, data_dict[key], label = key, linewidth = 1.5)
                     if data_dict[key][_index] > 3.0:
-                        ax1.text(time_list[_index], data_dict[key][_index]*2, key, font_properties = get_chinese_font())
-                ax1.legend(fontsize = 'xx-small', bbox_to_anchor = (1.0, 1.0), ncol = 7, fancybox = True, prop = get_chinese_font())
+                        ax.text(time_list[_index], data_dict[key][_index]*2, key, font_properties = get_chinese_font())
+                ax.legend(fontsize = 'xx-small', bbox_to_anchor = (1.0, 1.0), ncol = 7, fancybox = True, prop = get_chinese_font())
 
         style.use('fivethirtyeight')
         Writer = animation.writers['ffmpeg']
         writer = Writer(fps=1, metadata=dict(artist='biek'), bitrate=1800)
         fig = plt.figure()
-        ax1 = fig.add_subplot(1,1,1)
+        fig.autofmt_xdate()
+        ax = fig.add_subplot(1,1,1)
         ani = animation.FuncAnimation(fig, animate, frames = condition, interval = 60000, repeat = False)
         _date = datetime.now().strftime('%Y-%m-%d')
-        file_name = "afternoon_%s" % _date if is_afternoon() else "morning_%s" % _date
-        ani.save('/data/animation/%s_animation.mp4' % file_name, writer = writer)
+        ani.save('/data/animation/%s_animation.mp4' % _date, writer = writer)
         plt.close(fig)
 
 if __name__ == '__main__':
