@@ -22,10 +22,10 @@ def worker(client_id, func_name, df, key, subset):
     redis = create_redis_obj()
     while True:
         job = worker.getJob()
-        logger.info("job name:%s" % job.name)
         info = json.loads(job.arguments.decode('utf-8'))
         tmp_df = pandas.DataFrame(info, index=[0])
-        df = _pickle.loads(redis.get(key))
+        tmp_redis = redis.get(key)
+        if tmp_redis is not None: df = _pickle.loads(tmp_redis)
         df = df.append(tmp_df)
         df = df.drop_duplicates(subset)
         redis.set(key, _pickle.dumps(df, 2))
