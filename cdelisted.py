@@ -16,8 +16,8 @@ logger = getLogger(__name__)
 
 class CDelisted:
     @trace_func(log = logger)
-    def __init__(self, dbinfo, table_name):
-        self.table = table_name
+    def __init__(self, dbinfo):
+        self.table = ct.DELISTED_INFO_TABLE
         self.trigger = ct.SYNC_DELISTED_2_REDIS
         self.mysql_client = CMySQL(dbinfo)
         self.redis = create_redis_obj()

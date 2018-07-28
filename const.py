@@ -57,11 +57,11 @@ const.ONGOING = 1
 ##############################
 const.DB_INFO = {'user':'root',
                  'password':'123456',
-                 'host':'mysql-container',
+                 'host':'host.docker.internal',
                  'database':'stock'}
 const.STAT_INFO = {'user':'root',
                  'password':'123456',
-                 'host':'mysql-container',
+                 'host':'host.docker.internal',
                  'database':'statistical_information'}
 const.UTF8 = "utf8"
 const.SQL = "select * from %s"
@@ -120,6 +120,9 @@ const.HALTED_INFO = 'haltedInfo'
 
 const.SYNC_DELISTED_2_REDIS = 'synDelisted2Redis'
 const.DELISTED_INFO = 'delistedInfo'
+
+const.SYNC_ANIMATION_2_REDIS = 'syncAnimation2Redis'
+const.ANIMATION_INFO = 'animation'
 #############################
 const.INDUSTRY_TABLE = 'industry'
 const.EMOTION_TABLE = 'emotion'

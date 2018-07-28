@@ -37,6 +37,7 @@ class CReivew:
         self.mysql_client = CMySQL(dbinfo)
         self.cal_client = ccalendar.CCalendar(without_init = True)
         self.trading_info = None
+        self.animating = False
         self.emotion_table = ct.EMOTION_TABLE
         self.industry_table = ct.INDUSTRY_TABLE 
         if not self.create_industry(): raise Exception("create industry table failed")
@@ -136,7 +137,6 @@ class CReivew:
         df = self.mysql_client.get(sql)
 
         fig = plt.figure()
-        fig.autofmt_xdate()
         x = df.date.tolist()
         xn = range(len(x))
         y = df.score.tolist()
@@ -150,12 +150,12 @@ class CReivew:
         plt.xlabel('时间', fontproperties = get_chinese_font())
         plt.ylabel('分数', fontproperties = get_chinese_font())
         plt.title('股市情绪', fontproperties = get_chinese_font())
+        fig.autofmt_xdate()
         plt.savefig('%s/emotion.png' % dir_name, dpi=1000)
 
     def industry_plot(self, df, dir_name):
         colors = ['#F5DEB3', '#A0522D', '#1E90FF', '#FFE4C4', '#00FFFF', '#DAA520', '#3CB371', '#808080', '#ADFF2F', '#4B0082', '#ADD8E6']
         fig = plt.figure()
-        fig.autofmt_xdate()
         sum_amount = df.amount.sum()/10000000000
         amount_list = df.amount.tolist()
         amount_list = [i/100000000 for i in amount_list]
@@ -171,6 +171,7 @@ class CReivew:
         plt.xlabel('x轴', fontproperties = get_chinese_font())
         plt.ylabel('y轴', fontproperties = get_chinese_font())
         plt.title('市值分布', fontproperties = get_chinese_font())
+        fig.autofmt_xdate()
         plt.legend(loc = 'upper right', prop = get_chinese_font())
         plt.savefig('%s/industry.png' % dir_name, dpi=1000)
 
@@ -207,7 +208,6 @@ class CReivew:
                 name_list.append("%s-%s" % (pchange, p_max_change))
     
         fig = plt.figure()
-        fig.autofmt_xdate()
         for i in range(len(num_list)):
             plt.bar(i, num_list[i], color = colors[i % len(colors)], width=0.1)
             plt.text(i, 1.1 * num_list[i], '个数:%s' % num_list[i], ha='center', font_properties = get_chinese_font())
@@ -216,16 +216,8 @@ class CReivew:
         plt.ylabel('y轴', fontproperties = get_chinese_font())
         plt.title('涨跌分布', fontproperties = get_chinese_font())
         plt.xticks(range(len(num_list)), name_list)
+        fig.autofmt_xdate()
         plt.savefig('%s/static.png' % dir_name, dpi=1000)
-   
-    def get_combination_dict(self):
-        df_byte = self.redis.get(ct.COMBINATION_INFO)
-        if df_byte is None: return None 
-        df =  _pickle.loads(df_byte)
-        cdict = dict()
-        for _index, code in df['code'].items():
-            cdict[code] = df.loc[_index]['name']
-        return cdict
 
     def is_collecting_time(self):
         now_time = datetime.now()
@@ -238,7 +230,6 @@ class CReivew:
         return mor_open_time < now_time < mor_close_time
 
     def update(self, sleep_time):
-        time.sleep(300)
         while True:
             try:
                 if self.cal_client.is_trading_day():
@@ -256,20 +247,11 @@ class CReivew:
                             self.emotion_plot(dir_name)
                             self.static_plot(dir_name)
                             self.doc.generate()
+                            self.gen_animation()
                 time.sleep(sleep_time)
             except Exception as e:
                 time.sleep(120)
                 traceback.print_exc()
-
-    def run(self, sleep_time):
-        time.sleep(300)
-        while True:
-            logger.info("enter run")
-            if self.cal_client.is_trading_day():
-                if self.is_animate_time():
-                    logger.info("animate time enter run")
-                    self.review_animate()
-            time.sleep(sleep_time)
 
     def is_sleep_time(self):
         now_time = datetime.now()
@@ -291,64 +273,36 @@ class CReivew:
         aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
         return mor_open_time < now_time < aft_close_time
 
-    def review_animate(self):
-        def condition():
-            while self.is_animate_time():
-                yield 0
-
-        time_list = list()
-        data_dict = dict()
-        last_pchange = 0
-        def animate(i):
-            logger.info("enter run function %s" % i)
-            if self.is_sleep_time(): return
-            global last_pchange
-            cdict = self.get_combination_dict()
-            if len(cdict) > 0:
-                logger.info("enter run function %s" % i)
-                try:
-                    df = ts.get_realtime_quotes('sh')
-                    p_change = 100 * (float(df.price.tolist()[0]) - float(df.pre_close.tolist()[0]))/float(df.pre_close.tolist()[0])
-                    if '上证指数' not in data_dict: data_dict['上证指数'] = list()
-                    data_dict['上证指数'].append(p_change)
-                    last_pchange = p_change
-                except Exception as e:
-                    if '上证指数' not in data_dict: data_dict['上证指数'] = list()
-                    data_dict['上证指数'].append(last_pchange)
-                    logger.info(e)
-                for code in cdict:
-                    key = cdict[code]
-                    if key not in data_dict: data_dict[key] = list()
-                    df_byte = self.redis.get(get_redis_name(code))
-                    if df_byte is None: continue
-                    df = _pickle.loads(df_byte)
-                    p_change = 100 * (float(df.price.tolist()[0]) - float(df.pre_close.tolist()[0])) / float(df.pre_close.tolist()[0])
-                    data_dict[key].append(p_change)
-                time_list.append(datetime.fromtimestamp(time.time()))
-                ax.clear()
-                ax.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
-                ax.xaxis.set_major_locator(mdates.DayLocator())
-                ax.set_title('盯盘', fontproperties=get_chinese_font())
-                ax.set_xlabel('时间', fontproperties=get_chinese_font())
-                ax.set_ylabel('增长', fontproperties=get_chinese_font())
-                ax.set_ylim((-10, 50))
-                _index = len(time_list) - 1
-                for key in data_dict:
-                    logger.debug("x:%s, y:%s" % (time_list, data_dict[key]))
-                    ax.plot(time_list, data_dict[key], label = key, linewidth = 1.5)
-                    if data_dict[key][_index] > 3.0:
-                        ax.text(time_list[_index], data_dict[key][_index]*2, key, font_properties = get_chinese_font())
-                ax.legend(fontsize = 'xx-small', bbox_to_anchor = (1.0, 1.0), ncol = 7, fancybox = True, prop = get_chinese_font())
-
+    def gen_animation(self, sfile = None):
         style.use('fivethirtyeight')
         Writer = animation.writers['ffmpeg']
         writer = Writer(fps=1, metadata=dict(artist='biek'), bitrate=1800)
         fig = plt.figure()
-        fig.autofmt_xdate()
         ax = fig.add_subplot(1,1,1)
-        ani = animation.FuncAnimation(fig, animate, frames = condition, interval = 60000, repeat = False)
-        _date = datetime.now().strftime('%Y-%m-%d')
-        ani.save('/data/animation/%s_animation.mp4' % _date, writer = writer)
+        cdata = redis.get(ct.SYNC_ANIMATION_2_REDIS)
+        _today = datetime.now().strftime('%Y-%m-%d') 
+        show_data = cdata[cdata.cdate == _today]
+        ctime_list = show_data.ctime.unique()
+        frame_num = len(ctime_list)
+        def animate(i):
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
+            ax.xaxis.set_major_locator(mdates.DayLocator())
+            ax.set_title('盯盘', fontproperties=get_chinese_font())
+            ax.set_xlabel('时间', fontproperties=get_chinese_font())
+            ax.set_ylabel('增长', fontproperties=get_chinese_font())
+            ax.set_ylim((-10, 50))
+            fig.autofmt_xdate()
+            ctime = ctime_list[i]
+            for inedx, name in show_data.name.iteritems():
+                pchange = show_data.loc[index]['pchange']
+                logger.debug("time:%s, y:%s" % (ctime, pchange))
+                ax.plot(ctime, pchange, label = name, linewidth = 1.5)
+                if pchange > 3.0:
+                    ax.text(ctime, pchange*2, key, font_properties = get_chinese_font())
+            ax.legend(fontsize = 'xx-small', bbox_to_anchor = (1.0, 1.0), ncol = 7, fancybox = True, prop = get_chinese_font())
+        ani = animation.FuncAnimation(fig, animate, frame_num, interval = 60000, repeat = False)
+        sfile = '/data/animation/%s_animation.mp4' % _today if sfile is None else sfile
+        ani.save(sfile, writer)
         plt.close(fig)
 
 if __name__ == '__main__':

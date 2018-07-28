@@ -14,17 +14,14 @@ from cthread import CThread
 log = getLogger(__name__)
 
 def main():
-    time.sleep(60)
     threadList = []
-
-    dm = DataManager(ct.DB_INFO, ct.STOCK_INFO_TABLE, ct.COMBINATION_INFO_TABLE, ct.CALENDAR_TABLE, ct.DELISTED_INFO_TABLE, ct.HALTED_TABLE)
+    dm = DataManager(ct.DB_INFO)
     threadList.append(CThread(dm.run, 0))
+    #threadList.append(CThread(dm.collect, 15))
     threadList.append(CThread(dm.update, 3600))
-    threadList.append(CThread(dm.collect, 3600))
 
     cr = CReivew(ct.STAT_INFO)
     threadList.append(CThread(cr.update, 10800))
-    threadList.append(CThread(cr.run, 0))
 
     for thread in threadList:
         thread.start()

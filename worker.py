@@ -13,17 +13,16 @@ import traceback
 import const as ct
 from common import create_redis_obj
 from log import getLogger
-
 log = getLogger(__name__)
 
 def worker(client_id, func_name, df, key, subset):
-    # create worker and listen for specific queue pipe
     worker = gear.Worker(client_id)
     worker.addServer(host=ct.GEARMAND_HOST, port=ct.GEARMAND_PORT)
     worker.registerFunction(func_name)
     redis = create_redis_obj()
     while True:
-        job = worker.getJob() 
+        job = worker.getJob()
+        logger.info("job name:%s" % job.name)
         info = json.loads(job.arguments.decode('utf-8'))
         tmp_df = pandas.DataFrame(info, index=[0])
         df = _pickle.loads(redis.get(key))
@@ -39,6 +38,7 @@ def main():
     objlist.append(gevent.spawn_later(1, worker, "3", ct.SYNC_COMBINATION_2_REDIS, pandas.DataFrame(), ct.COMBINATION_INFO, ['code']))
     objlist.append(gevent.spawn_later(1, worker, "4", ct.SYNC_HALTED_2_REDIS, pandas.DataFrame(), ct.HALTED_INFO, ['code','date']))
     objlist.append(gevent.spawn_later(1, worker, "5", ct.SYNC_DELISTED_2_REDIS, pandas.DataFrame(), ct.DELISTED_INFO, ['code']))
+    objlist.append(gevent.spawn_later(1, worker, "6", ct.SYNC_ANIMATION_2_REDIS, pandas.DataFrame(), ct.ANIMATION_INFO, ['cdate','ctime','name']))
     gevent.joinall(objlist)
 
 if __name__ == "__main__":

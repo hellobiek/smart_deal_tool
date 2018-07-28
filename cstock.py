@@ -18,7 +18,6 @@ class CStock:
     def __init__(self, dbinfo, code):
         self.code = code
         self.redis = create_redis_obj()
-        self.failed_date_ticks = list()
         self.name = self.get('name')
         self.data_type_dict = {'D':"%s_D" % code}
         self.realtime_table = "%s_realtime" % self.code
@@ -159,20 +158,20 @@ class CStock:
     def set_ticket(self, cdate = None):
         cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
         if not self.has_on_market(cdate):
-            logger.info("not on market code:%s, date:%s" % (self.code, cdate))
+            logger.debug("not on market code:%s, date:%s" % (self.code, cdate))
             return
         if self.is_date_exists(cdate): 
-            logger.info("existed code:%s, date:%s" % (self.code, cdate))
+            logger.debug("existed code:%s, date:%s" % (self.code, cdate))
             return
         df = ts.get_tick_data(self.code, date=cdate)
         if df is None: 
-            logger.info("nonedata code:%s, date:%s" % (self.code, cdate))
+            logger.debug("nonedata code:%s, date:%s" % (self.code, cdate))
             return
         if df.empty: 
-            logger.info("emptydata code:%s, date:%s" % (self.code, cdate))
+            logger.debug("emptydata code:%s, date:%s" % (self.code, cdate))
             return
         if df.loc[0]['time'].find("当天没有数据") != -1: 
-            logger.info("nodata code:%s, date:%s" % (self.code, cdate))
+            logger.debug("nodata code:%s, date:%s" % (self.code, cdate))
             return
         df.columns = ['ctime', 'price', 'cchange', 'volume', 'amount', 'ctype']
         df['date'] = cdate

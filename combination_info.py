@@ -15,8 +15,8 @@ logger = getLogger(__name__)
 # include index and concept in stock
 class CombinationInfo:
     @trace_func(log = logger)
-    def __init__(self, dbinfo, table_name):
-        self.table = table_name
+    def __init__(self, dbinfo):
+        self.table = ct.COMBINATION_INFO_TABLE
         self.redis = create_redis_obj()
         if not self.init(): raise Exception("init combination table failed")
         self.trigger = ct.SYNC_COMBINATION_2_REDIS
@@ -51,9 +51,10 @@ class CombinationInfo:
         df.columns = ['code', 'name', 'content']
         return df
         
-    @trace_func(log = logger)
-    def get(self, index_type = None):
-        df_byte = self.redis.get(ct.COMBINATION_INFO) 
+    @staticmethod
+    def get(index_type = None):
+        redis = create_redis_obj()
+        df_byte = redis.get(ct.COMBINATION_INFO) 
         if df_byte is None: return pd.DataFrame() 
         df = _pickle.loads(df_byte)
         if index_type is None: return df

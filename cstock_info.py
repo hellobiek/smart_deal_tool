@@ -15,8 +15,8 @@ logger = getLogger(__name__)
 
 class CStockInfo:
     @trace_func(log = logger)
-    def __init__(self, dbinfo, table_name):
-        self.table = table_name
+    def __init__(self, dbinfo):
+        self.table = ct.STOCK_INFO_TABLE
         self.trigger = ct.SYNCSTOCK2REDIS
         self.mysql_client = cmysql.CMySQL(dbinfo)
         self.redis = create_redis_obj()

@@ -206,8 +206,8 @@ void gman_do_deinit(UDF_INIT *initid)
 char *gman_do(UDF_INIT *initid, UDF_ARGS *args, char *result,
               unsigned long *length, char *is_null, char *error)
 {
-  gearman_udf_client_st *client = NULL;
-  memcpy(client, initid->ptr, sizeof(gearman_udf_client_st));
+  void *vp = initid->ptr;
+  gearman_udf_client_st *client = (gearman_udf_client_st *)vp;
   //gearman_udf_client_st *client= (gearman_udf_client_st *)(initid->ptr);
   gearman_return_t ret;
   size_t result_size;
@@ -274,8 +274,8 @@ void gman_do_high_deinit(UDF_INIT *initid)
 char *gman_do_high(UDF_INIT *initid, UDF_ARGS *args, char *result,
                    unsigned long *length, char *is_null, char *error)
 {
-  gearman_udf_client_st *client = NULL;
-  memcpy(client, initid->ptr, sizeof(gearman_udf_client_st));
+  void *vp = initid->ptr;
+  gearman_udf_client_st *client = (gearman_udf_client_st *)vp;
   //gearman_udf_client_st *client= (gearman_udf_client_st *)(initid->ptr);
   gearman_return_t ret;
   size_t result_size;
@@ -344,8 +344,8 @@ void gman_do_low_deinit(UDF_INIT *initid)
 char *gman_do_low(UDF_INIT *initid, UDF_ARGS *args, char *result,
                    unsigned long *length, char *is_null, char *error)
 {
-  gearman_udf_client_st *client = NULL;
-  memcpy(client, initid->ptr, sizeof(gearman_udf_client_st));
+  void *vp = initid->ptr;
+  gearman_udf_client_st *client = (gearman_udf_client_st *)vp;
   //gearman_udf_client_st *client= (gearman_udf_client_st *)(initid->ptr);
   gearman_return_t ret;
   size_t result_size;
@@ -416,8 +416,8 @@ void gman_do_background_deinit(UDF_INIT *initid)
 char *gman_do_background(UDF_INIT *initid, UDF_ARGS *args, char *result,
                          unsigned long *length, char *is_null, char *error)
 {
-  gearman_udf_client_st *client = NULL;
-  memcpy(client, initid->ptr, sizeof(gearman_udf_client_st));
+  void *vp = initid->ptr;
+  gearman_udf_client_st *client = (gearman_udf_client_st *)vp;
   //gearman_udf_client_st *client= (gearman_udf_client_st *)(initid->ptr);
   gearman_return_t ret;
   char job_handle[GEARMAN_JOB_HANDLE_SIZE];
@@ -449,6 +449,7 @@ char *gman_do_background(UDF_INIT *initid, UDF_ARGS *args, char *result,
   strncpy(result, job_handle, 255);
   result[254]= 0;
   *length= strlen(result);
+
   return result;
 }
 
@@ -476,8 +477,8 @@ void gman_do_high_background_deinit(UDF_INIT *initid)
 char *gman_do_high_background(UDF_INIT *initid, UDF_ARGS *args, char *result,
                          unsigned long *length, char *is_null, char *error)
 {
-  gearman_udf_client_st *client = NULL;
-  memcpy(client, initid->ptr, sizeof(gearman_udf_client_st));
+  void *vp = initid->ptr;
+  gearman_udf_client_st *client = (gearman_udf_client_st *)vp;
   //gearman_udf_client_st *client= (gearman_udf_client_st *)(initid->ptr);
   gearman_return_t ret;
   char job_handle[GEARMAN_JOB_HANDLE_SIZE];
@@ -539,9 +540,9 @@ void gman_do_low_background_deinit(UDF_INIT *initid)
 char *gman_do_low_background(UDF_INIT *initid, UDF_ARGS *args, char *result,
                          unsigned long *length, char *is_null, char *error)
 {
+  void *vp = initid->ptr;
+  gearman_udf_client_st *client = (gearman_udf_client_st *)vp;
   //gearman_udf_client_st *client= (gearman_udf_client_st *)(initid->ptr);
-  gearman_udf_client_st *client = NULL;
-  memcpy(client, initid->ptr, sizeof(gearman_udf_client_st));
   gearman_return_t ret;
   char job_handle[GEARMAN_JOB_HANDLE_SIZE];
   char unique[GEARMAN_UNIQUE_SIZE];
@@ -611,9 +612,9 @@ void gman_sum_deinit(UDF_INIT *initid)
 long long gman_sum(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
                    char *error)
 {
+  void *vp = initid->ptr;
+  gearman_udf_client_st *client = (gearman_udf_client_st *)vp;
   //gearman_udf_client_st *client= (gearman_udf_client_st *)(initid->ptr);
-  gearman_udf_client_st *client = NULL;
-  memcpy(client, initid->ptr, sizeof(gearman_udf_client_st));
   gearman_return_t ret;
   (void) args;
   (void) is_null;
@@ -636,9 +637,9 @@ void gman_sum_reset(UDF_INIT *initid, UDF_ARGS *args, char *is_null,
 
 void gman_sum_clear(UDF_INIT *initid, char *is_null, char *error)
 {
+  void *vp = initid->ptr;
+  gearman_udf_client_st *client = (gearman_udf_client_st *)vp;
   //gearman_udf_client_st *client= (gearman_udf_client_st *)(initid->ptr);
-  gearman_udf_client_st *client = NULL;
-  memcpy(client, initid->ptr, sizeof(gearman_udf_client_st));
   (void) is_null;
   (void) error;
 
@@ -648,9 +649,9 @@ void gman_sum_clear(UDF_INIT *initid, char *is_null, char *error)
 
 void gman_sum_add(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error)
 {
+  void *vp = initid->ptr;
+  gearman_udf_client_st *client = (gearman_udf_client_st *)vp;
   //gearman_udf_client_st *client= (gearman_udf_client_st *)(initid->ptr);
-  gearman_udf_client_st *client = NULL;
-  memcpy(client, initid->ptr, sizeof(gearman_udf_client_st));
   gearman_return_t ret;
   (void) is_null;
 
@@ -760,9 +761,9 @@ my_bool _do_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 
 void _do_deinit(UDF_INIT *initid)
 {
+  void *vp = initid->ptr;
+  gearman_udf_client_st *client = (gearman_udf_client_st *)vp;
   //gearman_udf_client_st *client= (gearman_udf_client_st *)(initid->ptr);
-  gearman_udf_client_st *client = NULL;
-  memcpy(client, initid->ptr, sizeof(gearman_udf_client_st));
 
   if (client == NULL)
     return;

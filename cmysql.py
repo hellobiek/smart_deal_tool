@@ -19,7 +19,7 @@ class CMySQL:
     def __init__(self, dbinfo):
         self.dbinfo = dbinfo
         self.redis = create_redis_obj()
-        self.engine = create_engine("mysql://%(user)s:%(password)s@%(host)s/%(database)s?charset=utf8" % dbinfo, pool_size=0 , max_overflow=-1, pool_recycle=1200)
+        self.engine = create_engine("mysql://%(user)s:%(password)s@%(host)s/%(database)s?charset=utf8" % dbinfo, pool_size=0 , max_overflow=-1, pool_recycle=120)
 
     def get_all_tables(self):
         if self.redis.exists(ALL_TABLES):
@@ -64,22 +64,16 @@ class CMySQL:
         for i in range(ct.RETRY_TIMES):
             try:
                 conn = self.engine.connect()
-                #trans = conn.begin()
-                #cur = conn.cursor()
                 data_frame.to_sql(table, conn, if_exists = method, index=False)
                 res = True
             except sqlalchemy.exc.OperationalError as e:
-                #if 'trans' in dir(): trans.rollback()
-                log.info(e)
+                log.debug(e)
             except sqlalchemy.exc.ProgrammingError as e:
-                #if 'trans' in dir(): trans.rollback()
                 log.debug(e)
             except sqlalchemy.exc.IntegrityError as e:
-                #if 'trans' in dir(): trans.rollback()
                 log.debug(e)
                 res = True
             finally:
-                #if 'cur' in dir(): cur.close()
                 if 'conn' in dir(): conn.close()
             if True == res:return True
         log.error("write to %s failed afer try %d times" % (table, ct.RETRY_TIMES))
