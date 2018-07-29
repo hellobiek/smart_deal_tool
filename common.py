@@ -88,7 +88,7 @@ def df_delta(pos_df, neg_df, subset_list, keep = False):
     pos_df = pos_df.append(neg_df)
     return pos_df.drop_duplicates(subset=subset_list, keep=False)
 
-def get_redis_name(code_id):
+def get_realtime_table_name(code_id):
     return "RealTime%s" % code_id
 
 def get_market_name(stock_code):
@@ -99,16 +99,14 @@ def get_market_name(stock_code):
     else:
         return "none"
 
-def get_market(stock_code):
-    if (stock_code.startswith("6") or stock_code.startswith("500") or stock_code.startswith("550") or stock_code.startswith("510")) or stock_code.startswith("7"):
-        return ct.MARKET_SH
-    elif (stock_code.startswith("00") or stock_code.startswith("30") or stock_code.startswith("150") or stock_code.startswith("159")):
-        return ct.MARKET_SZ
-    else:
-        return ct.MARKET_OTHER
-
 def add_prifix(stock_code):
     if get_market_name(stock_code) == "sh":
         return "SH." + stock_code
     else:
         return "SZ." + stock_code
+
+def get_available_tdx_server(api):
+    for k,v in ct.TDX_SERVERS.items():
+        ip, port = ct.TDX_SERVERS[k][1].split(":")
+        if api.connect(ip, int(port)): return ip, int(port)
+    raise Exception("no server can be connected")

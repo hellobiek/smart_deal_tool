@@ -5,7 +5,6 @@ import pandas as pd
 import tushare as ts
 import const as ct
 from cmysql import CMySQL
-from common import get_redis_name
 
 ALL_TABLES = 'all_tables'
 pool = redis.ConnectionPool(host=ct.REDIS_HOST, port=ct.REDIS_PORT, decode_responses=False)
@@ -22,9 +21,6 @@ print(df)
 
 #if table.starts_with("300") and 
 #'300%8_ticket%'
-
-#print(r.exists(get_redis_name('000762')))
-#print(r.get(get_redis_name('700017')))
 
 #count = 0
 #while True:

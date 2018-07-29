@@ -64,7 +64,7 @@ class DataManager:
         aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
         return (mor_open_time < now_time < mor_close_time) or (aft_open_time < now_time < aft_close_time)
 
-    def collect(self, sleep_time):
+    def animate(self, sleep_time):
         time.sleep(100)
         while True:
             try:
@@ -76,6 +76,17 @@ class DataManager:
                 logger.error(e)
                 traceback.print_exc()
                 time.sleep(sleep_time)
+
+    def collect(self, sleep_time):
+        time.sleep(100)
+        while True:
+            try:
+                #if self.cal_client.is_trading_day():
+                #    if is_trading_time():
+                self.init_all_stock_tick()
+            except Exception as e:
+                logger.error(e)
+            time.sleep(sleep_time)
 
     def run(self, sleep_time):
         while True:
@@ -128,14 +139,14 @@ class DataManager:
 
     def init_today_stock_tick(self):
         _date = datetime.now().strftime('%Y-%m-%d')
-        _date = '2018-07-26'
-        obj_pool = Pool(80)
+        obj_pool = Pool(60)
         df = self.stock_info_client.get()
         if self.cal_client.is_trading_day(_date):
             for _, code_id in df.code.iteritems():
                 _obj = self.objs[code_id] if code_id in self.objs else cstock.CStock(self.dbinfo, code_id)
                 try:
                     if obj_pool.full(): obj_pool.join()
+                    obj_pool.spawn(_obj.set_k_data)
                     obj_pool.spawn(_obj.set_ticket, _date)
                 except Exception as e:
                     logger.info(e)
@@ -150,7 +161,7 @@ class DataManager:
         data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
         date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
         date_only_array = date_only_array[::-1]
-        obj_pool = Pool(5)
+        obj_pool = Pool(60)
         df = self.stock_info_client.get()
         for _, code_id in df.code.iteritems():
             _obj = self.objs[code_id] if code_id in self.objs else cstock.CStock(self.dbinfo, code_id)

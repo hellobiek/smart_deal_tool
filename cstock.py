@@ -6,11 +6,10 @@ from datetime import datetime
 import const as ct
 import pandas as pd
 import tushare as ts
-from pytdx.hq import TdxHq_API
-import cstock_info as cs_info
 from cmysql import CMySQL
 from log import getLogger
-from common import trace_func,is_trading_time,df_delta,create_redis_obj,get_redis_name,delta_days
+from pytdx.hq import TdxHq_API
+from common import trace_func,is_trading_time,df_delta,create_redis_obj,get_realtime_table_name,delta_days,get_available_tdx_server
 logger = getLogger(__name__)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -19,11 +18,16 @@ class CStock:
         self.code = code
         self.redis = create_redis_obj()
         self.name = self.get('name')
-        self.data_type_dict = {'D':"%s_D" % code}
+        self.data_type_dict = {9:"%s_D" % code}
         self.realtime_table = "%s_realtime" % self.code
         self.ticket_table = "%s_ticket" % self.code
         self.mysql_client = CMySQL(dbinfo)
+        self.tdx_api = TdxHq_API()
+        self.tdx_serverip, self.tdx_port = get_available_tdx_server(self.tdx_api)
         if not self.create(): raise Exception("create stock %s table failed" % self.code)
+
+    def __del__(self):
+        self.tdx_api.disconnect()
 
     def has_on_market(self, cdate):
         time2Market = self.get('timeToMarket')
@@ -48,7 +52,7 @@ class CStock:
     def create_static(self):
         for _, table_name in self.data_type_dict.items():
             if table_name not in self.mysql_client.get_all_tables():
-                sql = 'create table if not exists %s(date varchar(10), open float, high float, close float, low float, volume float, code varchar(6))' % table_name 
+                sql = 'create table if not exists %s(cdate varchar(10) not null, open float, high float, close float, low float, volume float, amount float, PRIMARY KEY(cdate))' % table_name 
                 if not self.mysql_client.create(sql, table_name): return False
         return True
 
@@ -100,12 +104,15 @@ class CStock:
     def create(self):
         return self.create_static() and self.create_realtime() and self.create_ticket()
 
-    def init(self):
-        _today = datetime.now().strftime('%Y-%m-%d')
+    def set_k_data(self):
         for d_type,d_table_name in self.data_type_dict.items():
-            new_data = ts.get_k_data(self.code, ktype=d_type, start=ct.START_DATE, end=_today, retry_count = ct.RETRY_TIMES)
-            if not new_data.empty:
-                df = new_data.reset_index(drop=True)
+            with self.tdx_api.connect(self.tdx_serverip, self.tdx_port):
+                df = self.tdx_api.to_df(self.tdx_api.get_security_bars(d_type, self.get_market(), self.code, 0, 1))
+                if df is None: return
+                if df.empty: return 
+                df = df[['open', 'close', 'high', 'low', 'vol', 'amount', 'datetime']]
+                df.columns = ['open', 'close', 'high', 'low', 'volume', 'amount', 'ctime']
+                df['ctime'] = df['ctime'].str.split(' ').str[0]
                 self.mysql_client.set(df, d_table_name)
 
     def get(self, attribute):
@@ -120,7 +127,7 @@ class CStock:
             _info = all_info[all_info.code == self.code]
             _info['outstanding'] = self.get('outstanding')
             _info['turnover'] = _info['volume'].astype(float).divide(_info['outstanding'])
-            self.redis.set(get_redis_name(self.code), _pickle.dumps(_info, 2))
+            self.redis.set(get_realtime_table_name(self.code), _pickle.dumps(_info, 2))
             self.mysql_client.set(_info, self.realtime_table)
 
     def merge_ticket(self, df):
@@ -148,7 +155,12 @@ class CStock:
         return df
 
     def get_market(self):
-        return 1 if self.code.startswith('6') else 0
+        if (self.code.startswith("6") or self.code.startswith("500") or self.code.startswith("550") or self.code.startswith("510")) or self.code.startswith("7"):
+            return ct.MARKET_SH
+        elif (self.code.startswith("00") or self.code.startswith("30") or self.code.startswith("150") or self.code.startswith("159")):
+            return ct.MARKET_SZ
+        else:
+            return ct.MARKET_OTHER
 
     def is_date_exists(self, cdate):
         if self.redis.exists(self.ticket_table):
@@ -202,6 +214,8 @@ class CStock:
         return (datetime.strptime(_date, "%Y-%m-%d") - time2Market).days > 0
 
 if __name__ == "__main__":
-    cs = CStock(ct.DB_INFO, '600874')
+    cs = CStock(ct.DB_INFO, '300724')
+    cs.set_k_data()
+    #0: "%s_5" % code
     #cs.set_ticket('2017-09-08')
     #print(cs.has_on_market('2017-09-08'))

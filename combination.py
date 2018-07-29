@@ -10,7 +10,7 @@ import tushare as ts
 import pandas as pd
 import combination_info as cm_info 
 from log import getLogger
-from common import create_redis_obj, get_redis_name
+from common import create_redis_obj, get_realtime_table_name
 
 logger = getLogger(__name__)
 
@@ -64,7 +64,7 @@ class Combination:
         all_info = evt.get()
         _new_data = self.compute(all_info)
         if not _new_data.empty:
-            self.redis.set(get_redis_name(self.code), _pickle.dumps(_new_data, 2))
+            self.redis.set(get_realtime_table_name(self.code), _pickle.dumps(_new_data, 2))
             self.mysql_client.set(_new_data, self.realtime_table)
 
     def get(self, attribute):

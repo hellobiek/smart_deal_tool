@@ -8,7 +8,7 @@ import pandas as pd
 import tushare as ts
 from cmysql import CMySQL
 from log import getLogger
-from common import create_redis_obj, get_redis_name
+from common import create_redis_obj, get_realtime_table_name
 from combination_info import CombinationInfo
 logger = getLogger(__name__)
 class CAnimation:
@@ -58,7 +58,7 @@ class CAnimation:
             return False
         for code in cdict:
             key = cdict[code]
-            df_byte = self.redis.get(get_redis_name(code))
+            df_byte = self.redis.get(get_realtime_table_name(code))
             if df_byte is None: continue
             df = _pickle.loads(df_byte)
             p_change = 100 * (float(df.price.tolist()[0]) - float(df.pre_close.tolist()[0])) / float(df.pre_close.tolist()[0])
@@ -70,7 +70,7 @@ class CAnimation:
             cdata['amount'].append(p_amount)
         df = pd.DataFrame.from_dict(cdata)
         df['ctime'] = datetime.fromtimestamp(time.time()).strftime('%H:%M:%S')
-        df['cdate'] = datetime.fromtimestamp(time.time()).strftime('%y-%m-%d')
+        df['cdate'] = datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d')
         self.mysql_client.set(df, self.table)
         return True
 

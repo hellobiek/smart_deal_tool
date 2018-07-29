@@ -17,7 +17,8 @@ def main():
     threadList = []
     dm = DataManager(ct.DB_INFO)
     threadList.append(CThread(dm.run, 0))
-    #threadList.append(CThread(dm.collect, 15))
+    threadList.append(CThread(dm.animate, 15))
+    threadList.append(CThread(dm.collect, 3600))
     threadList.append(CThread(dm.update, 3600))
 
     cr = CReivew(ct.STAT_INFO)

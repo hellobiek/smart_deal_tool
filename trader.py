@@ -10,7 +10,7 @@ from lxml import html
 from html_parser import *
 from client import Client
 from log import getLogger
-from common import get_verified_code, get_market
+from common import get_verified_code
 
 VALIDATE_IMG_URL = "https://trade.cgws.com/cgi-bin/img/validateimg"
 LOGIN_URL = "https://trade.cgws.com/cgi-bin/user/Login"

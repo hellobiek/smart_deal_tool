@@ -22,7 +22,7 @@ from matplotlib.font_manager import FontProperties
 from cmysql import CMySQL
 from cdoc import CDoc
 import ccalendar
-from common import create_redis_obj, get_redis_name, is_trading_time, is_afternoon
+from common import create_redis_obj, is_trading_time, is_afternoon
 from log import getLogger
 logger = getLogger(__name__)
 
@@ -279,27 +279,33 @@ class CReivew:
         writer = Writer(fps=1, metadata=dict(artist='biek'), bitrate=1800)
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        cdata = redis.get(ct.SYNC_ANIMATION_2_REDIS)
-        _today = datetime.now().strftime('%Y-%m-%d') 
+        cdata = self.redis.get(ct.ANIMATION_INFO)
+        if cdata is None: return None
+        cdata = _pickle.loads(cdata)
+        _today = datetime.now().strftime('%Y-%m-%d')
         show_data = cdata[cdata.cdate == _today]
+        show_data = show_data.reset_index(drop = True)
         ctime_list = show_data.ctime.unique()
+        ctime_list = [datetime.strptime(ctime,'%H:%M:%S') for ctime in ctime_list]
         frame_num = len(ctime_list)
+        if 0 == frame_num: return None
         def animate(i):
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H-%M-%S'))
+            ax.clear()
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
             ax.xaxis.set_major_locator(mdates.DayLocator())
             ax.set_title('盯盘', fontproperties=get_chinese_font())
             ax.set_xlabel('时间', fontproperties=get_chinese_font())
             ax.set_ylabel('增长', fontproperties=get_chinese_font())
             ax.set_ylim((-10, 50))
             fig.autofmt_xdate()
-            ctime = ctime_list[i]
-            for inedx, name in show_data.name.iteritems():
-                pchange = show_data.loc[index]['pchange']
-                logger.debug("time:%s, y:%s" % (ctime, pchange))
-                ax.plot(ctime, pchange, label = name, linewidth = 1.5)
-                if pchange > 3.0:
-                    ax.text(ctime, pchange*2, key, font_properties = get_chinese_font())
-            ax.legend(fontsize = 'xx-small', bbox_to_anchor = (1.0, 1.0), ncol = 7, fancybox = True, prop = get_chinese_font())
+            for _, name in show_data.name.iteritems():
+                pchange_list = show_data[show_data.name == name]['pchange'].tolist()
+                ax.plot(ctime_list, pchange_list, label = name, linewidth = 1.5)
+                pchange = pchange_list[len(pchange_list) - 1]
+                ctime = ctime_list[len(ctime_list) - 1]
+                if pchange > 3:
+                    ax.text(ctime, pchange * 2, name, font_properties = get_chinese_font())
+                #ax.legend(fontsize = 'xx-small', bbox_to_anchor = (1.0, 1.0), ncol = 7, fancybox = True, prop = get_chinese_font())
         ani = animation.FuncAnimation(fig, animate, frame_num, interval = 60000, repeat = False)
         sfile = '/data/animation/%s_animation.mp4' % _today if sfile is None else sfile
         ani.save(sfile, writer)
@@ -307,4 +313,4 @@ class CReivew:
 
 if __name__ == '__main__':
     creview = CReivew(ct.STAT_INFO)
-    creview.update(0)
+    creview.gen_animation("/data/animation/1.mp4")
