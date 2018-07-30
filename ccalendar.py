@@ -9,12 +9,12 @@ from datetime import datetime
 from common import trace_func, create_redis_obj, df_delta
 logger = getLogger(__name__)
 class CCalendar:
-    def __init__(self, dbinfo = ct.DB_INFO, without_init = True):
+    def __init__(self, dbinfo = ct.DB_INFO, without_init = False):
         self.table = ct.CALENDAR_TABLE
         self.trigger = ct.SYNCCAL2REDIS
         self.mysql_client = cmysql.CMySQL(dbinfo)
         self.redis = create_redis_obj()
-        if without_init:
+        if without_init == False:
             if not self.create(): raise Exception("create calendar table failed")
             if not self.init(True): raise Exception("calendar table init failed")
             # here must be first init and second register, for init will delete table

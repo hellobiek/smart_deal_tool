@@ -23,7 +23,6 @@ class CStock:
         self.ticket_table = "%s_ticket" % self.code
         self.mysql_client = CMySQL(dbinfo)
         self.tdx_api = TdxHq_API()
-        self.tdx_serverip, self.tdx_port = get_available_tdx_server(self.tdx_api)
         if not self.create(): raise Exception("create stock %s table failed" % self.code)
 
     def __del__(self):
@@ -105,8 +104,9 @@ class CStock:
         return self.create_static() and self.create_realtime() and self.create_ticket()
 
     def set_k_data(self):
+        tdx_serverip, tdx_port = get_available_tdx_server(self.tdx_api)
         for d_type,d_table_name in self.data_type_dict.items():
-            with self.tdx_api.connect(self.tdx_serverip, self.tdx_port):
+            with self.tdx_api.connect(tdx_serverip, tdx_port):
                 df = self.tdx_api.to_df(self.tdx_api.get_security_bars(d_type, self.get_market(), self.code, 0, 1))
                 if df is None: return
                 if df.empty: return 
@@ -188,7 +188,7 @@ class CStock:
         df.columns = ['ctime', 'price', 'cchange', 'volume', 'amount', 'ctype']
         df['date'] = cdate
         df = self.merge_ticket(df)
-        logger.info("write data code:%s, date:%s" % (self.code, cdate))
+        logger.debug("write data code:%s, date:%s" % (self.code, cdate))
         if self.mysql_client.set(df, self.ticket_table):
             self.redis.sadd(self.ticket_table, cdate)
 
@@ -198,7 +198,7 @@ class CStock:
     def get_vmacd():
         pass
 
-    def get_k_data(self, date = None, dtype = 'D'):
+    def get_k_data(self, date = None, dtype = 9):
         table_name = self.data_type_dict[dtype] 
         if date is not None:
             sql = "select * from %s where date=\"%s\"" %(table_name, date)

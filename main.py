@@ -9,7 +9,7 @@ import const as ct
 from log import getLogger
 from creview import CReivew
 from data_manager import DataManager
-from new_purchase import buy_new_stock 
+from ctrader import CTrader
 from cthread import CThread
 log = getLogger(__name__)
 
@@ -18,11 +18,14 @@ def main():
     dm = DataManager(ct.DB_INFO)
     threadList.append(CThread(dm.run, 0))
     threadList.append(CThread(dm.animate, 15))
-    threadList.append(CThread(dm.collect, 3600))
-    threadList.append(CThread(dm.update, 3600))
+    threadList.append(CThread(dm.collect, 21600))
+    threadList.append(CThread(dm.update, 21600))
 
     cr = CReivew(ct.STAT_INFO)
     threadList.append(CThread(cr.update, 10800))
+
+    ctrader = CTrader(ct.DB_INFO)
+    threadList.append(CThread(ctrader.buy_new_stock, 10800))
 
     for thread in threadList:
         thread.start()
