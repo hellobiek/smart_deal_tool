@@ -134,3 +134,10 @@ class CMySQL:
             self.redis.sadd(ALL_TABLES, table)
             return True
         return False
+
+    def delete(self, table):
+        sql = 'drop table %s' % table
+        if self.exec_sql(sql):
+            self.redis.srem(ALL_TABLES, table)
+            return True
+        return False

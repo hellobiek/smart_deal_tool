@@ -60,9 +60,10 @@ const.DB_INFO = {'user':'root',
                  'password':'123456',
                  'host':'host.docker.internal',
                  'database':'stock'}
-const.DB_NEW_INFO = {'user':'root',
-                     'password':'123456',
-                     'host':'host.docker.internal'}
+const.OLD_DB_INFO = {'user':'root',
+                 'password':'123456',
+                 'host':'host.docker.internal',
+                 'database':'stock'}
 const.STAT_INFO = {'user':'root',
                  'password':'123456',
                  'host':'host.docker.internal',
