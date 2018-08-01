@@ -31,7 +31,7 @@ const.ENTRUST_QUERY = "https://trade.cgws.com/cgi-bin/stock/EntrustQuery?functio
 const.NEW_STOCK_URL = "http://newstock.cfi.cn/"
 const.FUTU_HOST = "172.18.3.101"
 const.FUTU_PORT = 11111
-const.USER_FILE = "data/user.json"
+const.USER_FILE = "/code/data/user.json"
 const.SLEEP_TIME = 3
 const.SHORT_SLEEP_TIME = 1
 const.LONG_SLEEP_TIME = 10800 
@@ -60,10 +60,17 @@ const.DB_INFO = {'user':'root',
                  'password':'123456',
                  'host':'host.docker.internal',
                  'database':'stock'}
+const.DB_NEW_INFO = {'user':'root',
+                     'password':'123456',
+                     'host':'host.docker.internal'}
 const.STAT_INFO = {'user':'root',
                  'password':'123456',
                  'host':'host.docker.internal',
                  'database':'statistical_information'}
+const.IN_DB_INFO = {'user':'root',
+                    'password':'123456',
+                    'host':'host.docker.internal',
+                    'port':8086}
 const.UTF8 = "utf8"
 const.SQL = "select * from %s"
 const.RETRY_TIMES = 1

@@ -2,9 +2,12 @@
 import json
 import time
 import datetime
+from datetime import datetime
+import ccalendar
 import const as ct
 import pandas as pd
 import tushare as ts
+from cmysql import CMySQL
 from trader import Trader
 from log import getLogger
 from common import is_trading_time
@@ -27,7 +30,11 @@ class CTrader:
                 if self.cal_client.is_trading_day():
                     _today = datetime.now().strftime('%Y-%m-%d')
                     if self.bnew_succeed_date != _today:
-                        for stock in get_new_stock_list():
+                        n_list = self.get_new_stock_list()
+                        if len(n_list) == 0:
+                            self.bnew_succeed = _today
+                            return
+                        for stock in n_list:
                             ret, amount = self.trader.max_amounts(stock[0], stock[1])
                             if 0 == ret:
                                 ret, msg = self.trader.deal(stock[0], stock[1], amount, "B")
@@ -37,7 +44,7 @@ class CTrader:
                                     logger.info(msg)
             except Exception as e:
                 logger.info(e)
-        time.sleep(sleep_time)
+            time.sleep(sleep_time)
     
     def get_new_stock_list(self):
         stock_list = []
@@ -45,7 +52,7 @@ class CTrader:
         stocks_info = top_stocks_info[[IPO_CODE_HEAD, IPO_DATE_HEAD, IPO_PRICE_HEAD]]
         for i in range(STOCK_NUM):
             stock_date = stocks_info.at[i, IPO_DATE_HEAD]
-            if pd.to_datetime(stock_date).strftime('%Y-%m-%d') == datetime.datetime.now().strftime('%Y-%m-%d'):
+            if pd.to_datetime(stock_date).strftime('%Y-%m-%d') == datetime.now().strftime('%Y-%m-%d'):
                 code = stocks_info.at[i, IPO_CODE_HEAD]
                 price = stocks_info.at[i, IPO_PRICE_HEAD]
                 stock_list.append(tuple(code, price))

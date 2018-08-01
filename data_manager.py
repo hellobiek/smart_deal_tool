@@ -64,18 +64,6 @@ class DataManager:
         aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
         return (mor_open_time < now_time < mor_close_time) or (aft_open_time < now_time < aft_close_time)
 
-    def animate(self, sleep_time):
-        time.sleep(100)
-        while True:
-            try:
-                if self.cal_client.is_trading_day():
-                    if is_trading_time():
-                        self.animation_client.collect()
-            except Exception as e:
-                logger.error(e)
-                traceback.print_exc()
-            time.sleep(sleep_time)
-
     def collect(self, sleep_time):
         while True:
             try:
@@ -89,8 +77,11 @@ class DataManager:
         while True:
             try:
                 if self.cal_client.is_trading_day():
-                    if is_trading_time():
-                        self.collect_realtime_info()
+                    #if is_trading_time():
+                    self.init_combination_info()
+                    self.init_real_stock_info()
+                    self.collect_realtime_info()
+                    self.animation_client.collect()
             except Exception as e:
                 logger.error(e)
             time.sleep(5)
@@ -112,8 +103,6 @@ class DataManager:
         self.stock_info_client.init()
         self.delisted_info_client.init(status)
         self.init_today_stock_tick()
-        self.init_combination_info()
-        self.init_real_stock_info()
         #self.halted_info_client.init(status)
 
     def get_concerned_list(self):
@@ -157,7 +146,7 @@ class DataManager:
         data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
         date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
         date_only_array = date_only_array[::-1]
-        obj_pool = Pool(5)
+        obj_pool = Pool(60)
         df = self.stock_info_client.get()
         for _, code_id in df.code.iteritems():
             _obj = self.objs[code_id] if code_id in self.objs else cstock.CStock(self.dbinfo, code_id)
@@ -202,7 +191,7 @@ class DataManager:
         self.evt.set(all_info)
 
     def collect_realtime_info(self):
-        obj_pool = Pool(50)
+        obj_pool = Pool(70)
         stock_list = self.get_concerned_list()
         self.get_all_info_from_remote(stock_list)
         obj_list = self.objs.keys()

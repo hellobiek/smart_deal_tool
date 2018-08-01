@@ -1,5 +1,6 @@
 #encoding=utf-8
 import time
+import pymysql
 import sqlalchemy
 import const as ct
 import pandas as pd
@@ -12,14 +13,23 @@ from warnings import filterwarnings
 filterwarnings('error', category = db.Warning)
 
 log = getLogger(__name__)
+ALL_DATABASES = 'all_databases'
 ALL_TABLES = 'all_tables'
 ALL_TRIGGERS = 'all_triggers'
 
-class CMySQL:
-    def __init__(self, dbinfo):
+class CNMySQL:
+    def __init__(self, dbinfo, dbname = 'stock'):
         self.dbinfo = dbinfo
         self.redis = create_redis_obj()
-        self.engine = create_engine("mysql://%(user)s:%(password)s@%(host)s/%(database)s?charset=utf8" % dbinfo, pool_size=0 , max_overflow=-1, pool_recycle=2400)
+        self.engine = create_engine("mysql://%(user)s:%(password)s@%(host)s/%s?charset=utf8" % (dbinfo, dbname), pool_size=0 , max_overflow=-1, pool_recycle=120)
+
+    def get_all_databases(self):
+        if self.redis.exists(ALL_DATABASES):
+            return set(str(dbname, encoding = "utf8") for dbname in self.redis.smembers(ALL_DATABASES))
+        else:
+            all_dbs = self._get_all_databses()
+            for _db in all_dbs: self.redis.sadd(ALL_DATABASES, _db)
+            return all_dbs
 
     def get_all_tables(self):
         if self.redis.exists(ALL_TABLES):
@@ -42,8 +52,6 @@ class CMySQL:
         for i in range(ct.RETRY_TIMES):
             try:
                 conn = self.engine.connect()
-                #trans = conn.begin()
-                #cur = conn.cursor()
                 df = pd.read_sql(sql, conn)
                 res = True
             except sqlalchemy.exc.OperationalError as e:
@@ -134,3 +142,36 @@ class CMySQL:
             self.redis.sadd(ALL_TABLES, table)
             return True
         return False
+
+    def _get_all_databses(self):
+        result = list()
+        try:
+            conn = pymysql.connect(host=self.dbinfo['host'], user=self.dbinfo['user'], passwd=self.dbinfo['password'])
+            cursor = conn.cursor()
+            cursor.execute("show databases;")
+            result = cursor.fetchall()
+            cursor.close()
+            conn.commit()
+        except Exception as e:
+            if 'conn' in dir(): conn.rollback()
+        finally:
+            if 'curosr' in dir(): cursor.close()
+            if 'conn' in dir(): conn.close()
+        return result
+
+    def create_db(self, database):
+        res = False
+        try:
+            conn = pymysql.connect(host=self.dbinfo['host'], user=self.dbinfo['user'], passwd=self.dbinfo['password'])
+            cursor = conn.cursor()
+            cursor.execute("create database if not exists %s" % dbname)
+            cursor.close()
+            conn.commit()
+            res = True
+        except Exception as e:
+            if 'conn' in dir(): conn.rollback()
+            res = False
+        finally:
+            if 'curosr' in dir(): cursor.close()
+            if 'conn' in dir(): conn.close()
+        return res
