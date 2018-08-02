@@ -7,41 +7,43 @@ from gevent.event import AsyncResult
 import time
 import json
 import datetime
-import ccalendar
-import cstock
+from cstock import CStock
+from cdelisted import CDelisted
+from ccalendar import CCalendar
+from animation import CAnimation
+from cstock_info import CStockInfo
+from combination import Combination
+from combination_info import CombinationInfo
 import chalted
 import traceback
-import cstock_info
-import cdelisted
-import combination
-import combination_info
-import animation
 import const as ct
 import numpy as np
 import pandas as pd
 import tushare as ts
-from pandas import DataFrame
 from log import getLogger
+from pandas import DataFrame
 from datetime import datetime
-from common import trace_func,is_trading_time,delta_days,create_redis_obj
+from subscriber import Subscriber
+from common import trace_func,is_trading_time,delta_days,create_redis_obj,add_prifix
 pd.options.mode.chained_assignment = None #default='warn'
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 logger = getLogger(__name__)
-
 class DataManager:
     def __init__(self, dbinfo):
-        self.objs = dict()
+        self.combination_objs = dict()
+        self.stock_objs = dict()
         self.evt = AsyncResult()
         self.dbinfo = dbinfo
-        self.cal_client = ccalendar.CCalendar(dbinfo)
-        self.comb_info_client = combination_info.CombinationInfo(dbinfo)
-        self.stock_info_client = cstock_info.CStockInfo(dbinfo)
-        self.delisted_info_client = cdelisted.CDelisted(dbinfo)
-        self.animation_client = animation.CAnimation(dbinfo)
+        self.subscriber = Subscriber(host = ct.FUTU_HOST, port = ct.FUTU_PORT)
+        self.cal_client = CCalendar(dbinfo)
+        self.comb_info_client = CombinationInfo(dbinfo)
+        self.stock_info_client = CStockInfo(dbinfo)
+        self.delisted_info_client = CDelisted(dbinfo)
+        self.animation_client = CAnimation(dbinfo)
 
     def is_collecting_time(self, now_time = None):
-        if now_time is None:now_time = datetime.now()
+        if now_time is None: now_time = datetime.now()
         _date = now_time.strftime('%Y-%m-%d')
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
         mor_open_hour,mor_open_minute,mor_open_second = (18,0,0)
@@ -51,7 +53,7 @@ class DataManager:
         return mor_open_time < now_time < mor_close_time
 
     def is_tcket_time(self, now_time = None):
-        if now_time is None:now_time = datetime.now()
+        if now_time is None: now_time = datetime.now()
         _date = now_time.strftime('%Y-%m-%d')
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
         mor_open_hour,mor_open_minute,mor_open_second = (0,0,0)
@@ -77,14 +79,16 @@ class DataManager:
         while True:
             try:
                 if self.cal_client.is_trading_day():
-                    #if is_trading_time():
-                    self.init_combination_info()
-                    self.init_real_stock_info()
-                    self.collect_realtime_info()
-                    self.animation_client.collect()
+                    if is_trading_time() and not self.subscriber.status():
+                        self.subscriber.start()
+                        self.init_combination_info()
+                        self.init_real_stock_info()
+                    elif not is_trading_time() and self.subscriber.status():
+                        self.subscriber.stop()
             except Exception as e:
                 logger.error(e)
-            time.sleep(5)
+                traceback.print_exc()
+            time.sleep(sleep_time)
 
     def update(self, sleep_time):
         while True:
@@ -119,8 +123,8 @@ class DataManager:
     def init_combination_info(self):
         trading_info = self.comb_info_client.get()
         for _, code_id in trading_info['code'].iteritems():
-            if str(code_id) not in self.objs: 
-                self.objs[str(code_id)] = combination.Combination(self.dbinfo, code_id)
+            if str(code_id) not in self.combination_objs: 
+                self.combination_objs[str(code_id)] = Combination(self.dbinfo, code_id)
 
     def init_today_stock_tick(self):
         _date = datetime.now().strftime('%Y-%m-%d')
@@ -128,7 +132,7 @@ class DataManager:
         df = self.stock_info_client.get()
         if self.cal_client.is_trading_day(_date):
             for _, code_id in df.code.iteritems():
-                _obj = self.objs[code_id] if code_id in self.objs else cstock.CStock(self.dbinfo, code_id)
+                _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(self.dbinfo, code_id)
                 try:
                     if obj_pool.full(): obj_pool.join()
                     obj_pool.spawn(_obj.set_k_data)
@@ -149,7 +153,7 @@ class DataManager:
         obj_pool = Pool(60)
         df = self.stock_info_client.get()
         for _, code_id in df.code.iteritems():
-            _obj = self.objs[code_id] if code_id in self.objs else cstock.CStock(self.dbinfo, code_id)
+            _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(self.dbinfo, code_id)
             for _date in date_only_array:
                 if self.cal_client.is_trading_day(_date):
                     try:
@@ -162,44 +166,14 @@ class DataManager:
 
     def init_real_stock_info(self):
         concerned_list = self.get_concerned_list()
+        count = 0
+        total_num = len(concerned_list)
         for code_id in concerned_list:
-            if code_id not in self.objs:
-                self.objs[code_id] = cstock.CStock(self.dbinfo, code_id)
-
-    def get_all_info_from_remote(self, stock_list):
-        all_info = None
-        start_index = 0
-        stock_nums = len(stock_list)
-        while start_index < stock_nums - 1:
-            end_index = stock_nums - 1 if start_index + 20 > stock_nums else start_index + 20
-            stock_codes = stock_list[start_index:end_index]
-            _info = ts.get_realtime_quotes(stock_codes)
-            all_info = _info if all_info is None else all_info.append(_info)
-            start_index = end_index
-        if all_info is not None:
-            convert_list = ['b1_v', 'b2_v', 'b3_v', 'b4_v', 'b5_v', 'a1_v', 'a2_v', 'a3_v', 'a4_v', 'a5_v']
-            for conver_str in convert_list:
-                all_info[conver_str] = pd.to_numeric(_info[conver_str], errors='coerce')
-            all_info['limit_up_time'] = 0
-            all_info['limit_down_time'] = 0
-            all_info['p_change'] = 100 * (all_info['price'].astype(float) - all_info['pre_close'].astype(float)).divide(all_info['pre_close'].astype(float))
-            now_time = datetime.now().strftime('%H-%M-%S')
-            all_info[all_info["p_change"]>9.9]['limit_up_time'] = now_time
-            all_info[all_info["p_change"]<-9.9]['limit_down_time'] = now_time
-        #too often visit will cause net error 
-        time.sleep(1)
-        self.evt.set(all_info)
-
-    def collect_realtime_info(self):
-        obj_pool = Pool(70)
-        stock_list = self.get_concerned_list()
-        self.get_all_info_from_remote(stock_list)
-        obj_list = self.objs.keys()
-        for key in obj_list:
-            if obj_pool.full(): obj_pool.join()
-            obj_pool.spawn(self.objs[key].run, self.evt)
-        obj_pool.join()
-        obj_pool.kill()
+            if code_id not in self.stock_objs:
+                if 0 == self.subscriber.subscribe_tick(add_prifix(code_id), CStock):
+                    self.stock_objs[code_id] = CStock(self.dbinfo, code_id)
+                    count += 1
+                    logger.info("%s subscribe success, count:%s, total:%s" % (code_id, count, total_num))
 
 if __name__ == '__main__':
     dm = DataManager(ct.DB_INFO, ct.STOCK_INFO_TABLE, ct.COMBINATION_INFO_TABLE, ct.CALENDAR_TABLE, ct.DELISTED_INFO_TABLE, ct.HALTED_TABLE)

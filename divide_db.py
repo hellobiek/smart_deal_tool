@@ -4,14 +4,13 @@ import const as ct
 import pandas as pd
 import tushare as ts
 from common import create_redis_obj
-from cnmysql import CNMySQL
+from cmysql import CMySQL
 from cstock import CStock
-from cnstock import CNStock
 
 if __name__ == "__main__":
     #redis = create_redis_obj()
     #redis.delete('ALL_TABLES')
-    cmy = CNMySQL(ct.DB_INFO)
+    cmy = CMySQL(ct.DB_INFO)
     all_tables = cmy.get_all_tables()
     all_tables = [_table.split('_')[0] for _table in all_tables]
     all_tables = list(set(all_tables))
@@ -22,14 +21,12 @@ if __name__ == "__main__":
             print(cmy.create_db(dbname))
     #with open('/tmp/a', 'r') as f:
     #    slist = json.load(f)
-    slist = list()
-    for code in all_tables:
-        if code.isnumeric():
-            with open("/tmp/a", 'w') as f:
-                json.dump(slist, f)
-            old_stock = CStock(ct.OLD_DB_INFO, code)
-            old_stock.mysql_client.delete("%s_D" % code)
-            old_stock.mysql_client.delete("%s_realtime" % code)
-            old_stock.mysql_client.delete("%s_ticket" % code)
-            print(code)
-            slist.append(code)
+    old_stock = CStock(ct.OLD_DB_INFO, '000695')
+    for code in slist:
+        #with open("/tmp/a", 'w') as f:
+        #    json.dump(slist, f)
+        old_stock.mysql_client.delete("%s_D" % code)
+        old_stock.mysql_client.delete("%s_realtime" % code)
+        old_stock.mysql_client.delete("%s_ticket" % code)
+        print(code)
+        #slist.append(code)

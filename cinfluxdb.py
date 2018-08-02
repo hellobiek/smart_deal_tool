@@ -12,7 +12,7 @@ class CInflux:
         return self.client.write_points(df, self.dbname, protocol='json')
 
     def create(self):
-        return self.client.create_dbname(self.dbname)
+        self.client.create_database(self.dbname)
 
     def delete(self):
-        return self.client.drop_dbname(self.dbname)
+        self.client.drop_database(self.dbname)

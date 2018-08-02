@@ -59,6 +59,7 @@ def is_afternoon(now_time = None):
     return (mor_open_time < now_time < mor_close_time)
 
 def is_trading_time(now_time = None):
+    return True
     if now_time is None:now_time = datetime.now()
     _date = now_time.strftime('%Y-%m-%d')
     y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]

@@ -16,15 +16,15 @@ log = getLogger(__name__)
 def main():
     threadList = []
     dm = DataManager(ct.DB_INFO)
-    threadList.append(CThread(dm.run, 1))
-    threadList.append(CThread(dm.collect, 600))
-    threadList.append(CThread(dm.update, 600))
+    threadList.append(CThread(dm.run, 240))
+    #threadList.append(CThread(dm.collect, 600))
+    #threadList.append(CThread(dm.update, 600))
 
-    cr = CReivew(ct.STAT_INFO)
-    threadList.append(CThread(cr.update, 10800))
+    #cr = CReivew(ct.STAT_INFO)
+    #threadList.append(CThread(cr.update, 10800))
 
-    ctrader = CTrader(ct.DB_INFO)
-    threadList.append(CThread(ctrader.buy_new_stock, 10800))
+    #ctrader = CTrader(ct.DB_INFO)
+    #threadList.append(CThread(ctrader.buy_new_stock, 10800))
 
     for thread in threadList:
         thread.start()

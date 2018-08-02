@@ -7,22 +7,31 @@ import const as ct
 import pandas as pd
 import tushare as ts
 from cmysql import CMySQL
+from cinfluxdb import CInflux  
 from log import getLogger
 from pytdx.hq import TdxHq_API
+from futuquant.quote.quote_response_handler import TickerHandlerBase
 from common import trace_func,is_trading_time,df_delta,create_redis_obj,get_realtime_table_name,delta_days,get_available_tdx_server
 logger = getLogger(__name__)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
-class CStock:
+class CStock(TickerHandlerBase):
     def __init__(self, dbinfo, code):
         self.code = code
+        self.dbname = "s%s" % code
         self.redis = create_redis_obj()
         self.name = self.get('name')
-        self.data_type_dict = {9:"%s_D" % code}
-        self.realtime_table = "%s_realtime" % self.code
-        self.ticket_table = "%s_ticket" % self.code
-        self.mysql_client = CMySQL(dbinfo)
+        self.data_type_dict = {9:"day"}
+        self.influx_client = CInflux(ct.IN_DB_INFO, self.dbname)
+        self.mysql_client = CMySQL(dbinfo, self.dbname)
         if not self.create(): raise Exception("create stock %s table failed" % self.code)
+
+    def on_recv_rsp(self, rsp_pb):
+        '''获取逐笔 get_rt_ticker 和 TickerHandlerBase'''
+        ret, data = super(CStock, self).on_recv_rsp(rsp_pb)
+        if 0 == ret:
+            logger.info("code:%s, data:%s, type:%s" % (self.code, data, type(data)))
+            #self.influx_client.set(data)
 
     def has_on_market(self, cdate):
         time2Market = self.get('timeToMarket')
@@ -44,60 +53,65 @@ class CStock:
         time2Market = datetime(y,m,d)
         return True if (datetime.today()-time2Market).days < timeLimit else False
 
-    def create_static(self):
+    def create(self):
+        self.create_influx_db()
+        return self.create_mysql_db()
+
+    def create_influx_db(self):
+        self.influx_client.create()
+
+    def create_mysql_db(self):
         for _, table_name in self.data_type_dict.items():
             if table_name not in self.mysql_client.get_all_tables():
                 sql = 'create table if not exists %s(cdate varchar(10) not null, open float, high float, close float, low float, volume float, amount float, PRIMARY KEY(cdate))' % table_name 
                 if not self.mysql_client.create(sql, table_name): return False
         return True
 
-    def create_ticket(self):
-        sql = 'create table if not exists %s(date varchar(10) not null, ctime varchar(8) not null, price float(5,2), cchange varchar(10) not null, volume int not null, amount int not null, ctype varchar(6) not null, PRIMARY KEY (date, ctime, cchange, volume, amount, ctype))' % self.ticket_table
-        return True if self.ticket_table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.ticket_table)
+    def create_ticket(self, table):
+        sql = 'create table if not exists %s(date varchar(10) not null, ctime varchar(8) not null, price float(5,2), cchange varchar(10) not null, volume int not null, amount int not null, ctype varchar(6) not null, PRIMARY KEY (date, ctime, cchange, volume, amount, ctype))' % table
+        return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
 
-    def create_realtime(self):
-        sql = 'create table if not exists %s(date varchar(25),\
-                                              name varchar(20),\
-                                              code varchar(10),\
-                                              open float,\
-                                              pre_close float,\
-                                              price float,\
-                                              high float,\
-                                              low float,\
-                                              bid float,\
-                                              ask float,\
-                                              volume float,\
-                                              amount float,\
-                                              b1_v int,\
-                                              b1_p float,\
-                                              b2_v int,\
-                                              b2_p float,\
-                                              b3_v int,\
-                                              b3_p float,\
-                                              b4_v int,\
-                                              b4_p float,\
-                                              b5_v int,\
-                                              b5_p float,\
-                                              a1_v int,\
-                                              a1_p float,\
-                                              a2_v int,\
-                                              a2_p float,\
-                                              a3_v int,\
-                                              a3_p float,\
-                                              a4_v int,\
-                                              a4_p float,\
-                                              a5_v int,\
-                                              a5_p float,\
-                                              time varchar(20),\
-                                              turnover float,\
-                                              p_change float,\
-                                              outstanding float,\
-                                              limit_down_time varchar(20),\
-                                              limit_up_time varchar(20))' % self.realtime_table
-        return True if self.realtime_table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.realtime_table)
-
-    def create(self):
-        return self.create_static() and self.create_realtime() and self.create_ticket()
+    #def create_realtime(self):
+    #    return True
+    #    sql = 'create table if not exists %s(date varchar(25),\
+    #                                          name varchar(20),\
+    #                                          code varchar(10),\
+    #                                          open float,\
+    #                                          pre_close float,\
+    #                                          price float,\
+    #                                          high float,\
+    #                                          low float,\
+    #                                          bid float,\
+    #                                          ask float,\
+    #                                          volume float,\
+    #                                          amount float,\
+    #                                          b1_v int,\
+    #                                          b1_p float,\
+    #                                          b2_v int,\
+    #                                          b2_p float,\
+    #                                          b3_v int,\
+    #                                          b3_p float,\
+    #                                          b4_v int,\
+    #                                          b4_p float,\
+    #                                          b5_v int,\
+    #                                          b5_p float,\
+    #                                          a1_v int,\
+    #                                          a1_p float,\
+    #                                          a2_v int,\
+    #                                          a2_p float,\
+    #                                          a3_v int,\
+    #                                          a3_p float,\
+    #                                          a4_v int,\
+    #                                          a4_p float,\
+    #                                          a5_v int,\
+    #                                          a5_p float,\
+    #                                          time varchar(20),\
+    #                                          turnover float,\
+    #                                          p_change float,\
+    #                                          outstanding float,\
+    #                                          limit_down_time varchar(20),\
+    #                                          limit_up_time varchar(20))' % self.realtime_table
+    #    return True if self.realtime_table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.realtime_table)
 
     #def set_k_data(self):
     #    tdx_serverip, tdx_port = get_available_tdx_server(self.tdx_api)
@@ -124,7 +138,7 @@ class CStock:
             _info = all_info[all_info.code == self.code]
             _info['outstanding'] = self.get('outstanding')
             _info['turnover'] = _info['volume'].astype(float).divide(_info['outstanding'])
-            #self.influx_client.set(_info, self.realtime_table)
+            self.influx_client.set(_info)
 
     def merge_ticket(self, df):
         ex = df[df.duplicated(subset = ['ctime', 'cchange', 'volume', 'amount', 'ctype'], keep=False)]
@@ -158,9 +172,17 @@ class CStock:
         else:
             return ct.MARKET_OTHER
 
-    def is_date_exists(self, cdate):
-        if self.redis.exists(self.ticket_table):
-            return cdate in set(str(table, encoding = "utf8") for table in self.redis.smembers(self.ticket_table))
+    def get_redis_tick_table(self, cdate):
+        return "%s_tick_%s" % (self.code, cdate[0:7])
+
+    def is_tick_table_exists(self, tick_table):
+        if self.redis.exists(self.dbname):
+            return tick_table in set(str(table, encoding = "utf8") for table in self.redis.smembers(self.dbname))
+        return False
+
+    def is_date_exists(self, tick_table, cdate):
+        if self.redis.exists(tick_table):
+            return cdate in set(str(tdate, encoding = "utf8") for tdate in self.redis.smembers(tick_table))
         return False
 
     def set_ticket(self, cdate = None):
@@ -168,7 +190,11 @@ class CStock:
         if not self.has_on_market(cdate):
             logger.debug("not on market code:%s, date:%s" % (self.code, cdate))
             return
-        if self.is_date_exists(cdate): 
+        if not self.is_tick_table_exists(self.get_redis_tick_table(cdate), cdate):
+            if not self.create_ticket(tick_table):
+                logger.error("create tick table failed")
+                return
+        if self.is_date_exists(tick_table, cdate): 
             logger.debug("existed code:%s, date:%s" % (self.code, cdate))
             return
         df = ts.get_tick_data(self.code, date=cdate)
@@ -185,8 +211,8 @@ class CStock:
         df['date'] = cdate
         df = self.merge_ticket(df)
         logger.debug("write data code:%s, date:%s" % (self.code, cdate))
-        if self.mysql_client.set(df, self.ticket_table):
-            self.redis.sadd(self.ticket_table, cdate)
+        if self.mysql_client.set(df, tick_table):
+            self.redis.sadd(tick_table, cdate)
 
     def get_ma():
         pass
@@ -210,7 +236,8 @@ class CStock:
         return (datetime.strptime(_date, "%Y-%m-%d") - time2Market).days > 0
 
 if __name__ == "__main__":
-    cs = CStock(ct.DB_INFO, '300724')
+    pass
+    #cs = CStock(ct.DB_INFO, '300724')
     #cs.set_k_data()
     #0: "%s_5" % code
     #cs.set_ticket('2017-09-08')

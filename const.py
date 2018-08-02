@@ -29,7 +29,7 @@ import const
 const.LOGIN_URL = "https://trade.cgws.com/cgi-bin/user/Login?function=tradeLogout"
 const.ENTRUST_QUERY = "https://trade.cgws.com/cgi-bin/stock/EntrustQuery?function=MyAccount"
 const.NEW_STOCK_URL = "http://newstock.cfi.cn/"
-const.FUTU_HOST = "172.18.3.101"
+const.FUTU_HOST = "host.docker.internal"
 const.FUTU_PORT = 11111
 const.USER_FILE = "/code/data/user.json"
 const.SLEEP_TIME = 3
