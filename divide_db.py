@@ -20,15 +20,16 @@ if __name__ == "__main__":
         dbname = "s%s" % _table
         if _table.isnumeric() and dbname not in all_dbs:
             print(cmy.create_db(dbname))
-    with open('/tmp/a', 'r') as f:
-        slist = json.load(f)
+    #with open('/tmp/a', 'r') as f:
+    #    slist = json.load(f)
+    slist = list()
     for code in all_tables:
-        if code.isnumeric() and code not in slist:
+        if code.isnumeric():
             with open("/tmp/a", 'w') as f:
                 json.dump(slist, f)
-            print(code)
             old_stock = CStock(ct.OLD_DB_INFO, code)
-            new_stock = CNStock(ct.DB_INFO, code)
-            old_d_df = old_stock.get_k_data()
-            new_stock.mysql_client.set(old_d_df, table = "day")
+            old_stock.mysql_client.delete("%s_D" % code)
+            old_stock.mysql_client.delete("%s_realtime" % code)
+            old_stock.mysql_client.delete("%s_ticket" % code)
+            print(code)
             slist.append(code)
