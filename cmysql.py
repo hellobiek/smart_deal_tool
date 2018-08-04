@@ -1,5 +1,6 @@
 #encoding=utf-8
 import time
+import copy
 import pymysql
 import sqlalchemy
 import const as ct
@@ -19,9 +20,9 @@ ALL_TRIGGERS = 'all_triggers'
 class CMySQL:
     def __init__(self, dbinfo, dbname = 'stock'):
         self.dbinfo = dbinfo
-        self.dbinfo['database'] = dbname
+        self.dbname = dbname
         self.redis = create_redis_obj()
-        self.engine = create_engine("mysql://%(user)s:%(password)s@%(host)s/%(database)s?charset=utf8" % self.dbinfo, pool_size=0 , max_overflow=-1, pool_recycle=120)
+        self.engine = create_engine("mysql://%s:%s@%s/%s?charset=utf8" % (self.dbinfo['user'], self.dbinfo['password'], self.dbinfo['host'], self.dbname), pool_size=0 , max_overflow=-1, pool_recycle=120)
 
     def get_all_databases(self):
         if self.redis.exists(ALL_DATABASES):
@@ -32,11 +33,11 @@ class CMySQL:
             return all_dbs
 
     def get_all_tables(self):
-        if self.redis.exists(self.dbinfo['database']):
-            return set(str(table, encoding = "utf8") for table in self.redis.smembers(self.dbinfo['database']))
+        if self.redis.exists(self.dbname):
+            return set(str(table, encoding = "utf8") for table in self.redis.smembers(self.dbname))
         else:
-            all_tables = self._get('SHOW TABLES', 'Tables_in_%s' % self.dbinfo['database'])
-            for table in all_tables: self.redis.sadd(self.dbinfo['database'], table)
+            all_tables = self._get('SHOW TABLES', 'Tables_in_%s' % self.dbname)
+            for table in all_tables: self.redis.sadd(self.dbname, table)
             return all_tables
 
     def get_all_triggers(self):
@@ -103,7 +104,7 @@ class CMySQL:
         hasSucceed = False
         for i in range(ct.RETRY_TIMES):
             try:
-                conn = db.connect(host=self.dbinfo['host'],user=self.dbinfo['user'],passwd=self.dbinfo['password'],db=self.dbinfo['database'],charset=ct.UTF8)
+                conn = db.connect(host=self.dbinfo['host'],user=self.dbinfo['user'],passwd=self.dbinfo['password'],db=self.dbname,charset=ct.UTF8)
                 conn.ping(True)
                 cur = conn.cursor()
                 cur.execute(sql)
@@ -132,14 +133,14 @@ class CMySQL:
 
     def create(self, sql, table):
         if self.exec_sql(sql):
-            self.redis.sadd(self.dbinfo['database'], table)
+            self.redis.sadd(self.dbname, table)
             return True
         return False
 
     def delete(self, table):
         sql = 'drop table %s' % table
         if self.exec_sql(sql):
-            self.redis.srem(self.dbinfo['database'], table)
+            self.redis.srem(self.dbname, table)
             return True
         return False
 
@@ -160,10 +161,32 @@ class CMySQL:
             if 'conn' in dir(): conn.close()
         return db_list
 
-    def create_db(self, dbname):
+    def delete_db(self, dbname):
+        if self.redis.exists(ALL_DATABASES) and dbname not in self.redis.smembers(ALL_DATABASES):
+            return True
         res = False
         try:
-            conn = pymysql.connect(host=self.dbinfo['host'], user=self.dbinfo['user'], passwd=self.dbinfo['password'])
+            conn = pymysql.connect(host=self.dbinfo['host'], user=self.dbinfo['user'], passwd=self.dbinfo['password'], charset='utf8')
+            cursor = conn.cursor()
+            cursor.execute("drop database if exists %s" % dbname)
+            cursor.close()
+            conn.commit()
+            res = True
+        except Exception as e:
+            if 'conn' in dir(): conn.rollback()
+            res = False
+        finally:
+            if 'curosr' in dir(): cursor.close()
+            if 'conn' in dir(): conn.close()
+        if res == True: self.redis.srem(ALL_DATABASES, dbname)
+        return res
+
+    def create_db(self, dbname):
+        if self.redis.exists(ALL_DATABASES) and dbname in self.redis.smembers(ALL_DATABASES):
+            return True
+        res = False
+        try:
+            conn = pymysql.connect(host=self.dbinfo['host'], user=self.dbinfo['user'], passwd=self.dbinfo['password'], charset='utf8')
             cursor = conn.cursor()
             cursor.execute("create database if not exists %s" % dbname)
             cursor.close()

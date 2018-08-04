@@ -7,6 +7,7 @@ from gevent.event import AsyncResult
 import time
 import json
 import datetime
+from cmysql import CMySQL
 from cstock import CStock
 from cdelisted import CDelisted
 from ccalendar import CCalendar
@@ -35,12 +36,12 @@ class DataManager:
         self.stock_objs = dict()
         self.evt = AsyncResult()
         self.dbinfo = dbinfo
-        self.subscriber = Subscriber(host = ct.FUTU_HOST, port = ct.FUTU_PORT)
         self.cal_client = CCalendar(dbinfo)
         self.comb_info_client = CombinationInfo(dbinfo)
         self.stock_info_client = CStockInfo(dbinfo)
         self.delisted_info_client = CDelisted(dbinfo)
         self.animation_client = CAnimation(dbinfo)
+        self.subscriber = Subscriber()
 
     def is_collecting_time(self, now_time = None):
         if now_time is None: now_time = datetime.now()
@@ -69,11 +70,38 @@ class DataManager:
     def collect(self, sleep_time):
         while True:
             try:
-                if not self.cal_client.is_trading_day() or not is_trading_time():
-                    self.init_all_stock_tick()
+                logger.info("start collecting")
+                #if not self.cal_client.is_trading_day() or not is_trading_time():
+                self.init_all_stock_tick()
             except Exception as e:
                 logger.error(e)
             time.sleep(sleep_time)
+
+    def collect_combination_runtime_data(self):
+        obj_pool = Pool(10)
+        for code_id in self.combination_objs:
+            try:
+                if obj_pool.full(): obj_pool.join()
+                obj_pool.spawn(self.combination_objs[code_id].run)
+            except Exception as e:
+                logger.info(e)
+        obj_pool.join()
+        obj_pool.kill()
+
+    def collect_stock_runtime_data(self):
+        obj_pool = Pool(100)
+        for code_id in self.stock_objs:
+            try:
+                if obj_pool.full(): obj_pool.join()
+                ret, df = self.subscriber.get_tick_data(add_prifix(code_id))
+                if 0 == ret:
+                    df = df.set_index('time')
+                    df.index = pd.to_datetime(df.index)
+                    obj_pool.spawn(self.stock_objs[code_id].run, df)
+            except Exception as e:
+                logger.info(e)
+        obj_pool.join()
+        obj_pool.kill()
 
     def run(self, sleep_time):
         while True:
@@ -83,6 +111,10 @@ class DataManager:
                         self.subscriber.start()
                         self.init_combination_info()
                         self.init_real_stock_info()
+                    elif is_trading_time() and self.subscriber.status():
+                        self.collect_stock_runtime_data()
+                        self.collect_combination_runtime_data()
+                        self.animation_client.collect()
                     elif not is_trading_time() and self.subscriber.status():
                         self.subscriber.stop()
             except Exception as e:
@@ -94,8 +126,8 @@ class DataManager:
         while True:
             try:
                 if self.cal_client.is_trading_day(): 
-                    if self.is_collecting_time():
-                        self.init()
+                    #if self.is_collecting_time():
+                    self.init()
                 time.sleep(sleep_time)
             except Exception as e:
                 logger.error(e)
@@ -123,20 +155,20 @@ class DataManager:
     def init_combination_info(self):
         trading_info = self.comb_info_client.get()
         for _, code_id in trading_info['code'].iteritems():
-            if str(code_id) not in self.combination_objs: 
+            if str(code_id) not in self.combination_objs:
                 self.combination_objs[str(code_id)] = Combination(self.dbinfo, code_id)
 
     def init_today_stock_tick(self):
         _date = datetime.now().strftime('%Y-%m-%d')
-        obj_pool = Pool(60)
+        obj_pool = Pool(50)
         df = self.stock_info_client.get()
         if self.cal_client.is_trading_day(_date):
             for _, code_id in df.code.iteritems():
                 _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(self.dbinfo, code_id)
                 try:
                     if obj_pool.full(): obj_pool.join()
-                    obj_pool.spawn(_obj.set_k_data)
                     obj_pool.spawn(_obj.set_ticket, _date)
+                    obj_pool.spawn(_obj.set_k_data, _date)
                 except Exception as e:
                     logger.info(e)
         obj_pool.join()
@@ -150,30 +182,27 @@ class DataManager:
         data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
         date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
         date_only_array = date_only_array[::-1]
-        obj_pool = Pool(60)
+        obj_pool = Pool(50)
         df = self.stock_info_client.get()
         for _, code_id in df.code.iteritems():
             _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(self.dbinfo, code_id)
             for _date in date_only_array:
+                logger.info("start record:%s. date:%s" % (code_id, _date))
                 if self.cal_client.is_trading_day(_date):
                     try:
                         if obj_pool.full(): obj_pool.join()
                         obj_pool.spawn(_obj.set_ticket, _date)
                     except Exception as e:
-                        logger.debug(e)
+                        logger.info(e)
         obj_pool.join()
         obj_pool.kill()
 
     def init_real_stock_info(self):
         concerned_list = self.get_concerned_list()
-        count = 0
-        total_num = len(concerned_list)
         for code_id in concerned_list:
-            if code_id not in self.stock_objs:
-                if 0 == self.subscriber.subscribe_tick(add_prifix(code_id), CStock):
-                    self.stock_objs[code_id] = CStock(self.dbinfo, code_id)
-                    count += 1
-                    logger.info("%s subscribe success, count:%s, total:%s" % (code_id, count, total_num))
+            ret = self.subscriber.subscribe_tick(add_prifix(code_id), CStock)
+            if 0 == ret:
+                if code_id not in self.stock_objs: self.stock_objs[code_id] = CStock(self.dbinfo, code_id)
 
 if __name__ == '__main__':
     dm = DataManager(ct.DB_INFO, ct.STOCK_INFO_TABLE, ct.COMBINATION_INFO_TABLE, ct.CALENDAR_TABLE, ct.DELISTED_INFO_TABLE, ct.HALTED_TABLE)

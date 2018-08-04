@@ -89,9 +89,6 @@ def df_delta(pos_df, neg_df, subset_list, keep = False):
     pos_df = pos_df.append(neg_df)
     return pos_df.drop_duplicates(subset=subset_list, keep=False)
 
-def get_realtime_table_name(code_id):
-    return "RealTime%s" % code_id
-
 def get_market_name(stock_code):
     if (stock_code.startswith("6") or stock_code.startswith("500") or stock_code.startswith("550") or stock_code.startswith("510")):
         return "sh"

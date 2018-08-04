@@ -11,14 +11,14 @@ from cinfluxdb import CInflux
 from log import getLogger
 from pytdx.hq import TdxHq_API
 from futuquant.quote.quote_response_handler import TickerHandlerBase
-from common import trace_func,is_trading_time,df_delta,create_redis_obj,get_realtime_table_name,delta_days,get_available_tdx_server
+from common import trace_func,is_trading_time,df_delta,create_redis_obj,delta_days,get_available_tdx_server
 logger = getLogger(__name__)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 class CStock(TickerHandlerBase):
     def __init__(self, dbinfo, code):
         self.code = code
-        self.dbname = "s%s" % code
+        self.dbname = self.get_dbname(code)
         self.redis = create_redis_obj()
         self.name = self.get('name')
         self.data_type_dict = {9:"day"}
@@ -26,12 +26,18 @@ class CStock(TickerHandlerBase):
         self.mysql_client = CMySQL(dbinfo, self.dbname)
         if not self.create(): raise Exception("create stock %s table failed" % self.code)
 
+    @staticmethod
+    def get_dbname(code):
+        return "s%s" % code
+
+    @staticmethod
+    def get_redis_name(code):
+        return "realtime_%s" % code
+
     def on_recv_rsp(self, rsp_pb):
         '''获取逐笔 get_rt_ticker 和 TickerHandlerBase'''
         ret, data = super(CStock, self).on_recv_rsp(rsp_pb)
-        if 0 == ret:
-            logger.info("code:%s, data:%s, type:%s" % (self.code, data, type(data)))
-            #self.influx_client.set(data)
+        return ret, data
 
     def has_on_market(self, cdate):
         time2Market = self.get('timeToMarket')
@@ -55,20 +61,20 @@ class CStock(TickerHandlerBase):
 
     def create(self):
         self.create_influx_db()
-        return self.create_mysql_db()
+        return self.create_mysql_table()
 
     def create_influx_db(self):
         self.influx_client.create()
 
-    def create_mysql_db(self):
+    def create_mysql_table(self):
         for _, table_name in self.data_type_dict.items():
             if table_name not in self.mysql_client.get_all_tables():
                 sql = 'create table if not exists %s(cdate varchar(10) not null, open float, high float, close float, low float, volume float, amount float, PRIMARY KEY(cdate))' % table_name 
                 if not self.mysql_client.create(sql, table_name): return False
         return True
 
-    def create_ticket(self, table):
-        sql = 'create table if not exists %s(date varchar(10) not null, ctime varchar(8) not null, price float(5,2), cchange varchar(10) not null, volume int not null, amount int not null, ctype varchar(6) not null, PRIMARY KEY (date, ctime, cchange, volume, amount, ctype))' % table
+    def create_ticket_table(self, table):
+        sql = 'create table if not exists %s(date varchar(10) not null, ctime varchar(8) not null, price float(5,2), cchange varchar(10) not null, volume int not null, amount int not null, ctype varchar(9) not null, PRIMARY KEY (date, ctime, cchange, volume, amount, ctype))' % table
         return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
 
     #def create_realtime(self):
@@ -132,13 +138,9 @@ class CStock(TickerHandlerBase):
         if len(df.loc[df.code == self.code][attribute].values) == 0: return None
         return df.loc[df.code == self.code][attribute].values[0]
 
-    def run(self, evt):
-        all_info = evt.get()
-        if all_info is not None:
-            _info = all_info[all_info.code == self.code]
-            _info['outstanding'] = self.get('outstanding')
-            _info['turnover'] = _info['volume'].astype(float).divide(_info['outstanding'])
-            self.influx_client.set(_info)
+    def run(self, data):
+        self.redis.set(self.get_redis_name(self.code), _pickle.dumps(data.tail(1), 2))
+        self.influx_client.set(data)
 
     def merge_ticket(self, df):
         ex = df[df.duplicated(subset = ['ctime', 'cchange', 'volume', 'amount', 'ctype'], keep=False)]
@@ -173,7 +175,8 @@ class CStock(TickerHandlerBase):
             return ct.MARKET_OTHER
 
     def get_redis_tick_table(self, cdate):
-        return "%s_tick_%s" % (self.code, cdate[0:7])
+        cdates = cdate.split('-')
+        return "tick_%s_%s_%s" % (self.code, cdates[0], cdates[1])
 
     def is_tick_table_exists(self, tick_table):
         if self.redis.exists(self.dbname):
@@ -185,13 +188,22 @@ class CStock(TickerHandlerBase):
             return cdate in set(str(tdate, encoding = "utf8") for tdate in self.redis.smembers(tick_table))
         return False
 
+    def set_k_data(self, cdate = None):
+        cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
+        df = ts.get_k_data(self.code, start=cdate, end=cdate)
+        if df is not None: return False
+        if df.empty: return False
+        df = df.reset_index(drop = True)
+        return self.mysql_client.set(df, tick_table)
+
     def set_ticket(self, cdate = None):
         cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
         if not self.has_on_market(cdate):
             logger.debug("not on market code:%s, date:%s" % (self.code, cdate))
             return
-        if not self.is_tick_table_exists(self.get_redis_tick_table(cdate), cdate):
-            if not self.create_ticket(tick_table):
+        tick_table = self.get_redis_tick_table(cdate)
+        if not self.is_tick_table_exists(tick_table):
+            if not self.create_ticket_table(tick_table):
                 logger.error("create tick table failed")
                 return
         if self.is_date_exists(tick_table, cdate): 
@@ -210,7 +222,7 @@ class CStock(TickerHandlerBase):
         df.columns = ['ctime', 'price', 'cchange', 'volume', 'amount', 'ctype']
         df['date'] = cdate
         df = self.merge_ticket(df)
-        logger.debug("write data code:%s, date:%s" % (self.code, cdate))
+        logger.debug("write data code:%s, date:%s, table:%s" % (self.code, cdate, tick_table))
         if self.mysql_client.set(df, tick_table):
             self.redis.sadd(tick_table, cdate)
 

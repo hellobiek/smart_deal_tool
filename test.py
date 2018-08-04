@@ -6,10 +6,9 @@ import tushare as ts
 import const as ct
 from cmysql import CMySQL
 
-ALL_TABLES = 'all_tables'
 pool = redis.ConnectionPool(host=ct.REDIS_HOST, port=ct.REDIS_PORT, decode_responses=False)
 r = redis.StrictRedis(connection_pool=pool)
-df_byte = r.get(ct.ANIMATION_INFO)
+df_byte = r.get(ct.COMBINATION_INFO)
 df = _pickle.loads(df_byte)
 print(df)
 

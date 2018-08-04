@@ -124,7 +124,6 @@ class CReivew:
         df = df[['amount', 'name']]
         df = df.sort_values(by = 'amount', ascending= False)
         total_amount = df.amount.astype(float).sum()
-
         df = df[0:10]
         most_amount = df.amount.astype(float).sum()
         other_amount = total_amount - most_amount 

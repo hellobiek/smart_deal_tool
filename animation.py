@@ -8,7 +8,8 @@ import pandas as pd
 import tushare as ts
 from cmysql import CMySQL
 from log import getLogger
-from common import create_redis_obj, get_realtime_table_name
+from combination import Combination 
+from common import create_redis_obj
 from combination_info import CombinationInfo
 logger = getLogger(__name__)
 class CAnimation:
@@ -21,11 +22,11 @@ class CAnimation:
         if not self.register(): raise Exception("create animation trigger %s failed" % self.trigger)
 
     def register(self):
-        sql = "create trigger %s after insert on %s for each row set @set=gman_do_background('%s', json_object('cdate', NEW.cdate, 'ctime', NEW.ctime, 'pchange', NEW.pchange, 'volume', NEW.volume, 'amount', NEW.amount, 'name', NEW.name));" % (self.trigger, self.table, self.trigger)
+        sql = "create trigger %s after insert on %s for each row set @set=gman_do_background('%s', json_object('cdate', NEW.cdate, 'ctime', NEW.ctime, 'price', NEW.price, 'volume', NEW.volume, 'amount', NEW.amount, 'name', NEW.name));" % (self.trigger, self.table, self.trigger)
         return True if self.trigger in self.mysql_client.get_all_triggers() else self.mysql_client.register(sql, self.trigger)
 
     def create(self):
-        sql = 'create table if not exists %s(ctime varchar(10) not null, cdate varchar(10) not null, pchange float, volume float, amount float, name varchar(30) not null, PRIMARY KEY (cdate, ctime, name))' % self.table
+        sql = 'create table if not exists %s(ctime varchar(10) not null, cdate varchar(10) not null, price float, volume float, amount float, name varchar(30) not null, PRIMARY KEY (cdate, ctime, name))' % self.table
         return True if self.table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.table)
 
     @staticmethod
@@ -39,18 +40,18 @@ class CAnimation:
     def collect(self):
         cdata = dict()
         cdata['name'] = list()
-        cdata['pchange'] = list()
+        cdata['price'] = list()
         cdata['volume'] = list()
         cdata['amount'] = list()
         cdict = self.get_combination_dict()
         if 0 == len(cdict): return False
         try:
             df = ts.get_realtime_quotes('sh')
-            p_change = 100 * (float(df.price.tolist()[0]) - float(df.pre_close.tolist()[0]))/float(df.pre_close.tolist()[0])
+            price = float(df.price.tolist()[0])
             p_volume = float(df.volume.tolist()[0])
             p_amount = float(df.amount.tolist()[0])
             cdata['name'].append("上证指数")
-            cdata['pchange'].append(p_change)
+            cdata['price'].append(price)
             cdata['volume'].append(p_volume)
             cdata['amount'].append(p_amount)
         except Exception as e:
@@ -58,14 +59,14 @@ class CAnimation:
             return False
         for code in cdict:
             key = cdict[code]
-            df_byte = self.redis.get(get_realtime_table_name(code))
+            df_byte = self.redis.get(Combination.get_redis_name(code))
             if df_byte is None: continue
             df = _pickle.loads(df_byte)
-            p_change = 100 * (float(df.price.tolist()[0]) - float(df.pre_close.tolist()[0])) / float(df.pre_close.tolist()[0])
+            price = float(df.price.tolist()[0])
             p_volume = float(df.volume.tolist()[0])
             p_amount = float(df.amount.tolist()[0])
             cdata['name'].append(key)
-            cdata['pchange'].append(p_change)
+            cdata['price'].append(price)
             cdata['volume'].append(p_volume)
             cdata['amount'].append(p_amount)
         df = pd.DataFrame.from_dict(cdata)

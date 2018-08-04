@@ -58,12 +58,7 @@ const.ONGOING = 1
 ##############################
 const.DB_INFO = {'user':'root',
                  'password':'123456',
-                 'host':'host.docker.internal',
-                 'database':'stock'}
-const.OLD_DB_INFO = {'user':'root',
-                 'password':'123456',
-                 'host':'host.docker.internal',
-                 'database':'stock'}
+                 'host':'host.docker.internal'}
 const.STAT_INFO = {'user':'root',
                  'password':'123456',
                  'host':'host.docker.internal',

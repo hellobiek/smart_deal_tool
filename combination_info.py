@@ -5,6 +5,7 @@ import cmysql
 import const as ct
 import tushare as ts
 import pandas as pd
+from combination import Combination
 from log import getLogger
 from pandas import DataFrame
 from pytdx.reader import CustomerBlockReader
@@ -18,11 +19,12 @@ class CombinationInfo:
     def __init__(self, dbinfo):
         self.table = ct.COMBINATION_INFO_TABLE
         self.redis = create_redis_obj()
-        if not self.init(): raise Exception("init combination table failed")
-        self.trigger = ct.SYNC_COMBINATION_2_REDIS
         self.mysql_client = cmysql.CMySQL(dbinfo)
-        if not self.create(): raise Exception("create combination table failed")
-        if not self.register(): raise Exception("create combination trigger failed")
+        self.mysql_dbs = self.mysql_client.get_all_databases()
+        if not self.init(): raise Exception("init combination table failed")
+        #self.trigger = ct.SYNC_COMBINATION_2_REDIS
+        #if not self.create(): raise Exception("create combination table failed")
+        #if not self.register(): raise Exception("create combination trigger failed")
 
     @trace_func(log = logger)
     def create(self):
@@ -42,6 +44,14 @@ class CombinationInfo:
         new_self_defined_df['best'] = '0'
         new_df = new_df.append(new_self_defined_df)
         new_df = new_df.reset_index(drop = True)
+        failed_list = list()
+        for _, code_id in new_df['code'].iteritems():
+            dbname = Combination.get_dbname(code_id)
+            if dbname not in self.mysql_dbs:
+                if not self.mysql_client.create_db(dbname): failed_list.append(code_id)
+        if len(failed_list) > 0 :
+            logger.error("%s create failed" % failed_list)
+            return False
         return self.redis.set(ct.COMBINATION_INFO, _pickle.dumps(new_df, 2))
 
     @trace_func(log = logger)
@@ -61,4 +71,5 @@ class CombinationInfo:
         return df[[df.cType == index_type]]
 
 if __name__ == '__main__':
-    cm = CombinationInfo(ct.DB_INFO, ct.COMBINATION_INFO_TABLE)
+    cm = CombinationInfo(ct.DB_INFO)
+    cm.init()

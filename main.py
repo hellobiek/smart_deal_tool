@@ -16,9 +16,10 @@ log = getLogger(__name__)
 def main():
     threadList = []
     dm = DataManager(ct.DB_INFO)
-    threadList.append(CThread(dm.run, 240))
+    log.info("init succeed")
+    threadList.append(CThread(dm.run, 5))
     #threadList.append(CThread(dm.collect, 600))
-    #threadList.append(CThread(dm.update, 600))
+    #threadList.append(CThread(dm.update, 10))
 
     #cr = CReivew(ct.STAT_INFO)
     #threadList.append(CThread(cr.update, 10800))

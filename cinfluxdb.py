@@ -8,6 +8,9 @@ class CInflux:
     def get(self):
         return self.client.query("select * from %s" % self.dbname)
 
+    def get_newset_row(self):
+        return self.client.query("select last(*) from %s" % self.dbname)
+
     def set(self, df):
         return self.client.write_points(df, self.dbname, protocol='json')
 

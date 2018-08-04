@@ -3,11 +3,11 @@ import time
 import cmysql
 import _pickle
 import datetime
-import combination 
 from datetime import datetime
 import pandas as pd
 import const as ct
 import tushare as ts
+from cstock import CStock 
 from log import getLogger
 from common import trace_func, create_redis_obj, df_delta
 
@@ -17,12 +17,13 @@ class CStockInfo:
     @trace_func(log = logger)
     def __init__(self, dbinfo):
         self.table = ct.STOCK_INFO_TABLE
-        self.trigger = ct.SYNCSTOCK2REDIS
-        self.mysql_client = cmysql.CMySQL(dbinfo)
         self.redis = create_redis_obj()
-        if not self.create(): raise Exception("create stock info table:%s failed" % self.table)
+        self.mysql_client = cmysql.CMySQL(dbinfo)
+        self.mysql_dbs = self.mysql_client.get_all_databases()
+        #self.trigger = ct.SYNCSTOCK2REDIS
+        #if not self.create(): raise Exception("create stock info table:%s failed" % self.table)
         if not self.init(): raise Exception("init stock info table failed")
-        if not self.register(): raise Exception("create trigger info table:%s failed" % self.trigger)
+        #if not self.register(): raise Exception("create trigger info table:%s failed" % self.trigger)
 
     @trace_func(log = logger)
     def register(self):
@@ -66,13 +67,22 @@ class CStockInfo:
         df = ts.get_stock_basics()
         if df is None: return False 
         df = df.reset_index(drop = False)
+        failed_list = list()
+        for _, code_id in df['code'].iteritems():
+            dbname = CStock.get_dbname(code_id)
+            if dbname not in self.mysql_dbs:
+                if not self.mysql_client.create_db(dbname): failed_list.append(code_id)
+        if len(failed_list) > 0:
+            logger.error("%s create failed" % failed_list)
+            return False
         df['limitUpNum'] = 0
         df['limitDownNum'] = 0
         return self.redis.set(ct.STOCK_INFO, _pickle.dumps(df, 2))
 
-    @trace_func(log = logger)
-    def get(self, code = None, column = None):
-        df_byte = self.redis.get(ct.STOCK_INFO)
+    @staticmethod
+    def get(code = None, column = None):
+        redis = create_redis_obj()
+        df_byte = redis.get(ct.STOCK_INFO)
         if df_byte is None: return pd.DataFrame()
         df = _pickle.loads(df_byte)
         if code is None: return df
