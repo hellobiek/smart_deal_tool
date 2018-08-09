@@ -42,7 +42,6 @@ class CCalendar:
         if status: return self.redis.set(ct.CALENDAR_INFO, _pickle.dumps(new_trading_day, 2))
 
     def is_trading_day(self, _date = None):
-        return True
         tmp_date = _date if _date is not None else datetime.now().strftime('%Y-%m-%d')
         df = self.get()
         return True if df.empty else 1 == df.loc[df.calendarDate == tmp_date].isOpen.values[0]

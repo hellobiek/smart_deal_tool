@@ -278,7 +278,7 @@ class CReivew:
         writer = Writer(fps=1, metadata=dict(artist='biek'), bitrate=1800)
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        cdata = self.redis.get(ct.ANIMATION_INFO)
+        cdata = self.mysql_client.get('select * from %s' % ct.ANIMATION_INFO)
         if cdata is None: return None
         cdata = _pickle.loads(cdata)
         _today = datetime.now().strftime('%Y-%m-%d')
@@ -304,7 +304,6 @@ class CReivew:
                 ctime = ctime_list[len(ctime_list) - 1]
                 if pchange > 3:
                     ax.text(ctime, pchange * 2, name, font_properties = get_chinese_font())
-                #ax.legend(fontsize = 'xx-small', bbox_to_anchor = (1.0, 1.0), ncol = 7, fancybox = True, prop = get_chinese_font())
         ani = animation.FuncAnimation(fig, animate, frame_num, interval = 60000, repeat = False)
         sfile = '/data/animation/%s_animation.mp4' % _today if sfile is None else sfile
         ani.save(sfile, writer)

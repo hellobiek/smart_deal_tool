@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 import tushare as ts
 from log import getLogger
+from ticks import download, unzip
 from pandas import DataFrame
 from datetime import datetime
 from subscriber import Subscriber
@@ -70,9 +71,8 @@ class DataManager:
     def collect(self, sleep_time):
         while True:
             try:
-                logger.info("start collecting")
-                #if not self.cal_client.is_trading_day() or not is_trading_time():
-                self.init_all_stock_tick()
+                if not self.cal_client.is_trading_day() or not is_trading_time():
+                    self.init_all_stock_tick()
             except Exception as e:
                 logger.error(e)
             time.sleep(sleep_time)
@@ -126,8 +126,8 @@ class DataManager:
         while True:
             try:
                 if self.cal_client.is_trading_day(): 
-                    #if self.is_collecting_time():
-                    self.init()
+                    if self.is_collecting_time():
+                        self.init()
                 time.sleep(sleep_time)
             except Exception as e:
                 logger.error(e)
@@ -187,7 +187,6 @@ class DataManager:
         for _, code_id in df.code.iteritems():
             _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(self.dbinfo, code_id)
             for _date in date_only_array:
-                logger.info("start record:%s. date:%s" % (code_id, _date))
                 if self.cal_client.is_trading_day(_date):
                     try:
                         if obj_pool.full(): obj_pool.join()
@@ -204,6 +203,23 @@ class DataManager:
             if 0 == ret:
                 if code_id not in self.stock_objs: self.stock_objs[code_id] = CStock(self.dbinfo, code_id)
 
+    def download_and_extract(self):
+        while True:
+            try:
+                if self.cal_client.is_trading_day(): 
+                    if self.is_collecting_time():
+                        download(ct.ZIP_DIR)
+                        list_files = os.listdir(ct.ZIP_DIR)
+                        for filename in list_files:
+                            if not filename.startswith('.'):
+                                file_path = os.path.join(ct.ZIP_DIR, filename)
+                            if os.path.exists(file_path):
+                                unzip(file_path, ct.TIC_DIR)
+                         time.sleep(86400)
+            except Exception as e:
+                logger.error(e)
+                time.sleep(sleep_time)
+        
 if __name__ == '__main__':
     dm = DataManager(ct.DB_INFO, ct.STOCK_INFO_TABLE, ct.COMBINATION_INFO_TABLE, ct.CALENDAR_TABLE, ct.DELISTED_INFO_TABLE, ct.HALTED_TABLE)
     dm.update(5)

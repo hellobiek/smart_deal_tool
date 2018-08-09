@@ -7,6 +7,7 @@ import const as ct
 import pandas as pd
 import tushare as ts
 from cmysql import CMySQL
+from ticks import read_tick
 from cinfluxdb import CInflux  
 from log import getLogger
 from pytdx.hq import TdxHq_API
@@ -210,20 +211,30 @@ class CStock(TickerHandlerBase):
             logger.debug("existed code:%s, date:%s" % (self.code, cdate))
             return
         df = ts.get_tick_data(self.code, date=cdate)
-        if df is None: 
-            logger.debug("nonedata code:%s, date:%s" % (self.code, cdate))
-            return
-        if df.empty: 
-            logger.debug("emptydata code:%s, date:%s" % (self.code, cdate))
-            return
-        if df.loc[0]['time'].find("当天没有数据") != -1: 
-            logger.debug("nodata code:%s, date:%s" % (self.code, cdate))
-            return
+        df_tdx = read_tick(os.path.join(ct.TIC_DIR, '%s.tic' % datetime.strptime(cdate, "%Y-%m-%d").strftime("%Y%m%d")), self.code)
+        if not df_tdx.empty: 
+            if df is not None and not df.empty and df.loc[0]['time'].find("当天没有数据") == -1:
+                net_volume = df.volume.sum()
+                tdx_volume = df_tdx.volume.sum()
+                if net_volume != tdx_volume:
+                    raise Exception("code:%s, date:%s, net volume:%s, tdx volume:%s not equal" % (self.code, cdate, net_volume, tdx_volume))
+            df = df_tdx
+        else:
+            if df is None:
+                logger.debug("nonedata code:%s, date:%s" % (self.code, cdate))
+                return
+            if df.empty:
+                logger.debug("emptydata code:%s, date:%s" % (self.code, cdate))
+                return
+            if df.loc[0]['time'].find("当天没有数据") != -1:
+                logger.debug("nodata code:%s, date:%s" % (self.code, cdate))
+                return
         df.columns = ['ctime', 'price', 'cchange', 'volume', 'amount', 'ctype']
         df['date'] = cdate
         df = self.merge_ticket(df)
         logger.debug("write data code:%s, date:%s, table:%s" % (self.code, cdate, tick_table))
         if self.mysql_client.set(df, tick_table):
+            logger.info("start record:%s. table:%s" % (self.code, tick_table))
             self.redis.sadd(tick_table, cdate)
 
     def get_ma():

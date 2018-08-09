@@ -59,7 +59,6 @@ def is_afternoon(now_time = None):
     return (mor_open_time < now_time < mor_close_time)
 
 def is_trading_time(now_time = None):
-    return True
     if now_time is None:now_time = datetime.now()
     _date = now_time.strftime('%Y-%m-%d')
     y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
@@ -108,3 +107,7 @@ def get_available_tdx_server(api):
         ip, port = ct.TDX_SERVERS[k][1].split(":")
         if api.connect(ip, int(port)): return ip, int(port)
     raise Exception("no server can be connected")
+
+epoch = datetime.utcfromtimestamp(0)
+def unix_time_millis(dt):
+    return int((dt - epoch).total_seconds() * 1000)
