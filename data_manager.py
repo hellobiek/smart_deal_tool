@@ -213,8 +213,8 @@ class DataManager:
                         for filename in list_files:
                             if not filename.startswith('.'):
                                 file_path = os.path.join(ct.ZIP_DIR, filename)
-                            if os.path.exists(file_path):
-                                unzip(file_path, ct.TIC_DIR)
+                                if os.path.exists(file_path):
+                                    unzip(file_path, ct.TIC_DIR)
                          time.sleep(86400)
             except Exception as e:
                 logger.error(e)
