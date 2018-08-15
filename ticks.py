@@ -239,7 +239,7 @@ def adjust_time(df):
         if time_list[s_index] == time_list[_index] and _index < time_list_length - 1:
             e_index = _index
         else:
-            if time_list[s_index] == time_list[_index] and _index == time_list_length - 1: e_index = _index
+            if time_list[s_index] == time_list[_index] and _index == time_list_length - 1: e_index = _index + 1
             _length = (e_index - s_index + 1)
             time_delta = int(60/_length)
             for _tmp_index in range(_length):
@@ -247,6 +247,9 @@ def adjust_time(df):
                 df.at[z_index, 'time'] = "%s:%02d" % (df.loc[z_index]['time'], time_delta * _tmp_index)
             s_index = e_index + 1
             e_index = s_index
+            if _index == time_list_length - 1 and s_index == time_list_length - 1:
+                #special deal with date where last row is 14:59 but notleast row is 14:55
+                df.at[s_index, 'time'] = "%s:%02d" % (df.loc[s_index]['time'], 0)
     return df
 
 def exists(path):
@@ -289,9 +292,9 @@ def unzip(file_path, tic_dir):
     zip_file.close()
 
 if __name__ == "__main__":
-    download(ct.ZIP_DIR)
-    #code_id = '601318'
-    #tickname = '20180801.tic'
-    #ticname = os.path.join(ct.TIC_DIR, '20180801.tic')
-    #df = read_tick(ticname, code_id)
-    #print(df.head(1000))
+    #download(ct.ZIP_DIR)
+    code_id = '002270'
+    tickname = '20150310.tic'
+    ticname = os.path.join(ct.TIC_DIR, tickname)
+    df = read_tick(ticname, code_id)
+    print(df.tail(10))
