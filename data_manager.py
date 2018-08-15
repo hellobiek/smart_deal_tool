@@ -48,7 +48,7 @@ class DataManager:
         if now_time is None: now_time = datetime.now()
         _date = now_time.strftime('%Y-%m-%d')
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
-        mor_open_hour,mor_open_minute,mor_open_second = (18,0,0)
+        mor_open_hour,mor_open_minute,mor_open_second = (19,0,0)
         mor_open_time = datetime(y,m,d,mor_open_hour,mor_open_minute,mor_open_second)
         mor_close_hour,mor_close_minute,mor_close_second = (23,59,59)
         mor_close_time = datetime(y,m,d,mor_close_hour,mor_close_minute,mor_close_second)
@@ -71,8 +71,7 @@ class DataManager:
     def collect(self, sleep_time):
         while True:
             try:
-                if not self.cal_client.is_trading_day() or not is_trading_time():
-                    self.init_all_stock_tick()
+                self.init_all_stock_tick()
             except Exception as e:
                 logger.error(e)
             time.sleep(sleep_time)
@@ -168,21 +167,21 @@ class DataManager:
                 try:
                     if obj_pool.full(): obj_pool.join()
                     obj_pool.spawn(_obj.set_ticket, _date)
-                    obj_pool.spawn(_obj.set_k_data, _date)
+                    obj_pool.spawn(_obj.set_k_data)
                 except Exception as e:
                     logger.info(e)
         obj_pool.join()
         obj_pool.kill()
 
     def init_all_stock_tick(self):
-        start_date = '2017-06-09'
+        start_date = '2015-01-01'
         _today = datetime.now().strftime('%Y-%m-%d')
         num_days = delta_days(start_date, _today)
         start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(start_date, "%Y-%m-%d"))
         data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
         date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
         date_only_array = date_only_array[::-1]
-        obj_pool = Pool(50)
+        obj_pool = Pool(4)
         df = self.stock_info_client.get()
         for _, code_id in df.code.iteritems():
             _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(self.dbinfo, code_id)
@@ -203,7 +202,7 @@ class DataManager:
             if 0 == ret:
                 if code_id not in self.stock_objs: self.stock_objs[code_id] = CStock(self.dbinfo, code_id)
 
-    def download_and_extract(self):
+    def download_and_extract(self, sleep_time):
         while True:
             try:
                 if self.cal_client.is_trading_day(): 
@@ -215,7 +214,6 @@ class DataManager:
                                 file_path = os.path.join(ct.ZIP_DIR, filename)
                                 if os.path.exists(file_path):
                                     unzip(file_path, ct.TIC_DIR)
-                         time.sleep(86400)
             except Exception as e:
                 logger.error(e)
                 time.sleep(sleep_time)

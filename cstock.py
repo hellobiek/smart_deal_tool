@@ -1,4 +1,5 @@
 #coding=utf-8
+import os
 import time
 import _pickle
 import datetime
@@ -120,18 +121,6 @@ class CStock(TickerHandlerBase):
     #                                          limit_up_time varchar(20))' % self.realtime_table
     #    return True if self.realtime_table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.realtime_table)
 
-    #def set_k_data(self):
-    #    tdx_serverip, tdx_port = get_available_tdx_server(self.tdx_api)
-    #    for d_type,d_table_name in self.data_type_dict.items():
-    #        with self.tdx_api.connect(tdx_serverip, tdx_port):
-    #            df = self.tdx_api.to_df(self.tdx_api.get_security_bars(d_type, self.get_market(), self.code, 0, 1))
-    #            if df is None: return
-    #            if df.empty: return 
-    #            df = df[['open', 'close', 'high', 'low', 'vol', 'amount', 'datetime']]
-    #            df.columns = ['open', 'close', 'high', 'low', 'volume', 'amount', 'ctime']
-    #            df['ctime'] = df['ctime'].str.split(' ').str[0]
-    #            self.mysql_client.set(df, d_table_name)
-
     def get(self, attribute):
         df_byte = self.redis.get(ct.STOCK_INFO)
         if df_byte is None: return None
@@ -189,13 +178,16 @@ class CStock(TickerHandlerBase):
             return cdate in set(str(tdate, encoding = "utf8") for tdate in self.redis.smembers(tick_table))
         return False
 
-    def set_k_data(self, cdate = None):
-        cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
-        df = ts.get_k_data(self.code, start=cdate, end=cdate)
-        if df is not None: return False
-        if df.empty: return False
+    def set_k_data(self):
+        prestr = "1" if self.get_market() == ct.MARKET_SH else "0"
+        filename = "%s%s.csv" % (prestr, self.code)
+        df = pd.read_csv("/data/tdx/history/days/%s" % filename, sep = ',')
+        df = df[['date', 'open', 'high', 'close', 'low', 'amount', 'volume']]
+        df['date'] = df['date'].astype(str)
+        df['date'] = pd.to_datetime(df.date).dt.strftime("%Y-%m-%d")
+        df = df.rename(columns={'date':'cdate'})
         df = df.reset_index(drop = True)
-        return self.mysql_client.set(df, tick_table)
+        return self.mysql_client.set(df, 'day', method = ct.REPLACE)
 
     def set_ticket(self, cdate = None):
         cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
@@ -230,8 +222,9 @@ class CStock(TickerHandlerBase):
                 logger.debug("nodata code:%s, date:%s" % (self.code, cdate))
                 return
         df.columns = ['ctime', 'price', 'cchange', 'volume', 'amount', 'ctype']
-        df['date'] = cdate
+        logger.debug("code:%s date:%s" % (self.code, cdate))
         df = self.merge_ticket(df)
+        df['date'] = cdate
         logger.debug("write data code:%s, date:%s, table:%s" % (self.code, cdate, tick_table))
         if self.mysql_client.set(df, tick_table):
             logger.info("start record:%s. table:%s" % (self.code, tick_table))
@@ -259,9 +252,6 @@ class CStock(TickerHandlerBase):
         return (datetime.strptime(_date, "%Y-%m-%d") - time2Market).days > 0
 
 if __name__ == "__main__":
-    pass
-    #cs = CStock(ct.DB_INFO, '300724')
-    #cs.set_k_data()
-    #0: "%s_5" % code
-    #cs.set_ticket('2017-09-08')
-    #print(cs.has_on_market('2017-09-08'))
+    #code:300228 date:2016-01-07
+    cs = CStock(ct.DB_INFO, '300228')
+    print(cs.set_k_data())

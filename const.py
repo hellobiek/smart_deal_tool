@@ -4405,5 +4405,5 @@ const.HASH_TABLE_PRICE = {0: '0x7',
                           1752: '-0x3aaa3002',
                           -1752: '-0x3aaa3001'}
 ##################################################
-const.ZIP_DIR = "/data/tdx"
-const.TIC_DIR = "/data/tic"
+const.ZIP_DIR = "/data/tdx/tick_zip"
+const.TIC_DIR = "/data/tdx/tic"

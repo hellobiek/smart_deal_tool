@@ -11,14 +11,12 @@ if __name__ == "__main__":
     #redis = create_redis_obj()
     #redis.delete('ALL_TABLES')
     cmy = CMySQL(ct.DB_INFO)
-    #all_tables = cmy.get_all_tables()
-    #all_tables = [_table.split('_')[0] for _table in all_tables]
-    #all_tables = list(set(all_tables))
     all_dbs = cmy.get_all_databases()
     for dbname in all_dbs:
         _dbname = dbname[1:]
         if _dbname.isnumeric():
-            cmy.delete_db(dbname)
+            res = cmy.delete_db(dbname)
+            print("delete %s, result:%s" % (dbname, res))
 
     #with open('/tmp/a', 'r') as f:
     #    slist = json.load(f)

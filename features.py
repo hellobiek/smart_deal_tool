@@ -27,7 +27,6 @@ class FeatureTool:
         vprice = vprice / svolume
         return pd.rolling_mean(vprice, peried)
 
-    #Bollinger Bands 
     def BBANDS(data, ndays):
         ma = pd.Series(pd.rolling_mean(data['close'], ndays)) 
         sd = pd.Series(pd.rolling_std(data['close'], ndays))

@@ -11,8 +11,9 @@ import zipfile
 import const as ct
 import numpy as np
 import pandas as pd
+import time
 import datetime
-from datetime import datetime
+from datetime import datetime, timedelta
 from log import getLogger
 from common import get_market_name
 from models import TickTradeDetail, TickDetailModel
@@ -205,6 +206,7 @@ def parse_tick_item(data, code):
     return parse_tick_detail(tic_detail_bytes, tdm)
 
 def read_tick(filename, code_id):
+    if not os.path.exists(filename): return pd.DataFrame()
     with open(filename, 'rb') as fobj:
         market_id = ct.MARKET_SH if 'sh' == get_market_name(code_id) else ct.MARKET_SZ
         stockCount = struct.unpack('<h', fobj.read(2))[0]
@@ -224,6 +226,7 @@ def read_tick(filename, code_id):
                 df['change'] = df['price'] - df["price"].shift(1)
                 df.at[0, 'change'] = df.loc[0]['price'] - pre_close
                 df['amount'] = df['price'] * df['volume']
+                df = df[['time','price','change','volume', 'amount', 'type']]
                 return df.round(2)
     return pd.DataFrame()
 
@@ -233,36 +236,49 @@ def adjust_time(df):
     time_list = df['time']
     time_list_length = len(time_list)
     for _index in range(1, time_list_length):
-        if time_list[s_index] == time_list[_index]:
+        if time_list[s_index] == time_list[_index] and _index < time_list_length - 1:
             e_index = _index
         else:
+            if time_list[s_index] == time_list[_index] and _index == time_list_length - 1: e_index = _index
             _length = (e_index - s_index + 1)
-            time_delta = int(60/ _length)
+            time_delta = int(60/_length)
             for _tmp_index in range(_length):
                 z_index = s_index + _tmp_index
                 df.at[z_index, 'time'] = "%s:%02d" % (df.loc[z_index]['time'], time_delta * _tmp_index)
             s_index = e_index + 1
+            e_index = s_index
     return df
 
 def exists(path):
     r = requests.head(path)
     return r.status_code == requests.codes.ok
 
+def get_day_nday_ago(date, n):
+    t = time.strptime(date, "%Y%m%d")
+    y, m, d = t[0:3]
+    _date = datetime(y, m, d) - timedelta(n)
+    return _date.strftime('%Y%m%d')
+
 def download(output_directory):
-    _today = datetime.now().strftime('%Y%m%d')
-    filename = "%s.zip" % _today
-    url = "http://www.tdx.com.cn/products/data/data/2ktic/%s" % filename
-    filepath = "%s/%s" % (output_directory, filename)
-    try:
-        if os.path.exists(filepath):
-            logger.debug("%s existed" % filepath)
-            return
-        if not exists(url): 
-            logger.debug("%s not exists" % _today)
-            return
-        wget.download(url, out=output_directory)
-    except Exception as e:
-        logger.error(e)
+    _date = get_day_nday_ago(datetime.now().strftime('%Y%m%d'), 30)
+    start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(_date, "%Y%m%d"))
+    data_times = pd.date_range(start_date_dmy_format, periods=10, freq='D')
+    date_only_array = np.vectorize(lambda s: s.strftime('%Y%m%d'))(data_times.to_pydatetime())
+    date_only_array = date_only_array[::-1]
+    for _date in date_only_array:
+        filename = "%s.zip" % _date
+        url = "http://www.tdx.com.cn/products/data/data/2ktic/%s" % filename
+        filepath = "%s/%s" % (output_directory, filename)
+        try:
+            if os.path.exists(filepath):
+                logger.debug("%s existed" % filepath)
+                continue
+            if not exists(url): 
+                logger.debug("%s not exists" % filename)
+                continue
+            wget.download(url, out=output_directory)
+        except Exception as e:
+            logger.error(e)
 
 def unzip(file_path, tic_dir):
     zip_file = zipfile.ZipFile(file_path)
@@ -273,8 +289,9 @@ def unzip(file_path, tic_dir):
     zip_file.close()
 
 if __name__ == "__main__":
-    code_id = '601318'
-    tickname = '20180801.tic'
-    ticname = os.path.join(ct.TIC_DIR, '20180801.tic')
-    df = read_tick(ticname, code_id)
-    print(df.head(1000))
+    download(ct.ZIP_DIR)
+    #code_id = '601318'
+    #tickname = '20180801.tic'
+    #ticname = os.path.join(ct.TIC_DIR, '20180801.tic')
+    #df = read_tick(ticname, code_id)
+    #print(df.head(1000))

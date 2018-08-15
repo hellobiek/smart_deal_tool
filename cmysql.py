@@ -162,8 +162,7 @@ class CMySQL:
         return db_list
 
     def delete_db(self, dbname):
-        if self.redis.exists(ALL_DATABASES) and dbname not in self.redis.smembers(ALL_DATABASES):
-            return True
+        if self.redis.exists(ALL_DATABASES) and dbname not in self.redis.smembers(ALL_DATABASES): return True
         res = False
         try:
             conn = pymysql.connect(host=self.dbinfo['host'], user=self.dbinfo['user'], passwd=self.dbinfo['password'], charset='utf8')
