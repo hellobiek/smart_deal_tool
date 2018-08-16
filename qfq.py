@@ -4,7 +4,6 @@ from common import get_market_name
 pd.options.mode.chained_assignment = None #default='warn'
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
-
 def qfq(data, code, info):
     data['preclose'] = data['close'].shift(-1)
     if 0 == len(info): return data
