@@ -6,6 +6,7 @@ import time
 import random
 import string
 import const as ct
+from common import get_market
 from lxml import html
 from html_parser import *
 from client import Client
@@ -183,7 +184,7 @@ class Trader:
         if ret != 0:
             self.log.warn("get to url fail: ret=%d" % ret)
             return -5, "get order url failed"
-        stock_info = json.loads(result)
+        stock_info = json.loads(result.decode())
         return int(stock_info[0]['errorCode']), stock_info[0]['maxstkqty']
 
 if '__main__' == __name__:

@@ -2,6 +2,7 @@
 import json
 import time
 import datetime
+import traceback
 from datetime import datetime
 import ccalendar
 import const as ct
@@ -32,18 +33,21 @@ class CTrader:
                     if self.bnew_succeed_date != _today:
                         n_list = self.get_new_stock_list()
                         if len(n_list) == 0:
-                            self.bnew_succeed = _today
+                            logger.info("no new stock for %s." % _today)
+                            self.bnew_succeed_date = _today
                             return
                         for stock in n_list:
                             ret, amount = self.trader.max_amounts(stock[0], stock[1])
                             if 0 == ret:
                                 ret, msg = self.trader.deal(stock[0], stock[1], amount, "B")
                                 if ret == 0:
-                                    self.bnew_succeed = _today
+                                    logger.info("buy new stock:%s for %s succeed" % (stock, _today))
+                                    self.bnew_succeed_date = _today
                                 else: 
-                                    logger.info(msg)
+                                    logger.error("buy new stock:%s for %s error, msg:%s" % (stock, _today, msg))
             except Exception as e:
                 logger.info(e)
+                traceback.print_exc()
             time.sleep(sleep_time)
     
     def get_new_stock_list(self):
@@ -55,8 +59,9 @@ class CTrader:
             if pd.to_datetime(stock_date).strftime('%Y-%m-%d') == datetime.now().strftime('%Y-%m-%d'):
                 code = stocks_info.at[i, IPO_CODE_HEAD]
                 price = stocks_info.at[i, IPO_PRICE_HEAD]
-                stock_list.append(tuple(code, price))
+                stock_list.append((code, price))
         return stock_list
 
 if __name__ == "__main__":
-    buy_new_stock()
+    trader = CTrader(ct.DB_INFO) 
+    trader.buy_new_stock(100)
