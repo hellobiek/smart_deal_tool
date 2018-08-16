@@ -22,6 +22,7 @@ class Subscriber:
 
     def stop(self):
         self.quote_ctx.stop()
+        logger.debug("stop subscribe")
         self.sub_list = None
         self._status = False
 

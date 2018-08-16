@@ -118,7 +118,7 @@ class DataManager:
                         self.subscriber.stop()
             except Exception as e:
                 logger.error(e)
-                traceback.print_exc()
+                #traceback.print_exc()
             time.sleep(sleep_time)
 
     def update(self, sleep_time):
@@ -130,7 +130,7 @@ class DataManager:
                 time.sleep(sleep_time)
             except Exception as e:
                 logger.error(e)
-                traceback.print_exc()
+                #traceback.print_exc()
 
     def init(self, status = False):
         self.cal_client.init(status)
@@ -219,5 +219,5 @@ class DataManager:
                 time.sleep(sleep_time)
         
 if __name__ == '__main__':
-    dm = DataManager(ct.DB_INFO, ct.STOCK_INFO_TABLE, ct.COMBINATION_INFO_TABLE, ct.CALENDAR_TABLE, ct.DELISTED_INFO_TABLE, ct.HALTED_TABLE)
-    dm.update(5)
+    dm = DataManager(ct.DB_INFO)
+    dm.run(5)

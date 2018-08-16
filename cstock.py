@@ -79,48 +79,6 @@ class CStock(TickerHandlerBase):
         sql = 'create table if not exists %s(date varchar(10) not null, ctime varchar(8) not null, price float(5,2), cchange varchar(10) not null, volume int not null, amount int not null, ctype varchar(9) not null, PRIMARY KEY (date, ctime, cchange, volume, amount, ctype))' % table
         return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
 
-    #def create_realtime(self):
-    #    return True
-    #    sql = 'create table if not exists %s(date varchar(25),\
-    #                                          name varchar(20),\
-    #                                          code varchar(10),\
-    #                                          open float,\
-    #                                          pre_close float,\
-    #                                          price float,\
-    #                                          high float,\
-    #                                          low float,\
-    #                                          bid float,\
-    #                                          ask float,\
-    #                                          volume float,\
-    #                                          amount float,\
-    #                                          b1_v int,\
-    #                                          b1_p float,\
-    #                                          b2_v int,\
-    #                                          b2_p float,\
-    #                                          b3_v int,\
-    #                                          b3_p float,\
-    #                                          b4_v int,\
-    #                                          b4_p float,\
-    #                                          b5_v int,\
-    #                                          b5_p float,\
-    #                                          a1_v int,\
-    #                                          a1_p float,\
-    #                                          a2_v int,\
-    #                                          a2_p float,\
-    #                                          a3_v int,\
-    #                                          a3_p float,\
-    #                                          a4_v int,\
-    #                                          a4_p float,\
-    #                                          a5_v int,\
-    #                                          a5_p float,\
-    #                                          time varchar(20),\
-    #                                          turnover float,\
-    #                                          p_change float,\
-    #                                          outstanding float,\
-    #                                          limit_down_time varchar(20),\
-    #                                          limit_up_time varchar(20))' % self.realtime_table
-    #    return True if self.realtime_table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.realtime_table)
-
     def get(self, attribute):
         df_byte = self.redis.get(ct.STOCK_INFO)
         if df_byte is None: return None
@@ -229,12 +187,6 @@ class CStock(TickerHandlerBase):
         if self.mysql_client.set(df, tick_table):
             logger.info("start record:%s. table:%s" % (self.code, tick_table))
             self.redis.sadd(tick_table, cdate)
-
-    def get_ma():
-        pass
-
-    def get_vmacd():
-        pass
 
     def get_k_data(self, date = None, dtype = 9):
         table_name = self.data_type_dict[dtype] 
