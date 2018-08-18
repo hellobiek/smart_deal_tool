@@ -1,15 +1,13 @@
 # coding=utf-8
-import json
 import _pickle
 import cmysql
 import const as ct
-import tushare as ts
 import pandas as pd
 from combination import Combination
 from log import getLogger
 from pandas import DataFrame
 from pytdx.reader import CustomerBlockReader
-from common import trace_func, create_redis_obj, df_delta
+from common import trace_func, create_redis_obj
 
 logger = getLogger(__name__)
 

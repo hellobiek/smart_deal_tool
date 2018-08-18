@@ -71,7 +71,13 @@ const.UTF8 = "utf8"
 const.SQL = "select * from %s"
 const.RETRY_TIMES = 1
 const.START_DATE = '2014-01-01'
-const.AVERAGE_INDEX_LIST = ["700001_ALL", "700002_SH", "700003_SZ", "700004_CYB", "700005_SZ50", "700006_ZZ500", "700007_HS300", "700008_MSCI"]
+const.INDEX_DICT = {'000001':'上证指数', 
+                    '000300':'沪深300',
+                    '000016':'上证50',
+                    '399905':'中证500',
+                    '399673':'创业板50',
+                    '399001':'深证成指',
+                    '399006':'创业板指'}
 const.C_INDEX = 1
 const.C_SELFD = 2
 const.C_INDUSTRY = 3
@@ -100,6 +106,7 @@ const.STOCK_INFO_TABLE = "stock"
 const.CALENDAR_TABLE = "calendar"
 const.DAILY_STATIC_TABLE = "static"
 const.COMBINATION_INFO_TABLE = "combination"
+const.INDEX_INFO_TABLE = "index"
 const.DELISTED_INFO_TABLE = "delisted"
 #############################
 const.QUEUE_SZIE = 299

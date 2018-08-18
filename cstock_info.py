@@ -9,8 +9,7 @@ import const as ct
 import tushare as ts
 from cstock import CStock 
 from log import getLogger
-from common import trace_func, create_redis_obj, df_delta
-
+from common import trace_func, create_redis_obj
 logger = getLogger(__name__)
 
 class CStockInfo:

@@ -38,10 +38,6 @@ class Combination:
                 if not self.mysql_client.create(sql, table_name): return False
         return True
 
-    #def create_realtime(self):
-    #    sql = 'create table if not exists %s(name varchar(20), code varchar(10), price float, pre_close float, date varchar(25), time varchar(20), amount float, volume float)' % self.realtime_table
-    #    return True if self.realtime_table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.realtime_table)
-
     def create_influx_db(self):
         self.influx_client.create()
 

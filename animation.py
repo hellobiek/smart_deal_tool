@@ -5,7 +5,7 @@ from datetime import datetime
 import _pickle
 import const as ct
 import pandas as pd
-import tushare as ts
+from cindex import CIndex
 from cmysql import CMySQL
 from log import getLogger
 from combination import Combination 
@@ -45,18 +45,17 @@ class CAnimation:
         cdata['amount'] = list()
         cdict = self.get_combination_dict()
         if 0 == len(cdict): return False
-        try:
-            df = ts.get_realtime_quotes('sh')
-            price = float(df.price.tolist()[0])
+        for code in ct.INDEX_DICT:
+            df_byte = self.redis.get(CIndex.get_redis_name(CIndex.get_dbname(code)))
+            if df_byte is None: continue
+            df = _pickle.loads(df_byte)
+            price = float(df.last_price.tolist()[0])
             p_volume = float(df.volume.tolist()[0])
-            p_amount = float(df.amount.tolist()[0])
-            cdata['name'].append("上证指数")
+            p_amount = float(df.turnover.tolist()[0])
+            cdata['name'].append(ct.INDEX_DICT[code])
             cdata['price'].append(price)
             cdata['volume'].append(p_volume)
             cdata['amount'].append(p_amount)
-        except Exception as e:
-            logger.info(e)
-            return False
         for code in cdict:
             key = cdict[code]
             df_byte = self.redis.get(Combination.get_redis_name(code))

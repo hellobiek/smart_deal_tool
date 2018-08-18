@@ -89,7 +89,7 @@ def df_delta(pos_df, neg_df, subset_list, keep = False):
     return pos_df.drop_duplicates(subset=subset_list, keep=False)
 
 def get_market_name(stock_code):
-    if (stock_code.startswith("6") or stock_code.startswith("500") or stock_code.startswith("550") or stock_code.startswith("510")):
+    if (stock_code.startswith("6") or stock_code.startswith("500") or stock_code.startswith("550") or stock_code.startswith("510") or stock_code.startswith("8")):
         return "sh"
     elif (stock_code.startswith("00") or stock_code.startswith("30") or stock_code.startswith("150") or stock_code.startswith("159")):
         return "sz"
@@ -119,3 +119,14 @@ def get_market(code):
 epoch = datetime.utcfromtimestamp(0)
 def unix_time_millis(dt):
     return int((dt - epoch).total_seconds() * 1000)
+
+def add_index_prefix(code):
+    prestr = "SH" if code.startswith('0') else "SZ"
+    return "%s.%s" % (prestr, code)
+
+def get_index_list():
+    alist = list()
+    for key in ct.INDEX_DICT.keys():
+        key_str = add_index_prefix(key)
+        alist.append(key_str)
+    return alist

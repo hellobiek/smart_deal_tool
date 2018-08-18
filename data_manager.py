@@ -4,14 +4,17 @@ from gevent import monkey
 monkey.patch_all(subprocess=True)
 from gevent.pool import Pool
 from gevent.event import AsyncResult
+import os
 import time
 import json
 import datetime
 from cmysql import CMySQL
 from cstock import CStock
+from cindex import CIndex
 from cdelisted import CDelisted
 from ccalendar import CCalendar
 from animation import CAnimation
+from index_info import IndexInfo
 from cstock_info import CStockInfo
 from combination import Combination
 from combination_info import CombinationInfo
@@ -26,7 +29,7 @@ from ticks import download, unzip
 from pandas import DataFrame
 from datetime import datetime
 from subscriber import Subscriber
-from common import trace_func,is_trading_time,delta_days,create_redis_obj,add_prifix
+from common import trace_func,is_trading_time,delta_days,create_redis_obj,add_prifix,get_index_list,add_index_prefix
 pd.options.mode.chained_assignment = None #default='warn'
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -35,26 +38,18 @@ class DataManager:
     def __init__(self, dbinfo):
         self.combination_objs = dict()
         self.stock_objs = dict()
+        self.index_objs = dict()
         self.evt = AsyncResult()
         self.dbinfo = dbinfo
         self.cal_client = CCalendar(dbinfo)
         self.comb_info_client = CombinationInfo(dbinfo)
         self.stock_info_client = CStockInfo(dbinfo)
+        self.index_info_client = IndexInfo(dbinfo)
         self.delisted_info_client = CDelisted(dbinfo)
         self.animation_client = CAnimation(dbinfo)
         self.subscriber = Subscriber()
 
     def is_collecting_time(self, now_time = None):
-        if now_time is None: now_time = datetime.now()
-        _date = now_time.strftime('%Y-%m-%d')
-        y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
-        mor_open_hour,mor_open_minute,mor_open_second = (19,0,0)
-        mor_open_time = datetime(y,m,d,mor_open_hour,mor_open_minute,mor_open_second)
-        mor_close_hour,mor_close_minute,mor_close_second = (23,59,59)
-        mor_close_time = datetime(y,m,d,mor_close_hour,mor_close_minute,mor_close_second)
-        return mor_open_time < now_time < mor_close_time
-
-    def is_tcket_time(self, now_time = None):
         if now_time is None: now_time = datetime.now()
         _date = now_time.strftime('%Y-%m-%d')
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
@@ -101,6 +96,37 @@ class DataManager:
                 logger.info(e)
         obj_pool.join()
         obj_pool.kill()
+    
+    def init_index_info(self):
+        ret, data = self.subscriber.subscribe_quote(get_index_list())
+        if 0 != ret: 
+            logger.error("index subscribe failed")
+            return
+        for code in ct.INDEX_DICT:
+            if code not in self.index_objs:
+                self.index_objs[code] = CIndex(self.dbinfo, code)
+
+    def collect_index_runtime_data(self):
+        ret, data = self.subscriber.get_quote_data(get_index_list())
+        if 0 != ret:
+            logger.error("index get subscribe data failed")
+            return
+        obj_pool = Pool(10)
+        for code in self.index_objs:
+            code_str = add_index_prefix(code)
+            df = data[data.code == code_str]
+            df = df.reset_index(drop = True)
+            df['time'] = df.data_date + ' ' + df.data_time
+            df = df.drop(['data_date', 'data_time'], axis = 1)
+            df = df.set_index('time')
+            df.index = pd.to_datetime(df.index)
+            try:
+                if obj_pool.full(): obj_pool.join()
+                if 0 == ret: obj_pool.spawn(self.index_objs[code].run, df)
+            except Exception as e:
+                logger.info(e)
+        obj_pool.join()
+        obj_pool.kill()
 
     def run(self, sleep_time):
         while True:
@@ -108,11 +134,13 @@ class DataManager:
                 if self.cal_client.is_trading_day():
                     if is_trading_time() and not self.subscriber.status():
                         self.subscriber.start()
-                        self.init_combination_info()
+                        self.init_index_info()
                         self.init_real_stock_info()
+                        self.init_combination_info()
                     elif is_trading_time() and self.subscriber.status():
                         self.collect_stock_runtime_data()
                         self.collect_combination_runtime_data()
+                        self.collect_index_runtime_data()
                         self.animation_client.collect()
                     elif not is_trading_time() and self.subscriber.status():
                         self.subscriber.stop()
@@ -181,7 +209,7 @@ class DataManager:
         data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
         date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
         date_only_array = date_only_array[::-1]
-        obj_pool = Pool(4)
+        obj_pool = Pool(7)
         df = self.stock_info_client.get()
         for _, code_id in df.code.iteritems():
             _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(self.dbinfo, code_id)
@@ -220,4 +248,9 @@ class DataManager:
         
 if __name__ == '__main__':
     dm = DataManager(ct.DB_INFO)
-    dm.run(5)
+    dm.init_index_info()
+    print("init index_info success!")
+    dm.collect_index_runtime_data()
+    print("collect index_runtime_data success!")
+    dm.animation_client.collect()
+    print("animation client collect success!")

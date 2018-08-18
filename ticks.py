@@ -239,7 +239,7 @@ def adjust_time(df):
         if time_list[s_index] == time_list[_index] and _index < time_list_length - 1:
             e_index = _index
         else:
-            if time_list[s_index] == time_list[_index] and _index == time_list_length - 1: e_index = _index + 1
+            if time_list[s_index] == time_list[_index] and _index == time_list_length - 1: e_index = _index
             _length = (e_index - s_index + 1)
             time_delta = int(60/_length)
             for _tmp_index in range(_length):
@@ -247,7 +247,7 @@ def adjust_time(df):
                 df.at[z_index, 'time'] = "%s:%02d" % (df.loc[z_index]['time'], time_delta * _tmp_index)
             s_index = e_index + 1
             e_index = s_index
-            if _index == time_list_length - 1 and s_index == time_list_length - 1:
+            if _index == time_list_length - 1 and s_index == _index:
                 #special deal with date where last row is 14:59 but notleast row is 14:55
                 df.at[s_index, 'time'] = "%s:%02d" % (df.loc[s_index]['time'], 0)
     return df
@@ -263,7 +263,7 @@ def get_day_nday_ago(date, n):
     return _date.strftime('%Y%m%d')
 
 def download(output_directory):
-    _date = get_day_nday_ago(datetime.now().strftime('%Y%m%d'), 30)
+    _date = get_day_nday_ago(datetime.now().strftime('%Y%m%d'), 9)
     start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(_date, "%Y%m%d"))
     data_times = pd.date_range(start_date_dmy_format, periods=10, freq='D')
     date_only_array = np.vectorize(lambda s: s.strftime('%Y%m%d'))(data_times.to_pydatetime())
@@ -293,8 +293,8 @@ def unzip(file_path, tic_dir):
 
 if __name__ == "__main__":
     #download(ct.ZIP_DIR)
-    code_id = '002270'
-    tickname = '20150310.tic'
+    code_id = '880863'
+    tickname = '20180816.tic'
     ticname = os.path.join(ct.TIC_DIR, tickname)
     df = read_tick(ticname, code_id)
-    print(df.tail(10))
+    print(df)

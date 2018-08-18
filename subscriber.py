@@ -40,6 +40,13 @@ class Subscriber:
             logger.error(msg)
         return ret
 
+    def subscribe_quote(self, code_list):
+        return self.quote_ctx.subscribe(code_list, SubType.QUOTE)
+
+    def get_quote_data(self, code):
+        ret_status, ret_data = self.quote_ctx.get_stock_quote(list(code))
+        return ret_status, ret_data
+
     def unsubscribe_tick(self, code_list, subtype_list):
         '''
         code_list – 取消订阅的股票代码列表
