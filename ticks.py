@@ -215,6 +215,7 @@ def read_tick(filename, code_id):
             code = code.decode()
             raw_tick_data = fobj.read(t_size)
             if code == code_id and market == market_id:
+                if t_size == 20: return pd.DataFrame()
                 ttd_list = parse_tick_item(raw_tick_data, code)
                 if len(ttd_list) == 0: return pd.DataFrame()
                 dict_list = list()
@@ -293,8 +294,8 @@ def unzip(file_path, tic_dir):
 
 if __name__ == "__main__":
     #download(ct.ZIP_DIR)
-    code_id = '880863'
-    tickname = '20180816.tic'
+    code_id = '600113'
+    tickname = '20180323.tic'
     ticname = os.path.join(ct.TIC_DIR, tickname)
     df = read_tick(ticname, code_id)
     print(df)
