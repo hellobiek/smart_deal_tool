@@ -293,9 +293,13 @@ def unzip(file_path, tic_dir):
     zip_file.close()
 
 if __name__ == "__main__":
-    #download(ct.ZIP_DIR)
-    code_id = '600113'
-    tickname = '20180323.tic'
-    ticname = os.path.join(ct.TIC_DIR, tickname)
-    df = read_tick(ticname, code_id)
+    #code_id = '300563'
+    #tickname = '20170804.tic'
+    #ticname = os.path.join(ct.TIC_DIR, tickname)
+    #df = read_tick(ticname, code_id)
+    #print(df)
+    import tushare as ts
+    pd.set_option('display.max_rows', None)
+    pd.set_option('display.max_columns', None)
+    df = ts.get_tick_data('300563', date='2017-08-04', src='tt')
     print(df)

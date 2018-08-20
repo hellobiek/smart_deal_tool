@@ -17,6 +17,7 @@ from common import trace_func,is_trading_time,df_delta,create_redis_obj,delta_da
 logger = getLogger(__name__)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
+
 class CStock(TickerHandlerBase):
     def __init__(self, dbinfo, code):
         self.code = code
@@ -162,12 +163,12 @@ class CStock(TickerHandlerBase):
             return
         df = ts.get_tick_data(self.code, date=cdate)
         df_tdx = read_tick(os.path.join(ct.TIC_DIR, '%s.tic' % datetime.strptime(cdate, "%Y-%m-%d").strftime("%Y%m%d")), self.code)
-        if not df_tdx.empty: 
+        if not df_tdx.empty:
             if df is not None and not df.empty and df.loc[0]['time'].find("当天没有数据") == -1:
                 net_volume = df.volume.sum()
                 tdx_volume = df_tdx.volume.sum()
                 if net_volume != tdx_volume:
-                    raise Exception("code:%s, date:%s, net volume:%s, tdx volume:%s not equal" % (self.code, cdate, net_volume, tdx_volume))
+                    logger.error("code:%s, date:%s, net volume:%s, tdx volume:%s not equal" % (self.code, cdate, net_volume, tdx_volume))
             df = df_tdx
         else:
             if df is None:
@@ -180,7 +181,7 @@ class CStock(TickerHandlerBase):
                 logger.debug("nodata code:%s, date:%s" % (self.code, cdate))
                 return
         df.columns = ['ctime', 'price', 'cchange', 'volume', 'amount', 'ctype']
-        logger.debug("code:%s date:%s" % (self.code, cdate))
+        logger.debug("merge ticket code:%s date:%s" % (self.code, cdate))
         df = self.merge_ticket(df)
         df['date'] = cdate
         logger.debug("write data code:%s, date:%s, table:%s" % (self.code, cdate, tick_table))
@@ -188,6 +189,14 @@ class CStock(TickerHandlerBase):
             logger.info("start record:%s. table:%s" % (self.code, tick_table))
             self.redis.sadd(tick_table, cdate)
 
+    def get_ticket(self, cdate):
+        cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
+        if not self.has_on_market(cdate):
+            logger.debug("not on market code:%s, date:%s" % (self.code, cdate))
+            return
+        sql = "select * from %s where date=\"%s\"" %(self.get_redis_tick_table(cdate), cdate)
+        return self.mysql_client.get(sql)
+        
     def get_k_data(self, date = None, dtype = 9):
         table_name = self.data_type_dict[dtype] 
         if date is not None:

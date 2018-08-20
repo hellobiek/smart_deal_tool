@@ -23,17 +23,17 @@ def VMACD(price, volume, fastperiod=12, slowperiod=26, signalperiod=9):
 def MA(data, peried):
     return data.rolling(peried).mean()
 
-def VMA(price, volume, peried):
+def VMA(amount, volume, peried = 5):
     svolume = sum(volume)
-    vprice = np.array(price) *  np.array(volume)
-    vprice = vprice / svolume
-    return MA(pd.Series(vprice), peried)
+    samount = sum(amount)
+    #return MA(pd.Series(vprice), peried)
 
 if __name__ == "__main__":
     code = '601318'
     prestr = "1" if get_market_name(code) == "sh" else "0"
     cstock = CStock(ct.DB_INFO, code)
     data = cstock.get_k_data()
+    data['close'] = data.amount/data.volume
 
     filename = "%s%s.csv" % (prestr, code)
     data = pd.read_csv("/data/tdx/history/days/%s" % filename, sep = ',')
@@ -48,8 +48,9 @@ if __name__ == "__main__":
     info = info[['money', 'price', 'count', 'rate', 'date']]
 
     data = qfq(data, code, info)
-
-    #print(MACD(data['close']))
-    #print(MA(data['close'], 5))
-    #VMA(data['close'], data['volume'], 5)
-    #print(VMACD(data['close'], data['volume']))
+    data = data.sort_index(ascending = False)
+    data = data.reset_index(drop = True)
+    data['ma8'] = MA(data['close'], 8)
+    data['ma24'] = MA(data['close'], 24)
+    data['ma60'] = MA(data['close'], 60)
+    data[["date", "close", "ma8", "ma24", "ma60"]].plot(figsiz=(10,18))
