@@ -31,17 +31,11 @@ def VMA(amount, volume, peried = 5):
 if __name__ == "__main__":
     code = '601318'
     prestr = "1" if get_market_name(code) == "sh" else "0"
-    cstock = CStock(ct.DB_INFO, code)
+    cstock = CStock(ct.DB_TEST_INFO, code)
     data = cstock.get_k_data()
     data['close'] = data.amount/data.volume
 
-    filename = "%s%s.csv" % (prestr, code)
-    data = pd.read_csv("/data/tdx/history/days/%s" % filename, sep = ',')
-    data = data[['date', 'open', 'low', 'high', 'close', 'volume', 'amount']]
-    data = data.sort_index(ascending = False)
-    data = data.reset_index(drop = True)
-
-    info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
+    info = pd.read_csv("/Volumes/data/quant/stock/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
     info = info[(info.code == code) & (info.type == 1)]
     info = info.sort_index(ascending = False)
     info = info.reset_index(drop = True)

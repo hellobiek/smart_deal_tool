@@ -213,6 +213,5 @@ class CStock(TickerHandlerBase):
         return (datetime.strptime(_date, "%Y-%m-%d") - time2Market).days > 0
 
 if __name__ == "__main__":
-    #code:300228 date:2016-01-07
-    cs = CStock(ct.DB_INFO, '300228')
-    print(cs.set_k_data())
+    cs = CStock(ct.DB_INFO, '002437')
+    cs.set_ticket('2015-07-01')

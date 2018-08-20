@@ -91,7 +91,7 @@ def parse_tick_price(ttd_list, tic_detail_bytes, tdm):
             tmp_size = 32
         tmp_check_sum = 3
         tmp_index, tick_data_item, tic_detail_bytes, tmp_size = time_recursion(tmp_check_sum, tick_data_item, tmp_size, tic_detail_bytes, time_list)
-        _time = ttd_list[len(ttd_list)-1].dtime + tmp_index
+        _time = ttd_list[len(ttd_list) - 1].dtime + tmp_index
 		#解析价格
         tmp_check_sum = 3
         tmp_index, tick_data_item, tic_detail_bytes, tmp_size = price_recursion(tmp_check_sum, tick_data_item, tmp_size, tic_detail_bytes, price_list)
@@ -293,13 +293,7 @@ def unzip(file_path, tic_dir):
     zip_file.close()
 
 if __name__ == "__main__":
-    #code_id = '300563'
-    #tickname = '20170804.tic'
-    #ticname = os.path.join(ct.TIC_DIR, tickname)
-    #df = read_tick(ticname, code_id)
-    #print(df)
-    import tushare as ts
-    pd.set_option('display.max_rows', None)
-    pd.set_option('display.max_columns', None)
-    df = ts.get_tick_data('300563', date='2017-08-04', src='tt')
-    print(df)
+    code_id = '002437'
+    tickname = '20150701.tic'
+    ticname = os.path.join('/Volumes/data/quant/stock/data/tdx/tic', tickname)
+    df = read_tick(ticname, code_id)

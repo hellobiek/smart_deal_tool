@@ -56,6 +56,9 @@ const.INDEX_INFO = {const.SZZS: "000001",
 const.SUBMITTED = 0
 const.ONGOING = 1
 ##############################
+const.DB_TEST_INFO = {'user':'root',
+                      'password':'123456',
+                      'host':'127.0.0.1'}
 const.DB_INFO = {'user':'root',
                  'password':'123456',
                  'host':'host.docker.internal'}

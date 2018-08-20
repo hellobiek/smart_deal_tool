@@ -7,24 +7,32 @@ from influxdb import DataFrameClient
 class CInflux:
     def __init__(self, dbinfo, dbname):
         self.dbname = dbname
-        self.l2_dbname = "%s_l2" % self.dbname
-        self.client = InfluxDBClient(dbinfo['host'], dbinfo['port'], dbinfo['user'], dbinfo['password'], self.l2_dbname)
+        #self.l2_dbname = "%s_l2" % self.dbname
+        #self.client = InfluxDBClient(dbinfo['host'], dbinfo['port'], dbinfo['user'], dbinfo['password'], self.l2_dbname)
         self.df_client = DataFrameClient(dbinfo['host'], dbinfo['port'], dbinfo['user'], dbinfo['password'], self.dbname)
 
-    def get(self):
-        return self.df_client.query("select * from %s" % self.dbname)
+    def list_all_databases(self):
+        return self.df_client.get_list_database()
 
-    def get_newset_row(self):
-        return self.df_client.query("select last(*) from %s" % self.dbname)
+    def get(self, dbname = None):
+        dbname = dbname if dbname is not None else self.dbname
+        return self.df_client.query("select * from %s" % dbname)
 
-    def set(self, df):
-        return self.df_client.write_points(df, self.dbname, protocol='json')
+    def get_newset_row(self, dbname = None):
+        dbname = dbname if dbname is not None else self.dbname
+        return self.df_client.query("select last(*) from %s" % dbname)
+
+    def set(self, df, dbname = None):
+        dbname = dbname if dbname is not None else self.dbname
+        return self.df_client.write_points(df, dbname, protocol='json')
     
-    def create(self):
+    def create(self, dbname = None):
+        dbname = dbname if dbname is not None else self.dbname
         self.df_client.create_database(self.dbname)
 
-    def delete(self):
-        self.df_client.drop_database(self.dbname)
+    def delete(self, dbname = None):
+        dbname = dbname if dbname is not None else self.dbname
+        self.df_client.drop_database(dbname)
 
     #def l2_create(self):
     #    self.client.create_database(self.l2_dbname)
