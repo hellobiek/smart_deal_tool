@@ -301,7 +301,7 @@ class CReivew:
                 price_list = cdata[cdata.name == name]['price'].tolist()
                 pchange_list.append(0)
                 for _index in range(1, len(price_list)):
-                    pchange_list.append(10 * (price_list[_index] - price_list[_index - 1])/price_list[_index - 1])
+                    pchange_list.append(10 * (price_list[_index] - price_list[_index - 1])/price_list[0])
                 ax.plot(ctime_list[0:i], pchange_list[0:i], label = name, linewidth = 1.5)
                 if pchange_list[i-1] > 1 or pchange_list[i-1] < -1:
                     ax.text(ctime_list[i-1], pchange_list[i-1], name, font_properties = get_chinese_font())
