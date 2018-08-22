@@ -29,22 +29,25 @@ class CTrader:
         while True:
             try:
                 if self.cal_client.is_trading_day():
-                    _today = datetime.now().strftime('%Y-%m-%d')
-                    if self.bnew_succeed_date != _today:
-                        n_list = self.get_new_stock_list()
-                        if len(n_list) == 0:
-                            logger.info("no new stock for %s." % _today)
-                            self.bnew_succeed_date = _today
-                            return
-                        for stock in n_list:
-                            ret, amount = self.trader.max_amounts(stock[0], stock[1])
-                            if 0 == ret:
-                                ret, msg = self.trader.deal(stock[0], stock[1], amount, "B")
-                                if ret == 0:
-                                    logger.info("buy new stock:%s for %s succeed" % (stock, _today))
-                                    self.bnew_succeed_date = _today
-                                else: 
-                                    logger.error("buy new stock:%s for %s error, msg:%s" % (stock, _today, msg))
+                    if is_trading_time():
+                        _today = datetime.now().strftime('%Y-%m-%d')
+                        time.sleep(600)
+                        logger.debug("bnew_succeed_date %s, today:%s." % (self.bnew_succeed_date, _today))
+                        if self.bnew_succeed_date != _today:
+                            n_list = self.get_new_stock_list()
+                            if len(n_list) == 0:
+                                logger.info("no new stock for %s." % _today)
+                                self.bnew_succeed_date = _today
+                                return
+                            for stock in n_list:
+                                ret, amount = self.trader.max_amounts(stock[0], stock[1])
+                                if 0 == ret:
+                                    ret, msg = self.trader.deal(stock[0], stock[1], amount, "B")
+                                    if ret == 0:
+                                        logger.info("buy new stock:%s for %s succeed" % (stock, _today))
+                                        self.bnew_succeed_date = _today
+                                    else:
+                                        logger.error("buy new stock:%s for %s error, msg:%s" % (stock, _today, msg))
             except Exception as e:
                 logger.info(e)
                 traceback.print_exc()

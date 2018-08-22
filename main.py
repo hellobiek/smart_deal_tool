@@ -22,7 +22,7 @@ def main():
     threadList.append(CThread(dm.update, 21600))
     threadList.append(CThread(dm.download_and_extract, 7200))
 
-    cr = CReivew(ct.STAT_INFO)
+    cr = CReivew(ct.DB_INFO)
     threadList.append(CThread(cr.update, 10800))
 
     ctrader = CTrader(ct.DB_INFO)

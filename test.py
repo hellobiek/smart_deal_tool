@@ -7,13 +7,10 @@ import const as ct
 from cmysql import CMySQL
 from cinfluxdb import CInflux 
 
-influx_client = CInflux(ct.IN_DB_INFO, "123456")
-df_list = influx_client.list_all_databases()
-for db_item in df_list:
-    db_name = db_item['name']
-    if db_name.startswith("s"): 
-        influx_client.delete(db_name)
-        print("delete %s failed" % db_name)
+influx_client = CInflux(ct.IN_DB_INFO, "s600050")
+influx_client.create()
+df = influx_client.get()
+print(df)
 
 #pool = redis.ConnectionPool(host=ct.REDIS_HOST, port=ct.REDIS_PORT, decode_responses=False)
 #r = redis.StrictRedis(connection_pool=pool)

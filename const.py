@@ -62,10 +62,6 @@ const.DB_TEST_INFO = {'user':'root',
 const.DB_INFO = {'user':'root',
                  'password':'123456',
                  'host':'host.docker.internal'}
-const.STAT_INFO = {'user':'root',
-                 'password':'123456',
-                 'host':'host.docker.internal',
-                 'database':'statistical_information'}
 const.IN_DB_INFO = {'user':'root',
                     'password':'123456',
                     'host':'host.docker.internal',

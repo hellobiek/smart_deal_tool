@@ -278,13 +278,12 @@ class CReivew:
         writer = Writer(fps=1, metadata=dict(artist='biek'), bitrate=1800)
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
-        cdata = self.mysql_client.get('select * from %s' % ct.ANIMATION_INFO)
-        if cdata is None: return None
-        cdata = _pickle.loads(cdata)
         _today = datetime.now().strftime('%Y-%m-%d')
-        show_data = cdata[cdata.cdate == _today]
-        show_data = show_data.reset_index(drop = True)
-        ctime_list = show_data.ctime.unique()
+        cdata = self.mysql_client.get('select * from %s where cdate = "%s"' % (ct.ANIMATION_INFO, _today))
+        if cdata is None: return None
+        cdata = cdata.reset_index(drop = True)
+        ctime_list = cdata.ctime.unique()
+        name_list = cdata.name.unique()
         ctime_list = [datetime.strptime(ctime,'%H:%M:%S') for ctime in ctime_list]
         frame_num = len(ctime_list)
         if 0 == frame_num: return None
@@ -292,23 +291,25 @@ class CReivew:
             ax.clear()
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
             ax.xaxis.set_major_locator(mdates.DayLocator())
-            ax.set_title('盯盘', fontproperties=get_chinese_font())
-            ax.set_xlabel('时间', fontproperties=get_chinese_font())
-            ax.set_ylabel('增长', fontproperties=get_chinese_font())
-            ax.set_ylim((-10, 50))
+            ax.set_title('盯盘', fontproperties = get_chinese_font())
+            ax.set_xlabel('时间', fontproperties = get_chinese_font())
+            ax.set_ylabel('增长', fontproperties = get_chinese_font())
+            ax.set_ylim((-11, 11))
             fig.autofmt_xdate()
-            for _, name in show_data.name.iteritems():
-                pchange_list = show_data[show_data.name == name]['pchange'].tolist()
-                ax.plot(ctime_list, pchange_list, label = name, linewidth = 1.5)
-                pchange = pchange_list[len(pchange_list) - 1]
-                ctime = ctime_list[len(ctime_list) - 1]
-                if pchange > 3:
-                    ax.text(ctime, pchange * 2, name, font_properties = get_chinese_font())
+            for name in name_list:
+                pchange_list = list()
+                price_list = cdata[cdata.name == name]['price'].tolist()
+                pchange_list.append(0)
+                for _index in range(1, len(price_list)):
+                    pchange_list.append(10 * (price_list[_index] - price_list[_index - 1])/price_list[_index - 1])
+                ax.plot(ctime_list[0:i], pchange_list[0:i], label = name, linewidth = 1.5)
+                if pchange_list[i-1] > 1 or pchange_list[i-1] < -1:
+                    ax.text(ctime_list[i-1], pchange_list[i-1], name, font_properties = get_chinese_font())
         ani = animation.FuncAnimation(fig, animate, frame_num, interval = 60000, repeat = False)
         sfile = '/data/animation/%s_animation.mp4' % _today if sfile is None else sfile
         ani.save(sfile, writer)
         plt.close(fig)
 
 if __name__ == '__main__':
-    creview = CReivew(ct.STAT_INFO)
+    creview = CReivew(ct.DB_INFO)
     creview.gen_animation("/data/animation/1.mp4")
