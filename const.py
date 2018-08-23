@@ -109,6 +109,7 @@ const.DAILY_STATIC_TABLE = "static"
 const.COMBINATION_INFO_TABLE = "combination"
 const.INDEX_INFO_TABLE = "index"
 const.DELISTED_INFO_TABLE = "delisted"
+const.LIMIT_TABLE = "limitup"
 #############################
 const.QUEUE_SZIE = 299
 #############################
@@ -4415,3 +4416,9 @@ const.HASH_TABLE_PRICE = {0: '0x7',
 ##################################################
 const.ZIP_DIR = "/data/tdx/tick_zip"
 const.TIC_DIR = "/data/tdx/tic"
+const.LIMIT_UP = 0
+const.LIMIT_DOWN = 1
+const.LIMIT_UP_INTENSITY = 2
+const.LIMIT_DOWN_INTENSITY = 3
+const.URL_PRIFIX = "http://home.flashdata2.jrj.com.cn/limitStatistic/"
+const.URL_MID = ".js?_dc="

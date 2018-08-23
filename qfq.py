@@ -41,6 +41,3 @@ if __name__ == '__main__':
     info = info[['money', 'price', 'count', 'rate', 'date']]
 
     data = qfq(data, code, info)
-    print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA01")
-    print(data[['date', 'close', 'preclose', 'volume', 'amount']])
-    print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA02")

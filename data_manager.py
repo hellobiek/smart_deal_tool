@@ -11,6 +11,7 @@ import datetime
 from cmysql import CMySQL
 from cstock import CStock
 from cindex import CIndex
+from climit import CLimit 
 from cdelisted import CDelisted
 from ccalendar import CCalendar
 from animation import CAnimation
@@ -46,6 +47,7 @@ class DataManager:
         self.stock_info_client = CStockInfo(dbinfo)
         self.index_info_client = IndexInfo(dbinfo)
         self.delisted_info_client = CDelisted(dbinfo)
+        self.limit_client = CLimit(dbinfo)
         self.animation_client = CAnimation(dbinfo)
         self.subscriber = Subscriber()
 
@@ -53,15 +55,11 @@ class DataManager:
         if now_time is None: now_time = datetime.now()
         _date = now_time.strftime('%Y-%m-%d')
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
-        mor_open_hour,mor_open_minute,mor_open_second = (0,0,0)
-        mor_open_time = datetime(y,m,d,mor_open_hour,mor_open_minute,mor_open_second)
-        mor_close_hour,mor_close_minute,mor_close_second = (9,0,0)
-        mor_close_time = datetime(y,m,d,mor_close_hour,mor_close_minute,mor_close_second)
-        aft_open_hour,aft_open_minute,aft_open_second = (15,10,0)
+        aft_open_hour,aft_open_minute,aft_open_second = (19,00,0)
         aft_open_time = datetime(y,m,d,aft_open_hour,aft_open_minute,aft_open_second)
         aft_close_hour,aft_close_minute,aft_close_second = (23,59,59)
         aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
-        return (mor_open_time < now_time < mor_close_time) or (aft_open_time < now_time < aft_close_time)
+        return aft_open_time < now_time < aft_close_time
 
     def collect(self, sleep_time):
         while True:
@@ -165,8 +163,10 @@ class DataManager:
         self.comb_info_client.init()
         self.stock_info_client.init()
         self.delisted_info_client.init(status)
+        self.download_and_extract()
         self.init_today_stock_tick()
         self.init_today_index_info()
+        self.init_today_limit_info()
         #self.halted_info_client.init(status)
 
     def get_concerned_list(self):
@@ -201,6 +201,10 @@ class DataManager:
                     logger.info(e)
         obj_pool.join()
         obj_pool.kill()
+
+    def init_today_limit_info(self):
+        _date = datetime.now().strftime('%Y-%m-%d')
+        self.limit_client.crawl_data(_date)
 
     def init_today_index_info(self):
         _date = datetime.now().strftime('%Y-%m-%d')
@@ -244,21 +248,17 @@ class DataManager:
             if 0 == ret:
                 if code_id not in self.stock_objs: self.stock_objs[code_id] = CStock(self.dbinfo, code_id)
 
-    def download_and_extract(self, sleep_time):
+    def download_and_extract(self):
         while True:
             try:
-                if self.cal_client.is_trading_day(): 
-                    if self.is_collecting_time():
-                        download(ct.ZIP_DIR)
-                        list_files = os.listdir(ct.ZIP_DIR)
-                        for filename in list_files:
-                            if not filename.startswith('.'):
-                                file_path = os.path.join(ct.ZIP_DIR, filename)
-                                if os.path.exists(file_path):
-                                    unzip(file_path, ct.TIC_DIR)
+                download(ct.ZIP_DIR)
+                list_files = os.listdir(ct.ZIP_DIR)
+                for filename in list_files:
+                    if not filename.startswith('.'):
+                        file_path = os.path.join(ct.ZIP_DIR, filename)
+                        if os.path.exists(file_path):unzip(file_path, ct.TIC_DIR)
             except Exception as e:
                 logger.error(e)
-                time.sleep(sleep_time)
         
 if __name__ == '__main__':
     dm = DataManager(ct.DB_INFO)

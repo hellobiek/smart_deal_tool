@@ -38,16 +38,13 @@ class html_parser:
             else:
                 one_record["balance"] = 0
                 print("html parse error")
-
             match = reg.search(pq(i).children().eq(1).text())
             if match:
                 one_record["availble"] = float(match.group(1))
             else:
                 one_record["availble"] = 0
                 print("html parse error")
-
             tmp_info.append(one_record)
-
         return tmp_info[0]
 
     def get_onging_orders(self):
@@ -56,8 +53,7 @@ class html_parser:
         tmp = jp("#tab1 tbody tr")
         for i in tmp:
             print(pq(i).children().eq(3).text())
-            if pq(i).children().eq(3).text() == "":
-                break
+            if pq(i).children().eq(3).text() == "":break
             one_record = {}
             one_record["stock_code"] = pq(i).children().eq(3).text()
             one_record["amount_commit"] = pq(i).children().eq(8).text()
