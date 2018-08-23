@@ -31,7 +31,7 @@ class CTrader:
                 if self.cal_client.is_trading_day():
                     if is_trading_time():
                         _today = datetime.now().strftime('%Y-%m-%d')
-                        time.sleep(600)
+                        #time.sleep(600)
                         logger.debug("bnew_succeed_date %s, today:%s." % (self.bnew_succeed_date, _today))
                         if self.bnew_succeed_date != _today:
                             n_list = self.get_new_stock_list()
@@ -44,10 +44,10 @@ class CTrader:
                                 if 0 == ret:
                                     ret, msg = self.trader.deal(stock[0], stock[1], amount, "B")
                                     if ret == 0:
-                                        logger.info("buy new stock:%s for %s succeed" % (stock, _today))
+                                        logger.info("buy new stock:%s amount:%s for %s succeed" % (stock, amount, _today))
                                         self.bnew_succeed_date = _today
                                     else:
-                                        logger.error("buy new stock:%s for %s error, msg:%s" % (stock, _today, msg))
+                                        logger.error("buy new stock:%s amount:%s for %s error, msg:%s" % (stock, amount, _today, msg))
             except Exception as e:
                 logger.info(e)
                 traceback.print_exc()

@@ -95,6 +95,9 @@ class CReivew:
             if not self.mysql_client.create(sql, self.emotion_table): return False
         return True
 
+    def get_up_limit_info(self):
+        pass
+
     def collect_industry_info(self):
         industry_df = self.get_industry()
         name_list = list()

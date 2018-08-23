@@ -166,6 +166,7 @@ class DataManager:
         self.stock_info_client.init()
         self.delisted_info_client.init(status)
         self.init_today_stock_tick()
+        self.init_today_index_info()
         #self.halted_info_client.init(status)
 
     def get_concerned_list(self):
@@ -198,6 +199,19 @@ class DataManager:
                     obj_pool.spawn(_obj.set_k_data)
                 except Exception as e:
                     logger.info(e)
+        obj_pool.join()
+        obj_pool.kill()
+
+    def init_today_index_info(self):
+        _date = datetime.now().strftime('%Y-%m-%d')
+        obj_pool = Pool(50)
+        for code_id in ct.TDX_INDEX_DICT:
+            _obj = self.index_objs[code_id] if code_id in self.stock_objs else CINDEX(self.dbinfo, code_id)
+            try:
+                if obj_pool.full(): obj_pool.join()
+                obj_pool.spawn(_obj.set_k_data)
+            except Exception as e:
+                logger.info(e)
         obj_pool.join()
         obj_pool.kill()
 

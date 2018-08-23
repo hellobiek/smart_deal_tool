@@ -85,16 +85,19 @@ class Trader:
             "amount": amount
         }
         (ret, result) = self.client.post(DEAL_URL, post_data)
-        self.log.debug("%s action: %s, current price:%s, amount:%s" % (code, action, price, amount))
+        self.log.debug("%s action:%s, current price:%s, amount:%s" % (code, action, price, amount))
         if ret != 0:
             self.log.warn("post to url fail: ret=%d" % ret)
             return -10
         #check if has error
-        reg = re.compile(r'.*alert.*\[-(\d{6,})\]')
+        #reg = re.compile(r'.*alert.*\[-(\d{6,})\]')
+        reg = re.compile(r'.*alert\(\"-(\d{9}).*\)')
         match = reg.search(result.decode('gbk', "ignore"))
         if match:
             if match.group(1) == "150906130":
                 return ct.NOT_ENOUGH_MONEY, "no enough money"
+            elif match.group(1) == "150906090":
+                return ct.ALREADY_BUY, "already buy new stock for:%s" % code
             elif match.group(1) == "150906135":
                 return ct.NOT_ENOUGH_STOCK, "no enough stocks for sell"
             elif match.group(1) == "999003088":
@@ -112,10 +115,7 @@ class Trader:
         else:
             reg = re.compile('.*alert.*新股申购数量超出.*\[(\d{3,})\]')
             match = reg.search(result.decode('gbk', "ignore"))
-            if match:
-                return ct.SHENGOU_LIMIT, match.group(1)
-            else:
-                return ct.OTHER_ERROR, "other error"
+            if match: return ct.SHENGOU_LIMIT, match.group(1)
         #parse the deal id. if not exist return ""
         reg = re.compile(r'alert.*(\d{4})')
         match = reg.search(result.decode("gbk", "ignore"))
@@ -191,9 +191,9 @@ if '__main__' == __name__:
     with open(ct.USER_FILE) as f:
         infos = json.load(f)
     trader = Trader(infos[0]["account"], infos[0]["passwd_encrypted"], infos[0]["secuids_sh"], infos[0]["secuids_sz"])
-    print(trader.deal('002321', 6.27, 100, 'S'))
-    print(trader.accounts())
-    print(trader.holdings())
-    print(trader.orders(ct.ONGOING))
-    print(trader.orders(ct.SUBMITTED))
-    print(trader.orders(ct.SUBMITTED))
+    print(trader.deal('002935', 19.38, 8000, 'B'))
+    #print(trader.accounts())
+    #print(trader.holdings())
+    #print(trader.orders(ct.ONGOING))
+    #print(trader.orders(ct.SUBMITTED))
+    #print(trader.orders(ct.SUBMITTED))

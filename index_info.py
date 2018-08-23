@@ -13,7 +13,7 @@ class IndexInfo:
 
     def init(self):
         failed_list = list()
-        for code in ct.INDEX_DICT:
+        for code in ct.TDX_INDEX_DICT:
             dbname = CIndex.get_dbname(code)
             if dbname not in self.mysql_dbs:
                 if not self.mysql_client.create_db(dbname):

@@ -293,7 +293,8 @@ def unzip(file_path, tic_dir):
     zip_file.close()
 
 if __name__ == "__main__":
-    code_id = '002437'
-    tickname = '20150701.tic'
+    code_id = '880001'
+    tickname = '20180822.tic'
     ticname = os.path.join('/Volumes/data/quant/stock/data/tdx/tic', tickname)
     df = read_tick(ticname, code_id)
+    print(df)

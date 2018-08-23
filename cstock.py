@@ -116,9 +116,9 @@ class CStock(TickerHandlerBase):
         return df
 
     def get_market(self):
-        if (self.code.startswith("6") or self.code.startswith("500") or self.code.startswith("550") or self.code.startswith("510")) or self.code.startswith("7"):
+        if self.code.startswith("6") or self.code.startswith("500") or self.code.startswith("550") or self.code.startswith("510") or self.code.startswith("7"):
             return ct.MARKET_SH
-        elif (self.code.startswith("00") or self.code.startswith("30") or self.code.startswith("150") or self.code.startswith("159")):
+        elif self.code.startswith("00") or self.code.startswith("30") or self.code.startswith("150") or self.code.startswith("159"):
             return ct.MARKET_SZ
         else:
             return ct.MARKET_OTHER

@@ -46,19 +46,10 @@ const.CYBZ = "cyb"
 const.ZZ500 = "zz500"
 const.SUB_NEW_STOCK = "SUB_NEW_STOCK" 
 const.MARKET_ELSE = "MARKET_ELSE"
-const.INDEX_INFO = {const.SZZS: "000001",
-                    const.SZ50: "000016",
-                    const.HS300: "000300",
-                    const.SZCZ: "399001",
-                    const.CYBZ: "399006",
-                    const.ZZ500: "000905"}
 ##########order type##########
 const.SUBMITTED = 0
 const.ONGOING = 1
 ##############################
-const.DB_TEST_INFO = {'user':'root',
-                      'password':'123456',
-                      'host':'127.0.0.1'}
 const.DB_INFO = {'user':'root',
                  'password':'123456',
                  'host':'host.docker.internal'}
@@ -77,6 +68,16 @@ const.INDEX_DICT = {'000001':'上证指数',
                     '399673':'创业板50',
                     '399001':'深证成指',
                     '399006':'创业板指'}
+const.TDX_INDEX_DICT = {'880011':'Ａ主总值',
+                        '880012':'Ａ主流通',
+                        '880003':'平均股价',
+                        '000001':'上证指数', 
+                        '000300':'沪深300',
+                        '000016':'上证50',
+                        '399905':'中证500',
+                        '399673':'创业板50',
+                        '399001':'深证成指',
+                        '399006':'创业板指'}
 const.C_INDEX = 1
 const.C_SELFD = 2
 const.C_INDUSTRY = 3
@@ -97,6 +98,7 @@ const.PASSWORD_ERROR = 7 #980023096 账号或者密码不对
 const.SHENGOU_LIMIT = 8 #申购数量超过可申购额度
 const.REPEATED_SHENGOU = 9  #"-150906090新股配售同一只证券代码不允许重复委托!"
 const.NO_SUCH_CODE = 10  #no such code
+const.ALREADY_BUY = 10  #no such code
 const.LOGIN_FAIL = 100 #login fail
 const.OTHER_ERROR = 999
 #############################
