@@ -144,7 +144,7 @@ class DataManager:
                         self.subscriber.stop()
             except Exception as e:
                 logger.error(e)
-                #traceback.print_exc()
+                traceback.print_exc()
             time.sleep(sleep_time)
 
     def update(self, sleep_time):
