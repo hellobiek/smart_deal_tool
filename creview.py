@@ -297,7 +297,7 @@ class CReivew:
             ax.set_title('盯盘', fontproperties = get_chinese_font())
             ax.set_xlabel('时间', fontproperties = get_chinese_font())
             ax.set_ylabel('增长', fontproperties = get_chinese_font())
-            ax.set_ylim((-11, 11))
+            ax.set_ylim((-6, 6))
             fig.autofmt_xdate()
             for name in name_list:
                 pchange_list = list()

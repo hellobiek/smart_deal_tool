@@ -26,12 +26,12 @@ def MA(data, peried):
 def VMA(amount, volume, peried = 5):
     svolume = sum(volume)
     samount = sum(amount)
-    #return MA(pd.Series(vprice), peried)
+    return MA(pd.Series(vprice), peried)
 
 if __name__ == "__main__":
     code = '601318'
     prestr = "1" if get_market_name(code) == "sh" else "0"
-    cstock = CStock(ct.DB_TEST_INFO, code)
+    cstock = CStock(ct.DB_INFO, code)
     data = cstock.get_k_data()
     data['close'] = data.amount/data.volume
 
