@@ -6,11 +6,14 @@ import tushare as ts
 import const as ct
 from cmysql import CMySQL
 from cinfluxdb import CInflux 
+pd.options.mode.chained_assignment = None #default='warn'
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
 
-influx_client = CInflux(ct.IN_DB_INFO, "s600050")
-influx_client.create()
-df = influx_client.get()
-print(df)
+#influx_client = CInflux(ct.IN_DB_INFO, "s600050")
+#influx_client.create()
+#df = influx_client.get()
+#print(df)
 
 #pool = redis.ConnectionPool(host=ct.REDIS_HOST, port=ct.REDIS_PORT, decode_responses=False)
 #r = redis.StrictRedis(connection_pool=pool)
@@ -32,6 +35,7 @@ print(df)
 #    count+=1
 #    print(count)
 
-#cm = CMySQL(ct.DB_INFO)
-#print(cm.get_all_tables())
-#print(len(cm.get_all_tables()))
+cm = CMySQL(ct.DB_INFO)
+sql = 'select * from industry where date = "2018-08-24"'
+df = cm.get(sql)
+print(df)

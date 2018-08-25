@@ -21,7 +21,7 @@ class Combination:
         self.data_type_dict = {9:"day"}
         self.influx_client = CInflux(ct.IN_DB_INFO, self.dbname)
         self.mysql_client = cmysql.CMySQL(dbinfo, self.dbname)
-        if not self.create(): raise Exception("create combination table failed")
+        if not self.create(): raise Exception("%s create combination table failed" % code)
 
     @staticmethod
     def get_dbname(code):
@@ -34,7 +34,7 @@ class Combination:
     def create_mysql_table(self):
         for _, table_name in self.data_type_dict.items():
             if table_name not in self.mysql_client.get_all_tables():
-                sql = 'create table if not exists %s(date varchar(10), code varchar(10), open float, high float, close float, low float, volume float)' % table_name
+                sql = 'create table if not exists %s(date varchar(10), open float, high float, close float, low float, volume float)' % table_name
                 if not self.mysql_client.create(sql, table_name): return False
         return True
 

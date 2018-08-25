@@ -225,7 +225,7 @@ class CReivew:
         now_time = datetime.now()
         _date = now_time.strftime('%Y-%m-%d')
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
-        mor_open_hour,mor_open_minute,mor_open_second = (16,0,0)
+        mor_open_hour,mor_open_minute,mor_open_second = (21,0,0)
         mor_open_time = datetime(y,m,d,mor_open_hour,mor_open_minute,mor_open_second)
         mor_close_hour,mor_close_minute,mor_close_second = (23,59,59)
         mor_close_time = datetime(y,m,d,mor_close_hour,mor_close_minute,mor_close_second)

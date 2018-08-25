@@ -16,6 +16,7 @@ from cdelisted import CDelisted
 from ccalendar import CCalendar
 from animation import CAnimation
 from index_info import IndexInfo
+from industry_info import IndustryInfo
 from cstock_info import CStockInfo
 from combination import Combination
 from combination_info import CombinationInfo
@@ -46,6 +47,7 @@ class DataManager:
         self.comb_info_client = CombinationInfo(dbinfo)
         self.stock_info_client = CStockInfo(dbinfo)
         self.index_info_client = IndexInfo(dbinfo)
+        self.industry_info_client = IndustryInfo(dbinfo)
         self.delisted_info_client = CDelisted(dbinfo)
         self.limit_client = CLimit(dbinfo)
         self.animation_client = CAnimation(dbinfo)
@@ -160,12 +162,14 @@ class DataManager:
 
     def init(self, status = False):
         self.cal_client.init(status)
-        self.comb_info_client.init()
-        self.stock_info_client.init()
         self.delisted_info_client.init(status)
+        self.stock_info_client.init()
+        self.comb_info_client.init()
+        self.industry_info_client.init()
         self.download_and_extract()
         self.init_today_stock_tick()
         self.init_today_index_info()
+        self.init_today_industry_info()
         self.init_today_limit_info()
         #self.halted_info_client.init(status)
 
@@ -206,11 +210,23 @@ class DataManager:
         _date = datetime.now().strftime('%Y-%m-%d')
         self.limit_client.crawl_data(_date)
 
+    def init_today_industry_info(self):
+        obj_pool = Pool(50)
+        df = self.industry_info_client.get()
+        for _, code_id in df.code.iteritems():
+            _obj = CIndex(self.dbinfo, code_id)
+            try:
+                if obj_pool.full(): obj_pool.join()
+                obj_pool.spawn(_obj.set_k_data)
+            except Exception as e:
+                logger.info(e)
+        obj_pool.join()
+        obj_pool.kill()
+
     def init_today_index_info(self):
-        _date = datetime.now().strftime('%Y-%m-%d')
         obj_pool = Pool(50)
         for code_id in ct.TDX_INDEX_DICT:
-            _obj = self.index_objs[code_id] if code_id in self.stock_objs else CINDEX(self.dbinfo, code_id)
+            _obj = self.index_objs[code_id] if code_id in self.index_objs else CIndex(self.dbinfo, code_id)
             try:
                 if obj_pool.full(): obj_pool.join()
                 obj_pool.spawn(_obj.set_k_data)
@@ -227,7 +243,7 @@ class DataManager:
         data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
         date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
         date_only_array = date_only_array[::-1]
-        obj_pool = Pool(7)
+        obj_pool = Pool(8)
         df = self.stock_info_client.get()
         for _, code_id in df.code.iteritems():
             _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(self.dbinfo, code_id)
@@ -262,9 +278,12 @@ class DataManager:
         
 if __name__ == '__main__':
     dm = DataManager(ct.DB_INFO)
-    dm.init_index_info()
-    print("init index_info success!")
-    dm.collect_index_runtime_data()
-    print("collect index_runtime_data success!")
-    dm.animation_client.collect()
-    print("animation client collect success!")
+    dm.init_today_industry_info()
+    dm.init_today_limit_info()
+    print("success")
+    #dm.init_index_info()
+    #print("init index_info success!")
+    #dm.collect_index_runtime_data()
+    #print("collect index_runtime_data success!")
+    #dm.animation_client.collect()
+    #print("animation client collect success!")

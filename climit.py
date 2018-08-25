@@ -24,8 +24,10 @@ class CLimit:
         if not self.create(): raise Exception("create stock %s failed" % self.table)
 
     def create(self):
-        sql = 'create table if not exists %s(date varchar(10) not null, code varchar(6) not null, price float, pchange float, prange float, concept varchar(50), fcb float, flb float, fdmoney float, first_time varchar(20), last_time varchar(20), open_times int, intensity float, PRIMARY KEY (date, code))' % self.table
-        return True if self.mysql_client.create(sql, self.table) else False
+        if self.table not in self.mysql_client.get_all_tables():
+            sql = 'create table if not exists %s(date varchar(10) not null, code varchar(6) not null, price float, pchange float, prange float, concept varchar(50), fcb float, flb float, fdmoney float, first_time varchar(20), last_time varchar(20), open_times int, intensity float, PRIMARY KEY (date, code))' % self.table
+            return True if self.mysql_client.create(sql, self.table) else False
+        return True
 
     @staticmethod
     def get_tbname():

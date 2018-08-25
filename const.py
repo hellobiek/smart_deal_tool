@@ -136,8 +136,9 @@ const.DELISTED_INFO = 'delistedInfo'
 
 const.SYNC_ANIMATION_2_REDIS = 'syncAnimation2Redis'
 const.ANIMATION_INFO = 'animation'
+
+const.INDUSTRY_INFO = 'industry'
 #############################
-const.INDUSTRY_TABLE = 'industry'
 const.EMOTION_TABLE = 'emotion'
 #############################
 const.REDIS_HOST = 'redis-container'
@@ -150,6 +151,7 @@ const.TONG_DA_XIN_CODE_PATH = "/tongdaxin/T0002/hq_cache/tdxhy.cfg"
 const.TONG_DA_XIN_SELF_PATH = "/tongdaxin/T0002/blocknew"
 const.TONG_DA_XIN_IP = '221.231.141.60'
 const.TONG_DA_XIN_PORT = 7709
+const.TONG_DA_XIN_CODE_FILE = "/data/tdx/base/stocks.csv"
 #############################
 const.MARKET_SH   = 1
 const.MARKET_SZ   = 0
