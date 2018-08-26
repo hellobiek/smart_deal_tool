@@ -52,8 +52,8 @@ class CReivew:
         return True
 
     def get_stock_data(self):
-        if os.path.exists('/data/data.csv'):
-            return pd.read_csv('/data/data.csv', sep = '\t', encoding='utf-8', index_col = 0)
+        #if os.path.exists('/data/data.csv'):
+        #    return pd.read_csv('/data/data.csv', sep = '\t', encoding='utf-8', index_col = 0)
         return ts.get_today_all()
 
     def get_industry_data(self, _date):
