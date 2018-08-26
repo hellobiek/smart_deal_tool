@@ -12,6 +12,7 @@ from cmysql import CMySQL
 from cstock import CStock
 from cindex import CIndex
 from climit import CLimit 
+from creview import CReivew
 from cdelisted import CDelisted
 from ccalendar import CCalendar
 from animation import CAnimation
@@ -245,7 +246,7 @@ class DataManager:
         data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
         date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
         date_only_array = date_only_array[::-1]
-        obj_pool = Pool(8)
+        obj_pool = Pool(6)
         df = self.stock_info_client.get()
         for _, code_id in df.code.iteritems():
             _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(self.dbinfo, code_id)
