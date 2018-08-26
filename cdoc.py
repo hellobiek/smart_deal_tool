@@ -31,17 +31,20 @@ class CDoc:
         md.addTable(t_index)
 
         # 行业资金
-        industry_info = industry_info[['name', 'volume', 'amount']]
+        industry_info = industry_info[['name', 'close', 'open', 'volume', 'amount']]
         total_amount = industry_info.amount.sum() / 100000000
         industry_info = industry_info[0:15]
         industry_info.amount = industry_info.amount / 100000000
         industry_info.volume = industry_info.volume / 100
+        pchange = 100 * (industry_info.close - industry_info.open) / industry_info.open
+        industry_info['pchange'] = pchange
+        industry_info = industry_info[['name', 'close', 'pchange', 'volume', 'amount']]
 
         md.addHeader("行业资金", 2)
-        t_industry = MarkdownTable(headers = ["名称", "占比(百分比)", "成交量", "成交额(亿)"])
+        t_industry = MarkdownTable(headers = ["名称", "价格", "涨幅", "占比(百分比)", "成交量", "成交额(亿)"])
         for index in range(len(industry_info)):
             data_list = industry_info.loc[index].tolist()
-            data_list = [data_list[0], round(100 * data_list[2]/total_amount, 2), int(data_list[1]), round(data_list[2], 2)]
+            data_list = [data_list[0], round(data_list[1], 2), round(data_list[2], 2), round(100 * data_list[4]/total_amount, 2), int(data_list[3]), round(data_list[4], 2)]
             data_list = [str(i) for i in data_list]
             t_industry.addRow(data_list)
         md.addTable(t_industry)
