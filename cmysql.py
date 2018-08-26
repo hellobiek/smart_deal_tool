@@ -24,6 +24,10 @@ class CMySQL:
         self.redis = create_redis_obj()
         self.engine = create_engine("mysql://%s:%s@%s/%s?charset=utf8" % (self.dbinfo['user'], self.dbinfo['password'], self.dbinfo['host'], self.dbname), pool_size=0 , max_overflow=-1, pool_recycle=120)
 
+    def changedb(self, dbname):
+        self.dbname = dbname
+        self.engine = create_engine("mysql://%s:%s@%s/%s?charset=utf8" % (self.dbinfo['user'], self.dbinfo['password'], self.dbinfo['host'], self.dbname), pool_size=0 , max_overflow=-1, pool_recycle=120)
+
     def get_all_databases(self):
         if self.redis.exists(ALL_DATABASES):
             return set(str(dbname, encoding = "utf8") for dbname in self.redis.smembers(ALL_DATABASES))
@@ -94,10 +98,9 @@ class CMySQL:
                 res = True
             except sqlalchemy.exc.OperationalError as e:
                 log.debug(e)
-            finally:
                 if 'conn' in dir(): conn.close()
             if True == res: return data
-        log.error("get %s failed afer try %d times" % (sql, ct.RETRY_TIMES))
+        log.error("%s get %s failed afer try %d times" % (self.dbname, sql, ct.RETRY_TIMES))
         return None
 
     def exec_sql(self, sql):

@@ -97,10 +97,14 @@ class CLimit:
         df.replace(np.inf, 1000, inplace = True)
         return df
 
+    def get_data(self, date = None):
+        date = datetime.now().strftime('%Y-%m-%d') if date is None else date
+        return self.mysql_client.get('select * from %s where date=\"%s\"' % (self.table, date))
+
     def crawl_data(self, date):
-        date = datetime.strptime(date, "%Y-%m-%d").strftime("%Y%m%d") 
-        df_up   = self.gen_df("UP", date)
-        df_down = self.gen_df("DOWN", date)
+        cdate = datetime.strptime(date, "%Y-%m-%d").strftime("%Y%m%d") 
+        df_up   = self.gen_df("UP", cdate)
+        df_down = self.gen_df("DOWN", cdate)
         df = pd.concat([df_up, df_down])
         if not df.empty:
             df = df.reset_index(drop = True)
@@ -111,3 +115,4 @@ class CLimit:
 
 if __name__ == '__main__':
     lu = CLimit(ct.DB_INFO)
+    lu.crawl_data('2018-08-24')

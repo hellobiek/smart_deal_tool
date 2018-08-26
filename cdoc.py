@@ -1,62 +1,86 @@
 #-*- coding: utf-8 -*-
 import os
-import sys
 import datetime
 import traceback
 from datetime import datetime
-import tushare as ts
 from markdown_writer import MarkdownWriter
 from markdown_table import MarkdownTable
-
 class CDoc:
     def __init__(self, fpath_dir):
         self.sdir = fpath_dir
 
-    def generate(self):
-        index_df = ts.get_index()
-        index_df = index_df[index_df.code.isin(['000001', '000016', '000300', '000905', '399001', '399006'])]
-        index_df = index_df[['code', 'name', 'change', 'volume', 'amount']]
-        index_df = index_df.reset_index(drop = True)
-
+    def generate(self, stock_info, industry_info, index_info):
         file_name = os.path.join(self.sdir, "%s-StockReView.md" % datetime.now().strftime('%Y-%m-%d'))
         f = open(file_name, "w+")
 
         md = MarkdownWriter()
-        ### HEADER ###
+        # add title
+        md.addTitle()
+        # header
         md.addHeader("股票复盘", 1)
 
-        ### SHOW TABEL ###
+        # 指数行情
+        index_info = index_info[['name', 'open', 'high', 'close', 'low', 'volume', 'amount']]
         md.addHeader("指数行情", 2)
-        t = MarkdownTable(headers = ["代码","名称","涨幅(百分比)","成交量","成交额(亿)"])
-        for index in range(len(index_df)):
-            data_list = index_df.loc[index].tolist()
+        t_index = MarkdownTable(headers = ["名称", "价格", "涨幅(百分比)", "成交量", "成交额(亿)"])
+        for index in range(len(index_info)):
+            data_list = index_info.loc[index].tolist()
+            data_list = [data_list[0], round(data_list[3], 2), round(100 * (data_list[3] -  data_list[1]) / data_list[1] , 2), int(data_list[5]/100), round(data_list[6] / 100000000, 2)]
             data_list = [str(i) for i in data_list]
-            t.addRow(data_list)
-        md.addTable(t)
+            t_index.addRow(data_list)
+        md.addTable(t_index)
+
+        # 行业资金
+        industry_info = industry_info[['name', 'volume', 'amount']]
+        total_amount = industry_info.amount.sum() / 100000000
+        industry_info = industry_info[0:15]
+        industry_info.amount = industry_info.amount / 100000000
+        industry_info.volume = industry_info.volume / 100
+
+        md.addHeader("行业资金", 2)
+        t_industry = MarkdownTable(headers = ["名称", "占比(百分比)", "成交量", "成交额(亿)"])
+        for index in range(len(industry_info)):
+            data_list = industry_info.loc[index].tolist()
+            data_list = [data_list[0], round(100 * data_list[2]/total_amount, 2), int(data_list[1]), round(data_list[2], 2)]
+            data_list = [str(i) for i in data_list]
+            t_industry.addRow(data_list)
+        md.addTable(t_industry)
+
+        # 股票数据
+        stock_info = stock_info[['code', 'name', 'trade', 'changepercent', 'turnoverratio', 'volume', 'amount', 'per', 'pb']]
+        stock_info.amount = stock_info.amount / 100000000
+        stock_info.volume = stock_info.volume / 100
+
+        stock_info = stock_info.sort_values(by = 'amount', ascending= False)
+        stock_info_amount = stock_info[0:100]
+        stock_info_amount  = stock_info_amount.reset_index(drop = True)
+        md.addHeader("股票数据(成交额)", 2)
+        t_industry_amount = MarkdownTable(headers = ["代码", "名称", "价格(元)", "涨跌", "换手率(%)", "成交量", "成交额(亿)", "PE", "PB"])
+        for index in range(len(stock_info_amount)):
+            data_list = stock_info_amount.loc[index].tolist()
+            data_list = [str(data_list[0]).zfill(6), data_list[1], round(data_list[2], 2), round(data_list[3], 2), round(data_list[4], 2), int(data_list[5]), round(data_list[6] , 2), round(data_list[7], 2), round(data_list[8], 2)]
+            data_list = [str(i) for i in data_list]
+            t_industry_amount.addRow(data_list)
+        md.addTable(t_industry_amount)
+
+        stock_info = stock_info.sort_values(by = 'turnoverratio', ascending= False)
+        stock_info = stock_info.reset_index(drop = True)
+        stock_info_turnover = stock_info[0:100]
+        stock_info_turnover = stock_info_turnover.reset_index(drop = True)
+        md.addHeader("股票数据(换手率)", 2)
+        t_industry_turnover = MarkdownTable(headers = ["代码", "名称", "价格(元)", "涨跌", "换手率(%)", "成交量", "成交额(亿)", "PE", "PB"])
+        for index in range(len(stock_info_turnover)):
+            data_list = stock_info_turnover.loc[index].tolist()
+            data_list = [str(data_list[0]).zfill(6), data_list[1], round(data_list[2], 2), round(data_list[3], 2), round(data_list[4], 2), int(data_list[5]), round(data_list[6], 2), round(data_list[7], 2), round(data_list[8], 2)]
+            data_list = [str(i) for i in data_list]
+            t_industry_turnover.addRow(data_list)
+        md.addTable(t_industry_turnover)
 
         md.addHeader("情绪变化:", 2)
         md.addImage("emotion.png", imageTitle = "今日情绪")
 
-        md.addHeader("行业板块:", 2)
-        md.addImage("industry.png", imageTitle = "行业板块")
-
         md.addHeader("涨跌统计:", 2)
         md.addImage("static.png", imageTitle = "涨跌统计")
 
-        #市场的资金情况，包括融资融券占比，创业板占比
-
-        #个股逆大盘的指数分析，融资融券的数据，
-
-        #融资融券的数据
-
-        #港股通的数据
-
         f.write(md.getStream())
         f.close()
- 
-if __name__ == '__main__':
-    try:
-        doc = CDoc()
-    except Exception as e:
-        traceback.print_exc()  
-        sys.exit(0)

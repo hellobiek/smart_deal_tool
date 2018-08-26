@@ -34,13 +34,10 @@ class IndustryInfo:
         return self.redis.set(ct.INDUSTRY_INFO, _pickle.dumps(new_df, 2))
         
     @staticmethod
-    def get(index_type = None):
+    def get():
         redis = create_redis_obj()
         df_byte = redis.get(ct.INDUSTRY_INFO) 
-        if df_byte is None: return pd.DataFrame() 
-        df = _pickle.loads(df_byte)
-        if index_type is None: return df
-        return df[[df.cType == index_type]]
+        return pd.DataFrame() if df_byte is None else _pickle.loads(df_byte)
 
     def get_industry_name_dict_from_tongdaxin(self, fname):
         industry_dict = dict()

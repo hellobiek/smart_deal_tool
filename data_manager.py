@@ -278,9 +278,10 @@ class DataManager:
         
 if __name__ == '__main__':
     dm = DataManager(ct.DB_INFO)
-    dm.init_today_industry_info()
-    dm.init_today_limit_info()
+    dm.init_today_index_info()
     print("success")
+    #dm.init_today_industry_info()
+    #dm.init_today_limit_info()
     #dm.init_index_info()
     #print("init index_info success!")
     #dm.collect_index_runtime_data()

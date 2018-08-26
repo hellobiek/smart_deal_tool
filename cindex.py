@@ -5,7 +5,6 @@ import pandas as pd
 from combination import Combination
 from log import getLogger
 logger = getLogger(__name__)
-
 class CIndex(Combination):
     def __init__(self, dbinfo, code):
         Combination.__init__(self, dbinfo, code)
@@ -26,6 +25,14 @@ class CIndex(Combination):
             return ct.MARKET_SZ
         else:
             return ct.MARKET_OTHER
+
+    def get_k_data(self, date = None):
+        table_name = 'day'
+        if date is not None:
+            sql = "select * from %s where cdate=\"%s\"" % (table_name, date)
+        else:
+            sql = "select * from %s" % table_name
+        return self.mysql_client.get(sql)
 
     def set_k_data(self):
         prestr = "1" if self.get_market() == ct.MARKET_SH else "0"

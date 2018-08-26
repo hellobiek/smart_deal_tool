@@ -2,6 +2,7 @@
 import os
 import time
 import json
+import shutil
 import _pickle
 import datetime
 from datetime import datetime, date
@@ -21,6 +22,9 @@ import matplotlib.animation as animation
 from matplotlib.font_manager import FontProperties
 from cmysql import CMySQL
 from cdoc import CDoc
+from cindex import CIndex
+from climit import CLimit
+from industry_info import IndustryInfo
 import ccalendar
 from common import create_redis_obj, is_trading_time, is_afternoon
 from log import getLogger
@@ -31,63 +35,15 @@ def get_chinese_font():
 
 class CReivew:
     def __init__(self, dbinfo):
+        self.dbinfo = dbinfo
         self.sdir = '/data/docs/blog/hellobiek.github.io/source/_posts'
         self.doc = CDoc(self.sdir)
         self.redis = create_redis_obj()
-        self.mysql_client = CMySQL(dbinfo)
+        self.mysql_client = CMySQL(self.dbinfo)
         self.cal_client = ccalendar.CCalendar(without_init = True)
-        self.trading_info = None
         self.animating = False
         self.emotion_table = ct.EMOTION_TABLE
-        self.industry_table = ct.INDUSTRY_TABLE 
-        if not self.create_industry(): raise Exception("create industry table failed")
         if not self.create_emotion(): raise Exception("create emotion table failed")
-
-    def get_industry_name_dict_from_tongdaxin(self, fname):
-        industry_dict = dict()
-        with open(fname, "rb") as f:
-            data = f.read()
-        info_list = data.decode("gbk").split('######\r\n')
-        for info in info_list:
-            xlist = info.split('\r\n')
-            if xlist[0] == '#TDXNHY':
-                zinfo = xlist[1:len(xlist)-1]
-        for z in zinfo:
-            x = z.split('|')
-            industry_dict[x[0]] = x[1]
-        return industry_dict
-
-    def get_industry_code_dict_from_tongdaxin(self, fname):
-        industry_dict = dict()
-        with open(fname, "rb") as f:
-            data = f.read()
-        str_list = data.decode("utf-8").split('\r\n')
-        for x in str_list:
-            info_list = x.split('|')
-            if len(info_list) == 4:
-                industry = info_list[2]
-                code = info_list[1]
-                if industry == "T00": continue #not include B stock
-                if industry not in industry_dict: industry_dict[industry] = list()
-                industry_dict[industry].append(code)
-        for key in industry_dict:
-            industry_dict[key] = json.dumps(industry_dict[key])
-        return industry_dict
-
-    def get_industry(self):
-        industry_code_dict = self.get_industry_code_dict_from_tongdaxin(ct.TONG_DA_XIN_CODE_PATH)
-        industry_name_dict = self.get_industry_name_dict_from_tongdaxin(ct.TONG_DA_XIN_INDUSTRY_PATH)
-        name_list = list()
-        for key in industry_code_dict:
-            name_list.append(industry_name_dict[key])
-        data = {'name':name_list, 'code':list(industry_code_dict.keys()), 'content':list(industry_code_dict.values())}
-        return pd.DataFrame.from_dict(data)
-
-    def create_industry(self):
-        if self.industry_table not in self.mysql_client.get_all_tables():
-            sql = 'create table if not exists %s(date varchar(10) not null, code varchar(10) not null, name varchar(20), amount float, PRIMARY KEY (date, code))' % self.industry_table 
-            if not self.mysql_client.create(sql, self.industry_table): return False
-        return True
 
     def create_emotion(self):
         if self.emotion_table not in self.mysql_client.get_all_tables():
@@ -95,49 +51,26 @@ class CReivew:
             if not self.mysql_client.create(sql, self.emotion_table): return False
         return True
 
-    def get_up_limit_info(self):
-        pass
+    def get_stock_data(self):
+        if os.path.exists('/data/data.csv'):
+            return pd.read_csv('/data/data.csv', sep = '\t', encoding='utf-8', index_col = 0)
+        return ts.get_today_all()
 
-    def collect_industry_info(self):
-        industry_df = self.get_industry()
-        name_list = list()
-        icode_list = list()
-        changepercent_list = list()
-        turnoverratio_list = list()
-        amount_list = list()
-        for index, code_id in industry_df['code'].items():
-            code_list = json.loads(industry_df.loc[index]['content'])
-            code_info = self.trading_info[self.trading_info.code.isin(code_list)]
-            _name = industry_df.loc[index]['name']
-            name_list.append(_name)
-            icode_list.append(code_id)
-            _amount = code_info.amount.astype(float).sum()
-            amount_list.append(_amount)
-
-        data = {'name':name_list, 'code':icode_list, 'amount': amount_list}
-        df = pd.DataFrame.from_dict(data)
-        df['date'] = datetime.now().strftime('%Y-%m-%d')
-
-        if not self.mysql_client.set(df, self.industry_table):
-            raise Exception("set data to industry failed")
-
-    def gen_today_industry(self):
-        sql = "select * from %s where date = '%s';" % (self.industry_table, datetime.now().strftime('%Y-%m-%d'))
-        df = self.mysql_client.get(sql)
-        df = df[['amount', 'name']]
+    def get_industry_data(self, _date):
+        df = pd.DataFrame()
+        df_info = IndustryInfo.get()
+        for _, code in df_info.code.iteritems():
+            data = CIndex(self.dbinfo, code).get_k_data(date = _date)
+            df = df.append(data)
+            df = df.reset_index(drop = True)
+        df['name'] = df_info['name']
         df = df.sort_values(by = 'amount', ascending= False)
-        total_amount = df.amount.astype(float).sum()
-        df = df[0:10]
-        most_amount = df.amount.astype(float).sum()
-        other_amount = total_amount - most_amount 
-        df.loc[len(df)] = [other_amount, '其他']
-        df = df.sort_values(by = 'amount', ascending= False)
-        return df.reset_index(drop = True)
+        df = df.reset_index(drop = True)
+        return df
 
     def emotion_plot(self, dir_name):
-        sql = "select * from %s;" % self.emotion_table
+        sql = "select * from %s" % self.emotion_table
         df = self.mysql_client.get(sql)
-
         fig = plt.figure()
         x = df.date.tolist()
         xn = range(len(x))
@@ -146,7 +79,6 @@ class CReivew:
         for xi, yi in zip(xn, y):
             plt.plot((xi,), (yi,), 'ro')
             plt.text(xi, yi, '%s' % yi)
-
         plt.scatter(xn, y, label='score', color='k', s=25, marker="o")
         plt.xticks(xn, x)
         plt.xlabel('时间', fontproperties = get_chinese_font())
@@ -155,19 +87,19 @@ class CReivew:
         fig.autofmt_xdate()
         plt.savefig('%s/emotion.png' % dir_name, dpi=1000)
 
-    def industry_plot(self, df, dir_name):
-        colors = ['#F5DEB3', '#A0522D', '#1E90FF', '#FFE4C4', '#00FFFF', '#DAA520', '#3CB371', '#808080', '#ADFF2F', '#4B0082', '#ADD8E6']
-        fig = plt.figure()
-        sum_amount = df.amount.sum()/10000000000
-        amount_list = df.amount.tolist()
-        amount_list = [i/100000000 for i in amount_list]
+    def industry_plot(self, dir_name, industry_info):
+        #colors = ['#F5DEB3', '#A0522D', '#1E90FF', '#FFE4C4', '#00FFFF', '#DAA520', '#3CB371', '#808080', '#ADFF2F', '#4B0082', '#ADD8E6']
+        colors = ['#F5DEB3', '#A0522D', '#1E90FF', '#FFE4C4', '#00FFFF', '#DAA520', '#3CB371', '#808080', '#ADFF2F', '#4B0082']
+        industry_info.amount = industry_info.amount / 10000000000
+        total_amount = industry_info.amount.sum()
+        amount_list = industry_info[0:10].amount.tolist()
         x = date.fromtimestamp(time.time())
+        fig = plt.figure()
         base_line = 0 
         for i in range(len(amount_list)):
-            label_name = "%s:%s" % (df.loc[i]['name'], amount_list[i]/sum_amount)
-            plt.bar(x, amount_list[i], width = 0.35, color=colors[i], bottom=base_line, align='center', label=label_name)
+            label_name = "%s:%s" % (industry_info.loc[i]['name'], 100 * amount_list[i] / total_amount)
+            plt.bar(x, amount_list[i], width = 0.1, color = colors[i], bottom = base_line, align = 'center', label = label_name)
             base_line += amount_list[i]
-
         plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
         plt.gca().xaxis.set_major_locator(mdates.DayLocator())
         plt.xlabel('x轴', fontproperties = get_chinese_font())
@@ -177,47 +109,61 @@ class CReivew:
         plt.legend(loc = 'upper right', prop = get_chinese_font())
         plt.savefig('%s/industry.png' % dir_name, dpi=1000)
 
-    def gen_market_emotion_score(self):
-        total = 0
-        changepercent_list = self.trading_info.changepercent.tolist()
-        for changepercent in changepercent_list:
-            if changepercent > 9.8 or changepercent < -9.8: total += changepercent * 2
-            else: total += changepercent
-        aver = total / len(changepercent_list)
-        data = {'date':["%s" % datetime.now().strftime('%Y-%m-%d')], 'score':[aver]}
+    def get_limitup_data(self, date):
+        return CLimit(self.dbinfo).get_data(date)
 
+    def gen_market_emotion_score(self, stock_info, limit_info):
+        limit_up_list = limit_info[(limit_info.pchange > 0) & (limit_info.prange != 0)].reset_index(drop = True).code.tolist()
+        limit_down_list = limit_info[limit_info.pchange < 0].reset_index(drop = True).code.tolist()
+        limit_up_list.extend(limit_down_list)
+        total = 0
+        for _index, pchange in stock_info.changepercent.iteritems():
+            code = str(stock_info.loc[_index, 'code']).zfill(6)
+            if code in limit_up_list: 
+                total += 2 * pchange
+            else:
+                total += pchange
+        aver = total / len(stock_info)
+        data = {'date':["%s" % datetime.now().strftime('%Y-%m-%d')], 'score':[aver]}
         df = pd.DataFrame.from_dict(data)
         if not self.mysql_client.set(df, self.emotion_table):
             raise Exception("set data to emotion failed")
 
-    def static_plot(self, dir_name):
+    def static_plot(self, dir_name, stock_info, limit_info):
         colors = ['b', 'r', 'y', 'g', 'm']
+        limit_up_list   = limit_info[(limit_info.pchange > 0) & (limit_info.prange != 0)].reset_index(drop = True).code.tolist()
+        limit_down_list = limit_info[limit_info.pchange < 0].reset_index(drop = True).code.tolist()
+        limit_list = limit_up_list + limit_down_list
+        changepercent_list = [9, 7, 5, 3, 1, 0, -1, -3, -5, -7, -9]
         num_list = list()
-        changepercent_list = [9.81, 5, 3, 1, 0, -1, -3, -5, -9.91]
         name_list = list()
+        num_list.append(len(limit_up_list))
+        name_list.append("涨停")
         c_length = len(changepercent_list)
         for _index in range(c_length):
             pchange = changepercent_list[_index]
             if 0 == _index:
-                num_list.append(len(self.trading_info[self.trading_info.changepercent > pchange]))
+                num_list.append(len(stock_info[(stock_info.changepercent > pchange) & (stock_info.loc[_index, 'code'] not in limit_list)]))
                 name_list.append(">%s" % pchange)
             elif c_length - 1 == _index:
-                num_list.append(len(self.trading_info[self.trading_info.changepercent < pchange]))
+                num_list.append(len(stock_info[(stock_info.changepercent < pchange) & (stock_info.loc[_index, 'code'] not in limit_list)]))
                 name_list.append("<%s" % pchange)
             else:
                 p_max_change = changepercent_list[_index - 1]
-                num_list.append(len(self.trading_info[(self.trading_info.changepercent > pchange) & (self.trading_info.changepercent < p_max_change)]))
+                num_list.append(len(stock_info[(stock_info.changepercent > pchange) & (stock_info.changepercent < p_max_change)]))
                 name_list.append("%s-%s" % (pchange, p_max_change))
+        num_list.append(len(limit_down_list))
+        name_list.append("跌停")
     
         fig = plt.figure()
         for i in range(len(num_list)):
-            plt.bar(i, num_list[i], color = colors[i % len(colors)], width=0.1)
-            plt.text(i, 1.1 * num_list[i], '个数:%s' % num_list[i], ha='center', font_properties = get_chinese_font())
+            plt.bar(i + 1, num_list[i], color = colors[i % len(colors)], width=0.1)
+            plt.text(i + 1, 15 + num_list[i], num_list[i], ha = 'center', font_properties = get_chinese_font())
     
         plt.xlabel('x轴', fontproperties = get_chinese_font())
         plt.ylabel('y轴', fontproperties = get_chinese_font())
         plt.title('涨跌分布', fontproperties = get_chinese_font())
-        plt.xticks(range(len(num_list)), name_list)
+        plt.xticks(range(1, len(num_list) + 1), name_list, fontproperties = get_chinese_font())
         fig.autofmt_xdate()
         plt.savefig('%s/static.png' % dir_name, dpi=1000)
 
@@ -231,49 +177,51 @@ class CReivew:
         mor_close_time = datetime(y,m,d,mor_close_hour,mor_close_minute,mor_close_second)
         return mor_open_time < now_time < mor_close_time
 
+    def get_index_data(self, _date):
+        df = pd.DataFrame()
+        for code, name in ct.TDX_INDEX_DICT.items():
+            self.mysql_client.changedb(CIndex.get_dbname(code))
+            data = self.mysql_client.get("select * from day where cdate=\"%s\";" % _date)
+            data['name'] = name
+            df = df.append(data)
+        return df
+
     def update(self, sleep_time):
         while True:
+            _date = datetime.now().strftime('%Y-%m-%d')
+            dir_name = os.path.join(self.sdir, "%s-StockReView" % _date)
             try:
                 if self.cal_client.is_trading_day():
                     if self.is_collecting_time():
-                        self.trading_info = ts.get_today_all()
-                        _date = datetime.now().strftime('%Y-%m-%d')
-                        dir_name = os.path.join(self.sdir, "%s-StockReView" % _date)
                         if not os.path.exists(dir_name):
                             logger.info("create daily info")
+                            #stock analysis
+                            stock_info = self.get_stock_data()
+                            #get volume > 0 stock list
+                            stock_info = stock_info[stock_info.volume > 0]
+                            stock_info = stock_info.reset_index(drop = True)
                             os.makedirs(dir_name)
-                            self.collect_industry_info()
-                            df = self.gen_today_industry()
-                            self.industry_plot(df, dir_name)
-                            self.gen_market_emotion_score()
+                            #industry analysis
+                            industry_info = self.get_industry_data(_date)
+                            #index and total analysis
+                            index_info = self.get_index_data(_date)
+                            index_info = index_info.reset_index(drop = True)
+                            #limit up and down analysis
+                            limit_info = self.get_limitup_data(_date)
+                            #emotion analysis
+                            self.gen_market_emotion_score(stock_info, limit_info)
                             self.emotion_plot(dir_name)
-                            self.static_plot(dir_name)
-                            self.doc.generate()
+                            #static analysis
+                            self.static_plot(dir_name, stock_info, limit_info)
+                            #gen review file
+                            self.doc.generate(stock_info, industry_info, index_info)
+                            #gen review animation
                             self.gen_animation()
                 time.sleep(sleep_time)
             except Exception as e:
                 time.sleep(120)
+                shutil.rmtree(dir_name)
                 traceback.print_exc()
-
-    def is_sleep_time(self):
-        now_time = datetime.now()
-        _date = now_time.strftime('%Y-%m-%d')
-        y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
-        mor_open_hour,mor_open_minute,mor_open_second = (11,30,0)
-        mor_open_time = datetime(y,m,d,mor_open_hour,mor_open_minute,mor_open_second)
-        aft_close_hour,aft_close_minute,aft_close_second = (13,0,0)
-        aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
-        return mor_open_time < now_time < aft_close_time
-
-    def is_animate_time(self):
-        now_time = datetime.now()
-        _date = now_time.strftime('%Y-%m-%d')
-        y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
-        mor_open_hour,mor_open_minute,mor_open_second = (9,10,0)
-        mor_open_time = datetime(y,m,d,mor_open_hour,mor_open_minute,mor_open_second)
-        aft_close_hour,aft_close_minute,aft_close_second = (15,5,0)
-        aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
-        return mor_open_time < now_time < aft_close_time
 
     def gen_animation(self, sfile = None):
         style.use('fivethirtyeight')
@@ -314,5 +262,12 @@ class CReivew:
         plt.close(fig)
 
 if __name__ == '__main__':
+    _date = '2018-08-24'
     creview = CReivew(ct.DB_INFO)
-    creview.gen_animation("/data/animation/1.mp4")
+    stock_info = creview.get_stock_data()
+    stock_info = stock_info[stock_info.volume > 0]
+    limit_info = creview.get_limitup_data(_date)
+    industry_info = creview.get_industry_data(_date)
+    index_info = creview.get_index_data(_date)
+    index_info = index_info.reset_index(drop = True)
+    creview.doc.generate(stock_info, industry_info, index_info)
