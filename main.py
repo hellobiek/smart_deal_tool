@@ -21,9 +21,6 @@ def main():
     threadList.append(CThread(dm.collect, 600))
     threadList.append(CThread(dm.update, 7200))
 
-    cr = CReivew(ct.DB_INFO)
-    threadList.append(CThread(cr.update, 3600))
-
     ctrader = CTrader(ct.DB_INFO)
     threadList.append(CThread(ctrader.buy_new_stock, 7200))
 

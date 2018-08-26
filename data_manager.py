@@ -52,6 +52,7 @@ class DataManager:
         self.limit_client = CLimit(dbinfo)
         self.animation_client = CAnimation(dbinfo)
         self.subscriber = Subscriber()
+        self.cviewer = CReivew(dbinfo)
 
     def is_collecting_time(self, now_time = None):
         if now_time is None: now_time = datetime.now()
@@ -161,6 +162,7 @@ class DataManager:
                 #traceback.print_exc()
 
     def init(self, status = False):
+        #self.halted_info_client.init(status)
         self.cal_client.init(status)
         self.delisted_info_client.init(status)
         self.stock_info_client.init()
@@ -171,7 +173,7 @@ class DataManager:
         self.init_today_index_info()
         self.init_today_industry_info()
         self.init_today_limit_info()
-        #self.halted_info_client.init(status)
+        self.cviewer.update()
 
     def get_concerned_list(self):
         combination_info = self.comb_info_client.get()

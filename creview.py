@@ -186,42 +186,38 @@ class CReivew:
             df = df.append(data)
         return df
 
-    def update(self, sleep_time):
-        while True:
-            _date = datetime.now().strftime('%Y-%m-%d')
-            dir_name = os.path.join(self.sdir, "%s-StockReView" % _date)
-            try:
-                if self.cal_client.is_trading_day():
-                    if self.is_collecting_time():
-                        if not os.path.exists(dir_name):
-                            logger.info("create daily info")
-                            #stock analysis
-                            stock_info = self.get_stock_data()
-                            #get volume > 0 stock list
-                            stock_info = stock_info[stock_info.volume > 0]
-                            stock_info = stock_info.reset_index(drop = True)
-                            os.makedirs(dir_name)
-                            #industry analysis
-                            industry_info = self.get_industry_data(_date)
-                            #index and total analysis
-                            index_info = self.get_index_data(_date)
-                            index_info = index_info.reset_index(drop = True)
-                            #limit up and down analysis
-                            limit_info = self.get_limitup_data(_date)
-                            #emotion analysis
-                            self.gen_market_emotion_score(stock_info, limit_info)
-                            self.emotion_plot(dir_name)
-                            #static analysis
-                            self.static_plot(dir_name, stock_info, limit_info)
-                            #gen review file
-                            self.doc.generate(stock_info, industry_info, index_info)
-                            #gen review animation
-                            self.gen_animation()
-                time.sleep(sleep_time)
-            except Exception as e:
-                time.sleep(120)
-                shutil.rmtree(dir_name)
-                traceback.print_exc()
+    def update(self):
+        _date = datetime.now().strftime('%Y-%m-%d')
+        dir_name = os.path.join(self.sdir, "%s-StockReView" % _date)
+        try:
+            if not os.path.exists(dir_name):
+                logger.info("create daily info")
+                #stock analysis
+                stock_info = self.get_stock_data()
+                #get volume > 0 stock list
+                stock_info = stock_info[stock_info.volume > 0]
+                stock_info = stock_info.reset_index(drop = True)
+                os.makedirs(dir_name)
+                #industry analysis
+                industry_info = self.get_industry_data(_date)
+                #index and total analysis
+                index_info = self.get_index_data(_date)
+                index_info = index_info.reset_index(drop = True)
+                #limit up and down analysis
+                limit_info = self.get_limitup_data(_date)
+                #emotion analysis
+                self.gen_market_emotion_score(stock_info, limit_info)
+                self.emotion_plot(dir_name)
+                #static analysis
+                self.static_plot(dir_name, stock_info, limit_info)
+                #gen review file
+                self.doc.generate(stock_info, industry_info, index_info)
+                #gen review animation
+                self.gen_animation()
+        except Exception as e:
+            time.sleep(30)
+            shutil.rmtree(dir_name)
+            traceback.print_exc()
 
     def gen_animation(self, sfile = None):
         style.use('fivethirtyeight')
