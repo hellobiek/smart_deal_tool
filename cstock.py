@@ -186,7 +186,7 @@ class CStock(TickerHandlerBase):
         df['date'] = cdate
         logger.debug("write data code:%s, date:%s, table:%s" % (self.code, cdate, tick_table))
         if self.mysql_client.set(df, tick_table):
-            logger.info("start record:%s. table:%s" % (self.code, tick_table))
+            logger.debug("start record:%s. table:%s" % (self.code, tick_table))
             self.redis.sadd(tick_table, cdate)
 
     def get_ticket(self, cdate):

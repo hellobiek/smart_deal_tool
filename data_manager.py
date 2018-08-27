@@ -58,7 +58,7 @@ class DataManager:
         if now_time is None: now_time = datetime.now()
         _date = now_time.strftime('%Y-%m-%d')
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
-        aft_open_hour,aft_open_minute,aft_open_second = (19,00,0)
+        aft_open_hour,aft_open_minute,aft_open_second = (19,00,00)
         aft_open_time = datetime(y,m,d,aft_open_hour,aft_open_minute,aft_open_second)
         aft_close_hour,aft_close_minute,aft_close_second = (23,59,59)
         aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
@@ -163,17 +163,27 @@ class DataManager:
 
     def init(self, status = False):
         #self.halted_info_client.init(status)
+        logger.info("enter update")
         self.cal_client.init(status)
         self.delisted_info_client.init(status)
         self.stock_info_client.init()
+        logger.info("stock info update success")
         self.comb_info_client.init()
+        logger.info("combination info update success")
         self.industry_info_client.init()
+        logger.info("industry info update success")
         self.download_and_extract()
+        logger.info("download success")
         self.init_today_stock_tick()
+        logger.info("update tick success")
         self.init_today_index_info()
+        logger.info("update index success")
         self.init_today_industry_info()
+        logger.info("update industry success")
         self.init_today_limit_info()
+        logger.info("update limit success")
         self.cviewer.update()
+        logger.info("update doc success")
 
     def get_concerned_list(self):
         combination_info = self.comb_info_client.get()
@@ -194,17 +204,14 @@ class DataManager:
 
     def init_today_stock_tick(self):
         _date = datetime.now().strftime('%Y-%m-%d')
-        obj_pool = Pool(50)
+        obj_pool = Pool(80)
         df = self.stock_info_client.get()
         if self.cal_client.is_trading_day(_date):
-            for _, code_id in df.code.iteritems():
+            for _index, code_id in df.code.iteritems():
+                logger.info("init today tick count:%s" % (_index + 1))
                 _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(self.dbinfo, code_id)
-                try:
-                    if obj_pool.full(): obj_pool.join()
-                    obj_pool.spawn(_obj.set_ticket, _date)
-                    obj_pool.spawn(_obj.set_k_data)
-                except Exception as e:
-                    logger.info(e)
+                if obj_pool.full(): obj_pool.join()
+                obj_pool.spawn(_obj.set_ticket, _date)
         obj_pool.join()
         obj_pool.kill()
 
@@ -267,16 +274,16 @@ class DataManager:
                 if code_id not in self.stock_objs: self.stock_objs[code_id] = CStock(self.dbinfo, code_id)
 
     def download_and_extract(self):
-        while True:
-            try:
-                download(ct.ZIP_DIR)
-                list_files = os.listdir(ct.ZIP_DIR)
-                for filename in list_files:
-                    if not filename.startswith('.'):
-                        file_path = os.path.join(ct.ZIP_DIR, filename)
-                        if os.path.exists(file_path):unzip(file_path, ct.TIC_DIR)
-            except Exception as e:
-                logger.error(e)
+        try:
+            download(ct.ZIP_DIR)
+            list_files = os.listdir(ct.ZIP_DIR)
+            for filename in list_files:
+                if not filename.startswith('.'):
+                    file_path = os.path.join(ct.ZIP_DIR, filename)
+                    if os.path.exists(file_path):
+                        unzip(file_path, ct.TIC_DIR)
+        except Exception as e:
+            logger.error(e)
         
 if __name__ == '__main__':
     dm = DataManager(ct.DB_INFO)
