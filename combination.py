@@ -7,7 +7,6 @@ import datetime
 from datetime import datetime
 from cinfluxdb import CInflux  
 import const as ct
-import tushare as ts
 import pandas as pd
 from log import getLogger
 from cstock import CStock

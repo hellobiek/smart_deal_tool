@@ -9,7 +9,6 @@ import requests
 import const as ct
 import numpy as np
 import pandas as pd
-import tushare as ts
 from log import getLogger
 from cmysql import CMySQL
 from datetime import datetime

@@ -2,7 +2,6 @@
 import json
 import const as ct
 import pandas as pd
-import tushare as ts
 from common import create_redis_obj
 from cmysql import CMySQL
 from cstock import CStock
