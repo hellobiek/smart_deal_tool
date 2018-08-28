@@ -259,7 +259,8 @@ class DataManager:
         date_only_array = date_only_array[::-1]
         obj_pool = Pool(100)
         df = self.stock_info_client.get()
-        for _, code_id in df.code.iteritems():
+        for _index, code_id in df.code.iteritems():
+            logger.info("all-tick index:%s, code:%s" % ((_index + 1), code_id))
             _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(self.dbinfo, code_id)
             for _date in date_only_array:
                 if self.cal_client.is_trading_day(_date):
