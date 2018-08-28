@@ -86,7 +86,7 @@ class CMySQL:
             finally:
                 if 'conn' in dir(): conn.close()
             if True == res:return True
-        log.error("write to %s failed afer try %d times" % (table, ct.RETRY_TIMES))
+        log.error("write to %s-%s failed afer try %d times" % (self.dbname, table, ct.RETRY_TIMES))
         return res 
 
     def get(self, sql):

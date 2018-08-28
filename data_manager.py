@@ -51,7 +51,7 @@ class DataManager:
         self.delisted_info_client = CDelisted(dbinfo)
         self.limit_client = CLimit(dbinfo)
         self.animation_client = CAnimation(dbinfo)
-        self.subscriber = Subscriber()
+        self.subscriber = None
         self.cviewer = CReivew(dbinfo)
 
     def is_collecting_time(self, now_time = None):
@@ -133,21 +133,25 @@ class DataManager:
         while True:
             try:
                 if self.cal_client.is_trading_day():
-                    if is_trading_time() and not self.subscriber.status():
-                        self.subscriber.start()
-                        self.init_index_info()
-                        self.init_real_stock_info()
-                        self.init_combination_info()
-                    elif is_trading_time() and self.subscriber.status():
-                        self.collect_stock_runtime_data()
-                        self.collect_combination_runtime_data()
-                        self.collect_index_runtime_data()
-                        self.animation_client.collect()
-                    elif not is_trading_time() and self.subscriber.status():
-                        self.subscriber.stop()
+                    if is_trading_time():
+                        if self.subscriber is None: 
+                            self.subscriber = Subscriber()
+                        if not self.subscriber.status():
+                            self.subscriber.start()
+                            self.init_index_info()
+                            self.init_real_stock_info()
+                            self.init_combination_info()
+                        else:
+                            self.collect_stock_runtime_data()
+                            self.collect_combination_runtime_data()
+                            self.collect_index_runtime_data()
+                            self.animation_client.collect()
+                    else:
+                        if self.subscriber is not None and self.subscriber.status():
+                            self.subscriber.stop()
+                            self.subscriber = None
             except Exception as e:
                 logger.error(e)
-                traceback.print_exc()
             time.sleep(sleep_time)
 
     def update(self, sleep_time):
@@ -204,13 +208,14 @@ class DataManager:
 
     def init_today_stock_tick(self):
         _date = datetime.now().strftime('%Y-%m-%d')
-        obj_pool = Pool(80)
+        obj_pool = Pool(500)
         df = self.stock_info_client.get()
         if self.cal_client.is_trading_day(_date):
             for _index, code_id in df.code.iteritems():
-                logger.info("init today tick count:%s" % (_index + 1))
+                logger.info("init today tick count:%s, code:%s" % ((_index + 1), code_id))
                 _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(self.dbinfo, code_id)
-                if obj_pool.full(): obj_pool.join()
+                if not obj_pool.full(): obj_pool.join()
+                obj_pool.spawn(_obj.set_k_data)
                 obj_pool.spawn(_obj.set_ticket, _date)
         obj_pool.join()
         obj_pool.kill()
@@ -252,17 +257,14 @@ class DataManager:
         data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
         date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
         date_only_array = date_only_array[::-1]
-        obj_pool = Pool(6)
+        obj_pool = Pool(100)
         df = self.stock_info_client.get()
         for _, code_id in df.code.iteritems():
             _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(self.dbinfo, code_id)
             for _date in date_only_array:
                 if self.cal_client.is_trading_day(_date):
-                    try:
-                        if obj_pool.full(): obj_pool.join()
-                        obj_pool.spawn(_obj.set_ticket, _date)
-                    except Exception as e:
-                        logger.info(e)
+                    if obj_pool.full(): obj_pool.join()
+                    obj_pool.spawn(_obj.set_ticket, _date)
         obj_pool.join()
         obj_pool.kill()
 

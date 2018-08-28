@@ -31,7 +31,7 @@ class CTrader:
                 if self.cal_client.is_trading_day():
                     if is_trading_time():
                         _today = datetime.now().strftime('%Y-%m-%d')
-                        #time.sleep(600)
+                        time.sleep(3600)
                         logger.debug("bnew_succeed_date %s, today:%s." % (self.bnew_succeed_date, _today))
                         if self.bnew_succeed_date != _today:
                             n_list = self.get_new_stock_list()

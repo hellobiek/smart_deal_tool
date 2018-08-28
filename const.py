@@ -29,7 +29,7 @@ import const
 const.LOGIN_URL = "https://trade.cgws.com/cgi-bin/user/Login?function=tradeLogout"
 const.ENTRUST_QUERY = "https://trade.cgws.com/cgi-bin/stock/EntrustQuery?function=MyAccount"
 const.NEW_STOCK_URL = "http://newstock.cfi.cn/"
-const.FUTU_HOST = "host.docker.internal"
+const.FUTU_HOST = "dockerhost"
 const.FUTU_PORT = 11111
 const.USER_FILE = "/code/data/user.json"
 const.SLEEP_TIME = 3
@@ -52,10 +52,10 @@ const.ONGOING = 1
 ##############################
 const.DB_INFO = {'user':'root',
                  'password':'123456',
-                 'host':'host.docker.internal'}
+                 'host':'dockerhost'}
 const.IN_DB_INFO = {'user':'root',
                     'password':'123456',
-                    'host':'host.docker.internal',
+                    'host':'dockerhost',
                     'port':8086}
 const.UTF8 = "utf8"
 const.SQL = "select * from %s"
