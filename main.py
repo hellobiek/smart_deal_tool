@@ -1,9 +1,4 @@
 # coding=utf-8
-import gevent
-from gevent import monkey
-monkey.patch_all(subprocess=True)
-import sys
-import time
 import traceback
 import const as ct
 from log import getLogger
@@ -35,5 +30,3 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         log.error(e)
-        traceback.print_exc()  
-        sys.exit(0)
