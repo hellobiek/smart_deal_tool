@@ -50,7 +50,6 @@ class CTrader:
                                         logger.error("buy new stock:%s amount:%s for %s error, msg:%s" % (stock, amount, _today, msg))
             except Exception as e:
                 logger.info(e)
-                traceback.print_exc()
             time.sleep(sleep_time)
     
     def get_new_stock_list(self):

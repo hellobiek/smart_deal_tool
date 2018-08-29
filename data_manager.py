@@ -134,8 +134,7 @@ class DataManager:
             try:
                 if self.cal_client.is_trading_day():
                     if is_trading_time():
-                        if self.subscriber is None: 
-                            self.subscriber = Subscriber()
+                        if self.subscriber is None: self.subscriber = Subscriber()
                         if not self.subscriber.status():
                             self.subscriber.start()
                             self.init_index_info()
@@ -178,8 +177,6 @@ class DataManager:
         logger.info("industry info update success")
         self.download_and_extract()
         logger.info("download success")
-        self.init_today_stock_tick()
-        logger.info("update tick success")
         self.init_today_index_info()
         logger.info("update index success")
         self.init_today_industry_info()
@@ -188,6 +185,8 @@ class DataManager:
         logger.info("update limit success")
         self.cviewer.update()
         logger.info("update doc success")
+        self.init_today_stock_tick()
+        logger.info("update tick success")
 
     def get_concerned_list(self):
         combination_info = self.comb_info_client.get()
@@ -251,6 +250,9 @@ class DataManager:
 
     def init_all_stock_tick(self):
         start_date = '2015-01-01'
+        redis = create_redis_obj()
+        ALL_STOCKS = 'all_existed_stocks'
+        all_stock_set = set(str(stock_id, encoding = "utf8") for stock_id in redis.smembers(ALL_STOCKS)) if redis.exists(ALL_STOCKS) else set()
         _today = datetime.now().strftime('%Y-%m-%d')
         num_days = delta_days(start_date, _today)
         start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(start_date, "%Y-%m-%d"))
@@ -261,11 +263,13 @@ class DataManager:
         df = self.stock_info_client.get()
         for _index, code_id in df.code.iteritems():
             logger.info("all tick index:%s, code:%s" % ((_index + 1), code_id))
+            if code_id in all_stock_set: continue
             _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(self.dbinfo, code_id)
             for _date in date_only_array:
                 if self.cal_client.is_trading_day(_date):
                     if obj_pool.full(): obj_pool.join()
                     obj_pool.spawn(_obj.set_ticket, _date)
+            redis.sadd(ALL_STOCKS, code_id)
         obj_pool.join()
         obj_pool.kill()
 

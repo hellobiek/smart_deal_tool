@@ -23,10 +23,10 @@ class Subscriber:
     def stop(self):
         self.quote_ctx.stop()
         logger.debug("stop subscribe")
-        self.quote_ctx.close()
-        logger.debug("close subscribe")
         self.sub_dict = None
         self._status = False
+        logger.debug("close subscribe")
+        self.quote_ctx.close()
 
     def status(self):
         return self._status

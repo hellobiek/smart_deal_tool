@@ -2,7 +2,6 @@
 import os
 import time
 import json
-import shutil
 import _pickle
 import datetime
 from datetime import datetime, date
@@ -52,8 +51,6 @@ class CReivew:
         return True
 
     def get_stock_data(self):
-        #if os.path.exists('/data/data.csv'):
-        #    return pd.read_csv('/data/data.csv', sep = '\t', encoding='utf-8', index_col = 0)
         return ts.get_today_all()
 
     def get_industry_data(self, _date):
@@ -197,7 +194,7 @@ class CReivew:
                 #get volume > 0 stock list
                 stock_info = stock_info[stock_info.volume > 0]
                 stock_info = stock_info.reset_index(drop = True)
-                os.makedirs(dir_name)
+                os.makedirs(dir_name, exist_ok = True)
                 #industry analysis
                 industry_info = self.get_industry_data(_date)
                 #index and total analysis
@@ -215,9 +212,7 @@ class CReivew:
                 #gen review animation
                 self.gen_animation()
         except Exception as e:
-            time.sleep(30)
-            shutil.rmtree(dir_name)
-            traceback.print_exc()
+            logger.error(e)
 
     def gen_animation(self, sfile = None):
         style.use('fivethirtyeight')
@@ -258,12 +253,6 @@ class CReivew:
         plt.close(fig)
 
 if __name__ == '__main__':
-    _date = '2018-08-24'
+    _date = '2018-08-28'
     creview = CReivew(ct.DB_INFO)
-    stock_info = creview.get_stock_data()
-    stock_info = stock_info[stock_info.volume > 0]
-    limit_info = creview.get_limitup_data(_date)
-    industry_info = creview.get_industry_data(_date)
-    index_info = creview.get_index_data(_date)
-    index_info = index_info.reset_index(drop = True)
-    creview.doc.generate(stock_info, industry_info, index_info)
+    creview.update()

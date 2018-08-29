@@ -58,6 +58,12 @@ def is_afternoon(now_time = None):
     mor_close_time = datetime(y,m,d,mor_close_hour,mor_close_minute,mor_close_second)
     return (mor_open_time < now_time < mor_close_time)
 
+def get_day_nday_ago(date, n):
+    t = time.strptime(date, "%Y%m%d")
+    y, m, d = t[0:3]
+    _date = datetime(y, m, d) - timedelta(n)
+    return _date.strftime('%Y%m%d')
+
 def is_trading_time(now_time = None):
     if now_time is None:now_time = datetime.now()
     _date = now_time.strftime('%Y-%m-%d')

@@ -15,7 +15,7 @@ import time
 import datetime
 from datetime import datetime, timedelta
 from log import getLogger
-from common import get_market_name
+from common import get_market_name, get_day_nday_ago
 from models import TickTradeDetail, TickDetailModel
 logger = getLogger(__name__)
 pd.options.mode.chained_assignment = None #default='warn'
@@ -256,12 +256,6 @@ def adjust_time(df):
 def exists(path):
     r = requests.head(path)
     return r.status_code == requests.codes.ok
-
-def get_day_nday_ago(date, n):
-    t = time.strptime(date, "%Y%m%d")
-    y, m, d = t[0:3]
-    _date = datetime(y, m, d) - timedelta(n)
-    return _date.strftime('%Y%m%d')
 
 def download(output_directory):
     _date = get_day_nday_ago(datetime.now().strftime('%Y%m%d'), 9)
