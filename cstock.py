@@ -26,7 +26,7 @@ class CStock(TickerHandlerBase):
         self.data_type_dict = {9:"day"}
         self.influx_client = CInflux(ct.IN_DB_INFO, self.dbname)
         self.mysql_client = CMySQL(dbinfo, self.dbname)
-        self.logger = getLogger("%s_%s" % (self.code, __name__))
+        self.logger = getLogger(__name__)
         if not self.create(): raise Exception("create stock %s table failed" % self.code)
 
     @staticmethod

@@ -1,7 +1,7 @@
 # coding=utf-8
 import gevent
 from gevent import monkey
-monkey.patch_all(subprocess=True)
+monkey.patch_all(subprocess=True, thread=False)
 import const as ct
 from log import getLogger
 from creview import CReivew

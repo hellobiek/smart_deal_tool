@@ -1,9 +1,4 @@
 #coding=utf-8
-import gevent
-from gevent import monkey
-monkey.patch_all(subprocess=True)
-from gevent.pool import Pool
-from gevent.event import AsyncResult
 import os
 import time
 import json
@@ -12,6 +7,7 @@ from cmysql import CMySQL
 from cstock import CStock
 from cindex import CIndex
 from climit import CLimit 
+from gevent.pool import Pool
 from creview import CReivew
 from cdelisted import CDelisted
 from ccalendar import CCalendar
@@ -42,7 +38,6 @@ class DataManager:
         self.combination_objs = dict()
         self.stock_objs = dict()
         self.index_objs = dict()
-        self.evt = AsyncResult()
         self.dbinfo = dbinfo
         self.cal_client = CCalendar(dbinfo)
         self.comb_info_client = CombinationInfo(dbinfo)
@@ -219,7 +214,7 @@ class DataManager:
 
     def init_today_stock_tick(self):
         _date = datetime.now().strftime('%Y-%m-%d')
-        obj_pool = Pool(500)
+        obj_pool = Pool(50)
         df = self.stock_info_client.get()
         if self.cal_client.is_trading_day(_date):
             for _index, code_id in df.code.iteritems():
