@@ -158,42 +158,76 @@ class DataManager:
                             self.subscriber = None
             except Exception as e:
                 logger.error(e)
+                traceback.print_exc()
             time.sleep(sleep_time)
+
+    def set_update_info(self, step_length, filename = ct.STEPFILE):
+        step_info = dict()
+        _date = datetime.now().strftime('%Y-%m-%d')
+        step_info[_date] = step_length
+        with open(filename, 'w') as f:
+            json.dump(step_info, f)
+
+    def get_update_info(self, filename = ct.STEPFILE):
+        step_info = dict()
+        _date = datetime.now().strftime('%Y-%m-%d')
+        if os.path.exists(filename):
+            with open(filename, 'r') as f:
+                step_info = json.load(f)
+        return step_info[_date] if _date in step_info else 0
 
     def update(self, sleep_time):
         while True:
             try:
                 if self.cal_client.is_trading_day(): 
                     if self.is_collecting_time():
-                        self.init()
+                        finished_step = self.get_update_info()
+                        if finished_step < 1:
+                            self.cal_client.init(False)
+                            self.set_update_info(1)
+
+                        if finished_step < 2:
+                            self.delisted_info_client.init(False)
+                            self.set_update_info(2)
+
+                        if finished_step < 3:
+                            self.stock_info_client.init()
+                            self.set_update_info(3)
+
+                        if finished_step < 4:
+                            self.comb_info_client.init()
+                            self.set_update_info(4)
+
+                        if finished_step < 5:
+                            self.industry_info_client.init()
+                            self.set_update_info(5)
+
+                        if finished_step < 6:
+                            self.download_and_extract()
+                            self.set_update_info(6)
+
+                        if finished_step < 7:
+                            self.init_today_index_info()
+                            self.set_update_info(7)
+
+                        if finished_step < 8:
+                            self.init_today_industry_info()
+                            self.set_update_info(8)
+
+                        if finished_step < 9:
+                            self.init_today_limit_info()
+                            self.set_update_info(9)
+                           
+                        if finished_step < 10:
+                            self.cviewer.update()
+                            self.set_update_info(10)
+
+                        if finished_step < 11:
+                            self.init_today_stock_tick()
+                            self.set_update_info(11)
                 time.sleep(sleep_time)
             except Exception as e:
                 logger.error(e)
-                #traceback.print_exc()
-
-    def init(self, status = False):
-        #self.halted_info_client.init(status)
-        logger.info("enter update")
-        self.cal_client.init(status)
-        self.delisted_info_client.init(status)
-        self.stock_info_client.init()
-        logger.info("stock info update success")
-        self.comb_info_client.init()
-        logger.info("combination info update success")
-        self.industry_info_client.init()
-        logger.info("industry info update success")
-        self.download_and_extract()
-        logger.info("download success")
-        self.init_today_index_info()
-        logger.info("update index success")
-        self.init_today_industry_info()
-        logger.info("update industry success")
-        self.init_today_limit_info()
-        logger.info("update limit success")
-        self.cviewer.update()
-        logger.info("update doc success")
-        self.init_today_stock_tick()
-        logger.info("update tick success")
 
     def get_concerned_list(self):
         combination_info = self.comb_info_client.get()
@@ -214,7 +248,7 @@ class DataManager:
 
     def init_today_stock_tick(self):
         _date = datetime.now().strftime('%Y-%m-%d')
-        obj_pool = Pool(50)
+        obj_pool = Pool(10)
         df = self.stock_info_client.get()
         if self.cal_client.is_trading_day(_date):
             for _index, code_id in df.code.iteritems():

@@ -4424,3 +4424,5 @@ const.LIMIT_UP_INTENSITY = 2
 const.LIMIT_DOWN_INTENSITY = 3
 const.URL_PRIFIX = "http://home.flashdata2.jrj.com.cn/limitStatistic/"
 const.URL_MID = ".js?_dc="
+##################################################
+const.STEPFILE = "/data/stepinfo.json"

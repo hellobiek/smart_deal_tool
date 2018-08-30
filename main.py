@@ -1,7 +1,7 @@
 # coding=utf-8
 import gevent
 from gevent import monkey
-monkey.patch_all(subprocess=True, thread=False)
+monkey.patch_all(thread=True)
 import const as ct
 from log import getLogger
 from creview import CReivew
@@ -14,8 +14,8 @@ def main():
     dm = DataManager(ct.DB_INFO)
     log.info("init succeed")
     threadList.append(CThread(dm.run, 1))
-    threadList.append(CThread(dm.update, 7200))
-    threadList.append(CThread(dm.collect, 600))
+    threadList.append(CThread(dm.update, 3600))
+    #threadList.append(CThread(dm.collect, 600))
 
     ctrader = CTrader(ct.DB_INFO)
     threadList.append(CThread(ctrader.buy_new_stock, 7200))
