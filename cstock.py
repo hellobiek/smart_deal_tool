@@ -158,6 +158,7 @@ class CStock(TickerHandlerBase):
             if not self.create_ticket_table(tick_table):
                 self.logger.error("create tick table failed")
                 return
+            self.redis.sadd(self.dbname, tick_table)
         if self.is_date_exists(tick_table, cdate): 
             self.logger.debug("existed code:%s, date:%s" % (self.code, cdate))
             return

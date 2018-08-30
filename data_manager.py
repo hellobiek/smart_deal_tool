@@ -36,6 +36,7 @@ pd.options.mode.chained_assignment = None #default='warn'
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 logger = getLogger(__name__)
+
 class DataManager:
     def __init__(self, dbinfo):
         self.combination_objs = dict()
@@ -64,10 +65,21 @@ class DataManager:
         aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
         return aft_open_time < now_time < aft_close_time
 
+    def is_morning_time(self, now_time = None):
+        if now_time is None: now_time = datetime.now()
+        _date = now_time.strftime('%Y-%m-%d')
+        y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
+        mor_open_hour,mor_open_minute,mor_open_second = (0,0,0)
+        mor_open_time = datetime(y,m,d,mor_open_hour,mor_open_minute,mor_open_second)
+        mor_close_hour,mor_close_minute,mor_close_second = (9,0,0)
+        mor_close_time = datetime(y,m,d,mor_close_hour,mor_close_minute,mor_close_second)
+        return mor_open_time < now_time < mor_close_time
+
     def collect(self, sleep_time):
         while True:
             try:
-                self.init_all_stock_tick()
+                if (not self.cal_client.is_trading_day()) or (self.cal_client.is_trading_day() and self.is_morning_time()):
+                    self.init_all_stock_tick()
             except Exception as e:
                 logger.error(e)
             time.sleep(sleep_time)
@@ -270,6 +282,7 @@ class DataManager:
                     if obj_pool.full(): obj_pool.join()
                     obj_pool.spawn(_obj.set_ticket, _date)
             redis.sadd(ALL_STOCKS, code_id)
+            if self.cal_client.is_trading_day() and self.is_collecting_time(): break
         obj_pool.join()
         obj_pool.kill()
 
@@ -295,7 +308,6 @@ class DataManager:
 if __name__ == '__main__':
     dm = DataManager(ct.DB_INFO)
     dm.init_today_index_info()
-    print("success")
     #dm.init_today_industry_info()
     #dm.init_today_limit_info()
     #dm.init_index_info()

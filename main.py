@@ -1,5 +1,7 @@
 # coding=utf-8
-import traceback
+import gevent
+from gevent import monkey
+monkey.patch_all(subprocess=True)
 import const as ct
 from log import getLogger
 from creview import CReivew
@@ -7,7 +9,6 @@ from data_manager import DataManager
 from ctrader import CTrader
 from cthread import CThread
 log = getLogger(__name__)
-
 def main():
     threadList = []
     dm = DataManager(ct.DB_INFO)

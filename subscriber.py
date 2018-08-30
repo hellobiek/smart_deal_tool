@@ -1,12 +1,12 @@
 #-*-coding:utf-8-*-
-import futuquant
 import const as ct
 from log import getLogger
+from futuquant import OpenQuoteContext
 from futuquant.common.constant import SubType
 logger = getLogger(__name__)
 class Subscriber:
     def __init__(self):
-        self.quote_ctx = futuquant.OpenQuoteContext(ct.FUTU_HOST, ct.FUTU_PORT)
+        self.quote_ctx = OpenQuoteContext(ct.FUTU_HOST, ct.FUTU_PORT)
         self.sub_dict = None
         self._status = False
 
