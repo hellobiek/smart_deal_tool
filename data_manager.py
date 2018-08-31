@@ -3,6 +3,7 @@ import os
 import gc
 import time
 import json
+import _pickle
 import datetime
 import tushare as ts
 from cmysql import CMySQL
@@ -184,6 +185,7 @@ class DataManager:
                 if self.cal_client.is_trading_day(): 
                     if self.is_collecting_time():
                         finished_step = self.get_update_info()
+                        logger.info("enter updating.%s" % finished_step)
                         if finished_step < 1:
                             self.cal_client.init(False)
                             self.set_update_info(1)
@@ -231,14 +233,15 @@ class DataManager:
                         if finished_step < 12:
                             self.init_today_stock_tick()
                             self.set_update_info(12)
-                time.sleep(sleep_time)
             except Exception as e:
                 logger.error(e)
+            time.sleep(sleep_time)
 
     def set_today_all_stock_data(self):
         df = ts.get_today_all()
         df['date'] = datetime.now().strftime('%Y-%m-%d')
-        self.redis.set(ct.TODAY_ALL_STOCK, _pickle.dumps(df, 2))
+        redis = create_redis_obj()
+        redis.set(ct.TODAY_ALL_STOCK, _pickle.dumps(df, 2))
 
     def get_concerned_list(self):
         combination_info = self.comb_info_client.get()
@@ -269,11 +272,10 @@ class DataManager:
             greenlets.append(obj_pool.spawn(_obj.set_k_data))
             greenlets.append(obj_pool.spawn(_obj.set_ticket, _date))
             if _index % 29 == 0:
-                for g in greenlets: 
-                    if g.successful():
-                        greenlets.remove(g)
-                        del g
-                        gc.collect()
+                for i in range(len(greenlets) - 1, -1, -1):
+                    if greenlets[i].successful():
+                        del greenlets[i]
+                gc.collect()
         obj_pool.join()
         obj_pool.kill()
 
