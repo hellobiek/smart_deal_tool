@@ -4426,3 +4426,4 @@ const.URL_PRIFIX = "http://home.flashdata2.jrj.com.cn/limitStatistic/"
 const.URL_MID = ".js?_dc="
 ##################################################
 const.STEPFILE = "/data/stepinfo.json"
+const.TODAY_ALL_STOCK = "TODAY_ALL_STOCK"

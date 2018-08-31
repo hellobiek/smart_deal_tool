@@ -24,7 +24,7 @@ class CMySQL:
         self.redis = create_redis_obj()
         self.engine = create_engine("mysql://%s:%s@%s/%s?charset=utf8" % (self.dbinfo['user'], self.dbinfo['password'], self.dbinfo['host'], self.dbname), pool_size=0 , max_overflow=-1, pool_recycle=120)
 
-    def changedb(self, dbname = 'stock'):
+    def changedb(self, dbname = 'stok'):
         self.dbname = dbname
         self.engine = create_engine("mysql://%s:%s@%s/%s?charset=utf8" % (self.dbinfo['user'], self.dbinfo['password'], self.dbinfo['host'], self.dbname), pool_size=0 , max_overflow=-1, pool_recycle=120)
 
@@ -98,6 +98,9 @@ class CMySQL:
                 res = True
             except sqlalchemy.exc.OperationalError as e:
                 log.debug(e)
+                if 'conn' in dir(): conn.close()
+            except Exception as e:
+                logger.error(e)
                 if 'conn' in dir(): conn.close()
             if True == res: return data
         log.error("%s get %s failed afer try %d times" % (self.dbname, sql, ct.RETRY_TIMES))

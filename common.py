@@ -46,7 +46,7 @@ def delta_days(_from, _to):
     _to = time.strptime(_to,"%Y-%m-%d")
     _from = datetime(_from[0],_from[1],_from[2])
     _to = datetime(_to[0],_to[1],_to[2])
-    return (_to - _from).days
+    return (_to - _from).days + 1
 
 def is_afternoon(now_time = None):
     if now_time is None:now_time = datetime.now()
@@ -77,13 +77,6 @@ def is_trading_time(now_time = None):
     aft_close_hour,aft_close_minute,aft_close_second = (15,5,0)
     aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
     return (mor_open_time < now_time < mor_close_time) or (aft_open_time < now_time < aft_close_time)
-
-def delta_days(_from, _to):
-    _from = time.strptime(_from,"%Y-%m-%d")
-    _to = time.strptime(_to,"%Y-%m-%d")
-    _from = datetime(_from[0],_from[1],_from[2])
-    _to = datetime(_to[0],_to[1],_to[2])
-    return (_to - _from).days
 
 def create_redis_obj(host = ct.REDIS_HOST, port = ct.REDIS_PORT, decode_responses = False):
     pool = redis.ConnectionPool(host = host, port = port, decode_responses = decode_responses)

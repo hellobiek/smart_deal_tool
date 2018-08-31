@@ -1,8 +1,10 @@
 #coding=utf-8
 import os
+import gc
 import time
 import json
 import datetime
+import tushare as ts
 from cmysql import CMySQL
 from cstock import CStock
 from cindex import CIndex
@@ -219,15 +221,24 @@ class DataManager:
                             self.set_update_info(9)
                            
                         if finished_step < 10:
-                            self.cviewer.update()
+                            self.set_today_all_stock_data()
                             self.set_update_info(10)
 
                         if finished_step < 11:
-                            self.init_today_stock_tick()
+                            self.cviewer.update()
                             self.set_update_info(11)
+
+                        if finished_step < 12:
+                            self.init_today_stock_tick()
+                            self.set_update_info(12)
                 time.sleep(sleep_time)
             except Exception as e:
                 logger.error(e)
+
+    def set_today_all_stock_data(self):
+        df = ts.get_today_all()
+        df['date'] = datetime.now().strftime('%Y-%m-%d')
+        self.redis.set(ct.TODAY_ALL_STOCK, _pickle.dumps(df, 2))
 
     def get_concerned_list(self):
         combination_info = self.comb_info_client.get()
@@ -250,13 +261,19 @@ class DataManager:
         _date = datetime.now().strftime('%Y-%m-%d')
         obj_pool = Pool(10)
         df = self.stock_info_client.get()
-        if self.cal_client.is_trading_day(_date):
-            for _index, code_id in df.code.iteritems():
-                logger.info("init today tick count:%s, code:%s" % ((_index + 1), code_id))
-                _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(self.dbinfo, code_id)
-                if not obj_pool.full(): obj_pool.join()
-                obj_pool.spawn(_obj.set_k_data)
-                obj_pool.spawn(_obj.set_ticket, _date)
+        greenlets = list()
+        for _index, code_id in df.code.iteritems():
+            logger.info("init today tick count:%s, code:%s" % ((_index + 1), code_id))
+            _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(self.dbinfo, code_id)
+            if obj_pool.full(): obj_pool.join(timeout = 30)
+            greenlets.append(obj_pool.spawn(_obj.set_k_data))
+            greenlets.append(obj_pool.spawn(_obj.set_ticket, _date))
+            if _index % 29 == 0:
+                for g in greenlets: 
+                    if g.successful():
+                        greenlets.remove(g)
+                        del g
+                        gc.collect()
         obj_pool.join()
         obj_pool.kill()
 
@@ -269,11 +286,8 @@ class DataManager:
         df = self.industry_info_client.get()
         for _, code_id in df.code.iteritems():
             _obj = CIndex(self.dbinfo, code_id)
-            try:
-                if obj_pool.full(): obj_pool.join()
-                obj_pool.spawn(_obj.set_k_data)
-            except Exception as e:
-                logger.info(e)
+            if obj_pool.full(): obj_pool.join(timeout = 30)
+            obj_pool.spawn(_obj.set_k_data)
         obj_pool.join()
         obj_pool.kill()
 
@@ -281,11 +295,8 @@ class DataManager:
         obj_pool = Pool(50)
         for code_id in ct.TDX_INDEX_DICT:
             _obj = self.index_objs[code_id] if code_id in self.index_objs else CIndex(self.dbinfo, code_id)
-            try:
-                if obj_pool.full(): obj_pool.join()
-                obj_pool.spawn(_obj.set_k_data)
-            except Exception as e:
-                logger.info(e)
+            if obj_pool.full(): obj_pool.join()
+            obj_pool.spawn(_obj.set_k_data)
         obj_pool.join()
         obj_pool.kill()
 

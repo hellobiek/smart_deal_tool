@@ -198,7 +198,12 @@ class CStock(TickerHandlerBase):
             return
         sql = "select * from %s where date=\"%s\"" %(self.get_redis_tick_table(cdate), cdate)
         return self.mysql_client.get(sql)
-        
+    
+    def get_k_data_in_range(self, start_date, end_date, dtype = 9):
+        table_name = self.data_type_dict[dtype]
+        sql = "select * from %s where cdate between \"%s\" and \"%s\"" %(table_name, start_date, end_date)
+        return self.mysql_client.get(sql)
+
     def get_k_data(self, date = None, dtype = 9):
         table_name = self.data_type_dict[dtype] 
         if date is not None:
