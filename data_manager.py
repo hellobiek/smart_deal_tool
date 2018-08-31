@@ -311,7 +311,7 @@ class DataManager:
                     if obj_pool.full(): obj_pool.join()
                     obj_pool.spawn(_obj.set_ticket, _date)
             redis.sadd(ALL_STOCKS, code_id)
-            if self.cal_client.is_trading_day() and self.is_collecting_time(): break
+            if self.cal_client.is_trading_day() and is_trading_time(): break
         obj_pool.join()
         obj_pool.kill()
 

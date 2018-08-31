@@ -50,7 +50,7 @@ class CDoc:
         md.addTable(t_industry)
 
         # 股票数据
-        stock_info = stock_info[['code', 'name', 'trade', 'changepercent', 'turnoverratio', 'volume', 'amount', 'per', 'pb']]
+        stock_info = stock_info[['code', 'name', 'trade', 'changepercent', 'turnoverratio', 'volume', 'amount']]
         stock_info.amount = stock_info.amount / 100000000
         stock_info.volume = stock_info.volume / 100
 
@@ -58,10 +58,10 @@ class CDoc:
         stock_info_amount = stock_info[0:100]
         stock_info_amount  = stock_info_amount.reset_index(drop = True)
         md.addHeader("股票数据(成交额)", 2)
-        t_industry_amount = MarkdownTable(headers = ["代码", "名称", "价格(元)", "涨跌", "换手率(%)", "成交量", "成交额(亿)", "PE", "PB"])
+        t_industry_amount = MarkdownTable(headers = ["代码", "名称", "价格(元)", "涨跌", "换手率(%)", "成交量", "成交额(亿)"])
         for index in range(len(stock_info_amount)):
             data_list = stock_info_amount.loc[index].tolist()
-            data_list = [str(data_list[0]).zfill(6), data_list[1], round(data_list[2], 2), round(data_list[3], 2), round(data_list[4], 2), int(data_list[5]), round(data_list[6] , 2), round(data_list[7], 2), round(data_list[8], 2)]
+            data_list = [str(data_list[0]).zfill(6), data_list[1], round(data_list[2], 2), round(data_list[3], 2), round(data_list[4], 2), int(data_list[5]), round(data_list[6] , 2)]
             data_list = [str(i) for i in data_list]
             t_industry_amount.addRow(data_list)
         md.addTable(t_industry_amount)
@@ -71,10 +71,10 @@ class CDoc:
         stock_info_turnover = stock_info[0:100]
         stock_info_turnover = stock_info_turnover.reset_index(drop = True)
         md.addHeader("股票数据(换手率)", 2)
-        t_industry_turnover = MarkdownTable(headers = ["代码", "名称", "价格(元)", "涨跌", "换手率(%)", "成交量", "成交额(亿)", "PE", "PB"])
+        t_industry_turnover = MarkdownTable(headers = ["代码", "名称", "价格(元)", "涨跌", "换手率(%)", "成交量", "成交额(亿)"])
         for index in range(len(stock_info_turnover)):
             data_list = stock_info_turnover.loc[index].tolist()
-            data_list = [str(data_list[0]).zfill(6), data_list[1], round(data_list[2], 2), round(data_list[3], 2), round(data_list[4], 2), int(data_list[5]), round(data_list[6], 2), round(data_list[7], 2), round(data_list[8], 2)]
+            data_list = [str(data_list[0]).zfill(6), data_list[1], round(data_list[2], 2), round(data_list[3], 2), round(data_list[4], 2), int(data_list[5]), round(data_list[6], 2)]
             data_list = [str(i) for i in data_list]
             t_industry_turnover.addRow(data_list)
         md.addTable(t_industry_turnover)

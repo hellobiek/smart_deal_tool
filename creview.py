@@ -154,7 +154,7 @@ class CReivew:
     
         fig = plt.figure()
         for i in range(len(num_list)):
-            plt.bar(i + 1, num_list[i], color = colors[i % len(colors)], width=0.1)
+            plt.bar(i + 1, num_list[i], color = colors[i % len(colors)], width = 0.3)
             plt.text(i + 1, 15 + num_list[i], num_list[i], ha = 'center', font_properties = get_chinese_font())
     
         plt.xlabel('x轴', fontproperties = get_chinese_font())
@@ -181,6 +181,7 @@ class CReivew:
             data = self.mysql_client.get("select * from day where cdate=\"%s\";" % _date)
             data['name'] = name
             df = df.append(data)
+        self.mysql_client.changedb()
         return df
 
     def update(self):
