@@ -161,7 +161,6 @@ class DataManager:
                             self.subscriber = None
             except Exception as e:
                 logger.error(e)
-                traceback.print_exc()
             time.sleep(sleep_time)
 
     def set_update_info(self, step_length, filename = ct.STEPFILE):
