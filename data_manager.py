@@ -5,6 +5,7 @@ import time
 import json
 import _pickle
 import datetime
+import tracemalloc
 import tushare as ts
 from cmysql import CMySQL
 from cstock import CStock
@@ -182,6 +183,8 @@ class DataManager:
     def update(self, sleep_time):
         while True:
             try:
+                tracemalloc.start()
+                self.init_today_stock_tick()
                 if self.cal_client.is_trading_day(): 
                     if self.is_collecting_time():
                         finished_step = self.get_update_info()
@@ -262,7 +265,7 @@ class DataManager:
 
     def init_today_stock_tick(self):
         _date = datetime.now().strftime('%Y-%m-%d')
-        obj_pool = Pool(10)
+        obj_pool = Pool(50)
         df = self.stock_info_client.get()
         greenlets = list()
         for _index, code_id in df.code.iteritems():
@@ -276,6 +279,12 @@ class DataManager:
                     if greenlets[i].successful():
                         del greenlets[i]
                 gc.collect()
+            snapshot = tracemalloc.take_snapshot()
+            top_stats = snapshot.statistics('lineno')
+            print("AAAAAAAAAAAAAAAAAAAA01")
+            for stat in top_stats[:10]:
+                print(stat)
+            print("AAAAAAAAAAAAAAAAAAAA02")
         obj_pool.join()
         obj_pool.kill()
 

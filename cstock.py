@@ -16,7 +16,7 @@ from futuquant.quote.quote_response_handler import TickerHandlerBase
 from common import trace_func,is_trading_time,df_delta,create_redis_obj,delta_days,get_available_tdx_server
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
-
+logger = getLogger(__name__)
 class CStock(TickerHandlerBase):
     def __init__(self, dbinfo, code):
         self.code = code
@@ -26,8 +26,14 @@ class CStock(TickerHandlerBase):
         self.data_type_dict = {9:"day"}
         self.influx_client = CInflux(ct.IN_DB_INFO, self.dbname)
         self.mysql_client = CMySQL(dbinfo, self.dbname)
-        self.logger = getLogger(__name__)
         if not self.create(): raise Exception("create stock %s table failed" % self.code)
+
+    def __del__(self):
+        self.redis = None
+        self.influx_client = None
+        self.mysql_client = None
+        self.data_type_dict = None
+        print("%s deleted" % self.code)
 
     @staticmethod
     def get_dbname(code):
@@ -151,18 +157,18 @@ class CStock(TickerHandlerBase):
     def set_ticket(self, cdate = None):
         cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
         if not self.has_on_market(cdate):
-            self.logger.debug("not on market code:%s, date:%s" % (self.code, cdate))
+            logger.debug("not on market code:%s, date:%s" % (self.code, cdate))
             return
         tick_table = self.get_redis_tick_table(cdate)
         if not self.is_tick_table_exists(tick_table):
             if not self.create_ticket_table(tick_table):
-                self.logger.error("create tick table failed")
+                logger.error("create tick table failed")
                 return
             self.redis.sadd(self.dbname, tick_table)
         if self.is_date_exists(tick_table, cdate): 
-            self.logger.debug("existed code:%s, date:%s" % (self.code, cdate))
+            logger.debug("existed code:%s, date:%s" % (self.code, cdate))
             return
-        self.logger.debug("%s read code from file %s" % (self.code, cdate))
+        logger.debug("%s read code from file %s" % (self.code, cdate))
         df = ts.get_tick_data(self.code, date=cdate)
         df_tdx = read_tick(os.path.join(ct.TIC_DIR, '%s.tic' % datetime.strptime(cdate, "%Y-%m-%d").strftime("%Y%m%d")), self.code)
         if not df_tdx.empty:
@@ -170,31 +176,31 @@ class CStock(TickerHandlerBase):
                 net_volume = df.volume.sum()
                 tdx_volume = df_tdx.volume.sum()
                 if net_volume != tdx_volume:
-                    self.logger.error("code:%s, date:%s, net volume:%s, tdx volume:%s not equal" % (self.code, cdate, net_volume, tdx_volume))
+                    logger.error("code:%s, date:%s, net volume:%s, tdx volume:%s not equal" % (self.code, cdate, net_volume, tdx_volume))
             df = df_tdx
         else:
             if df is None:
-                self.logger.debug("nonedata code:%s, date:%s" % (self.code, cdate))
+                logger.debug("nonedata code:%s, date:%s" % (self.code, cdate))
                 return
             if df.empty:
-                self.logger.debug("emptydata code:%s, date:%s" % (self.code, cdate))
+                logger.debug("emptydata code:%s, date:%s" % (self.code, cdate))
                 return
             if df.loc[0]['time'].find("当天没有数据") != -1:
-                self.logger.debug("nodata code:%s, date:%s" % (self.code, cdate))
+                logger.debug("nodata code:%s, date:%s" % (self.code, cdate))
                 return
         df.columns = ['ctime', 'price', 'cchange', 'volume', 'amount', 'ctype']
-        self.logger.debug("merge ticket code:%s date:%s" % (self.code, cdate))
+        logger.debug("merge ticket code:%s date:%s" % (self.code, cdate))
         df = self.merge_ticket(df)
         df['date'] = cdate
-        self.logger.debug("write data code:%s, date:%s, table:%s" % (self.code, cdate, tick_table))
+        logger.debug("write data code:%s, date:%s, table:%s" % (self.code, cdate, tick_table))
         if self.mysql_client.set(df, tick_table):
-            self.logger.debug("finish record:%s. table:%s" % (self.code, tick_table))
+            logger.debug("finish record:%s. table:%s" % (self.code, tick_table))
             self.redis.sadd(tick_table, cdate)
 
     def get_ticket(self, cdate):
         cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
         if not self.has_on_market(cdate):
-            self.logger.debug("not on market code:%s, date:%s" % (self.code, cdate))
+            logger.debug("not on market code:%s, date:%s" % (self.code, cdate))
             return
         sql = "select * from %s where date=\"%s\"" %(self.get_redis_tick_table(cdate), cdate)
         return self.mysql_client.get(sql)

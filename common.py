@@ -80,7 +80,7 @@ def is_trading_time(now_time = None):
 
 def create_redis_obj(host = ct.REDIS_HOST, port = ct.REDIS_PORT, decode_responses = False):
     pool = redis.ConnectionPool(host = host, port = port, decode_responses = decode_responses)
-    return redis.StrictRedis(connection_pool=pool)
+    return redis.StrictRedis(connection_pool = pool)
 
 def df_delta(pos_df, neg_df, subset_list, keep = False):
     pos_df = pos_df.append(neg_df)

@@ -11,6 +11,10 @@ class CInflux:
         #self.client = InfluxDBClient(dbinfo['host'], dbinfo['port'], dbinfo['user'], dbinfo['password'], self.l2_dbname)
         self.df_client = DataFrameClient(dbinfo['host'], dbinfo['port'], dbinfo['user'], dbinfo['password'], self.dbname)
 
+    def __del__(self):
+        self.df_client = None
+        print("influxdb client deleted")
+
     def list_all_databases(self):
         return self.df_client.get_list_database()
 

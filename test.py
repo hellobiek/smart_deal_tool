@@ -1,9 +1,21 @@
 #coding=utf-8
+import os
+import gc
+import objgraph
 import const as ct
-from futuquant import OpenQuoteContext
+gc.collect()
+print('=====================================1')
+objgraph.show_growth()
+a = list()
+print('=====================================2')
+objgraph.show_growth()
+a.append([1,2,3])
+print('=====================================3')
+objgraph.show_growth()
+print('=====================================4')
 
-q =  OpenQuoteContext(ct.FUTU_HOST, ct.FUTU_PORT)
-print("AAAAAAAAAA01")
+#q =  OpenQuoteContext(ct.FUTU_HOST, ct.FUTU_PORT)
+#print("AAAAAAAAAA01")
 #influx_client = CInflux(ct.IN_DB_INFO, "s600050")
 #influx_client.create()
 #df = influx_client.get()

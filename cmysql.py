@@ -24,6 +24,11 @@ class CMySQL:
         self.redis = create_redis_obj()
         self.engine = create_engine("mysql://%s:%s@%s/%s?charset=utf8" % (self.dbinfo['user'], self.dbinfo['password'], self.dbinfo['host'], self.dbname), pool_size=0 , max_overflow=-1, pool_recycle=120)
 
+    def __del__(self):
+        self.redis = None
+        self.engine = None
+        print("mysql client deleted")
+
     def changedb(self, dbname = 'stok'):
         self.dbname = dbname
         self.engine = create_engine("mysql://%s:%s@%s/%s?charset=utf8" % (self.dbinfo['user'], self.dbinfo['password'], self.dbinfo['host'], self.dbname), pool_size=0 , max_overflow=-1, pool_recycle=120)
