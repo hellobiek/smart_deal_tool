@@ -27,7 +27,6 @@ class CMySQL:
     def __del__(self):
         self.redis = None
         self.engine = None
-        print("mysql client deleted")
 
     def changedb(self, dbname = 'stok'):
         self.dbname = dbname

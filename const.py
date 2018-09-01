@@ -21,6 +21,7 @@ class Const:
             raise self.ConstCaseError(self.CError, 'const "%s" is not all letters are capitalized' %name)
         self.__dict__[name] = value
 
+import os
 import sys
 sys.modules[__name__] = Const()
 
@@ -29,7 +30,7 @@ import const
 const.LOGIN_URL = "https://trade.cgws.com/cgi-bin/user/Login?function=tradeLogout"
 const.ENTRUST_QUERY = "https://trade.cgws.com/cgi-bin/stock/EntrustQuery?function=MyAccount"
 const.NEW_STOCK_URL = "http://newstock.cfi.cn/"
-const.FUTU_HOST = "dockerhost"
+const.FUTU_HOST = os.environ['dockerhost']
 const.FUTU_PORT = 11111
 const.USER_FILE = "/code/data/user.json"
 const.SLEEP_TIME = 3
@@ -50,13 +51,13 @@ const.MARKET_ELSE = "MARKET_ELSE"
 const.SUBMITTED = 0
 const.ONGOING = 1
 ##############################
-const.DB_INFO = {'user':'root',
-                 'password':'123456',
-                 'host':'dockerhost'}
-const.IN_DB_INFO = {'user':'root',
-                    'password':'123456',
-                    'host':'dockerhost',
-                    'port':8086}
+const.DB_INFO = {'user': 'root',
+                 'password': '123456',
+                 'host': os.environ['dockerhost']}
+const.IN_DB_INFO = {'user': 'root',
+                    'password': '123456',
+                    'host': os.environ['dockerhost'],
+                    'port': 8086}
 const.UTF8 = "utf8"
 const.SQL = "select * from %s"
 const.RETRY_TIMES = 1

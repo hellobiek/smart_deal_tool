@@ -13,7 +13,6 @@ class CInflux:
 
     def __del__(self):
         self.df_client = None
-        print("influxdb client deleted")
 
     def list_all_databases(self):
         return self.df_client.get_list_database()

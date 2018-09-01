@@ -33,7 +33,6 @@ class CStock(TickerHandlerBase):
         self.influx_client = None
         self.mysql_client = None
         self.data_type_dict = None
-        print("%s deleted" % self.code)
 
     @staticmethod
     def get_dbname(code):
