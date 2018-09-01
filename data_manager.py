@@ -182,7 +182,6 @@ class DataManager:
     def update(self, sleep_time):
         while True:
             try:
-                self.init_today_stock_tick()
                 if self.cal_client.is_trading_day(): 
                     if self.is_collecting_time():
                         finished_step = self.get_update_info()
@@ -263,7 +262,7 @@ class DataManager:
 
     def init_today_stock_tick(self):
         _date = datetime.now().strftime('%Y-%m-%d')
-        obj_pool = Pool(20)
+        obj_pool = Pool(15)
         df = self.stock_info_client.get()
         greenlets = list()
         for _index, code_id in df.code.iteritems():

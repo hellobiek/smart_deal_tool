@@ -145,6 +145,8 @@ class CStock(TickerHandlerBase):
     def set_k_data(self):
         prestr = "1" if self.get_market() == ct.MARKET_SH else "0"
         filename = "%s%s.csv" % (prestr, self.code)
+        if not os.path.exists(filename):
+            return pd.DataFrame()
         df = pd.read_csv("/data/tdx/history/days/%s" % filename, sep = ',')
         df = df[['date', 'open', 'high', 'close', 'low', 'amount', 'volume']]
         df['date'] = df['date'].astype(str)
