@@ -38,7 +38,7 @@ class Trader:
 
     def prepare(self):
         #preprea for login
-        ret= self.client.prepare()
+        ret = self.client.prepare()
         if ret != 0:
             self.log.warn("prepare fail: ret=%d" % ret)
             return -5
@@ -49,7 +49,7 @@ class Trader:
             self.log.warn("get verified code fail: ret=%d" % ret)
             return -10
         verify_code = get_verified_code(tmp_buff)
-        post_data={
+        post_data = {
             'ticket': verify_code,
             'retUrl':'',
             'password': self.passwd,
@@ -90,7 +90,6 @@ class Trader:
             self.log.warn("post to url fail: ret=%d" % ret)
             return -10
         #check if has error
-        #reg = re.compile(r'.*alert.*\[-(\d{6,})\]')
         reg = re.compile(r'.*alert\(\"-(\d{9}).*\)')
         match = reg.search(result.decode('gbk', "ignore"))
         if match:
