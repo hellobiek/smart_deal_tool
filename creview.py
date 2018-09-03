@@ -51,7 +51,9 @@ class CReivew:
         return True
 
     def get_stock_data(self):
-        return ts.get_today_all()
+        df_byte = self.redis.get(ct.TODAY_ALL_STOCK)
+        if df_byte is None: return None
+        return _pickle.loads(df_byte)
 
     def get_industry_data(self, _date):
         df = pd.DataFrame()
@@ -195,7 +197,6 @@ class CReivew:
                 #get volume > 0 stock list
                 stock_info = stock_info[stock_info.volume > 0]
                 stock_info = stock_info.reset_index(drop = True)
-                os.makedirs(dir_name, exist_ok = True)
                 #industry analysis
                 industry_info = self.get_industry_data(_date)
                 #index and total analysis
@@ -203,6 +204,8 @@ class CReivew:
                 index_info = index_info.reset_index(drop = True)
                 #limit up and down analysis
                 limit_info = self.get_limitup_data(_date)
+                # make dir for new data
+                os.makedirs(dir_name, exist_ok = True)
                 #emotion analysis
                 self.gen_market_emotion_score(stock_info, limit_info)
                 self.emotion_plot(dir_name)
@@ -256,4 +259,5 @@ class CReivew:
 if __name__ == '__main__':
     _date = '2018-08-28'
     creview = CReivew(ct.DB_INFO)
-    creview.update()
+    data = creview.update()
+    print(data)

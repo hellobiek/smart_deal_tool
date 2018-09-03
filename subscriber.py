@@ -24,9 +24,9 @@ class Subscriber:
         self.quote_ctx.stop()
         logger.debug("stop subscribe")
         self.sub_dict = None
-        self._status = False
         logger.debug("close subscribe")
         self.quote_ctx.close()
+        self._status = False
 
     def status(self):
         return self._status
