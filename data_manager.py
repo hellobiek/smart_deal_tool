@@ -112,10 +112,11 @@ class DataManager:
         ret, data = self.subscriber.subscribe_quote(get_index_list())
         if 0 != ret: 
             logger.error("index subscribe failed")
-            return
+            return ret
         for code in ct.INDEX_DICT:
             if code not in self.index_objs:
                 self.index_objs[code] = CIndex(self.dbinfo, code)
+        return 0
 
     def collect_index_runtime_data(self):
         ret, data = self.subscriber.get_quote_data(get_index_list())
@@ -147,9 +148,11 @@ class DataManager:
                         if self.subscriber is None: self.subscriber = Subscriber()
                         if not self.subscriber.status():
                             self.subscriber.start()
-                            self.init_index_info()
-                            self.init_real_stock_info()
-                            self.init_combination_info()
+                            if self.init_index_info() | self.init_real_stock_info() == 0: 
+                                self.init_combination_info()
+                            else:
+                                self.subscriber.stop()
+                                self.subscriber = None
                         else:
                             self.collect_stock_runtime_data()
                             self.collect_combination_runtime_data()
@@ -328,6 +331,9 @@ class DataManager:
             ret = self.subscriber.subscribe_tick(add_prifix(code_id), CStock)
             if 0 == ret:
                 if code_id not in self.stock_objs: self.stock_objs[code_id] = CStock(self.dbinfo, code_id)
+            else:
+                return ret
+        return 0
 
     def download_and_extract(self):
         try:

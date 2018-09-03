@@ -4,6 +4,7 @@ import time
 import _pickle
 import datetime
 from datetime import datetime
+from qfq import adjust_share, qfq
 import const as ct
 import pandas as pd
 import tushare as ts
@@ -77,7 +78,7 @@ class CStock(TickerHandlerBase):
     def create_mysql_table(self):
         for _, table_name in self.data_type_dict.items():
             if table_name not in self.mysql_client.get_all_tables():
-                sql = 'create table if not exists %s(cdate varchar(10) not null, open float, high float, close float, low float, volume float, amount float, PRIMARY KEY(cdate))' % table_name 
+                sql = 'create table if not exists %s(cdate varchar(10) not null, open float, high float, close float, low float, volume float, amount float, outstanding float, totals float, adj float, PRIMARY KEY(cdate))' % table_name 
                 if not self.mysql_client.create(sql, table_name): return False
         return True
 
@@ -144,11 +145,38 @@ class CStock(TickerHandlerBase):
 
     def set_k_data(self):
         prestr = "1" if self.get_market() == ct.MARKET_SH else "0"
-        filename = "%s%s.csv" % (prestr, self.code)
-        if not os.path.exists(filename):
-            return pd.DataFrame()
-        df = pd.read_csv("/data/tdx/history/days/%s" % filename, sep = ',')
+        filename = "/data/tdx/history/days/%s%s.csv" % (prestr, self.code)
+        if not os.path.exists(filename): return pd.DataFrame()
+        df = pd.read_csv(filename, sep = ',')
         df = df[['date', 'open', 'high', 'close', 'low', 'amount', 'volume']]
+        df = df.sort_index(ascending = False)
+        df = df.reset_index(drop = True)
+
+        info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
+        info = info[(info.code == self.code) & (info.date <= int(datetime.now().strftime('%Y%m%d')))]
+        info = info.sort_index(ascending = False)
+        info = info.reset_index(drop = True)
+
+        total_stock_change_type_list = ['2', '3', '4', '5', '7', '8', '9', '10', '11']
+        s_info = info[info.type.isin(total_stock_change_type_list)]
+        s_info = s_info[['date', 'type', 'money', 'price', 'count', 'rate']] 
+        s_info = s_info.sort_index(ascending = True)
+        s_info = s_info.reset_index(drop = True)
+
+        df['outstanding'] = 0
+        df['totals'] = 0
+        df = adjust_share(df, self.code, s_info)
+
+        df['preclose'] = df['close'].shift(-1)
+        df['adj'] = 1.0
+        t_info = info[info.type == 1]
+        t_info = t_info[['money', 'price', 'count', 'rate', 'date']]
+        t_info = t_info.sort_index(ascending = True)
+        t_info = t_info.reset_index(drop = True)
+
+        df = qfq(df, self.code, t_info)
+        df = df[['date', 'open', 'high', 'close', 'low', 'volume', 'amount', 'outstanding', 'totals', 'adj']]
+
         df['date'] = df['date'].astype(str)
         df['date'] = pd.to_datetime(df.date).dt.strftime("%Y-%m-%d")
         df = df.rename(columns={'date':'cdate'})
@@ -227,5 +255,5 @@ class CStock(TickerHandlerBase):
         return (datetime.strptime(_date, "%Y-%m-%d") - time2Market).days > 0
 
 if __name__ == "__main__":
-    cs = CStock(ct.DB_INFO, '002437')
-    #cs.set_ticket('2015-07-01')
+    cs = CStock(ct.DB_INFO, '601318')
+    cs.set_k_data()

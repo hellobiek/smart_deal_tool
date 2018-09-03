@@ -40,7 +40,7 @@ class Subscriber:
             if SubType.TICKER not in self.sub_dict: self.sub_dict[SubType.TICKER] = list()
             self.sub_dict[SubType.TICKER].append(code)
         else:
-            logger.error(msg)
+            logger.error("%s subscrbe failed, msg:%s" % (code, msg))
         return ret
 
     def subscribe_quote(self, code_list):
