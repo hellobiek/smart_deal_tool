@@ -1,20 +1,27 @@
 #encoding=utf-8
-import datetime
-from datetime import datetime
-from common import unix_time_millis
 from influxdb import InfluxDBClient
 from influxdb import DataFrameClient
+from common import create_redis_obj
+ALL_IN_DATABASES = 'all_in_databases'
 class CInflux:
     def __init__(self, dbinfo, dbname):
         self.dbname = dbname
-        #self.l2_dbname = "%s_l2" % self.dbname
-        #self.client = InfluxDBClient(dbinfo['host'], dbinfo['port'], dbinfo['user'], dbinfo['password'], self.l2_dbname)
+        self.redis = create_redis_obj()
         self.df_client = DataFrameClient(dbinfo['host'], dbinfo['port'], dbinfo['user'], dbinfo['password'], self.dbname)
 
     def __del__(self):
+        self.redis = None
         self.df_client = None
 
-    def list_all_databases(self):
+    def get_all_databases(self):
+        if self.redis.exists(ALL_IN_DATABASES):
+            return set(str(dbname, encoding = "utf8") for dbname in self.redis.smembers(ALL_IN_DATABASES))
+        else:
+            all_dbs = self._get_all_databses()
+            for _db in all_dbs: self.redis.sadd(ALL_IN_DATABASES, _db)
+            return all_dbs
+
+    def _get_all_databses(self):
         return self.df_client.get_list_database()
 
     def get(self, dbname = None):
@@ -31,36 +38,12 @@ class CInflux:
     
     def create(self, dbname = None):
         dbname = dbname if dbname is not None else self.dbname
-        self.df_client.create_database(self.dbname)
+        if dbname in self.get_all_databases(): return 
+        self.df_client.create_database(dbname)
+        self.redis.sadd(ALL_IN_DATABASES, dbname)
 
     def delete(self, dbname = None):
         dbname = dbname if dbname is not None else self.dbname
+        if dbname not in self.get_all_databases(): return 
         self.df_client.drop_database(dbname)
-
-    #def l2_create(self):
-    #    self.client.create_database(self.l2_dbname)
-
-    #def l2_get_points(self, csvfile, metric, fieldcolumns, tagcolumns, delimiter):
-    #    datapoints = []
-    #    with open(filename, 'r') as csvfile:
-    #        reader = csv.DictReader(csvfile, delimiter=delimiter)
-    #        for row in reader:
-    #            timestamp = unix_time_millis(datetime.strptime(row[timecolumn], timeformat)) * 1000000
-    #            tags = {}
-    #            for t in tagcolumns:
-    #                v = 0
-    #                if t in row: v = row[t]
-    #                tags[t] = v
-    #                
-    #            fields = {}
-    #            for f in fieldcolumns:
-    #                v = 0
-    #                if f in row: v = float(row[f]) if isfloat(row[f]) else row[f]
-    #                fields[f] = v
-    #            point = {"measurement": metric, "time": timestamp, "fields": fields, "tags": tags}
-    #            datapoints.append(point) 
-    #    return datapoints
-
-    #def write_l2_csv(self, csvfile, metric, fieldcolumns = ['time', 'price', 'direction', 'volume'], tagcolumns = list(), delimiter=','):
-    #    datapoints = self.get_points(csvfile, metric, fieldcolumns, tagcolumns, delimiter)
-    #    return True if 0 == len(datapoints) else return client.write_points(datapoints)
+        self.redis.srem(ALL_IN_DATABASES, dbname)

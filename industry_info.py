@@ -60,7 +60,7 @@ class IndustryInfo:
         str_list = data.decode("utf-8").split('\r\n')
         for x in str_list:
             info_list = x.split('|')
-            if len(info_list) == 4:
+            if len(info_list) == 5:
                 industry = info_list[2]
                 code = info_list[1]
                 if industry == "T00": continue #not include B stock
@@ -97,6 +97,7 @@ class IndustryInfo:
 
 if __name__ == '__main__':
     ci = IndustryInfo(ct.DB_INFO)
-    df = ci.get_industry()
+    df = ci.get()
     df = df.sort_values(by=['code'])
     df = df.reset_index(drop = True)
+    print(df)

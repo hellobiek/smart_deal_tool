@@ -147,7 +147,6 @@ class DataManager:
                     if is_trading_time():
                         if self.subscriber is None: self.subscriber = Subscriber()
                         if not self.subscriber.status():
-                            print("enter start")
                             self.subscriber.start()
                             if self.init_index_info() | self.init_real_stock_info() == 0: 
                                 self.init_combination_info()
@@ -155,13 +154,11 @@ class DataManager:
                                 self.subscriber.stop()
                                 self.subscriber = None
                         else:
-                            print("enter run")
                             self.collect_stock_runtime_data()
                             self.collect_combination_runtime_data()
                             self.collect_index_runtime_data()
                             self.animation_client.collect()
                     else:
-                        print("enter stop")
                         if self.subscriber is not None and self.subscriber.status():
                             self.subscriber.stop()
                             self.subscriber = None

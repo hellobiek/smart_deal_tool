@@ -87,7 +87,6 @@ class CReivew:
         plt.savefig('%s/emotion.png' % dir_name, dpi=1000)
 
     def industry_plot(self, dir_name, industry_info):
-        #colors = ['#F5DEB3', '#A0522D', '#1E90FF', '#FFE4C4', '#00FFFF', '#DAA520', '#3CB371', '#808080', '#ADFF2F', '#4B0082', '#ADD8E6']
         colors = ['#F5DEB3', '#A0522D', '#1E90FF', '#FFE4C4', '#00FFFF', '#DAA520', '#3CB371', '#808080', '#ADFF2F', '#4B0082']
         industry_info.amount = industry_info.amount / 10000000000
         total_amount = industry_info.amount.sum()
@@ -211,6 +210,7 @@ class CReivew:
                 self.emotion_plot(dir_name)
                 #static analysis
                 self.static_plot(dir_name, stock_info, limit_info)
+                #static analysis
                 #gen review file
                 self.doc.generate(stock_info, industry_info, index_info)
                 #gen review animation
@@ -260,4 +260,3 @@ if __name__ == '__main__':
     _date = '2018-08-28'
     creview = CReivew(ct.DB_INFO)
     data = creview.update()
-    print(data)
