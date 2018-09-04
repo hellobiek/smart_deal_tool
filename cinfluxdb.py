@@ -1,5 +1,4 @@
 #encoding=utf-8
-from influxdb import InfluxDBClient
 from influxdb import DataFrameClient
 from common import create_redis_obj
 ALL_IN_DATABASES = 'all_in_databases'

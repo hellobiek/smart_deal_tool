@@ -18,8 +18,9 @@ from common import trace_func,is_trading_time,df_delta,create_redis_obj,delta_da
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 logger = getLogger(__name__)
+
 class CStock(TickerHandlerBase):
-    def __init__(self, dbinfo, code):
+    def __init__(self, dbinfo, code, should_create_influxdb = False):
         self.code = code
         self.dbname = self.get_dbname(code)
         self.redis = create_redis_obj()
@@ -27,7 +28,7 @@ class CStock(TickerHandlerBase):
         self.data_type_dict = {9:"day"}
         self.influx_client = CInflux(ct.IN_DB_INFO, self.dbname)
         self.mysql_client = CMySQL(dbinfo, self.dbname)
-        if not self.create(): raise Exception("create stock %s table failed" % self.code)
+        if not self.create(should_create_influxdb): raise Exception("create stock %s table failed" % self.code)
 
     def __del__(self):
         self.redis = None
@@ -68,8 +69,8 @@ class CStock(TickerHandlerBase):
         time2Market = datetime(y,m,d)
         return True if (datetime.today()-time2Market).days < timeLimit else False
 
-    def create(self):
-        self.create_influx_db()
+    def create(self, should_create_influxdb):
+        if should_create_influxdb: self.create_influx_db()
         return self.create_mysql_table()
 
     def create_influx_db(self):

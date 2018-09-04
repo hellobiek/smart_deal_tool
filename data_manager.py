@@ -330,7 +330,7 @@ class DataManager:
         for code_id in concerned_list:
             ret = self.subscriber.subscribe_tick(add_prifix(code_id), CStock)
             if 0 == ret:
-                if code_id not in self.stock_objs: self.stock_objs[code_id] = CStock(self.dbinfo, code_id)
+                if code_id not in self.stock_objs: self.stock_objs[code_id] = CStock(self.dbinfo, code_id, should_create_influxdb = True)
             else:
                 return ret
         return 0
