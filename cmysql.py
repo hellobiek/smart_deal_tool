@@ -104,7 +104,7 @@ class CMySQL:
                 log.debug(e)
                 if 'conn' in dir(): conn.close()
             except Exception as e:
-                logger.error(e)
+                log.error(e)
                 if 'conn' in dir(): conn.close()
             if True == res: return data
         log.error("%s get %s failed afer try %d times" % (self.dbname, sql, ct.RETRY_TIMES))

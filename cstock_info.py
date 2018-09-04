@@ -13,7 +13,6 @@ from common import trace_func, create_redis_obj
 logger = getLogger(__name__)
 
 class CStockInfo:
-    @trace_func(log = logger)
     def __init__(self, dbinfo):
         self.table = ct.STOCK_INFO_TABLE
         self.redis = create_redis_obj()
@@ -24,12 +23,10 @@ class CStockInfo:
         if not self.init(): raise Exception("init stock info table failed")
         #if not self.register(): raise Exception("create trigger info table:%s failed" % self.trigger)
 
-    @trace_func(log = logger)
     def register(self):
         sql = "create trigger %s after insert on %s for each row set @set=gman_do_background('%s',json_object('code',NEW.code,'name',NEW.name,'industry',NEW.industry,'area',NEW.area,'pe',NEW.pe,'outstanding',NEW.outstanding,'totals',NEW.totals,'totalAssets',NEW.totalAssets,'fixedAssets',NEW.fixedAssets,'liquidAssets',NEW.liquidAssets,'reserved',NEW.reserved,'reservedPerShare',NEW.reservedPerShare,'esp',NEW.esp,'bvps',NEW.bvps,'pb',NEW.pb,'timeToMarket',NEW.timeToMarket,'undp',NEW.undp,'perundp',NEW.perundp,'rev',NEW.rev,'profit',NEW.profit,'gpr',NEW.gpr,'npr',NEW.npr,'limitUpNum',NEW.limitUpNum,'limitDownNum',NEW.limitDownNum,'holders',NEW.holders));" % (self.trigger,self.table,self.trigger)
         return True if self.trigger in self.mysql_client.get_all_triggers() else self.mysql_client.register(sql, self.trigger)
 
-    @trace_func(log = logger)
     def create(self):
         sql = 'create table if not exists %s(code varchar(10) not null,\
                                               name varchar(10),\
@@ -61,7 +58,6 @@ class CStockInfo:
                                               PRIMARY KEY (code))' % self.table
         return True if self.table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.table)
 
-    @trace_func(log = logger)
     def init(self):
         df = ts.get_stock_basics()
         if df is None: return False 
@@ -90,7 +86,6 @@ class CStockInfo:
         else:
             return df.loc[df.code == code][column].values[0]
 
-    @trace_func(log = logger)
     def get_classified_stocks(self, code_list = list()):
         df = self.get()
         df = df[['code','name','timeToMarket','totals','outstanding','industry','area']]
@@ -99,7 +94,6 @@ class CStockInfo:
             df = df.ix[df.code.isin(code_list)]
         return df.sort_values('code').reset_index(drop=True)
 
-    @trace_func(log = logger)
     def is_released(self, code_id, _date):
         time2Market = self.get(code = code_id, column = 'timeToMarket')
         if time2Market:

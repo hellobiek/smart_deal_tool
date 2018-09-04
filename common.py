@@ -68,13 +68,13 @@ def is_trading_time(now_time = None):
     if now_time is None:now_time = datetime.now()
     _date = now_time.strftime('%Y-%m-%d')
     y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
-    mor_open_hour,mor_open_minute,mor_open_second = (9,10,0)
+    mor_open_hour,mor_open_minute,mor_open_second = (9,13,0)
     mor_open_time = datetime(y,m,d,mor_open_hour,mor_open_minute,mor_open_second)
-    mor_close_hour,mor_close_minute,mor_close_second = (11,35,0)
+    mor_close_hour,mor_close_minute,mor_close_second = (11,32,0)
     mor_close_time = datetime(y,m,d,mor_close_hour,mor_close_minute,mor_close_second)
-    aft_open_hour,aft_open_minute,aft_open_second = (12,55,0)
+    aft_open_hour,aft_open_minute,aft_open_second = (12,58,0)
     aft_open_time = datetime(y,m,d,aft_open_hour,aft_open_minute,aft_open_second)
-    aft_close_hour,aft_close_minute,aft_close_second = (15,5,0)
+    aft_close_hour,aft_close_minute,aft_close_second = (15,2,0)
     aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
     return (mor_open_time < now_time < mor_close_time) or (aft_open_time < now_time < aft_close_time)
 
