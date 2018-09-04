@@ -66,6 +66,8 @@ class IndustryInfo:
                 if industry == "T00": continue #not include B stock
                 if industry not in industry_dict: industry_dict[industry] = list()
                 industry_dict[industry].append(code)
+            else:
+                raise Exception("data format is changed for tdx hy")
         for key in industry_dict:
             industry_dict[key] = json.dumps(industry_dict[key])
         return industry_dict
