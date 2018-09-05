@@ -75,5 +75,11 @@ class Subscriber:
         return self.quote_ctx.get_rt_ticker(code)
 
 if __name__ == '__main__':
+    from common import get_index_list
     s = Subscriber()
-    x = s.get_subscribed_dict()
+    s.start()
+    x = s.subscribe_quote(get_index_list())
+    print(x)
+    while True:
+        ret, data = s.get_quote_data(get_index_list())
+        print(ret, data)

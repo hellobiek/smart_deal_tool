@@ -20,15 +20,15 @@ pd.set_option('display.max_rows', None)
 logger = getLogger(__name__)
 
 class CStock(TickerHandlerBase):
-    def __init__(self, dbinfo, code, should_create_influxdb = False):
+    def __init__(self, dbinfo, code, should_create_influxdb = False, should_create_mysqldb = True):
         self.code = code
         self.dbname = self.get_dbname(code)
         self.redis = create_redis_obj()
-        self.name = self.get('name')
         self.data_type_dict = {9:"day"}
         self.influx_client = CInflux(ct.IN_DB_INFO, self.dbname)
         self.mysql_client = CMySQL(dbinfo, self.dbname)
-        if not self.create(should_create_influxdb): raise Exception("create stock %s table failed" % self.code)
+        if not self.create(should_create_influxdb, should_create_mysqldb): 
+            raise Exception("create stock %s table failed" % self.code)
 
     def __del__(self):
         self.redis = None
@@ -69,12 +69,18 @@ class CStock(TickerHandlerBase):
         time2Market = datetime(y,m,d)
         return True if (datetime.today()-time2Market).days < timeLimit else False
 
-    def create(self, should_create_influxdb):
-        if should_create_influxdb: self.create_influx_db()
-        return self.create_mysql_table()
+    def create(self, should_create_influxdb, should_create_mysqldb):
+        if should_create_influxdb and should_create_mysqldb:
+            return self.create_influx_db() and self.create_mysql_table()
+        elif should_create_influxdb and not should_create_mysqldb:
+            return self.create_influx_db()
+        elif not should_create_influxdb and should_create_mysqldb:
+            return self.create_mysql_table()
+        else:
+            return True
 
     def create_influx_db(self):
-        self.influx_client.create()
+        return self.influx_client.create()
 
     def create_mysql_table(self):
         for _, table_name in self.data_type_dict.items():

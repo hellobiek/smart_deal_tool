@@ -37,9 +37,10 @@ class CInflux:
     
     def create(self, dbname = None):
         dbname = dbname if dbname is not None else self.dbname
-        if dbname in self.get_all_databases(): return 
+        if dbname in self.get_all_databases(): return True
         self.df_client.create_database(dbname)
         self.redis.sadd(ALL_IN_DATABASES, dbname)
+        return True
 
     def delete(self, dbname = None):
         dbname = dbname if dbname is not None else self.dbname

@@ -6,6 +6,7 @@ import const as ct
 pool = redis.ConnectionPool(host=ct.REDIS_HOST, port=ct.REDIS_PORT, decode_responses=False)
 r = redis.StrictRedis(connection_pool=pool)
 df_byte = r.smembers('all_existed_stocks')
+print(df_byte)
 print(len(df_byte))
 
 #all_tables = r.smembers(ALL_TABLES)

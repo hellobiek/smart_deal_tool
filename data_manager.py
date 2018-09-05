@@ -121,7 +121,7 @@ class DataManager:
     def collect_index_runtime_data(self):
         ret, data = self.subscriber.get_quote_data(get_index_list())
         if 0 != ret:
-            logger.error("index get subscribe data failed")
+            logger.error("index get subscribe data failed, %s" % data)
             return
         obj_pool = Pool(10)
         for code in self.index_objs:
@@ -145,6 +145,7 @@ class DataManager:
             try:
                 if self.cal_client.is_trading_day():
                     if is_trading_time():
+                        sleep_time = 1
                         if self.subscriber is None: self.subscriber = Subscriber()
                         if not self.subscriber.status():
                             self.subscriber.start()
@@ -159,6 +160,7 @@ class DataManager:
                             self.collect_index_runtime_data()
                             self.animation_client.collect()
                     else:
+                        sleep_time = 60
                         if self.subscriber is not None and self.subscriber.status():
                             self.subscriber.stop()
                             self.subscriber = None
@@ -318,7 +320,7 @@ class DataManager:
             _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(self.dbinfo, code_id)
             for _date in date_only_array:
                 if self.cal_client.is_trading_day(_date):
-                    if obj_pool.full(): obj_pool.join()
+                    if obj_pool.full(): obj_pool.join(timeout = 120)
                     obj_pool.spawn(_obj.set_ticket, _date)
             redis.sadd(ALL_STOCKS, code_id)
             if self.cal_client.is_trading_day() and is_trading_time(): break
