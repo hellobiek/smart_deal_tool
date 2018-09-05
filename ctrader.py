@@ -50,6 +50,7 @@ class CTrader:
                                         logger.error("buy new stock:%s amount:%s for %s error, msg:%s" % (stock, amount, _today, msg))
             except Exception as e:
                 logger.error(e)
+                traceback.print_exc()
     
     def get_new_stock_list(self):
         stock_list = []
@@ -65,4 +66,4 @@ class CTrader:
 
 if __name__ == "__main__":
     trader = CTrader(ct.DB_INFO) 
-    trader.buy_new_stock(100)
+    trader.buy_new_stock(0)

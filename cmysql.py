@@ -115,7 +115,6 @@ class CMySQL:
         for i in range(ct.RETRY_TIMES):
             try:
                 conn = db.connect(host=self.dbinfo['host'],user=self.dbinfo['user'],passwd=self.dbinfo['password'],db=self.dbname,charset=ct.UTF8)
-                conn.ping(True)
                 cur = conn.cursor()
                 cur.execute(sql)
                 conn.commit()
@@ -131,7 +130,8 @@ class CMySQL:
                 if 'cur' in dir(): cur.close()
                 if 'conn' in dir(): conn.close()
             if hasSucceed: return True
-            time.sleep(ct.SHORT_SLEEP_TIME)
+            if ct.RETRY_TIMES > 1: 
+                time.sleep(ct.SHORT_SLEEP_TIME)
         log.error("%s failed" % sql)
         return False
 

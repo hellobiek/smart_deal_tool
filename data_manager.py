@@ -271,7 +271,7 @@ class DataManager:
         greenlets = list()
         for _index, code_id in df.code.iteritems():
             logger.info("init today tick count:%s, code:%s" % ((_index + 1), code_id))
-            _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(self.dbinfo, code_id)
+            _obj = CStock(self.dbinfo, code_id)
             if obj_pool.full(): obj_pool.join(timeout = 30)
             greenlets.append(obj_pool.spawn(_obj.set_k_data))
             greenlets.append(obj_pool.spawn(_obj.set_ticket, _date))
@@ -332,7 +332,7 @@ class DataManager:
         for code_id in concerned_list:
             ret = self.subscriber.subscribe_tick(add_prifix(code_id), CStock)
             if 0 == ret:
-                if code_id not in self.stock_objs: self.stock_objs[code_id] = CStock(self.dbinfo, code_id, should_create_influxdb = True)
+                if code_id not in self.stock_objs: self.stock_objs[code_id] = CStock(self.dbinfo, code_id, should_create_influxdb = True, should_create_mysqldb = False)
             else:
                 return ret
         return 0

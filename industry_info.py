@@ -66,8 +66,6 @@ class IndustryInfo:
                 if industry == "T00": continue #not include B stock
                 if industry not in industry_dict: industry_dict[industry] = list()
                 industry_dict[industry].append(code)
-            else:
-                raise Exception("data format is changed for tdx hy")
         for key in industry_dict:
             industry_dict[key] = json.dumps(industry_dict[key])
         return industry_dict
@@ -99,7 +97,7 @@ class IndustryInfo:
 
 if __name__ == '__main__':
     ci = IndustryInfo(ct.DB_INFO)
-    df = ci.get()
+    df = ci.get_industry()
     df = df.sort_values(by=['code'])
     df = df.reset_index(drop = True)
     print(df)
