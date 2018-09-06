@@ -17,10 +17,8 @@ class RIndexStock:
     def __init__(self, dbinfo):
         self.redis = create_redis_obj()
         self.dbname = self.get_dbname()
-        self.mysql_client = cmysql.CMySQL(dbinfo)
-
-    def init(self):
-        self.mysql_client.create_db(self.get_dbname())
+        self.mysql_client = cmysql.CMySQL(dbinfo, self.dbname)
+        if not self.mysql_client.create_db(self.get_dbname()): raise Exception("init rindex stock database failed")
 
     @staticmethod
     def get_dbname():
@@ -41,7 +39,23 @@ class RIndexStock:
         return False
 
     def create_table(self, table):
-        sql = 'create table if not exists %s(code varchae(6) not null, date varchar(10) not null, price float(5,2), volume int not null, amount int not null, PRIMARY KEY (code, date, ctime, cchange, volume, amount, ctype))' % table
+        sql = 'create table if not exists %s(date varchar(10) not null,\
+                                             code varchar(10) not null,\
+                                             name varchar(10),\
+                                             changepercent float,\
+                                             trade float,\
+                                             open float,\
+                                             high float,\
+                                             low float,\
+                                             settlement float,\
+                                             volume float,\
+                                             turnoverratio float,\
+                                             amount float,\
+                                             per float,\
+                                             pb float,\
+                                             mktcap float,\
+                                             nmc float,\
+                                             PRIMARY KEY (date, code))' % table
         return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
 
     def get_data_in_range(self, start_date, end_date):
@@ -81,21 +95,23 @@ class RIndexStock:
     def set_data(self):
         cdate = datetime.now().strftime('%Y-%m-%d')
         table_name = self.get_table_name(cdate)
+        self.create_table(table_name)
         if not self.is_table_exists(table_name):
             if not self.create_table(table_name):
                 logger.error("create tick table failed")
                 return
-            self.redis.sadd(self.dbname, tick_table)
+            self.redis.sadd(self.dbname, table_name)
         if self.is_date_exists(table_name, cdate): 
             logger.debug("existed table:%s, date:%s" % (table_name, cdate))
             return
         df = ts.get_today_all()
         df['date'] = cdate
+        self.redis.set(ct.TODAY_ALL_STOCK, _pickle.dumps(df, 2))
         if self.mysql_client.set(df, table_name):
-            self.redis.set(table_name, cdate)
+            self.redis.sadd(table_name, cdate)
 
 if __name__ == '__main__':
+    #start_date = '2018-03-25'
+    #end_date = '2018-04-05'
     ris = RIndexStock(ct.DB_INFO)
-    start_date = '2018-03-25'
-    end_date = '2018-04-05'
     ris.set_data()

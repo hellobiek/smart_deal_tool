@@ -172,7 +172,8 @@ class CMySQL:
         return db_list
 
     def delete_db(self, dbname):
-        if self.redis.exists(ALL_DATABASES) and dbname not in self.redis.smembers(ALL_DATABASES): return True
+        if self.redis.exists(ALL_DATABASES) and dbname not in set(str(tdb, encoding = "utf8") for tdb in self.redis.smembers(ALL_DATABASES)):
+            return True
         res = False
         try:
             conn = pymysql.connect(host=self.dbinfo['host'], user=self.dbinfo['user'], passwd=self.dbinfo['password'], charset='utf8')
@@ -191,7 +192,7 @@ class CMySQL:
         return res
 
     def create_db(self, dbname):
-        if self.redis.exists(ALL_DATABASES) and dbname in self.redis.smembers(ALL_DATABASES):
+        if self.redis.exists(ALL_DATABASES) and dbname in set(str(tdb, encoding = "utf8") for tdb in self.redis.smembers(ALL_DATABASES)):
             return True
         res = False
         try:

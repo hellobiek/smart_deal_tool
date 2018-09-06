@@ -12,6 +12,7 @@ from cindex import CIndex
 from climit import CLimit 
 from gevent.pool import Pool
 from creview import CReivew
+from rstock import RIndexStock 
 from cdelisted import CDelisted
 from ccalendar import CCalendar
 from animation import CAnimation
@@ -45,6 +46,7 @@ class DataManager:
         self.cal_client = CCalendar(dbinfo)
         self.comb_info_client = CombinationInfo(dbinfo)
         self.stock_info_client = CStockInfo(dbinfo)
+        self.rindex_stock_data_client = RIndexStock(dbinfo) 
         self.index_info_client = IndexInfo(dbinfo)
         self.industry_info_client = IndustryInfo(dbinfo)
         self.delisted_info_client = CDelisted(dbinfo)
@@ -227,7 +229,7 @@ class DataManager:
                             self.set_update_info(9)
                            
                         if finished_step < 10:
-                            self.set_today_all_stock_data()
+                            self.rindex_stock_data_client.set_data()
                             self.set_update_info(10)
 
                         if finished_step < 11:
@@ -240,12 +242,6 @@ class DataManager:
             except Exception as e:
                 logger.error(e)
             time.sleep(sleep_time)
-
-    def set_today_all_stock_data(self):
-        df = ts.get_today_all()
-        df['date'] = datetime.now().strftime('%Y-%m-%d')
-        redis = create_redis_obj()
-        redis.set(ct.TODAY_ALL_STOCK, _pickle.dumps(df, 2))
 
     def get_concerned_list(self):
         combination_info = self.comb_info_client.get()

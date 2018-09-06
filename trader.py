@@ -183,9 +183,11 @@ class Trader:
         if ret != 0:
             self.log.warn("get to url fail: ret=%d" % ret)
             return -5, "get order url failed"
-        self.log.debug("json loads result:%s" % result.decode(errors='ignore'))
-        stock_info = json.loads(result.decode())
-        return int(stock_info[0]['errorCode']), stock_info[0]['maxstkqty']
+        try:
+            stock_info = json.loads(result.decode())
+            return int(stock_info[0]['errorCode']), stock_info[0]['maxstkqty']
+        except:
+            return -6, "stock info can not be json."
 
 if '__main__' == __name__:
     with open(ct.USER_FILE) as f:
