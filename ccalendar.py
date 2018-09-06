@@ -41,13 +41,17 @@ class CCalendar:
         if not res: return False
         if status: return self.redis.set(ct.CALENDAR_INFO, _pickle.dumps(new_trading_day, 2))
 
-    def is_trading_day(self, _date = None):
+    @staticmethod
+    def is_trading_day(_date = None, redis = None):
+        _redis = create_redis_obj() if redis is None else redis
         tmp_date = _date if _date is not None else datetime.now().strftime('%Y-%m-%d')
-        df = self.get()
+        df = CCalendar.get()
         return True if df.empty else 1 == df.loc[df.calendarDate == tmp_date].isOpen.values[0]
 
-    def get(self, _date = None):
-        df_byte = self.redis.get(ct.CALENDAR_INFO)
+    @staticmethod
+    def get(redis = None, _date = None):
+        _redis = create_redis_obj() if redis is None else redis
+        df_byte = _redis.get(ct.CALENDAR_INFO)
         if df_byte is None: return pd.DataFrame() 
         df = _pickle.loads(df_byte)
         return df if _date is None else df.loc[df.calendarDate == _date]

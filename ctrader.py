@@ -29,7 +29,7 @@ class CTrader:
         while True:
             try:
                 if self.cal_client.is_trading_day():
-                    if is_trading_time():
+                    #if is_trading_time():
                         time.sleep(sleep_time)
                         _today = datetime.now().strftime('%Y-%m-%d')
                         logger.debug("bnew_succeed_date %s, today:%s." % (self.bnew_succeed_date, _today))
@@ -38,16 +38,16 @@ class CTrader:
                             if len(n_list) == 0:
                                 logger.info("no new stock for %s." % _today)
                                 self.bnew_succeed_date = _today
-                                return
+                            succeed = True
                             for stock in n_list:
                                 ret, amount = self.trader.max_amounts(stock[0], stock[1])
                                 if 0 == ret:
                                     ret, msg = self.trader.deal(stock[0], stock[1], amount, "B")
-                                    if ret == 0:
-                                        logger.info("buy new stock:%s amount:%s for %s succeed" % (stock, amount, _today))
-                                        self.bnew_succeed_date = _today
-                                    else:
+                                    if ret != 0 and ret != ct.ALREADY_BUY:
                                         logger.error("buy new stock:%s amount:%s for %s error, msg:%s" % (stock, amount, _today, msg))
+                                        succeed = False
+                            if True == succeed: 
+                                self.bnew_succeed_date = _today
             except Exception as e:
                 logger.error(e)
                 traceback.print_exc()

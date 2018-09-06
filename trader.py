@@ -183,6 +183,7 @@ class Trader:
         if ret != 0:
             self.log.warn("get to url fail: ret=%d" % ret)
             return -5, "get order url failed"
+        self.log.debug("json loads result:%s" % result.decode(errors='ignore'))
         stock_info = json.loads(result.decode())
         return int(stock_info[0]['errorCode']), stock_info[0]['maxstkqty']
 
