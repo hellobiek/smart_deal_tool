@@ -95,6 +95,8 @@ class Trader:
         if match:
             if match.group(1) == "150906130":
                 return ct.NOT_ENOUGH_MONEY, "no enough money"
+            elif match.group(1) == "160002006":
+                return ct.NOT_DEAL_TIME, "[配售申购]业务，当前时间不允许委托，可委托的时间段为：091500-150000!" 
             elif match.group(1) == "150906090":
                 return ct.ALREADY_BUY, "already buy new stock for:%s" % code
             elif match.group(1) == "150906135":
