@@ -3,14 +3,11 @@ import gevent
 from gevent import monkey
 monkey.patch_all(thread=True)
 from gevent.pool import Pool
-from greenlet import greenlet
 import os
 import time
-import json
 import _pickle
 import datetime
 from datetime import datetime, date
-import traceback
 import const as ct
 import numpy as np
 import pandas as pd
@@ -264,61 +261,57 @@ class CReivew:
         plt.close(fig)
 
     def gen_stocks_trends(self, _date):
-        stock_data = self.get_today_all_stock_data(_date)
-        stock_info = CStockInfo.get()
-        stock_data = stock_data[stock_data.code.isin(stock_info.code.tolist())]
-        stock_data = stock_data.reset_index(drop = True)
+        stock_data = CStockInfo.get()
         start_date = '2018-07-05'
         end_date   = _date
-        ndays = delta_days(start_date, end_date)
-        date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(start_date, "%Y-%m-%d"))
-        data_times = pd.date_range(date_dmy_format, periods=ndays, freq='D')
-        date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
-        greenlets = list()
+        greenlets = dict()
         logger.info("read start")
-        obj_pool = Pool(400)
+        obj_pool = Pool(300)
         for code in stock_data.code:
             sql = "select * from day where cdate between \"%s\" and \"%s\"" %(start_date, end_date)
             self.mysql_client.changedb(CStock.get_dbname(code))
-            if obj_pool.full():
-                obj_pool.wait_available()
-                print("available now")
-            g = obj_pool.spawn(self.mysql_client.get, sql)
-            greenlets.append(g)
-            obj_pool.add(g)
-        obj_pool.join(timeout = 120)
+            greenlets[code] = obj_pool.spawn(self.mysql_client.get, sql)
+        obj_pool.join(timeout = 180)
         obj_pool.kill()
         self.mysql_client.changedb()
         logger.info("read succeed")
         all_df = pd.DataFrame()
         while(len(greenlets) > 0):
-            logger.info("1:%s" % len(greenlets))
-            for i in range(len(greenlets) - 1, -1, -1):
-                if greenlets[i].ready():
-                    if greenlets[i].value is not None:
-                        all_df = all_df.append(greenlets[i].value)
-                        del greenlets[i]
-                        logger.info("2:%s" % len(greenlets))
+            for code in list(greenlets.keys()):
+                g = greenlets[code]
+                if g.ready():
+                    if g.value is not None:
+                        tmp_df = g.value
+                        tmp_df['code'] = code
+                        print(tmp_df)
+                        import pdb
+                        pdb.set_trace()
+                        #all_df = all_df.append(tmp_df)
+                        greenlets.pop(code)
                     else:
-                        logger.info(greenlets[i].name)
-                        greenlets[i].start()
-                        greenlets[i].join(timeout = 10)
+                        logger.info("%s restart" % code)
+                        g.start()
+                        g.join(timeout = 10)
+        logger.info("dataframe succeed")
         return all_df
 
 if __name__ == '__main__':
     _date = datetime.now().strftime('%Y-%m-%d')
     creview = CReivew(ct.DB_INFO)
-    df = creview.gen_stocks_trends('2018-09-05')
-    with open('temp.json', 'w') as f:
-        f.write(df.to_json(orient='records', lines=True))
-
-    with open('temp.json', 'r') as f:
-        data = json.load(f)
-        df = pd.read_json(data, orient='records')
-
-    print(df)
-    #for index, code in df.code.iteritems():
-    #    p_df  = df[df.code ==  code]
-    #    print(p_df)
-    #    import sys
-    #    sys.exit(0)
+    if not os.path.exists('temp.json'):
+        df = creview.gen_stocks_trends('2018-09-05')
+        logger.info("begin write file")
+        with open('temp.json', 'w') as f:
+            f.write(df.to_json(orient='records', lines=True))
+        logger.info("write file success")
+    else:
+        logger.info("begin read file")
+        with open('temp.json', 'r') as f:
+            df = pd.read_json(f.read(), orient='records', lines=True)
+        logger.info("read file success")
+    df = df.reset_index(drop = True)
+    for index, code in df.code.iteritems():
+        p_df = df[df.code ==  code]
+        mean_value = np.mean(p_df.amount)
+        median_value = np.median(p_df.amount)
+        logger.info("code:%s, mean value:%s, median value:%s" % (code, mean_value, median_value))

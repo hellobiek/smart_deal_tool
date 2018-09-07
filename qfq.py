@@ -38,28 +38,29 @@ def adjust_share(data, code, info):
         start_index = end_index
         end_index = dates[len(dates) - 1]
 
-        money = info.loc[info_index, 'money']   #前流通盘
-        price = info.loc[info_index, 'price']   #前总股本
-        count = info.loc[info_index, 'count']   #后流通盘
-        rate  = info.loc[info_index, 'rate']    #后总股本
+        pre_outstanding = info.loc[info_index, 'money']   #前流通盘
+        pre_totals = info.loc[info_index, 'price']   #前总股本
+        cur_outstanding = info.loc[info_index, 'count']   #后流通盘
+        cur_totals = info.loc[info_index, 'rate']    #后总股本
 
         if 0 == info_index:
-            data.at[start_index:end_index, 'outstanding'] = count
-            data.at[start_index:end_index, 'totals'] = rate
-            pre_outstanding = money
-            pre_totals = price
+            data.at[start_index:end_index, 'outstanding'] = cur_outstanding
+            data.at[start_index:end_index, 'totals'] = cur_totals
+            last_pre_outstanding = pre_outstanding
+            last_pre_totals = pre_totals
         else:
-            if count == pre_outstanding and rate == pre_totals:
-                data.at[start_index + 1:end_index, 'outstanding'] = count
-                data.at[start_index + 1:end_index, 'totals'] = rate
-                pre_outstanding = money
-                pre_totals = price
-            else:
-                logger.error("%s 日期:%s 前流通盘:%s 不等于 预期前流通盘:%s 或者 后流通盘:%s 不等于 预期后流通盘:%s" % (code, data.loc[start_index, 'date'], money, price, data.loc[start_index, 'outstanding'], data.loc[start_index, 'totals']))
+            if cur_outstanding != last_pre_outstanding:
+                logger.error("%s 日期:%s 前流通盘:%s 不等于 预期前流通盘:%s" % (code, start_date, cur_outstanding, last_pre_outstanding))
+            elif cur_totals != last_pre_totals:
+                logger.error("%s 日期:%s 后流通盘:%s 不等于 预期后流通盘:%s" % (code, start_date, cur_totals, last_pre_totals))
+            data.at[start_index + 1:end_index, 'outstanding'] = cur_outstanding
+            data.at[start_index + 1:end_index, 'totals'] = cur_totals
+            last_pre_outstanding = pre_outstanding
+            last_pre_totals = pre_totals
     return data
 
 if __name__ == '__main__':
-    code = '600008'
+    code = '000677'
     prestr = "1" if get_market_name(code) == "sh" else "0"
     filename = "%s%s.csv" % (prestr, code)
     data = pd.read_csv("/data/tdx/history/days/%s" % filename, sep = ',')
@@ -92,4 +93,4 @@ if __name__ == '__main__':
 
     data = qfq(data, code, t_info)
     data = data[['date', 'open', 'high', 'close', 'low', 'volume', 'amount', 'outstanding', 'totals', 'adj']]
-    print(data)
+    #print(data)

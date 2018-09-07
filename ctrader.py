@@ -46,6 +46,8 @@ class CTrader:
                                     if ret != 0 and ret != ct.ALREADY_BUY:
                                         logger.error("buy new stock:%s amount:%s for %s error, msg:%s, ret:%s" % (stock, amount, _today, msg, ret))
                                         succeed = False
+                                    elif ret == 0:
+                                        logger.info("buy new stock:%s amount:%s for %s succeed." % (stock, amount, _today))
                             if True == succeed: 
                                 self.bnew_succeed_date = _today
             except Exception as e:
