@@ -3,6 +3,8 @@ import gevent
 from gevent import monkey
 monkey.patch_all(thread=True)
 from gevent.pool import Pool
+from gevent.lock import Semaphore
+from cgreent import CGreenlet
 import os
 import time
 import _pickle
@@ -41,6 +43,7 @@ class CReivew:
         self.sdir = '/data/docs/blog/hellobiek.github.io/source/_posts'
         self.doc = CDoc(self.sdir)
         self.stock_objs = dict()
+        self.lock = Semaphore(1)
         self.redis = create_redis_obj()
         self.mysql_client = CMySQL(self.dbinfo)
         self.cal_client = ccalendar.CCalendar(without_init = True)
@@ -260,34 +263,39 @@ class CReivew:
         ani.save(sfile, writer)
         plt.close(fig)
 
+    def get_range_data(self, code, start_date, end_date):
+        sql = "select * from day where cdate between \"%s\" and \"%s\"" %(start_date, end_date)
+        self.mysql_client.changedb(CStock.get_dbname(code))
+        return self.mysql_client.get(sql)
+
     def gen_stocks_trends(self, _date):
         stock_data = CStockInfo.get()
         start_date = '2018-07-05'
         end_date   = _date
-        greenlets = dict()
+        greenlets = list()
         logger.info("read start")
         obj_pool = Pool(300)
         for code in stock_data.code:
-            sql = "select * from day where cdate between \"%s\" and \"%s\"" %(start_date, end_date)
-            self.mysql_client.changedb(CStock.get_dbname(code))
-            greenlets[code] = obj_pool.spawn(self.mysql_client.get, sql)
+            #with self.lock:
+            g = CGreenlet(code, self.get_range_data, code, start_date, end_date)
+            greenlets.append(g)
+            obj_pool.start(g)
         obj_pool.join(timeout = 180)
         obj_pool.kill()
         self.mysql_client.changedb()
+
         logger.info("read succeed")
         all_df = pd.DataFrame()
         while(len(greenlets) > 0):
-            for code in list(greenlets.keys()):
-                g = greenlets[code]
+            for i in range(len(greenlets) - 1, -1, -1):
+                g = greenlets[i]
                 if g.ready():
                     if g.value is not None:
                         tmp_df = g.value
-                        tmp_df['code'] = code
-                        print(tmp_df)
-                        import pdb
-                        pdb.set_trace()
-                        #all_df = all_df.append(tmp_df)
-                        greenlets.pop(code)
+                        if not tmp_df.empty:
+                            tmp_df['code'] = g.name
+                            all_df = all_df.append(tmp_df)
+                        del greenlets[i]
                     else:
                         logger.info("%s restart" % code)
                         g.start()
