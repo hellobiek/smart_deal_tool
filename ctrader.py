@@ -48,6 +48,8 @@ class CTrader:
                                         succeed = False
                                     elif ret == 0:
                                         logger.info("buy new stock:%s amount:%s for %s succeed." % (stock, amount, _today))
+                                    elif ret == ct.ALREADY_BUY:
+                                        logger.info("already buy new stock:%s amount:%s for %s, no use to buy more." % (stock, amount, _today))
                             if True == succeed: 
                                 self.bnew_succeed_date = _today
             except Exception as e:
