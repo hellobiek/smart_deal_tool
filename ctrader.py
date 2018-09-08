@@ -21,9 +21,10 @@ class CTrader:
     def __init__(self, dbinfo):
         self.mysql_client = CMySQL(dbinfo)
         self.cal_client = ccalendar.CCalendar(without_init = True)
-        with open(ct.USER_FILE) as f: infos = json.load(f)
-        self.trader = Trader(infos[0]["account"], infos[0]["passwd_encrypted"], infos[0]["secuids_sh"], infos[0]["secuids_sz"])
-        self.bnew_succeed_date = ""
+        if self.cal_client.is_trading_day():
+            with open(ct.USER_FILE) as f: infos = json.load(f)
+            self.trader = Trader(infos[0]["account"], infos[0]["passwd_encrypted"], infos[0]["secuids_sh"], infos[0]["secuids_sz"])
+            self.bnew_succeed_date = ""
 
     def buy_new_stock(self, sleep_time):
         while True:

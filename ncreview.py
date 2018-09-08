@@ -21,6 +21,7 @@ import matplotlib.lines as mlines
 import matplotlib.dates as mdates
 import matplotlib.ticker as ticker
 import matplotlib.animation as animation
+from matplotlib.collections import LineCollection
 from matplotlib.font_manager import FontProperties
 from cdoc import CDoc
 from cmysql import CMySQL
@@ -29,6 +30,7 @@ from cindex import CIndex
 from climit import CLimit
 from cstock_info import CStockInfo 
 from industry_info import IndustryInfo
+from sklearn import cluster, covariance, manifold
 import ccalendar
 from common import create_redis_obj, is_trading_time, is_afternoon, delta_days
 from log import getLogger
@@ -295,11 +297,13 @@ class CReivew:
                         if not tmp_df.empty:
                             tmp_df['code'] = g.name
                             all_df = all_df.append(tmp_df)
-                        del greenlets[i]
                     else:
-                        logger.info("%s restart" % code)
-                        g.start()
-                        g.join(timeout = 10)
+                        logger.info("%s restart" % g.name)
+                        g_new = CGreenlet(g.name, self.get_range_data, g.name, start_date, end_date)
+                        g_new.start()
+                        g_new.join(timeout = 6)
+                        greenlets.append(g_new)
+                    del greenlets[i]
         logger.info("dataframe succeed")
         return all_df
 
@@ -317,9 +321,115 @@ if __name__ == '__main__':
         with open('temp.json', 'r') as f:
             df = pd.read_json(f.read(), orient='records', lines=True)
         logger.info("read file success")
+
     df = df.reset_index(drop = True)
-    for index, code in df.code.iteritems():
+    df.code = df.code.astype(str).str.zfill(6)
+    df.close = df.close * df.adj
+    df.open = df.open * df.adj
+
+    code_list = set(df.code.tolist())
+    good_list = list()
+    for code in code_list:
         p_df = df[df.code ==  code]
         mean_value = np.mean(p_df.amount)
         median_value = np.median(p_df.amount)
-        logger.info("code:%s, mean value:%s, median value:%s" % (code, mean_value, median_value))
+        if mean_value > 1000000000 and median_value > 1000000000:
+            good_list.append(code)
+            logger.info("length:%s, code:%s, mean value:%s, median value:%s" % (len(good_list), code, mean_value, median_value))
+
+    logger.info("choose stock succeed, length:%s" % len(good_list))
+    total_good_list = [len(df[df.code ==  stock]) for stock in good_list]
+
+    max_length = np.argmax(np.bincount(total_good_list))
+    logger.info("max length:%s" % max_length)
+
+    good_list = [stock for stock in good_list if len(df[df.code ==  stock]) == max_length]
+    logger.info("get good list succeed, length:%s" % len(good_list))
+
+    close_price_list = [df[df.code == code].close.tolist() for code in good_list]
+    close_prices = np.vstack(close_price_list)
+
+    open_price_list = [df[df.code == code].open.tolist() for code in good_list]
+    open_prices = np.vstack(open_price_list)
+
+    # the daily variations of the quotes are what carry most information
+    variation = (close_prices - open_prices) * 100 / open_prices
+
+    logger.info("get variation succeed")
+    # #############################################################################
+    # learn a graphical structure from the correlations
+    edge_model = covariance.GraphLassoCV()
+    # standardize the time series: using correlations rather than covariance is more efficient for structure recovery
+    X = variation.copy().T
+    X /= X.std(axis = 0)
+    edge_model.fit(X)
+
+    logger.info("mode compute succeed")
+    # #############################################################################
+    # cluster using affinity propagation
+    _, labels = cluster.affinity_propagation(edge_model.covariance_)
+    n_labels = labels.max()
+    code_list = np.array(good_list)
+    for i in range(n_labels + 1):
+        logger.info('cluster %i: %s' % ((i + 1), ', '.join(code_list[labels == i])))
+
+    # #############################################################################
+    # find a low-dimension embedding for visualization: find the best position of
+    # the nodes (the stocks) on a 2D plane
+    # we use a dense eigen_solver to achieve reproducibility (arpack is
+    # initiated with random vectors that we don't control). In addition, we
+    # use a large number of neighbors to capture the large-scale structure.
+    node_position_model = manifold.LocallyLinearEmbedding(n_components=2, eigen_solver='dense', n_neighbors=6)
+    embedding = node_position_model.fit_transform(X.T).T
+
+    # #############################################################################
+    # visualizatio
+    plt.figure(1, facecolor='w', figsize=(10, 8))
+    plt.clf()
+    ax = plt.axes([0., 0., 1., 1.])
+    plt.axis('off')
+
+    # display a graph of the partial correlations
+    partial_correlations = edge_model.precision_.copy()
+    d = 1 / np.sqrt(np.diag(partial_correlations))
+    partial_correlations *= d
+    partial_correlations *= d[:, np.newaxis]
+    non_zero = (np.abs(np.triu(partial_correlations, k=1)) > 0.02)
+
+    # plot the nodes using the coordinates of our embedding
+    plt.scatter(embedding[0], embedding[1], s=100 * d ** 2, c = labels, cmap=plt.cm.nipy_spectral)
+
+    # plot the edges
+    start_idx, end_idx = np.where(non_zero)
+    # a sequence of (*line0*, *line1*, *line2*), where:: linen = (x0, y0), (x1, y1), ... (xm, ym)
+    segments = [[embedding[:, start], embedding[:, stop]] for start, stop in zip(start_idx, end_idx)]
+    values = np.abs(partial_correlations[non_zero])
+    lc = LineCollection(segments, zorder=0, cmap=plt.cm.hot_r, norm=plt.Normalize(0, .7 * values.max()))
+    lc.set_array(values)
+    lc.set_linewidths(15 * values)
+    ax.add_collection(lc)
+
+    # add a label to each node. The challenge here is that we want to position the labels to avoid overlap with other labels
+    for index, (name, label, (x, y)) in enumerate(zip(code_list, labels, embedding.T)):
+        dx = x - embedding[0]
+        dx[index] = 1
+        dy = y - embedding[1]
+        dy[index] = 1
+        this_dx = dx[np.argmin(np.abs(dy))]
+        this_dy = dy[np.argmin(np.abs(dx))]
+        if this_dx > 0:
+            horizontalalignment = 'left'
+            x = x + .002
+        else:
+            horizontalalignment = 'right'
+            x = x - .002
+        if this_dy > 0:
+            verticalalignment = 'bottom'
+            y = y + .002
+        else:
+            verticalalignment = 'top'
+            y = y - .002
+        plt.text(x, y, name, size=10, horizontalalignment=horizontalalignment, verticalalignment=verticalalignment, bbox=dict(facecolor='w', edgecolor=plt.cm.nipy_spectral(label / float(n_labels)), alpha=.6))
+    plt.xlim(embedding[0].min() - .15 * embedding[0].ptp(), embedding[0].max() + .10 * embedding[0].ptp(),)
+    plt.ylim(embedding[1].min() - .03 * embedding[1].ptp(), embedding[1].max() + .03 * embedding[1].ptp())
+    plt.savefig('/tmp/relation.png', dpi=1000)
