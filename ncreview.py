@@ -6,6 +6,7 @@ from gevent.pool import Pool
 from gevent.lock import Semaphore
 from cgreent import CGreenlet
 import os
+import json
 import time
 import _pickle
 import datetime
@@ -333,7 +334,7 @@ if __name__ == '__main__':
         p_df = df[df.code ==  code]
         mean_value = np.mean(p_df.amount)
         median_value = np.median(p_df.amount)
-        if mean_value > 1000000000 and median_value > 1000000000:
+        if mean_value > 100000000 and median_value > 100000000:
             good_list.append(code)
             logger.info("length:%s, code:%s, mean value:%s, median value:%s" % (len(good_list), code, mean_value, median_value))
 
@@ -370,8 +371,28 @@ if __name__ == '__main__':
     _, labels = cluster.affinity_propagation(edge_model.covariance_)
     n_labels = labels.max()
     code_list = np.array(good_list)
+
+    industry_df_info = IndustryInfo.get()
+    industry_dict = dict()
+    for index, name in industry_df_info.code.iteritems():
+        content = industry_df_info.loc[index]['content']
+        code_list = json.loads(content)
+        for code in code_list:
+            industry_dict[code] = name
+
+    cluster_dict = dict()
     for i in range(n_labels + 1):
-        logger.info('cluster %i: %s' % ((i + 1), ', '.join(code_list[labels == i])))
+        cluster_dict[i] = [code for code in code_list[labels == i]]
+        name_list = [CStockInfo.get(code, 'name') for code in code_list[labels == i]]
+        logger.info('cluster code %i: %s' % ((i + 1), ', '.join(name_list)))
+
+    cluster_info = dict()
+    for group, code_list in cluster_dict.items():
+        for code in code_list:
+            iname = industry_dict[code]
+            if group not in cluster_info: cluster_info[group] = set()
+            cluster_info[group].add(iname)
+        logger.info('cluster inustry %i: %s' % ((i + 1), ', '.join(list(cluster_info[group]))))
 
     # #############################################################################
     # find a low-dimension embedding for visualization: find the best position of

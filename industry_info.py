@@ -98,6 +98,6 @@ class IndustryInfo:
 if __name__ == '__main__':
     ci = IndustryInfo(ct.DB_INFO)
     df = ci.get_industry()
-    df = df.sort_values(by=['code'])
-    df = df.reset_index(drop = True)
+    #df = df.sort_values(by=['code'])
+    #df = df.reset_index(drop = True)
     print(df)
