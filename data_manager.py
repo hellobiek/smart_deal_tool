@@ -71,7 +71,7 @@ class DataManager:
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
         mor_open_hour,mor_open_minute,mor_open_second = (0,0,0)
         mor_open_time = datetime(y,m,d,mor_open_hour,mor_open_minute,mor_open_second)
-        mor_close_hour,mor_close_minute,mor_close_second = (8,30,0)
+        mor_close_hour,mor_close_minute,mor_close_second = (6,30,0)
         mor_close_time = datetime(y,m,d,mor_close_hour,mor_close_minute,mor_close_second)
         return mor_open_time < now_time < mor_close_time
 
@@ -308,7 +308,7 @@ class DataManager:
         data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
         date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
         date_only_array = date_only_array[::-1]
-        obj_pool = Pool(100)
+        obj_pool = Pool(50)
         df = self.stock_info_client.get()
         for _index, code_id in df.code.iteritems():
             logger.info("all tick index:%s, code:%s" % ((_index + 1), code_id))

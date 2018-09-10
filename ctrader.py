@@ -21,10 +21,13 @@ class CTrader:
     def __init__(self, dbinfo):
         self.mysql_client = CMySQL(dbinfo)
         self.cal_client = ccalendar.CCalendar(without_init = True)
-        if self.cal_client.is_trading_day():
-            with open(ct.USER_FILE) as f: infos = json.load(f)
-            self.trader = Trader(infos[0]["account"], infos[0]["passwd_encrypted"], infos[0]["secuids_sh"], infos[0]["secuids_sz"])
-            self.bnew_succeed_date = ""
+        with open(ct.USER_FILE) as f: infos = json.load(f)
+        self.trader = Trader(infos[0]["account"], infos[0]["passwd_encrypted"], infos[0]["secuids_sh"], infos[0]["secuids_sz"])
+        self.buy_succeed_date = ""
+
+    def init(self):
+        ret = self.trader.prepare()
+        return ret
 
     def buy_new_stock(self, sleep_time):
         while True:
@@ -33,12 +36,14 @@ class CTrader:
                     if is_trading_time():
                         time.sleep(sleep_time)
                         _today = datetime.now().strftime('%Y-%m-%d')
-                        logger.debug("bnew_succeed_date %s, today:%s." % (self.bnew_succeed_date, _today))
-                        if self.bnew_succeed_date != _today:
+                        logger.debug("buy_succeed_date %s, today:%s." % (self.buy_succeed_date, _today))
+                        if self.buy_succeed_date != _today:
+                            ret = self.init()
+                            if ret != 0: raise Exception("login failed, return value:%s" % ret)
                             n_list = self.get_new_stock_list()
                             if len(n_list) == 0:
                                 logger.info("no new stock for %s." % _today)
-                                self.bnew_succeed_date = _today
+                                self.buy_succeed_date = _today
                             succeed = True
                             for stock in n_list:
                                 ret, amount = self.trader.max_amounts(stock[0], stock[1])
@@ -52,8 +57,9 @@ class CTrader:
                                     elif ret == ct.ALREADY_BUY:
                                         logger.info("already buy new stock:%s amount:%s for %s, no use to buy more." % (stock, amount, _today))
                             if True == succeed: 
-                                self.bnew_succeed_date = _today
+                                self.buy_succeed_date = _today
             except Exception as e:
+                self.trader = None
                 logger.error(e)
                 traceback.print_exc()
     

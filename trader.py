@@ -33,8 +33,6 @@ class Trader:
         self.passwd = passwd
         self.account = account
         self.client = Client()
-        ret = self.prepare()
-        if ret != 0: raise Exception("login failed, return value:%s" % ret)
 
     def prepare(self):
         #preprea for login

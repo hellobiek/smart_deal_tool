@@ -37,9 +37,9 @@ import ccalendar
 from common import create_redis_obj, is_trading_time, is_afternoon, delta_days
 from log import getLogger
 from hurst import compute_Hc
+import statsmodels.api as sm
+import statsmodels.tsa.stattools as ts
 logger = getLogger(__name__)
-
-
 def get_chinese_font():
     return FontProperties(fname='/conf/fonts/PingFang.ttc')
 
@@ -289,7 +289,6 @@ class CReivew:
         obj_pool.join(timeout = 180)
         obj_pool.kill()
         self.mysql_client.changedb()
-
         logger.info("read succeed")
         all_df = pd.DataFrame()
         while(len(greenlets) > 0):
@@ -419,7 +418,46 @@ class CReivew:
         plt.xlim(embedding[0].min() - .15 * embedding[0].ptp(), embedding[0].max() + .10 * embedding[0].ptp(),)
         plt.ylim(embedding[1].min() - .03 * embedding[1].ptp(), embedding[1].max() + .03 * embedding[1].ptp())
         plt.savefig('/tmp/relation.png', dpi=1000)
-    
+   
+        def plot_price_series(self, df, ts1, ts2):
+            months = mdates.MonthLocator()  # every month
+            fig, ax = plt.subplots()
+            ax.plot(df.index, df[ts1], label=ts1)
+            ax.plot(df.index, df[ts2], label=ts2)
+            ax.xaxis.set_major_locator(months)
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %Y'))
+            ax.set_xlim(datetime.datetime(2012, 1, 1), datetime.datetime(2013, 1, 1))
+            ax.grid(True)
+            fig.autofmt_xdate()
+            plt.xlabel('Month/Year')
+            plt.ylabel('Price ($)')
+            plt.title('%s and %s Daily Prices' % (ts1, ts2))
+            plt.legend()
+            plt.show()
+
+        def plot_scatter_series(self, df, ts1, ts2):
+            plt.xlabel('%s Price ($)' % ts1)
+            plt.ylabel('%s Price ($)' % ts2)
+            plt.title('%s and %s Price Scatterplot' % (ts1, ts2))
+            plt.scatter(df[ts1], df[ts2])
+            plt.show()
+
+        def plot_residuals(self, df):
+            months = mdates.MonthLocator()  # every month
+            fig, ax = plt.subplots()
+            ax.plot(df.index, df["res"], label="Residuals")
+            ax.xaxis.set_major_locator(months)
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %Y'))
+            ax.set_xlim(datetime.datetime(2012, 1, 1), datetime.datetime(2013, 1, 1))
+            ax.grid(True)
+            fig.autofmt_xdate()
+            plt.xlabel('Month/Year')
+            plt.ylabel('Price ($)')
+            plt.title('Residual Plot')
+            plt.legend()
+            plt.plot(df["res"])
+            plt.show()
+
 if __name__ == '__main__':
     _date = datetime.now().strftime('%Y-%m-%d')
     creview = CReivew(ct.DB_INFO)
@@ -442,7 +480,7 @@ if __name__ == '__main__':
 
     code_list = set(df.code.tolist())
     good_list = list()
-    MONEY_LIMIT = 1500000000
+    MONEY_LIMIT = 100000000
     for code in code_list:
         p_df = df[df.code ==  code]
         mean_value = np.mean(p_df.amount)
@@ -460,11 +498,35 @@ if __name__ == '__main__':
     good_list = [stock for stock in good_list if len(df[df.code ==  stock]) == max_length]
     logger.info("get good list succeed, length:%s" % len(good_list))
 
+    for s_code in good_list:
+        s_df = df.loc[df.code == s_code]
+        for t_code in good_list:
+            t_df = df.loc[df.code == t_code]
+            if s_code != t_code:
+                df = pd.DataFrame()
+                df[s_code] = s_df.close
+                df[t_code] = t_df.close
+                print(df)
+                import sys
+                sys.exit(0)
+                # Calculate optimal hedge ratio "beta"
+                model = sm.OLS(df[s_code], df[t_code])
+                results = model.fit()
+                (a,b,c) = results.params
+                # Calculate the residuals of the linear combination
+                df["res"] = a * df[s_code] - b * df[t_code]
+                # Calculate and output the CADF test on the residuals
+                cadf = ts.adfuller(df["res"])
+                print("source_code={:s}, target_code={:s}, series_length:{:d} , cadf={}".format(s_code, t_code, len(series), cadf))
+                import sys
+                sys.exit(0)
+
     for code in good_list:
         tmp_df = df.loc[df.code == code]
         series = tmp_df.close.tolist()
+        cadf = ts.adfuller(series)
         H, c, data = compute_Hc(series, kind='price', simplified=True, min_window = 5)
-        print("code={:s}, series_length:{:d} ,H={:.4f}, c={:.4f}, data={}".format(code, len(series), H, c, data))
+        print("code={:s}, series_length:{:d} ,H={:.4f}, c={:.4f}, data={}, cadf={}".format(code, len(series), H, c, data, cadf))
         #uncomment the following to make a plot using Matplotlib:
         #import matplotlib.pyplot as plt
         #f, ax = plt.subplots()

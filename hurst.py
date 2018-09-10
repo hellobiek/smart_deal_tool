@@ -9,7 +9,6 @@ import math
 import warnings
 import numpy as np
 import pandas as pd
-
 def __to_inc(x):
     incs = x[1:] - x[:-1]
     return incs
