@@ -500,26 +500,23 @@ if __name__ == '__main__':
 
     for s_code in good_list:
         s_df = df.loc[df.code == s_code]
+        s_df = s_df.reset_index(drop = True)
         for t_code in good_list:
             t_df = df.loc[df.code == t_code]
+            t_df = t_df.reset_index(drop = True)
             if s_code != t_code:
-                df = pd.DataFrame()
-                df[s_code] = s_df.close
-                df[t_code] = t_df.close
-                print(df)
-                import sys
-                sys.exit(0)
-                # Calculate optimal hedge ratio "beta"
-                model = sm.OLS(df[s_code], df[t_code])
+                tmp_df = pd.DataFrame()
+                tmp_df[s_code] = s_df.close
+                tmp_df[t_code] = t_df.close
+                # calculate optimal hedge ratio "beta"
+                model = sm.OLS(tmp_df[s_code], tmp_df[t_code])
                 results = model.fit()
-                (a,b,c) = results.params
-                # Calculate the residuals of the linear combination
-                df["res"] = a * df[s_code] - b * df[t_code]
-                # Calculate and output the CADF test on the residuals
-                cadf = ts.adfuller(df["res"])
+                series = results.params.tolist()
+                # calculate the residuals of the linear combination
+                tmp_df["res"] = tmp_df[s_code] - series[0] * tmp_df[t_code]
+                # calculate and output the CADF test on the residuals
+                cadf = ts.adfuller(tmp_df["res"])
                 print("source_code={:s}, target_code={:s}, series_length:{:d} , cadf={}".format(s_code, t_code, len(series), cadf))
-                import sys
-                sys.exit(0)
 
     for code in good_list:
         tmp_df = df.loc[df.code == code]
