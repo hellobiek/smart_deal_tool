@@ -105,7 +105,6 @@ def create_redis_obj(host = 'redis-container', port = 6379, decode_responses = F
 #plot_price_series(df, '002179', '600535')
 ## Display a scatter plot of the two time series
 #plot_scatter_series(df, '002179', '600535')
-
 if __name__ == "__main__":
     #df = stock_csv()
     #redis.set("TestDf", _pickle.dumps(df, 2))

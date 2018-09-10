@@ -1,10 +1,7 @@
 # coding: utf-8
-from __future__ import division
-from collections import Iterable
-
-import numpy as np 
+import numpy as np
 from pandas import Series
-
+from collections import Iterable
 def hurst(ts):
     if not isinstance(ts, Iterable): return
     n_min, n_max = 2, len(ts)//3

@@ -102,7 +102,6 @@ def get_name(code_id):
 if __name__ == "__main__":
     #df = stock_csv()
     redis = create_redis_obj()
-    #redis.set("TestDf", _pickle.dumps(df, 2))
     df_byte = redis.get("TestDf")
     df = _pickle.loads(df_byte)
     df['date'] = pd.to_datetime(df['date'])
@@ -132,6 +131,7 @@ if __name__ == "__main__":
                  '603566', '300717', '000793', '300461', '601211', '300448', '300662', '300716', '000553', '603567',\
                  '002378', '603229', '000584', '002391', '603203', '300700', '603968', '603997', '603808', '002756',\
                  '000633', '002024', '300462', '603363', '300339', '300477', '603160', '002838', '002390', '000587']
+
     for code_id in code_list:
         if code_id in ['601990', '603587', '603666', '601066']: continue
         tmp_df = df[code_id]
@@ -140,6 +140,3 @@ if __name__ == "__main__":
         if res > 0.5:
             name = get_name(code_id)
             print("code_id:%s, name:%s hurst:%s" % (code_id, name, res))
-        #if cadf[0] < cadf[4]['5%'] and cadf[0] < cadf[4]['1%'] and cadf[0] < cadf[4]['10%']:
-        #    name = get_name(code_id)
-        #    print("code_id:%s, name:%s C0:%s C1:%s B1:%s B5:%s B10%s" % (code_id, name, cadf[0], cadf[1], cadf[4]['1%'], cadf[4]['5%'], cadf[4]['10%']))

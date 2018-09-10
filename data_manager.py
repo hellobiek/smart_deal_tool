@@ -71,7 +71,7 @@ class DataManager:
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
         mor_open_hour,mor_open_minute,mor_open_second = (0,0,0)
         mor_open_time = datetime(y,m,d,mor_open_hour,mor_open_minute,mor_open_second)
-        mor_close_hour,mor_close_minute,mor_close_second = (9,0,0)
+        mor_close_hour,mor_close_minute,mor_close_second = (8,30,0)
         mor_close_time = datetime(y,m,d,mor_close_hour,mor_close_minute,mor_close_second)
         return mor_open_time < now_time < mor_close_time
 
@@ -316,10 +316,12 @@ class DataManager:
             _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(self.dbinfo, code_id)
             for _date in date_only_array:
                 if self.cal_client.is_trading_day(_date):
-                    if obj_pool.full(): obj_pool.join(timeout = 120)
                     obj_pool.spawn(_obj.set_ticket, _date)
             redis.sadd(ALL_STOCKS, code_id)
-            if self.cal_client.is_trading_day() and is_trading_time(): break
+            if self.cal_client.is_trading_day() and self.is_morning_time(): 
+                obj_pool.join(timeout = 120)
+                obj_pool.kill()
+                break
         obj_pool.join()
         obj_pool.kill()
 
