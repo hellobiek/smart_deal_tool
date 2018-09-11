@@ -26,6 +26,11 @@ class CIndex(Combination):
         else:
             return ct.MARKET_OTHER
 
+    def get_k_data_in_range(self, start_date, end_date):
+        table_name = 'day'
+        sql = "select * from %s where cdate between \"%s\" and \"%s\"" %(table_name, start_date, end_date)
+        return self.mysql_client.get(sql)
+
     def get_k_data(self, date = None):
         table_name = 'day'
         if date is not None:

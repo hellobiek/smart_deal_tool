@@ -274,14 +274,11 @@ class CReivew:
         self.mysql_client.changedb(CStock.get_dbname(code))
         return self.mysql_client.get(sql)
 
-    def gen_stocks_trends(self, _date):
-        stock_data = CStockInfo.get()
-        start_date = '2018-07-05'
-        end_date   = _date
+    def gen_stocks_trends(self, start_date, end_date, stock_info):
         greenlets = list()
         logger.info("read start")
         obj_pool = Pool(300)
-        for code in stock_data.code:
+        for code in stock_info.code:
             #with self.lock:
             g = CGreenlet(code, self.get_range_data, code, start_date, end_date)
             greenlets.append(g)
@@ -459,10 +456,30 @@ class CReivew:
             plt.show()
 
 if __name__ == '__main__':
-    _date = datetime.now().strftime('%Y-%m-%d')
+    start_date = '2018-06-01'
+    end_date   = '2018-09-10'
+    #上证指数的涨跌数据
+    szzs_df = CIndex(ct.DB_INFO, '000001').get_k_data_in_range(start_date, end_date)
+    szzs_df['pchange'] = 1000 * (szzs_df.close - szzs_df.open) / szzs_df.close
+
     creview = CReivew(ct.DB_INFO)
+    stock_info = CStockInfo.get()
     if not os.path.exists('temp.json'):
-        df = creview.gen_stocks_trends('2018-09-05')
+        df = creview.gen_stocks_trends(start_date, end_date, stock_info)
+        df = df.reset_index(drop = True)
+        df.code = df.code.astype(str).str.zfill(6)
+        df.close = df.close * df.adj
+        df.open = df.open * df.adj
+        df['pchange'] = 1000 * (df.close - df.open) / df.close
+        for code in stock_info.code:
+            tmp_df = df.at[df.code == code, 'pchange']
+            tmp_df = tmp_df.reset_index(drop = True)
+            print(tmp_df - szzs_df.pchange)
+            print("======================")
+            df.at[df.code == code, 'pchange'] = tmp_df - szzs_df.pchange
+            print(df.loc[df.code == code, 'pchange'])
+            import sys
+            sys.exit(0)
         logger.info("begin write file")
         with open('temp.json', 'w') as f:
             f.write(df.to_json(orient='records', lines=True))
@@ -473,11 +490,14 @@ if __name__ == '__main__':
             df = pd.read_json(f.read(), orient='records', lines=True)
         logger.info("read file success")
 
-    df = df.reset_index(drop = True)
-    df.code = df.code.astype(str).str.zfill(6)
-    df.close = df.close * df.adj
-    df.open = df.open * df.adj
-
+    # standardize the time series: using correlations rather than covariance is more efficient for structure recovery
+    X = df.pchange.copy().T
+    print(X)
+    print("AAAAAAAAAAAA01")
+    X /= X.std(axis = 0)
+    print(X)
+    import sys
+    sys.exit(0)
     code_list = set(df.code.tolist())
     good_list = list()
     MONEY_LIMIT = 100000000
@@ -498,6 +518,7 @@ if __name__ == '__main__':
     good_list = [stock for stock in good_list if len(df[df.code ==  stock]) == max_length]
     logger.info("get good list succeed, length:%s" % len(good_list))
 
+    rdf = pd.DataFrame(columns=["source", "target", "C0", "C1", "B1", "B5", "B10"])
     for s_code in good_list:
         s_df = df.loc[df.code == s_code]
         s_df = s_df.reset_index(drop = True)
@@ -516,14 +537,18 @@ if __name__ == '__main__':
                 tmp_df["res"] = tmp_df[s_code] - series[0] * tmp_df[t_code]
                 # calculate and output the CADF test on the residuals
                 cadf = ts.adfuller(tmp_df["res"])
-                print("source_code={:s}, target_code={:s}, series_length:{:d} , cadf={}".format(s_code, t_code, len(series), cadf))
+                if cadf[0] < cadf[4]['5%'] and cadf[0] < cadf[4]['1%'] and cadf[0] < cadf[4]['10%']:
+                    #print("source_code={:s}, target_code={:s}, series_length:{:d} , cadf={}".format(s_code, t_code, len(series), cadf))
+                    rdf.append({"source":s_code, "target":t_code, "C0":cadf[0], "C1":cadf[1], "B1":cadf[4]['1%'], "B5":cadf[4]['5%'], "B10":cadf[4]['10%']}, ignore_index=True)
+
+    print(rdf)
 
     for code in good_list:
         tmp_df = df.loc[df.code == code]
         series = tmp_df.close.tolist()
         cadf = ts.adfuller(series)
         H, c, data = compute_Hc(series, kind='price', simplified=True, min_window = 5)
-        print("code={:s}, series_length:{:d} ,H={:.4f}, c={:.4f}, data={}, cadf={}".format(code, len(series), H, c, data, cadf))
+        print("code={:s}, H={:.4f}, c={:.4f}, data={}, cadf={}".format(code, H, c, data, cadf))
         #uncomment the following to make a plot using Matplotlib:
         #import matplotlib.pyplot as plt
         #f, ax = plt.subplots()
