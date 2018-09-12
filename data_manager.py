@@ -11,7 +11,9 @@ from cstock import CStock
 from cindex import CIndex
 from climit import CLimit 
 from gevent.pool import Pool
+from gevent.lock import Semaphore
 from creview import CReivew
+from cgreent import CGreenlet
 from rstock import RIndexStock 
 from cdelisted import CDelisted
 from ccalendar import CCalendar
@@ -43,6 +45,7 @@ class DataManager:
         self.stock_objs = dict()
         self.index_objs = dict()
         self.dbinfo = dbinfo
+        self.lock = Semaphore(1)
         self.cal_client = CCalendar(dbinfo)
         self.comb_info_client = CombinationInfo(dbinfo)
         self.stock_info_client = CStockInfo(dbinfo)
@@ -148,14 +151,21 @@ class DataManager:
                 if self.cal_client.is_trading_day():
                     if is_trading_time():
                         sleep_time = 1
-                        if self.subscriber is None: self.subscriber = Subscriber()
+                        if self.subscriber is None: 
+                            with self.lock:
+                                logger.debug("enter create subscriber")
+                                self.subscriber = Subscriber()
+                                logger.debug("create subscriber success")
                         if not self.subscriber.status():
+                            logger.debug("enter start subscriber")
                             self.subscriber.start()
+                            logger.debug("start subscriber success")
                             if self.init_index_info() | self.init_real_stock_info() == 0: 
                                 self.init_combination_info()
                             else:
-                                self.subscriber.stop()
-                                self.subscriber = None
+                                with self.lock:
+                                    self.subscriber.stop()
+                                    self.subscriber = None
                         else:
                             self.collect_stock_runtime_data()
                             self.collect_combination_runtime_data()
@@ -164,8 +174,11 @@ class DataManager:
                     else:
                         sleep_time = 60
                         if self.subscriber is not None and self.subscriber.status():
-                            self.subscriber.stop()
-                            self.subscriber = None
+                            with self.lock:
+                                logger.debug("enter stop subscriber")
+                                self.subscriber.stop()
+                                self.subscriber = None
+                                logger.debug("stop subscriber success")
             except Exception as e:
                 logger.error(e)
             time.sleep(sleep_time)
@@ -221,11 +234,11 @@ class DataManager:
                             self.set_update_info(7)
 
                         if finished_step < 8:
-                            self.init_today_industry_info()
+                            if not self.init_today_industry_info(): raise Exception("init_today_industry_info failed")
                             self.set_update_info(8)
 
                         if finished_step < 9:
-                            self.init_today_limit_info()
+                            if not self.init_today_limit_info(): raise Exception("init_today_limit_info failed")
                             self.set_update_info(9)
                            
                         if finished_step < 10:
@@ -276,17 +289,25 @@ class DataManager:
 
     def init_today_limit_info(self):
         _date = datetime.now().strftime('%Y-%m-%d')
-        self.limit_client.crawl_data(_date)
+        return self.limit_client.crawl_data(_date)
 
     def init_today_industry_info(self):
+        greenlets = list()
         obj_pool = Pool(50)
         df = self.industry_info_client.get()
         for _, code_id in df.code.iteritems():
-            _obj = CIndex(self.dbinfo, code_id)
-            if obj_pool.full(): obj_pool.join(timeout = 30)
-            obj_pool.spawn(_obj.set_k_data)
-        obj_pool.join()
+            g = CGreenlet(code_id, CIndex(self.dbinfo, code_id).set_k_data)
+            greenlets.append(g)
+            obj_pool.start(g)
+        obj_pool.join(timeout = 180)
         obj_pool.kill()
+        succeed = True
+        for i in range(len(greenlets) - 1, -1, -1):
+            g = greenlets[i]
+            if g.ready() and g.value is False:
+                logger.error("set k data for %s failed" % g.name)
+                succeed = False
+        return succeed
 
     def init_today_index_info(self):
         obj_pool = Pool(50)
@@ -319,6 +340,7 @@ class DataManager:
                     obj_pool.spawn(_obj.set_ticket, _date)
             redis.sadd(ALL_STOCKS, code_id)
             if self.cal_client.is_trading_day() and self.is_morning_time(): 
+                logger.debug("lastest finished index:%s, code:%s, tomorrow continue!" % ((_index + 1), code_id))
                 obj_pool.join(timeout = 120)
                 obj_pool.kill()
                 break
@@ -348,9 +370,26 @@ class DataManager:
             logger.error(e)
         
 if __name__ == '__main__':
+    print("enter 1")
     dm = DataManager(ct.DB_INFO)
-    dm.init_today_index_info()
+    print("enter 2")
+    dm.subscriber = Subscriber()
+    dm.subscriber.start()
+    print("enter 3")
+    while True:
+        if not dm.subscriber.status():
+            time.sleep(1)
+    dm.subscriber.stop()
+    dm.subscriber = None
+    print("enter 4")
+    dm.subscriber = Subscriber()
+    dm.subscriber.start()
+    time.sleep(10)
+    dm.subscriber.stop()
+    dm.subscriber = None
+    print("enter 5")
     #dm.init_today_industry_info()
+    #dm.init_today_index_info()
     #dm.init_today_limit_info()
     #dm.init_index_info()
     #print("init index_info success!")

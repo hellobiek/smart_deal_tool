@@ -105,12 +105,11 @@ class CLimit:
         df_up   = self.gen_df("UP", cdate)
         df_down = self.gen_df("DOWN", cdate)
         df = pd.concat([df_up, df_down])
-        if not df.empty:
-            df = df.reset_index(drop = True)
-            df.columns = ['code', 'price', 'pchange', 'prange', 'fcb', 'flb', 'fdmoney', 'first_time', 'last_time', 'open_times', 'intensity', 'concept']
-            df['date'] = date
-            if not self.mysql_client.set(df, self.table):
-                logger.error("%s get data failed" % date)
+        if df.empty: return False
+        df = df.reset_index(drop = True)
+        df.columns = ['code', 'price', 'pchange', 'prange', 'fcb', 'flb', 'fdmoney', 'first_time', 'last_time', 'open_times', 'intensity', 'concept']
+        df['date'] = date
+        return self.mysql_client.set(df, self.table)
 
 if __name__ == '__main__':
     lu = CLimit(ct.DB_INFO)

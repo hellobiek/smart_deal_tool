@@ -62,6 +62,7 @@ class CReivew:
             data = CIndex(self.dbinfo, code).get_k_data(date = _date)
             df = df.append(data)
             df = df.reset_index(drop = True)
+        if df.empty: return df
         df['name'] = df_info['name']
         df = df.sort_values(by = 'amount', ascending= False)
         df = df.reset_index(drop = True)
@@ -198,6 +199,9 @@ class CReivew:
                 stock_info = stock_info.reset_index(drop = True)
                 #industry analysis
                 industry_info = self.get_industry_data(_date)
+                if industry_info.empty:
+                    logger.error("get %s industry info failed" % _date)
+                    return
                 #index and total analysis
                 index_info = self.get_index_data(_date)
                 index_info = index_info.reset_index(drop = True)
@@ -257,6 +261,5 @@ class CReivew:
         plt.close(fig)
 
 if __name__ == '__main__':
-    _date = '2018-08-28'
     creview = CReivew(ct.DB_INFO)
     data = creview.update()

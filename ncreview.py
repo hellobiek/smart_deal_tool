@@ -279,7 +279,6 @@ class CReivew:
         logger.info("read start")
         obj_pool = Pool(300)
         for code in stock_info.code:
-            #with self.lock:
             g = CGreenlet(code, self.get_range_data, code, start_date, end_date)
             greenlets.append(g)
             obj_pool.start(g)
@@ -460,26 +459,17 @@ if __name__ == '__main__':
     end_date   = '2018-09-10'
     #上证指数的涨跌数据
     szzs_df = CIndex(ct.DB_INFO, '000001').get_k_data_in_range(start_date, end_date)
-    szzs_df['pchange'] = 1000 * (szzs_df.close - szzs_df.open) / szzs_df.close
-
+    szzs_df['pchange'] = 100 * (szzs_df.close - szzs_df.open) / szzs_df.close
     creview = CReivew(ct.DB_INFO)
     stock_info = CStockInfo.get()
+    stock_info = stock_info[0:100]
     if not os.path.exists('temp.json'):
         df = creview.gen_stocks_trends(start_date, end_date, stock_info)
         df = df.reset_index(drop = True)
         df.code = df.code.astype(str).str.zfill(6)
         df.close = df.close * df.adj
         df.open = df.open * df.adj
-        df['pchange'] = 1000 * (df.close - df.open) / df.close
-        for code in stock_info.code:
-            tmp_df = df.at[df.code == code, 'pchange']
-            tmp_df = tmp_df.reset_index(drop = True)
-            print(tmp_df - szzs_df.pchange)
-            print("======================")
-            df.at[df.code == code, 'pchange'] = tmp_df - szzs_df.pchange
-            print(df.loc[df.code == code, 'pchange'])
-            import sys
-            sys.exit(0)
+        df['pchange'] = 100 * (df.close - df.open) / df.close
         logger.info("begin write file")
         with open('temp.json', 'w') as f:
             f.write(df.to_json(orient='records', lines=True))
@@ -490,14 +480,6 @@ if __name__ == '__main__':
             df = pd.read_json(f.read(), orient='records', lines=True)
         logger.info("read file success")
 
-    # standardize the time series: using correlations rather than covariance is more efficient for structure recovery
-    X = df.pchange.copy().T
-    print(X)
-    print("AAAAAAAAAAAA01")
-    X /= X.std(axis = 0)
-    print(X)
-    import sys
-    sys.exit(0)
     code_list = set(df.code.tolist())
     good_list = list()
     MONEY_LIMIT = 100000000
@@ -518,6 +500,31 @@ if __name__ == '__main__':
     good_list = [stock for stock in good_list if len(df[df.code ==  stock]) == max_length]
     logger.info("get good list succeed, length:%s" % len(good_list))
 
+    df = df[df.code.isin(good_list)]
+    df = df.reset_index(drop = True)
+    for code in good_list:
+        tmp_df = df.loc[df.code == code, 'pchange']
+        pchange_custom = pd.Series(szzs_df.pchange.values, index=tmp_df.index)
+        df.at[df.code == code, 'pchange'] = tmp_df - pchange_custom
+
+    for _date in date_array:
+        start_date = '2015-01-01'
+        redis = create_redis_obj()
+        ALL_STOCKS = 'all_existed_stocks'
+        all_stock_set = set(str(stock_id, encoding = "utf8") for stock_id in redis.smembers(ALL_STOCKS)) if redis.exists(ALL_STOCKS) else set()
+        _today = datetime.now().strftime('%Y-%m-%d')
+        num_days = delta_days(start_date, _today)
+        start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(start_date, "%Y-%m-%d"))
+        data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
+        date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
+        date_only_array = date_only_array[::-1]
+
+    import sys
+    sys.exit(0)
+    # standardize the time series: using correlations rather than covariance is more efficient for structure recovery
+    X = df.pchange.copy().T
+    X /= X.std(axis = 0)
+
     rdf = pd.DataFrame(columns=["source", "target", "C0", "C1", "B1", "B5", "B10"])
     for s_code in good_list:
         s_df = df.loc[df.code == s_code]
@@ -527,8 +534,8 @@ if __name__ == '__main__':
             t_df = t_df.reset_index(drop = True)
             if s_code != t_code:
                 tmp_df = pd.DataFrame()
-                tmp_df[s_code] = s_df.close
-                tmp_df[t_code] = t_df.close
+                tmp_df[s_code] = s_df.pchange
+                tmp_df[t_code] = t_df.pchange
                 # calculate optimal hedge ratio "beta"
                 model = sm.OLS(tmp_df[s_code], tmp_df[t_code])
                 results = model.fit()
@@ -540,7 +547,6 @@ if __name__ == '__main__':
                 if cadf[0] < cadf[4]['5%'] and cadf[0] < cadf[4]['1%'] and cadf[0] < cadf[4]['10%']:
                     #print("source_code={:s}, target_code={:s}, series_length:{:d} , cadf={}".format(s_code, t_code, len(series), cadf))
                     rdf.append({"source":s_code, "target":t_code, "C0":cadf[0], "C1":cadf[1], "B1":cadf[4]['1%'], "B5":cadf[4]['5%'], "B10":cadf[4]['10%']}, ignore_index=True)
-
     print(rdf)
 
     for code in good_list:
