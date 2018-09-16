@@ -2,6 +2,7 @@
 import gevent
 from gevent import monkey
 monkey.patch_all(thread=True, subprocess = True)
+import time
 import const as ct
 from log import getLogger
 from creview import CReivew
@@ -11,6 +12,7 @@ from data_manager import DataManager
 log = getLogger(__name__)
 
 def main():
+    time.sleep(10)
     threadList = []
     dm = DataManager(ct.DB_INFO)
     log.info("init succeed")

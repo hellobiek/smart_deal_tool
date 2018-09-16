@@ -1,38 +1,38 @@
 #-*-coding:utf-8-*-
 import const as ct
 from log import getLogger
+from gevent.lock import Semaphore
 from futuquant import OpenQuoteContext
 from futuquant.common.constant import SubType
 logger = getLogger(__name__)
 class Subscriber:
     def __init__(self):
-        self.quote_ctx = OpenQuoteContext(ct.FUTU_HOST, ct.FUTU_PORT)
-        self.sub_dict = None
         self._status = False
+        self.sub_dict = None
+        self.quote_ctx = None
+        self.lock = Semaphore(1)
 
-    def __del__(self):
-        self.quote_ctx.stop()
+    def __del__(slef):
         self.quote_ctx.close()
 
     def start(self):
-        self.quote_ctx.start()
-        self.sub_dict = self.get_subscribed_dict()
-        logger.debug("self.sub_dict:%s" % self.sub_dict)
-        self._status = True
+        with self.lock:
+            if self.quote_ctx is None:
+                self.quote_ctx = OpenQuoteContext(ct.FUTU_HOST, ct.FUTU_PORT)
+            else:
+                self.quote_ctx.start()
+            self.sub_dict = self.get_subscribed_dict()
+            self._status = True
 
     def stop(self):
-        self.quote_ctx.stop()
-        logger.debug("stop subscribe")
-        self.sub_dict = None
-        self.quote_ctx.close()
-        self._status = False
-        logger.debug("close subscribe")
+        with self.lock:
+            self.quote_ctx.stop()
+            self._status = False
 
     def status(self):
         return self._status
 
     def subscribe_tick(self, code, callback):
-        '''订阅一只股票的实时行情数据，接收推送 #设置监听-->订阅-->调用逐笔'''
         if SubType.TICKER in self.sub_dict and code in self.sub_dict[SubType.TICKER]: return 0
         self.quote_ctx.set_handler(callback)
         ret, msg = self.quote_ctx.subscribe(code, SubType.TICKER)

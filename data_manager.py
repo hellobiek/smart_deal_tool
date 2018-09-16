@@ -11,7 +11,6 @@ from cstock import CStock
 from cindex import CIndex
 from climit import CLimit 
 from gevent.pool import Pool
-from gevent.lock import Semaphore
 from creview import CReivew
 from cgreent import CGreenlet
 from rstock import RIndexStock 
@@ -45,7 +44,6 @@ class DataManager:
         self.stock_objs = dict()
         self.index_objs = dict()
         self.dbinfo = dbinfo
-        self.lock = Semaphore(1)
         self.cal_client = CCalendar(dbinfo)
         self.comb_info_client = CombinationInfo(dbinfo)
         self.stock_info_client = CStockInfo(dbinfo)
@@ -55,7 +53,7 @@ class DataManager:
         self.delisted_info_client = CDelisted(dbinfo)
         self.limit_client = CLimit(dbinfo)
         self.animation_client = CAnimation(dbinfo)
-        self.subscriber = None
+        self.subscriber = Subscriber()
         self.cviewer = CReivew(dbinfo)
 
     def is_collecting_time(self, now_time = None):
@@ -151,21 +149,13 @@ class DataManager:
                 if self.cal_client.is_trading_day():
                     if is_trading_time():
                         sleep_time = 1
-                        if self.subscriber is None: 
-                            with self.lock:
-                                logger.debug("enter create subscriber")
-                                self.subscriber = Subscriber()
-                                logger.debug("create subscriber success")
                         if not self.subscriber.status():
-                            logger.debug("enter start subscriber")
                             self.subscriber.start()
-                            logger.debug("start subscriber success")
                             if self.init_index_info() | self.init_real_stock_info() == 0: 
                                 self.init_combination_info()
                             else:
-                                with self.lock:
-                                    self.subscriber.stop()
-                                    self.subscriber = None
+                                logger.info("enter stop dict time")
+                                self.subscriber.stop()
                         else:
                             self.collect_stock_runtime_data()
                             self.collect_combination_runtime_data()
@@ -173,12 +163,10 @@ class DataManager:
                             self.animation_client.collect()
                     else:
                         sleep_time = 60
-                        if self.subscriber is not None and self.subscriber.status():
-                            with self.lock:
-                                logger.debug("enter stop subscriber")
-                                self.subscriber.stop()
-                                self.subscriber = None
-                                logger.debug("stop subscriber success")
+                        if self.subscriber.status():
+                            logger.info("enter stop subscriber")
+                            self.subscriber.stop()
+                            logger.info("subscriber stop success")
             except Exception as e:
                 logger.error(e)
             time.sleep(sleep_time)
@@ -339,7 +327,7 @@ class DataManager:
                 if self.cal_client.is_trading_day(_date):
                     obj_pool.spawn(_obj.set_ticket, _date)
             redis.sadd(ALL_STOCKS, code_id)
-            if self.cal_client.is_trading_day() and self.is_morning_time(): 
+            if self.cal_client.is_trading_day() and not self.is_morning_time(): 
                 logger.debug("lastest finished index:%s, code:%s, tomorrow continue!" % ((_index + 1), code_id))
                 obj_pool.join(timeout = 120)
                 obj_pool.kill()
@@ -370,24 +358,8 @@ class DataManager:
             logger.error(e)
         
 if __name__ == '__main__':
-    print("enter 1")
-    dm = DataManager(ct.DB_INFO)
-    print("enter 2")
-    dm.subscriber = Subscriber()
-    dm.subscriber.start()
-    print("enter 3")
-    while True:
-        if not dm.subscriber.status():
-            time.sleep(1)
-    dm.subscriber.stop()
-    dm.subscriber = None
-    print("enter 4")
-    dm.subscriber = Subscriber()
-    dm.subscriber.start()
-    time.sleep(10)
-    dm.subscriber.stop()
-    dm.subscriber = None
-    print("enter 5")
+    dm = DataManager(ct.DB_INFO) 
+    dm.run(3)
     #dm.init_today_industry_info()
     #dm.init_today_index_info()
     #dm.init_today_limit_info()

@@ -6,6 +6,8 @@ from tempfile import TemporaryFile
 import datetime
 from datetime import datetime,timedelta
 import const as ct
+import numpy as np
+import pandas as pd
 from crack_bmp import crack_bmp
 
 def trace_func(*dargs, **dkargs):
@@ -40,6 +42,14 @@ def _fprint(obj):
     print("***************************s")
     print(obj)
     print("***************************e")
+
+def get_dates_array(start_date, end_date):
+    num_days = delta_days(start_date, end_date)
+    start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(start_date, "%Y-%m-%d"))
+    data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
+    date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
+    date_only_array = date_only_array[::-1]
+    return date_only_array
 
 def delta_days(_from, _to):
     _from = time.strptime(_from,"%Y-%m-%d")

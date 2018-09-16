@@ -30,11 +30,12 @@ from cmysql import CMySQL
 from cstock import CStock
 from cindex import CIndex
 from climit import CLimit
+from functools import partial
 from cstock_info import CStockInfo 
 from industry_info import IndustryInfo
 from sklearn import cluster, covariance, manifold
 import ccalendar
-from common import create_redis_obj, is_trading_time, is_afternoon, delta_days
+from common import create_redis_obj, get_dates_array
 from log import getLogger
 from hurst import compute_Hc
 import statsmodels.api as sm
@@ -415,44 +416,42 @@ class CReivew:
         plt.ylim(embedding[1].min() - .03 * embedding[1].ptp(), embedding[1].max() + .03 * embedding[1].ptp())
         plt.savefig('/tmp/relation.png', dpi=1000)
    
-        def plot_price_series(self, df, ts1, ts2):
-            months = mdates.MonthLocator()  # every month
-            fig, ax = plt.subplots()
-            ax.plot(df.index, df[ts1], label=ts1)
-            ax.plot(df.index, df[ts2], label=ts2)
-            ax.xaxis.set_major_locator(months)
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %Y'))
-            ax.set_xlim(datetime.datetime(2012, 1, 1), datetime.datetime(2013, 1, 1))
-            ax.grid(True)
-            fig.autofmt_xdate()
-            plt.xlabel('Month/Year')
-            plt.ylabel('Price ($)')
-            plt.title('%s and %s Daily Prices' % (ts1, ts2))
-            plt.legend()
-            plt.show()
+    def plot_price_series(self, df, ts1, ts2):
+        fig = plt.figure()
+        x = df.loc[df.code == ts1].cdate.tolist()
+        xn = range(len(x))
+        y1 = df.loc[df.code == ts1].close.tolist()
+        name1 = CStockInfo.get(ts1, 'name')
+        y2 = df.loc[df.code == ts2].close.tolist()
+        name2 = CStockInfo.get(ts2, 'name')
+        plt.plot(xn, y1, label = name1, linewidth = 1.5)
+        plt.plot(xn, y2, label = name2, linewidth = 1.5)
+        plt.xticks(xn, x)
+        plt.xlabel('时间', fontproperties = get_chinese_font())
+        plt.ylabel('分数', fontproperties = get_chinese_font())
+        plt.title('股市情绪', fontproperties = get_chinese_font())
+        plt.legend()
+        fig.autofmt_xdate()
+        plt.savefig('/tmp/relation/%s_%s.png' % (ts1, ts2), dpi=1000)
 
-        def plot_scatter_series(self, df, ts1, ts2):
-            plt.xlabel('%s Price ($)' % ts1)
-            plt.ylabel('%s Price ($)' % ts2)
-            plt.title('%s and %s Price Scatterplot' % (ts1, ts2))
-            plt.scatter(df[ts1], df[ts2])
-            plt.show()
+def choose_stock(df, code):
+    p_df = df[df.code ==  code]
+    mean_value = np.mean(p_df.amount)
+    median_value = np.median(p_df.amount)
+    return code if mean_value > MONEY_LIMIT and median_value > MONEY_LIMIT else None
 
-        def plot_residuals(self, df):
-            months = mdates.MonthLocator()  # every month
-            fig, ax = plt.subplots()
-            ax.plot(df.index, df["res"], label="Residuals")
-            ax.xaxis.set_major_locator(months)
-            ax.xaxis.set_major_formatter(mdates.DateFormatter('%b %Y'))
-            ax.set_xlim(datetime.datetime(2012, 1, 1), datetime.datetime(2013, 1, 1))
-            ax.grid(True)
-            fig.autofmt_xdate()
-            plt.xlabel('Month/Year')
-            plt.ylabel('Price ($)')
-            plt.title('Residual Plot')
-            plt.legend()
-            plt.plot(df["res"])
-            plt.show()
+def adjust_pchange(code, df, values):
+    import pdb
+    pdb.set_trace()
+    tmp_df = df.loc[df.code == code, 'pchange']
+    pchange_custom = pd.Series(values, index = tmp_df.index)
+    df.at[df.code == code, 'pchange'] = tmp_df - pchange_custom
+
+def data_std(_date, df):
+    tmp_df = df.loc[df.cdate == _date, 'pchange']
+    x = tmp_df.copy().T
+    x /= x.std(axis = 0)
+    df.at[df.cdate == _date, 'pchange'] = x
 
 if __name__ == '__main__':
     start_date = '2018-06-01'
@@ -462,7 +461,6 @@ if __name__ == '__main__':
     szzs_df['pchange'] = 100 * (szzs_df.close - szzs_df.open) / szzs_df.close
     creview = CReivew(ct.DB_INFO)
     stock_info = CStockInfo.get()
-    stock_info = stock_info[0:100]
     if not os.path.exists('temp.json'):
         df = creview.gen_stocks_trends(start_date, end_date, stock_info)
         df = df.reset_index(drop = True)
@@ -477,54 +475,43 @@ if __name__ == '__main__':
     else:
         logger.info("begin read file")
         with open('temp.json', 'r') as f:
-            df = pd.read_json(f.read(), orient='records', lines=True)
+            df = pd.read_json(f.read(), orient='records', lines=True,  dtype = {'code' : str})
         logger.info("read file success")
 
     code_list = set(df.code.tolist())
-    good_list = list()
+
+    logger.info("start choose stock, length:%s" % len(code_list))
     MONEY_LIMIT = 100000000
-    for code in code_list:
-        p_df = df[df.code ==  code]
-        mean_value = np.mean(p_df.amount)
-        median_value = np.median(p_df.amount)
-        if mean_value > MONEY_LIMIT and median_value > MONEY_LIMIT:
-            good_list.append(code)
-            logger.info("length:%s, code:%s, mean value:%s, median value:%s" % (len(good_list), code, mean_value, median_value))
-
+    cfunc = partial(choose_stock, df)
+    obj_pool = Pool(2000)
+    good_list = [code for code in obj_pool.imap_unordered(cfunc, code_list) if code is not None]
     logger.info("choose stock succeed, length:%s" % len(good_list))
-    total_good_list = [len(df[df.code ==  stock]) for stock in good_list]
-
+    total_good_list = [len(df[df.code == stock]) for stock in good_list]
     max_length = np.argmax(np.bincount(total_good_list))
     logger.info("max length:%s" % max_length)
-
+    
     good_list = [stock for stock in good_list if len(df[df.code ==  stock]) == max_length]
     logger.info("get good list succeed, length:%s" % len(good_list))
 
-    df = df[df.code.isin(good_list)]
-    df = df.reset_index(drop = True)
+    logger.info("relative to index pchange.")
+    with creview.lock:
+        df = df[df.code.isin(good_list)]
+        df = df.reset_index(drop = True)
+        print("1")
+
+    print("2")
     for code in good_list:
-        tmp_df = df.loc[df.code == code, 'pchange']
-        pchange_custom = pd.Series(szzs_df.pchange.values, index=tmp_df.index)
-        df.at[df.code == code, 'pchange'] = tmp_df - pchange_custom
+        obj_pool.imap_unordered(adjust_pchange, code, df, szzs_df.pchange.values)
+    print("3")
 
-    for _date in date_array:
-        start_date = '2015-01-01'
-        redis = create_redis_obj()
-        ALL_STOCKS = 'all_existed_stocks'
-        all_stock_set = set(str(stock_id, encoding = "utf8") for stock_id in redis.smembers(ALL_STOCKS)) if redis.exists(ALL_STOCKS) else set()
-        _today = datetime.now().strftime('%Y-%m-%d')
-        num_days = delta_days(start_date, _today)
-        start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(start_date, "%Y-%m-%d"))
-        data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
-        date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
-        date_only_array = date_only_array[::-1]
+    logger.info("enter compute.")
+    date_only_array = df.cdate.tolist()
+    print("4")
+    for _date in date_only_array:
+        obj_pool.imap_unordered(data_std, _date, df)
+    print("5")
 
-    import sys
-    sys.exit(0)
-    # standardize the time series: using correlations rather than covariance is more efficient for structure recovery
-    X = df.pchange.copy().T
-    X /= X.std(axis = 0)
-
+    logger.info("finish to index pchange.")
     rdf = pd.DataFrame(columns=["source", "target", "C0", "C1", "B1", "B5", "B10"])
     for s_code in good_list:
         s_df = df.loc[df.code == s_code]
@@ -544,25 +531,24 @@ if __name__ == '__main__':
                 tmp_df["res"] = tmp_df[s_code] - series[0] * tmp_df[t_code]
                 # calculate and output the CADF test on the residuals
                 cadf = ts.adfuller(tmp_df["res"])
-                if cadf[0] < cadf[4]['5%'] and cadf[0] < cadf[4]['1%'] and cadf[0] < cadf[4]['10%']:
-                    #print("source_code={:s}, target_code={:s}, series_length:{:d} , cadf={}".format(s_code, t_code, len(series), cadf))
+                if cadf[0] < cadf[4]['5%'] and cadf[0] < cadf[4]['1%'] and cadf[0] < cadf[4]['10%'] and cadf[1] < 0.00000001:
                     rdf.append({"source":s_code, "target":t_code, "C0":cadf[0], "C1":cadf[1], "B1":cadf[4]['1%'], "B5":cadf[4]['5%'], "B10":cadf[4]['10%']}, ignore_index=True)
-    print(rdf)
+                    creview.plot_price_series(df, s_code, t_code)
 
-    for code in good_list:
-        tmp_df = df.loc[df.code == code]
-        series = tmp_df.close.tolist()
-        cadf = ts.adfuller(series)
-        H, c, data = compute_Hc(series, kind='price', simplified=True, min_window = 5)
-        print("code={:s}, H={:.4f}, c={:.4f}, data={}, cadf={}".format(code, H, c, data, cadf))
-        #uncomment the following to make a plot using Matplotlib:
-        #import matplotlib.pyplot as plt
-        #f, ax = plt.subplots()
-        #ax.plot(data[0], c*data[0]**H, color="deepskyblue")
-        #ax.scatter(data[0], data[1], color="purple")
-        #ax.set_xscale('log')
-        #ax.set_yscale('log')
-        #ax.set_xlabel('Time interval')
-        #ax.set_ylabel('R/S ratio')
-        #ax.grid(True)
-        #plt.savefig('/tmp/relation.png', dpi=1000)
+    #for code in good_list:
+    #    tmp_df = df.loc[df.code == code]
+    #    series = tmp_df.close.tolist()
+    #    cadf = ts.adfuller(series)
+    #    H, c, data = compute_Hc(series, kind='price', simplified=True, min_window = 5)
+    #    print("code={:s}, H={:.4f}, c={:.4f}, data={}, cadf={}".format(code, H, c, data, cadf))
+    #    #uncomment the following to make a plot using Matplotlib:
+    #    #import matplotlib.pyplot as plt
+    #    #f, ax = plt.subplots()
+    #    #ax.plot(data[0], c*data[0]**H, color="deepskyblue")
+    #    #ax.scatter(data[0], data[1], color="purple")
+    #    #ax.set_xscale('log')
+    #    #ax.set_yscale('log')
+    #    #ax.set_xlabel('Time interval')
+    #    #ax.set_ylabel('R/S ratio')
+    #    #ax.grid(True)
+    #    #plt.savefig('/tmp/relation.png', dpi=1000)
