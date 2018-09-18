@@ -154,7 +154,7 @@ class DataManager:
                             if self.init_index_info() | self.init_real_stock_info() == 0: 
                                 self.init_combination_info()
                             else:
-                                logger.info("enter stop dict time")
+                                logger.debug("enter stop dict time")
                                 self.subscriber.stop()
                         else:
                             self.collect_stock_runtime_data()
@@ -164,9 +164,9 @@ class DataManager:
                     else:
                         sleep_time = 60
                         if self.subscriber.status():
-                            logger.info("enter stop subscriber")
+                            logger.debug("enter stop subscriber")
                             self.subscriber.stop()
-                            logger.info("subscriber stop success")
+                            logger.debug("subscriber stop success")
             except Exception as e:
                 logger.error(e)
             time.sleep(sleep_time)
