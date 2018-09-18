@@ -22,15 +22,18 @@ class Subscriber:
             else:
                 self.quote_ctx.start()
             self.sub_dict = self.get_subscribed_dict()
+            logger.debug("self.sub_dict:%s" % self.sub_dict)
             self._status = True
 
     def stop(self):
         with self.lock:
             self.quote_ctx.stop()
+            logger.debug("stop success")
             self._status = False
 
     def status(self):
-        return self._status
+        with self.lock:
+            return self._status
 
     def subscribe_tick(self, code, callback):
         if SubType.TICKER in self.sub_dict and code in self.sub_dict[SubType.TICKER]: return 0

@@ -33,7 +33,7 @@ from climit import CLimit
 from functools import partial
 from cstock_info import CStockInfo 
 from industry_info import IndustryInfo
-from sklearn import cluster, covariance, manifold
+from sklearn import cluster, covariance, manifold, preprocessing
 import ccalendar
 from common import create_redis_obj, get_dates_array
 from log import getLogger
@@ -421,134 +421,155 @@ class CReivew:
         x = df.loc[df.code == ts1].cdate.tolist()
         xn = range(len(x))
         y1 = df.loc[df.code == ts1].close.tolist()
-        name1 = CStockInfo.get(ts1, 'name')
+        name1 = df[df.code == ts1].name.values[0]
+        name2 = df[df.code == ts2].name.values[0]
         y2 = df.loc[df.code == ts2].close.tolist()
-        name2 = CStockInfo.get(ts2, 'name')
         plt.plot(xn, y1, label = name1, linewidth = 1.5)
         plt.plot(xn, y2, label = name2, linewidth = 1.5)
         plt.xticks(xn, x)
         plt.xlabel('时间', fontproperties = get_chinese_font())
         plt.ylabel('分数', fontproperties = get_chinese_font())
-        plt.title('股市情绪', fontproperties = get_chinese_font())
-        plt.legend()
+        plt.title('协整关系', fontproperties = get_chinese_font())
         fig.autofmt_xdate()
+        plt.legend(loc = 'upper right', prop = get_chinese_font())
         plt.savefig('/tmp/relation/%s_%s.png' % (ts1, ts2), dpi=1000)
+        plt.close(fig)
 
 def choose_stock(df, code):
     p_df = df[df.code ==  code]
-    mean_value = np.mean(p_df.amount)
     median_value = np.median(p_df.amount)
-    return code if mean_value > MONEY_LIMIT and median_value > MONEY_LIMIT else None
+    return code if median_value > MONEY_LIMIT else None
 
-def adjust_pchange(code, df, values):
-    import pdb
-    pdb.set_trace()
-    tmp_df = df.loc[df.code == code, 'pchange']
-    pchange_custom = pd.Series(values, index = tmp_df.index)
-    df.at[df.code == code, 'pchange'] = tmp_df - pchange_custom
-
-def data_std(_date, df):
+def data_std(df, _date):
     tmp_df = df.loc[df.cdate == _date, 'pchange']
-    x = tmp_df.copy().T
-    x /= x.std(axis = 0)
-    df.at[df.cdate == _date, 'pchange'] = x
+    x = preprocessing.scale(tmp_df)
+    return pd.Series(x, index = tmp_df.index)
+
+def adjust_name_and_pchange(df, stock_info, values, code):
+    #get tmp df
+    tmp_df = df.loc[df.code == code, 'pchange']
+    #set name
+    name = stock_info[stock_info.code == code].name.values[0]
+    names = [name for n in range(len(tmp_df))]
+    name_series = pd.Series(names, index = tmp_df.index)
+    pchange_custom = pd.Series(values, index = tmp_df.index)
+    new_tmp_df = pd.DataFrame()
+    new_tmp_df['name'] = name_series
+    new_tmp_df['pchange'] = tmp_df - pchange_custom
+    return new_tmp_df
+
+def total_length(df, code):
+    return len(df[df.code == code])
+
+def get_good_list(df, max_length, code):
+    return code if len(df[df.code == code]) == max_length else None  
 
 if __name__ == '__main__':
-    start_date = '2018-06-01'
-    end_date   = '2018-09-10'
-    #上证指数的涨跌数据
-    szzs_df = CIndex(ct.DB_INFO, '000001').get_k_data_in_range(start_date, end_date)
-    szzs_df['pchange'] = 100 * (szzs_df.close - szzs_df.open) / szzs_df.close
     creview = CReivew(ct.DB_INFO)
-    stock_info = CStockInfo.get()
-    if not os.path.exists('temp.json'):
-        df = creview.gen_stocks_trends(start_date, end_date, stock_info)
-        df = df.reset_index(drop = True)
-        df.code = df.code.astype(str).str.zfill(6)
-        df.close = df.close * df.adj
-        df.open = df.open * df.adj
-        df['pchange'] = 100 * (df.close - df.open) / df.close
-        logger.info("begin write file")
-        with open('temp.json', 'w') as f:
-            f.write(df.to_json(orient='records', lines=True))
-        logger.info("write file success")
-    else:
-        logger.info("begin read file")
-        with open('temp.json', 'r') as f:
-            df = pd.read_json(f.read(), orient='records', lines=True,  dtype = {'code' : str})
+    if not os.path.exists('norm.json'):
+        if not os.path.exists('temp.json'):
+            start_date = '2018-05-10'
+            end_date   = '2018-09-10'
+            #上证指数的涨跌数据
+            szzs_df = CIndex(ct.DB_INFO, '000001').get_k_data_in_range(start_date, end_date)
+            szzs_df['pchange'] = 100 * (szzs_df.close - szzs_df.open) / szzs_df.close
+            stock_info = CStockInfo.get()
+            stock_info = stock_info[['code', 'name']]
+            df = creview.gen_stocks_trends(start_date, end_date, stock_info)
+            df = df.reset_index(drop = True)
+            df.code = df.code.astype(str).str.zfill(6)
+            df.close = df.close * df.adj
+            df.open = df.open * df.adj
+            df['pchange'] = 100 * (df.close - df.open) / df.close
+            with open('temp.json', 'w') as f:
+                f.write(df.to_json(orient='records', lines=True))
+        else:
+            logger.info("begin read file")
+            with open('temp.json', 'r') as f:
+                df = pd.read_json(f.read(), orient='records', lines=True,  dtype = {'code' : str})
+
         logger.info("read file success")
+        code_list = set(df.code.tolist())
 
-    code_list = set(df.code.tolist())
+        logger.info("start choose stock, length:%s" % len(code_list))
+        obj_pool = Pool(300)
+        MONEY_LIMIT = 100000000
+        cfunc = partial(choose_stock, df)
+        good_list = [code for code in obj_pool.imap_unordered(cfunc, code_list) if code is not None]
 
-    logger.info("start choose stock, length:%s" % len(code_list))
-    MONEY_LIMIT = 100000000
-    cfunc = partial(choose_stock, df)
-    obj_pool = Pool(2000)
-    good_list = [code for code in obj_pool.imap_unordered(cfunc, code_list) if code is not None]
-    logger.info("choose stock succeed, length:%s" % len(good_list))
-    total_good_list = [len(df[df.code == stock]) for stock in good_list]
-    max_length = np.argmax(np.bincount(total_good_list))
-    logger.info("max length:%s" % max_length)
-    
-    good_list = [stock for stock in good_list if len(df[df.code ==  stock]) == max_length]
-    logger.info("get good list succeed, length:%s" % len(good_list))
+        logger.info("choose stock succeed, length:%s." % len(good_list))
+        cfunc = partial(total_length, df)
+        total_length_list = [code for code in obj_pool.imap_unordered(cfunc, good_list)]
 
-    logger.info("relative to index pchange.")
-    with creview.lock:
+        logger.info("begin compute length")
+        max_length = np.argmax(np.bincount(total_length_list))
+
+        logger.info("max length:%s" % max_length)
+        cfunc = partial(get_good_list, df, max_length)
+        good_list = [code for code in obj_pool.imap_unordered(cfunc, good_list) if code is not None]
+
+        logger.info("get new data")
         df = df[df.code.isin(good_list)]
         df = df.reset_index(drop = True)
-        print("1")
+        df['name'] = ''
 
-    print("2")
+        logger.info("set name and adjust pchange")
+        cfunc = partial(adjust_name_and_pchange, df, stock_info, szzs_df.pchange.values)
+            for tmp_df in obj_pool.imap_unordered(cfunc, good_list): df.at[tmp_df.index, ['name', 'pchange']] = tmp_df.values
+
+        logger.info("normalize data")
+        date_only_array = df.cdate.tolist()
+        cfunc = partial(data_std, df)
+        for tmp_df in obj_pool.imap_unordered(cfunc, date_only_array): df.at[tmp_df.index, 'pchange'] = tmp_df.values
+        with open('norm.json', 'w') as f:
+            f.write(df.to_json(orient='records', lines=True))
+        obj_pool.kill()
+    else:
+        with open('norm.json', 'r') as f:
+            df = pd.read_json(f.read(), orient='records', lines=True,  dtype = {'code' : str})
+
+    #logger.info("finish to index pchange")
+    #rdf = pd.DataFrame(columns=["source", "target", "C0", "C1", "B1", "B5", "B10"])
+    #for s_code in good_list:
+    #    s_df = df.loc[df.code == s_code]
+    #    s_df = s_df.reset_index(drop = True)
+    #    for t_code in good_list:
+    #        t_df = df.loc[df.code == t_code]
+    #        t_df = t_df.reset_index(drop = True)
+    #        if s_code != t_code:
+    #            tmp_df = pd.DataFrame()
+    #            tmp_df[s_code] = s_df.pchange
+    #            tmp_df[t_code] = t_df.pchange
+    #            # calculate optimal hedge ratio "beta"
+    #            model = sm.OLS(tmp_df[s_code], tmp_df[t_code])
+    #            results = model.fit()
+    #            series = results.params.tolist()
+    #            # calculate the residuals of the linear combination
+    #            tmp_df["res"] = tmp_df[s_code] - series * tmp_df[t_code]
+    #            # calculate and output the CADF test on the residuals
+    #            cadf = ts.adfuller(tmp_df["res"])
+    #            if cadf[0] < cadf[4]['1%'] and cadf[1] < 0.00000001:
+    #                print("source_code:%s, target_code:%s, C0:%s, C1:%s, B1:%s, B5:%s, B10:%s" % (s_code, t_code, cadf[0], cadf[1], cadf[4]['1%'], cadf[4]['5%'], cadf[4]['10%']))
+    #                rdf.append({"source":s_code, "target":t_code, "C0":cadf[0], "C1":cadf[1], "B1":cadf[4]['1%'], "B5":cadf[4]['5%'], "B10":cadf[4]['10%']}, ignore_index=True)
+    #                creview.plot_price_series(df, s_code, t_code)
+    #logger.info("finish all")
+
+    logger.info("finish to index pchange")
     for code in good_list:
-        obj_pool.imap_unordered(adjust_pchange, code, df, szzs_df.pchange.values)
-    print("3")
-
-    logger.info("enter compute.")
-    date_only_array = df.cdate.tolist()
-    print("4")
-    for _date in date_only_array:
-        obj_pool.imap_unordered(data_std, _date, df)
-    print("5")
-
-    logger.info("finish to index pchange.")
-    rdf = pd.DataFrame(columns=["source", "target", "C0", "C1", "B1", "B5", "B10"])
-    for s_code in good_list:
-        s_df = df.loc[df.code == s_code]
-        s_df = s_df.reset_index(drop = True)
-        for t_code in good_list:
-            t_df = df.loc[df.code == t_code]
-            t_df = t_df.reset_index(drop = True)
-            if s_code != t_code:
-                tmp_df = pd.DataFrame()
-                tmp_df[s_code] = s_df.pchange
-                tmp_df[t_code] = t_df.pchange
-                # calculate optimal hedge ratio "beta"
-                model = sm.OLS(tmp_df[s_code], tmp_df[t_code])
-                results = model.fit()
-                series = results.params.tolist()
-                # calculate the residuals of the linear combination
-                tmp_df["res"] = tmp_df[s_code] - series[0] * tmp_df[t_code]
-                # calculate and output the CADF test on the residuals
-                cadf = ts.adfuller(tmp_df["res"])
-                if cadf[0] < cadf[4]['5%'] and cadf[0] < cadf[4]['1%'] and cadf[0] < cadf[4]['10%'] and cadf[1] < 0.00000001:
-                    rdf.append({"source":s_code, "target":t_code, "C0":cadf[0], "C1":cadf[1], "B1":cadf[4]['1%'], "B5":cadf[4]['5%'], "B10":cadf[4]['10%']}, ignore_index=True)
-                    creview.plot_price_series(df, s_code, t_code)
-
-    #for code in good_list:
-    #    tmp_df = df.loc[df.code == code]
-    #    series = tmp_df.close.tolist()
-    #    cadf = ts.adfuller(series)
-    #    H, c, data = compute_Hc(series, kind='price', simplified=True, min_window = 5)
-    #    print("code={:s}, H={:.4f}, c={:.4f}, data={}, cadf={}".format(code, H, c, data, cadf))
-    #    #uncomment the following to make a plot using Matplotlib:
-    #    #import matplotlib.pyplot as plt
-    #    #f, ax = plt.subplots()
-    #    #ax.plot(data[0], c*data[0]**H, color="deepskyblue")
-    #    #ax.scatter(data[0], data[1], color="purple")
-    #    #ax.set_xscale('log')
-    #    #ax.set_yscale('log')
-    #    #ax.set_xlabel('Time interval')
-    #    #ax.set_ylabel('R/S ratio')
-    #    #ax.grid(True)
-    #    #plt.savefig('/tmp/relation.png', dpi=1000)
+        tmp_df = df.loc[df.code == code]
+        series = tmp_df.close.tolist()
+        #cadf = ts.adfuller(series)
+        #if cadf[0] < cadf[4]['1%'] and cadf[1] < 0.00000001
+        H, c, data = compute_Hc(series, kind='price', simplified=True, min_window = 5)
+        print("code={:s}, H={:.4f}, c={:.4f}, data={}, cadf={}".format(code, H, c, data, cadf))
+        #uncomment the following to make a plot using Matplotlib:
+        #import matplotlib.pyplot as plt
+        #f, ax = plt.subplots()
+        #ax.plot(data[0], c*data[0]**H, color="deepskyblue")
+        #ax.scatter(data[0], data[1], color="purple")
+        #ax.set_xscale('log')
+        #ax.set_yscale('log')
+        #ax.set_xlabel('Time interval')
+        #ax.set_ylabel('R/S ratio')
+        #ax.grid(True)
+        #plt.savefig('/tmp/relation.png', dpi=1000)
