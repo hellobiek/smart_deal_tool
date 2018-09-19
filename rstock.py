@@ -99,16 +99,18 @@ class RIndexStock:
         if not self.is_table_exists(table_name):
             if not self.create_table(table_name):
                 logger.error("create tick table failed")
-                return
+                return False
             self.redis.sadd(self.dbname, table_name)
         if self.is_date_exists(table_name, cdate): 
             logger.debug("existed table:%s, date:%s" % (table_name, cdate))
-            return
+            return False
         df = ts.get_today_all()
         df['date'] = cdate
         self.redis.set(ct.TODAY_ALL_STOCK, _pickle.dumps(df, 2))
         if self.mysql_client.set(df, table_name):
             self.redis.sadd(table_name, cdate)
+            return True
+        return False
 
 if __name__ == '__main__':
     #start_date = '2018-03-25'

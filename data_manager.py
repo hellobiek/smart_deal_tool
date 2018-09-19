@@ -11,6 +11,7 @@ from cstock import CStock
 from cindex import CIndex
 from climit import CLimit 
 from gevent.pool import Pool
+from functools import partial
 from creview import CReivew
 from cgreent import CGreenlet
 from rstock import RIndexStock 
@@ -194,43 +195,63 @@ class DataManager:
                         finished_step = self.get_update_info()
                         logger.info("enter updating.%s" % finished_step)
                         if finished_step < 1:
-                            self.cal_client.init(False)
+                            if not self.cal_client.init(False):
+                                logger.error("cal_client init failed")
+                                continue
                             self.set_update_info(1)
 
                         if finished_step < 2:
-                            self.delisted_info_client.init(False)
+                            if not self.delisted_info_client.init(False): 
+                                logger.error("delisted_info init failed")
+                                continue
                             self.set_update_info(2)
 
                         if finished_step < 3:
-                            self.stock_info_client.init()
+                            if not self.stock_info_client.init():
+                                logger.error("stock_info init failed")
+                                continue
                             self.set_update_info(3)
 
                         if finished_step < 4:
-                            self.comb_info_client.init()
+                            if not self.comb_info_client.init():
+                                logger.error("comb_info init failed")
+                                continue
                             self.set_update_info(4)
 
                         if finished_step < 5:
-                            self.industry_info_client.init()
+                            if not self.industry_info_client.init():
+                                logger.error("industry_info init failed")
+                                continue
                             self.set_update_info(5)
 
                         if finished_step < 6:
-                            self.download_and_extract()
+                            if not self.download_and_extract():
+                                logger.error("download_and_extract failed")
+                                continue
                             self.set_update_info(6)
 
                         if finished_step < 7:
-                            self.init_today_index_info()
+                            if not self.init_today_index_info():
+                                logger.error("init_today_index_info failed")
+                                continue
                             self.set_update_info(7)
 
                         if finished_step < 8:
-                            if not self.init_today_industry_info(): raise Exception("init_today_industry_info failed")
+                            if not self.init_today_industry_info():
+                                logger.error("init_today_industry_info failed")
+                                continue
                             self.set_update_info(8)
 
                         if finished_step < 9:
-                            if not self.init_today_limit_info(): raise Exception("init_today_limit_info failed")
+                            if not self.init_today_limit_info():
+                                logger.error("init_today_limit_info failed")
+                                continue
                             self.set_update_info(9)
                            
                         if finished_step < 10:
-                            self.rindex_stock_data_client.set_data()
+                            if not self.rindex_stock_data_client.set_data():
+                                logger.error("rindex_stock_data set failed")
+                                continue
                             self.set_update_info(10)
 
                         if finished_step < 11:
@@ -238,7 +259,8 @@ class DataManager:
                             self.set_update_info(11)
 
                         if finished_step < 12:
-                            self.init_today_stock_tick()
+                            if not self.init_today_stock_info():
+                                logger.error("init_today_stock_info set failed")
                             self.set_update_info(12)
             except Exception as e:
                 logger.error(e)
@@ -261,50 +283,77 @@ class DataManager:
             if str(code_id) not in self.combination_objs:
                 self.combination_objs[str(code_id)] = Combination(self.dbinfo, code_id)
 
-    def init_today_stock_tick(self):
-        _date = datetime.now().strftime('%Y-%m-%d')
-        obj_pool = Pool(90)
-        df = self.stock_info_client.get()
-        greenlets = list()
-        bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-        for _index, code_id in df.code.iteritems():
-            logger.info("init today tick count:%s, code:%s" % ((_index + 1), code_id))
+    def init_today_stock_info(self):
+        def _set_stock_info(_date, bonus_info, code_id):
             _obj = CStock(self.dbinfo, code_id)
-            greenlets.append(obj_pool.spawn(_obj.set_k_data, bonus_info))
-            greenlets.append(obj_pool.spawn(_obj.set_ticket, _date))
-        obj_pool.join()
+            if _obj.set_ticket(_date) and _obj.set_k_data(bonus_info): return (code_id, True)
+            return (code_id, False)
+        obj_pool = Pool(300)
+        df = self.stock_info_client.get()
+        _date = datetime.now().strftime('%Y-%m-%d')
+        bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
+        failed_list = df.code.tolist()
+        cfunc = partial(_set_stock_info, _date, bonus_info)
+        while len(failed_list) > 0:
+            logger.info("init_today_stock_info:%s" % failed_list)
+            failed_count = 0
+            for result in obj_pool.imap_unordered(cfunc, failed_list):
+                if True == result[1]: 
+                    failed_list.remove(result[0])
+                else:
+                    failed_count += 1
+            if failed_count > 0 and failed_count == len(failed_list): 
+                logger.info("%s stock info init failed" % failed_list)
+                return False
+        obj_pool.join(timeout = 10)
         obj_pool.kill()
+        return True
 
     def init_today_limit_info(self):
         _date = datetime.now().strftime('%Y-%m-%d')
         return self.limit_client.crawl_data(_date)
 
     def init_today_industry_info(self):
-        greenlets = list()
+        def _set_industry_info(code_id):
+            return (code_id, CIndex(self.dbinfo, code_id).set_k_data())
         obj_pool = Pool(50)
         df = self.industry_info_client.get()
-        for _, code_id in df.code.iteritems():
-            g = CGreenlet(code_id, CIndex(self.dbinfo, code_id).set_k_data)
-            greenlets.append(g)
-            obj_pool.start(g)
-        obj_pool.join(timeout = 180)
+        failed_list = df.code.tolist()
+        while len(failed_list) > 0:
+            logger.info("init_today_industry_info:%s" % failed_list)
+            failed_count = 0
+            for result in obj_pool.imap_unordered(_set_industry_info, failed_list):
+                if True == result[1]: 
+                    failed_list.remove(result[0])
+                else:
+                    failed_count += 1
+            if failed_count > 0 and failed_count == len(failed_list): 
+                logger.info("%s industry init failed" % failed_list)
+                return False
+        obj_pool.join(timeout = 10)
         obj_pool.kill()
-        succeed = True
-        for i in range(len(greenlets) - 1, -1, -1):
-            g = greenlets[i]
-            if g.ready() and g.value is False:
-                logger.error("set k data for %s failed" % g.name)
-                succeed = False
-        return succeed
+        return True
 
     def init_today_index_info(self):
-        obj_pool = Pool(50)
-        for code_id in ct.TDX_INDEX_DICT:
+        def _set_index_info(code_id):
             _obj = self.index_objs[code_id] if code_id in self.index_objs else CIndex(self.dbinfo, code_id)
-            if obj_pool.full(): obj_pool.join()
-            obj_pool.spawn(_obj.set_k_data)
-        obj_pool.join()
+            return (code_id, _obj.set_k_data())
+        obj_pool = Pool(50)
+        failed_list = ct.TDX_INDEX_DICT.keys()
+        while len(failed_list) > 0:
+            logger.info("init_today_index_info:%s" % failed_list)
+            failed_count = 0
+            for result in obj_pool.imap_unordered(_set_index_info, failed_list):
+                if True == result[1]: 
+                    failed_list.remove(result[0])
+                else:
+                    failed_count += 1
+            if failed_count > 0 and failed_count == len(failed_list): 
+                logger.info("%s index init failed" % failed_list)
+                return False
+        obj_pool.join(timeout = 10)
         obj_pool.kill()
+        return True
 
     def init_all_stock_tick(self):
         start_date = '2015-01-01'
@@ -354,12 +403,14 @@ class DataManager:
                     file_path = os.path.join(ct.ZIP_DIR, filename)
                     if os.path.exists(file_path):
                         unzip(file_path, ct.TIC_DIR)
+            return True
         except Exception as e:
             logger.error(e)
+            return False
         
 if __name__ == '__main__':
     dm = DataManager(ct.DB_INFO) 
-    dm.init_today_stock_tick()
+    dm.init_today_stock_info()
     #dm.init_today_industry_info()
     #dm.init_today_index_info()
     #dm.init_today_limit_info()

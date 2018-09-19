@@ -269,14 +269,13 @@ class CReivew:
         plt.close(fig)
 
     def get_range_data(self, start_date, end_date, code):
-        logger.info("start get data:%s" % code)
         sql = "select * from day where cdate between \"%s\" and \"%s\"" %(start_date, end_date)
         self.mysql_client.changedb(CStock.get_dbname(code))
         return (code, self.mysql_client.get(sql))
 
     def gen_stocks_trends(self, start_date, end_date, stock_info):
         good_list = list()
-        obj_pool = Pool(300)
+        obj_pool = Pool(200)
         all_df = pd.DataFrame()
         failed_list = stock_info.code.tolist()
         cfunc = partial(self.get_range_data, start_date, end_date)
@@ -284,12 +283,12 @@ class CReivew:
             logger.info("restart failed ip len(%s)" % len(failed_list))
             for code_data in obj_pool.imap_unordered(cfunc, failed_list):
                 if code_data[1] is not None:
+                    tem_df = code_data[1]
+                    tem_df['code'] = code_data[0]
                     all_df = all_df.append(code_data[1])
                     failed_list.remove(code_data[0])
-                    logger.info("restart len(%s)" % len(failed_list))
         obj_pool.join(timeout = 10)
         obj_pool.kill()
-        logger.info("read succeed")
         self.mysql_client.changedb()
         return all_df
 
@@ -428,9 +427,9 @@ def choose_stock(df, code):
     return code if median_value > MONEY_LIMIT and mean_value > MONEY_LIMIT else None
 
 def data_std(df, _date):
-    tmp_df = df.loc[df.cdate == _date, 'pchange']
-    x = preprocessing.scale(tmp_df)
-    return pd.Series(x, index = tmp_df.index)
+    ntmp_df = df.loc[df.cdate == _date, 'pchange']
+    x = preprocessing.scale(ntmp_df)
+    return pd.Series(x, index = ntmp_df.index)
 
 def adjust_name_and_pchange(df, stock_info, values, code):
     #get tmp df
@@ -447,8 +446,8 @@ def adjust_name_and_pchange(df, stock_info, values, code):
     pchange_custom = pd.Series(values, index = tmp_df.index)
     new_tmp_df = pd.DataFrame()
     new_tmp_df['name'] = name_series
-    new_tmp_df['industry'] = industry_series
     new_tmp_df['pchange'] = tmp_df - pchange_custom
+    new_tmp_df['industry'] = industry_series
     return new_tmp_df
 
 def total_length(df, code):
@@ -460,19 +459,20 @@ def get_good_list(df, max_length, code):
 if __name__ == '__main__':
     creview = CReivew(ct.DB_INFO)
     if not os.path.exists('norm.json'):
+        start_date = '2018-03-27'
+        end_date   = '2018-09-10'
+        stock_info = CStockInfo.get()
+        stock_info = stock_info[['code', 'name', 'industry', 'timeToMarket']]
+        stock_info = stock_info[(stock_info.timeToMarket < 20180327) & (stock_info.timeToMarket > 0)]
+        #上证指数的涨跌数据
+        szzs_df = CIndex(ct.DB_INFO, '000001').get_k_data_in_range(start_date, end_date)
+        szzs_df['pchange'] = 100 * (szzs_df.close - szzs_df.open) / szzs_df.close
+        szzs_df['preclose'] = szzs_df['close'].shift(-1)
+        szzs_df = szzs_df[szzs_df.cdate != start_date]
         if not os.path.exists('temp.json'):
-            start_date = '2018-03-27'
-            end_date   = '2018-09-10'
-            #上证指数的涨跌数据
-            szzs_df = CIndex(ct.DB_INFO, '000001').get_k_data_in_range(start_date, end_date)
-            szzs_df['pchange'] = 100 * (szzs_df.close - szzs_df.open) / szzs_df.close
-            szzs_df['preclose'] = szzs_df['close'].shift(-1)
-            szzs_df = szzs_df[szzs_df.cdate != start_date]
-
-            stock_info = CStockInfo.get()
-            stock_info = stock_info[['code', 'name', 'industry', 'timeToMarket']]
-            stock_info = stock_info[(stock_info.timeToMarket < 20180327) & (stock_info.timeToMarket > 0)]
+            logger.info("start get data")
             df = creview.gen_stocks_trends(start_date, end_date, stock_info)
+            logger.info("end get data")
             df = df.reset_index(drop = True)
             df.code = df.code.astype(str).str.zfill(6)
             df.close = df.close * df.adj
@@ -492,7 +492,7 @@ if __name__ == '__main__':
 
         logger.info("start choose stock, length:%s" % len(code_list))
         obj_pool = Pool(300)
-        MONEY_LIMIT = 50000000
+        MONEY_LIMIT = 80000000
         cfunc = partial(choose_stock, df)
         good_list = [code for code in obj_pool.imap_unordered(cfunc, code_list) if code is not None]
 
@@ -530,9 +530,6 @@ if __name__ == '__main__':
         with open('norm.json', 'r') as f:
             df = pd.read_json(f.read(), orient='records', lines=True,  dtype = {'code' : str})
 
-    import pdb
-    pdb.set_trace()
-
     #logger.info("finish to index pchange")
     #rdf = pd.DataFrame(columns=["source", "target", "C0", "C1", "B1", "B5", "B10"])
     #for s_code in good_list:
@@ -559,6 +556,8 @@ if __name__ == '__main__':
     #                creview.plot_price_series(df, s_code, t_code)
     #logger.info("finish all")
 
+    import pdb
+    pdb.set_trace()
     logger.info("finish to index pchange")
     for code in good_list:
         tmp_df = df.loc[df.code == code]
@@ -567,15 +566,12 @@ if __name__ == '__main__':
         min_max_scaler = preprocessing.MinMaxScaler(feature_range=(-3, 3))
         y = min_max_scaler.fit_transform(series)
 
-        import pdb
-        pdb.set_trace()
 
         fig = plt.figure()
-        plt.plot(xn, y1, label = name1, linewidth = 1.5)
-        plt.xticks(xn, x)
+        plt.plot(x, y, label = name1, linewidth = 1.5)
         plt.xlabel('时间', fontproperties = get_chinese_font())
-        plt.ylabel('分数', fontproperties = get_chinese_font())
-        plt.title('协整关系', fontproperties = get_chinese_font())
+        plt.ylabel('价格', fontproperties = get_chinese_font())
+        plt.title('股价变化', fontproperties = get_chinese_font())
         fig.autofmt_xdate()
         plt.legend(loc = 'upper right', prop = get_chinese_font())
         plt.show()
@@ -591,13 +587,13 @@ if __name__ == '__main__':
         #print("code={:s}, H={:.4f}, c={:.4f}, data={}, cadf={}".format(code, H, c, data, cadf))
         #uncomment the following to make a plot using Matplotlib:
 
-        import matplotlib.pyplot as plt
-        f, ax = plt.subplots()
-        ax.plot(data[0], c*data[0]**H, color="deepskyblue")
-        ax.scatter(data[0], data[1], color="purple")
-        ax.set_xscale('log')
-        ax.set_yscale('log')
-        ax.set_xlabel('Time interval')
-        ax.set_ylabel('R/S ratio')
-        ax.grid(True)
-        plt.savefig('/tmp/relation.png', dpi=1000)
+        #import matplotlib.pyplot as plt
+        #f, ax = plt.subplots()
+        #ax.plot(data[0], c*data[0]**H, color="deepskyblue")
+        #ax.scatter(data[0], data[1], color="purple")
+        #ax.set_xscale('log')
+        #ax.set_yscale('log')
+        #ax.set_xlabel('Time interval')
+        #ax.set_ylabel('R/S ratio')
+        #ax.grid(True)
+        #plt.savefig('/tmp/relation.png', dpi=1000)
