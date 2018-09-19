@@ -3,8 +3,6 @@ import gevent
 from gevent import monkey
 monkey.patch_all(thread=True)
 from gevent.pool import Pool
-from gevent.lock import Semaphore
-from cgreent import CGreenlet
 import os
 import json
 import time
@@ -33,6 +31,7 @@ from climit import CLimit
 from functools import partial
 from cstock_info import CStockInfo 
 from industry_info import IndustryInfo
+from sklearn.linear_model import Ridge
 from sklearn import cluster, covariance, manifold, preprocessing
 import ccalendar
 from common import create_redis_obj, get_dates_array
@@ -50,9 +49,8 @@ class CReivew:
         self.sdir = '/data/docs/blog/hellobiek.github.io/source/_posts'
         self.doc = CDoc(self.sdir)
         self.stock_objs = dict()
-        self.lock = Semaphore(1)
         self.redis = create_redis_obj()
-        self.mysql_client = CMySQL(self.dbinfo)
+        self.mysql_client = CMySQL(self.dbinfo, iredis = self.redis)
         self.cal_client = ccalendar.CCalendar(without_init = True)
         self.animating = False
         self.emotion_table = ct.EMOTION_TABLE
@@ -270,41 +268,29 @@ class CReivew:
         ani.save(sfile, writer)
         plt.close(fig)
 
-    def get_range_data(self, code, start_date, end_date):
+    def get_range_data(self, start_date, end_date, code):
+        logger.info("start get data:%s" % code)
         sql = "select * from day where cdate between \"%s\" and \"%s\"" %(start_date, end_date)
         self.mysql_client.changedb(CStock.get_dbname(code))
-        return self.mysql_client.get(sql)
+        return (code, self.mysql_client.get(sql))
 
     def gen_stocks_trends(self, start_date, end_date, stock_info):
-        greenlets = list()
-        logger.info("read start")
+        good_list = list()
         obj_pool = Pool(300)
-        for code in stock_info.code:
-            g = CGreenlet(code, self.get_range_data, code, start_date, end_date)
-            greenlets.append(g)
-            obj_pool.start(g)
-        obj_pool.join(timeout = 180)
-        obj_pool.kill()
-        self.mysql_client.changedb()
-        logger.info("read succeed")
         all_df = pd.DataFrame()
-        while(len(greenlets) > 0):
-            for i in range(len(greenlets) - 1, -1, -1):
-                g = greenlets[i]
-                if g.ready():
-                    if g.value is not None:
-                        tmp_df = g.value
-                        if not tmp_df.empty:
-                            tmp_df['code'] = g.name
-                            all_df = all_df.append(tmp_df)
-                    else:
-                        logger.info("%s restart" % g.name)
-                        g_new = CGreenlet(g.name, self.get_range_data, g.name, start_date, end_date)
-                        g_new.start()
-                        g_new.join(timeout = 6)
-                        greenlets.append(g_new)
-                    del greenlets[i]
-        logger.info("dataframe succeed")
+        failed_list = stock_info.code.tolist()
+        cfunc = partial(self.get_range_data, start_date, end_date)
+        while len(failed_list) > 0:
+            logger.info("restart failed ip len(%s)" % len(failed_list))
+            for code_data in obj_pool.imap_unordered(cfunc, failed_list):
+                if code_data[1] is not None:
+                    all_df = all_df.append(code_data[1])
+                    failed_list.remove(code_data[0])
+                    logger.info("restart len(%s)" % len(failed_list))
+        obj_pool.join(timeout = 10)
+        obj_pool.kill()
+        logger.info("read succeed")
+        self.mysql_client.changedb()
         return all_df
 
     def relation_plot(self, df, good_list):
@@ -438,7 +424,8 @@ class CReivew:
 def choose_stock(df, code):
     p_df = df[df.code ==  code]
     median_value = np.median(p_df.amount)
-    return code if median_value > MONEY_LIMIT else None
+    mean_value = np.mean(p_df.amount)
+    return code if median_value > MONEY_LIMIT and mean_value > MONEY_LIMIT else None
 
 def data_std(df, _date):
     tmp_df = df.loc[df.cdate == _date, 'pchange']
@@ -474,14 +461,17 @@ if __name__ == '__main__':
     creview = CReivew(ct.DB_INFO)
     if not os.path.exists('norm.json'):
         if not os.path.exists('temp.json'):
-            start_date = '2018-09-01'
+            start_date = '2018-03-27'
             end_date   = '2018-09-10'
             #上证指数的涨跌数据
             szzs_df = CIndex(ct.DB_INFO, '000001').get_k_data_in_range(start_date, end_date)
             szzs_df['pchange'] = 100 * (szzs_df.close - szzs_df.open) / szzs_df.close
             szzs_df['preclose'] = szzs_df['close'].shift(-1)
+            szzs_df = szzs_df[szzs_df.cdate != start_date]
+
             stock_info = CStockInfo.get()
-            stock_info = stock_info[['code', 'name']]
+            stock_info = stock_info[['code', 'name', 'industry', 'timeToMarket']]
+            stock_info = stock_info[(stock_info.timeToMarket < 20180327) & (stock_info.timeToMarket > 0)]
             df = creview.gen_stocks_trends(start_date, end_date, stock_info)
             df = df.reset_index(drop = True)
             df.code = df.code.astype(str).str.zfill(6)
@@ -489,7 +479,8 @@ if __name__ == '__main__':
             df.open = df.open * df.adj
             df['pchange'] = 100 * (df.close - df.open) / df.close
             df['preclose'] = df['close'].shift(-1)
-            with open('temp.json', 'w') as f:
+            df = df[df.cdate != start_date]
+            with open('temp.json', 'w') as f: 
                 f.write(df.to_json(orient='records', lines=True))
         else:
             logger.info("begin read file")
@@ -501,7 +492,7 @@ if __name__ == '__main__':
 
         logger.info("start choose stock, length:%s" % len(code_list))
         obj_pool = Pool(300)
-        MONEY_LIMIT = 100000000
+        MONEY_LIMIT = 50000000
         cfunc = partial(choose_stock, df)
         good_list = [code for code in obj_pool.imap_unordered(cfunc, code_list) if code is not None]
 
@@ -524,18 +515,23 @@ if __name__ == '__main__':
 
         logger.info("set name and adjust pchange")
         cfunc = partial(adjust_name_and_pchange, df, stock_info, szzs_df.pchange.values)
-            for tmp_df in obj_pool.imap_unordered(cfunc, good_list): df.at[tmp_df.index, ['name', 'pchange']] = tmp_df.values
+        for tmp_df in obj_pool.imap_unordered(cfunc, good_list): 
+            df.at[tmp_df.index, ['name', 'pchange', 'industry']] = tmp_df.values
 
         logger.info("normalize data")
         date_only_array = df.cdate.tolist()
         cfunc = partial(data_std, df)
-        for tmp_df in obj_pool.imap_unordered(cfunc, date_only_array): df.at[tmp_df.index, 'pchange'] = tmp_df.values
+        for tmp_df in obj_pool.imap_unordered(cfunc, date_only_array): 
+            df.at[tmp_df.index, 'pchange'] = tmp_df.values
         with open('norm.json', 'w') as f:
             f.write(df.to_json(orient='records', lines=True))
         obj_pool.kill()
     else:
         with open('norm.json', 'r') as f:
             df = pd.read_json(f.read(), orient='records', lines=True,  dtype = {'code' : str})
+
+    import pdb
+    pdb.set_trace()
 
     #logger.info("finish to index pchange")
     #rdf = pd.DataFrame(columns=["source", "target", "C0", "C1", "B1", "B5", "B10"])
@@ -566,19 +562,42 @@ if __name__ == '__main__':
     logger.info("finish to index pchange")
     for code in good_list:
         tmp_df = df.loc[df.code == code]
+        x = [i for i in range(len(tmp_df))]
         series = tmp_df.close.tolist()
+        min_max_scaler = preprocessing.MinMaxScaler(feature_range=(-3, 3))
+        y = min_max_scaler.fit_transform(series)
+
+        import pdb
+        pdb.set_trace()
+
+        fig = plt.figure()
+        plt.plot(xn, y1, label = name1, linewidth = 1.5)
+        plt.xticks(xn, x)
+        plt.xlabel('时间', fontproperties = get_chinese_font())
+        plt.ylabel('分数', fontproperties = get_chinese_font())
+        plt.title('协整关系', fontproperties = get_chinese_font())
+        fig.autofmt_xdate()
+        plt.legend(loc = 'upper right', prop = get_chinese_font())
+        plt.show()
+
+        clf = Ridge(alpha=.5)
+        clf.fit(x,y)
+        import pdb
+        pdb.set_trace()
+
         #cadf = ts.adfuller(series)
         #if cadf[0] < cadf[4]['1%'] and cadf[1] < 0.00000001
-        H, c, data = compute_Hc(series, kind='price', simplified=True, min_window = 5)
-        print("code={:s}, H={:.4f}, c={:.4f}, data={}, cadf={}".format(code, H, c, data, cadf))
+        #H, c, data = compute_Hc(series, kind='price', simplified=True, min_window = 5)
+        #print("code={:s}, H={:.4f}, c={:.4f}, data={}, cadf={}".format(code, H, c, data, cadf))
         #uncomment the following to make a plot using Matplotlib:
-        #import matplotlib.pyplot as plt
-        #f, ax = plt.subplots()
-        #ax.plot(data[0], c*data[0]**H, color="deepskyblue")
-        #ax.scatter(data[0], data[1], color="purple")
-        #ax.set_xscale('log')
-        #ax.set_yscale('log')
-        #ax.set_xlabel('Time interval')
-        #ax.set_ylabel('R/S ratio')
-        #ax.grid(True)
-        #plt.savefig('/tmp/relation.png', dpi=1000)
+
+        import matplotlib.pyplot as plt
+        f, ax = plt.subplots()
+        ax.plot(data[0], c*data[0]**H, color="deepskyblue")
+        ax.scatter(data[0], data[1], color="purple")
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+        ax.set_xlabel('Time interval')
+        ax.set_ylabel('R/S ratio')
+        ax.grid(True)
+        plt.savefig('/tmp/relation.png', dpi=1000)

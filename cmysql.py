@@ -22,7 +22,7 @@ class CMySQL:
         self.dbinfo = dbinfo
         self.dbname = dbname
         self.redis = create_redis_obj() if iredis is None else iredis
-        self.engine = create_engine("mysql://%s:%s@%s/%s?charset=utf8" % (self.dbinfo['user'], self.dbinfo['password'], self.dbinfo['host'], self.dbname), pool_size=0 , max_overflow=-1, pool_recycle=20)
+        self.engine = create_engine("mysql://%s:%s@%s/%s?charset=utf8" % (self.dbinfo['user'], self.dbinfo['password'], self.dbinfo['host'], self.dbname), pool_size=0 , max_overflow=-1, pool_recycle=20, pool_timeout=5, connect_args={'connect_timeout': 3})
 
     def __del__(self):
         self.redis = None
@@ -30,7 +30,7 @@ class CMySQL:
 
     def changedb(self, dbname = 'stock'):
         self.dbname = dbname
-        self.engine = create_engine("mysql://%s:%s@%s/%s?charset=utf8" % (self.dbinfo['user'], self.dbinfo['password'], self.dbinfo['host'], self.dbname), pool_size=0 , max_overflow=-1, pool_recycle=20)
+        self.engine = create_engine("mysql://%s:%s@%s/%s?charset=utf8" % (self.dbinfo['user'], self.dbinfo['password'], self.dbinfo['host'], self.dbname), pool_size=0 , max_overflow=-1, pool_recycle=20, pool_timeout=5, connect_args={'connect_timeout': 3})
 
     def get_all_databases(self):
         if self.redis.exists(ALL_DATABASES):
@@ -114,7 +114,7 @@ class CMySQL:
         hasSucceed = False
         for i in range(ct.RETRY_TIMES):
             try:
-                conn = db.connect(host=self.dbinfo['host'],user=self.dbinfo['user'],passwd=self.dbinfo['password'],db=self.dbname,charset=ct.UTF8)
+                conn = db.connect(host=self.dbinfo['host'],user=self.dbinfo['user'],passwd=self.dbinfo['password'],db=self.dbname,charset=ct.UTF8,connect_timeout=3)
                 cur = conn.cursor()
                 cur.execute(sql)
                 conn.commit()
@@ -157,7 +157,7 @@ class CMySQL:
     def _get_all_databses(self):
         db_list = list()
         try:
-            conn = pymysql.connect(host=self.dbinfo['host'], user=self.dbinfo['user'], passwd=self.dbinfo['password'])
+            conn = pymysql.connect(host=self.dbinfo['host'], user=self.dbinfo['user'], passwd=self.dbinfo['password'],connect_timeout=3,read_timeout=5,write_timeout=10)
             cursor = conn.cursor()
             cursor.execute("show databases;")
             db_tuple = cursor.fetchall()
