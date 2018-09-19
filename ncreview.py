@@ -452,9 +452,15 @@ def adjust_name_and_pchange(df, stock_info, values, code):
     name = stock_info[stock_info.code == code].name.values[0]
     names = [name for n in range(len(tmp_df))]
     name_series = pd.Series(names, index = tmp_df.index)
+    #set industry
+    industry = stock_info[stock_info.code == code].industry.values[0]
+    industries = [industry for n in range(len(tmp_df))]
+    industry_series = pd.Series(industries, index = tmp_df.index)
+    #set pchange
     pchange_custom = pd.Series(values, index = tmp_df.index)
     new_tmp_df = pd.DataFrame()
     new_tmp_df['name'] = name_series
+    new_tmp_df['industry'] = industry_series
     new_tmp_df['pchange'] = tmp_df - pchange_custom
     return new_tmp_df
 
@@ -468,11 +474,12 @@ if __name__ == '__main__':
     creview = CReivew(ct.DB_INFO)
     if not os.path.exists('norm.json'):
         if not os.path.exists('temp.json'):
-            start_date = '2018-05-10'
+            start_date = '2018-09-01'
             end_date   = '2018-09-10'
             #上证指数的涨跌数据
             szzs_df = CIndex(ct.DB_INFO, '000001').get_k_data_in_range(start_date, end_date)
             szzs_df['pchange'] = 100 * (szzs_df.close - szzs_df.open) / szzs_df.close
+            szzs_df['preclose'] = szzs_df['close'].shift(-1)
             stock_info = CStockInfo.get()
             stock_info = stock_info[['code', 'name']]
             df = creview.gen_stocks_trends(start_date, end_date, stock_info)
@@ -481,6 +488,7 @@ if __name__ == '__main__':
             df.close = df.close * df.adj
             df.open = df.open * df.adj
             df['pchange'] = 100 * (df.close - df.open) / df.close
+            df['preclose'] = df['close'].shift(-1)
             with open('temp.json', 'w') as f:
                 f.write(df.to_json(orient='records', lines=True))
         else:
@@ -512,6 +520,7 @@ if __name__ == '__main__':
         df = df[df.code.isin(good_list)]
         df = df.reset_index(drop = True)
         df['name'] = ''
+        df['industry'] = ''
 
         logger.info("set name and adjust pchange")
         cfunc = partial(adjust_name_and_pchange, df, stock_info, szzs_df.pchange.values)

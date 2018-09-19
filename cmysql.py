@@ -18,10 +18,10 @@ ALL_DATABASES = 'all_databases'
 ALL_TRIGGERS = 'all_triggers'
 
 class CMySQL:
-    def __init__(self, dbinfo, dbname = 'stock'):
+    def __init__(self, dbinfo, dbname = 'stock', iredis = None):
         self.dbinfo = dbinfo
         self.dbname = dbname
-        self.redis = create_redis_obj()
+        self.redis = create_redis_obj() if iredis is None else iredis
         self.engine = create_engine("mysql://%s:%s@%s/%s?charset=utf8" % (self.dbinfo['user'], self.dbinfo['password'], self.dbinfo['host'], self.dbname), pool_size=0 , max_overflow=-1, pool_recycle=20)
 
     def __del__(self):

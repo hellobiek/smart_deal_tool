@@ -3,9 +3,9 @@ from influxdb import DataFrameClient
 from common import create_redis_obj
 ALL_IN_DATABASES = 'all_in_databases'
 class CInflux:
-    def __init__(self, dbinfo, dbname):
+    def __init__(self, dbinfo, dbname, iredis = None):
         self.dbname = dbname
-        self.redis = create_redis_obj()
+        self.redis = create_redis_obj() if iredis is None else iredis
         self.df_client = DataFrameClient(dbinfo['host'], dbinfo['port'], dbinfo['user'], dbinfo['password'], self.dbname)
 
     def __del__(self):

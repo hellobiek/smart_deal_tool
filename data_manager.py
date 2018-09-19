@@ -263,14 +263,14 @@ class DataManager:
 
     def init_today_stock_tick(self):
         _date = datetime.now().strftime('%Y-%m-%d')
-        obj_pool = Pool(15)
+        obj_pool = Pool(90)
         df = self.stock_info_client.get()
         greenlets = list()
+        bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
         for _index, code_id in df.code.iteritems():
             logger.info("init today tick count:%s, code:%s" % ((_index + 1), code_id))
             _obj = CStock(self.dbinfo, code_id)
-            if obj_pool.full(): obj_pool.join(timeout = 30)
-            greenlets.append(obj_pool.spawn(_obj.set_k_data))
+            greenlets.append(obj_pool.spawn(_obj.set_k_data, bonus_info))
             greenlets.append(obj_pool.spawn(_obj.set_ticket, _date))
         obj_pool.join()
         obj_pool.kill()
@@ -359,7 +359,7 @@ class DataManager:
         
 if __name__ == '__main__':
     dm = DataManager(ct.DB_INFO) 
-    dm.run(3)
+    dm.init_today_stock_tick()
     #dm.init_today_industry_info()
     #dm.init_today_index_info()
     #dm.init_today_limit_info()

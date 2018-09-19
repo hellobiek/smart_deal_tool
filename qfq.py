@@ -32,16 +32,18 @@ def adjust_share(data, code, info):
     end_index = 0
     pre_totals = 0
     pre_outstanding = 0
+    last_pre_totals = 0
+    last_pre_outstanding = 0
     for info_index, start_date in info.date.iteritems():
         dates = data.loc[data.date >= start_date].index.tolist()
         if len(dates) == 0 : continue
         start_index = end_index
         end_index = dates[len(dates) - 1]
 
-        pre_outstanding = info.loc[info_index, 'money']   #前流通盘
-        pre_totals = info.loc[info_index, 'price']   #前总股本
-        cur_outstanding = info.loc[info_index, 'count']   #后流通盘
-        cur_totals = info.loc[info_index, 'rate']    #后总股本
+        pre_outstanding = int(info.loc[info_index, 'money'])   #前流通盘
+        pre_totals = int(info.loc[info_index, 'price'])   #前总股本
+        cur_outstanding = int(info.loc[info_index, 'count'])   #后流通盘
+        cur_totals = int(info.loc[info_index, 'rate'])    #后总股本
 
         if 0 == info_index:
             data.at[start_index:end_index, 'outstanding'] = cur_outstanding
@@ -50,9 +52,9 @@ def adjust_share(data, code, info):
             last_pre_totals = pre_totals
         else:
             if cur_outstanding != last_pre_outstanding:
-                logger.error("%s 日期:%s 前流通盘:%s 不等于 预期前流通盘:%s" % (code, start_date, cur_outstanding, last_pre_outstanding))
+                logger.debug("%s 日期:%s 前流通盘:%s 不等于 预期前流通盘:%s" % (code, start_date, cur_outstanding, last_pre_outstanding))
             elif cur_totals != last_pre_totals:
-                logger.error("%s 日期:%s 后流通盘:%s 不等于 预期后流通盘:%s" % (code, start_date, cur_totals, last_pre_totals))
+                logger.debug("%s 日期:%s 后流通盘:%s 不等于 预期后流通盘:%s" % (code, start_date, cur_totals, last_pre_totals))
             data.at[start_index + 1:end_index, 'outstanding'] = cur_outstanding
             data.at[start_index + 1:end_index, 'totals'] = cur_totals
             last_pre_outstanding = pre_outstanding
