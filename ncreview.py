@@ -14,7 +14,7 @@ import const as ct
 import numpy as np
 import pandas as pd
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 from matplotlib import style
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
@@ -40,8 +40,10 @@ from hurst import compute_Hc
 import statsmodels.api as sm
 import statsmodels.tsa.stattools as ts
 logger = getLogger(__name__)
+
 def get_chinese_font():
-    return FontProperties(fname='/conf/fonts/PingFang.ttc')
+    #return FontProperties(fname='/conf/fonts/PingFang.ttc')
+    return FontProperties(fname='/Volumes/data/quant/stock/conf/fonts/PingFang.ttc')
 
 class CReivew:
     def __init__(self, dbinfo):
@@ -273,9 +275,9 @@ class CReivew:
         self.mysql_client.changedb(CStock.get_dbname(code))
         return (code, self.mysql_client.get(sql))
 
-    def gen_stocks_trends(self, start_date, end_date, stock_info):
+    def gen_stocks_trends(self, start_date, end_date, stock_info, max_length):
         good_list = list()
-        obj_pool = Pool(200)
+        obj_pool = Pool(500)
         all_df = pd.DataFrame()
         failed_list = stock_info.code.tolist()
         cfunc = partial(self.get_range_data, start_date, end_date)
@@ -284,10 +286,14 @@ class CReivew:
             for code_data in obj_pool.imap_unordered(cfunc, failed_list):
                 if code_data[1] is not None:
                     tem_df = code_data[1]
-                    tem_df['code'] = code_data[0]
-                    all_df = all_df.append(code_data[1])
+                    if len(tem_df) == max_length:
+                        tem_df = tem_df.sort_values(by = 'cdate', ascending= True)
+                        tem_df['code'] = code_data[0]
+                        tem_df['preclose'] = tem_df['close'].shift(1)
+                        tem_df = tem_df[tem_df.cdate != start_date]
+                        all_df = all_df.append(tem_df)
                     failed_list.remove(code_data[0])
-        obj_pool.join(timeout = 10)
+        obj_pool.join(timeout = 5)
         obj_pool.kill()
         self.mysql_client.changedb()
         return all_df
@@ -431,9 +437,9 @@ def data_std(df, _date):
     x = preprocessing.scale(ntmp_df)
     return pd.Series(x, index = ntmp_df.index)
 
-def adjust_name_and_pchange(df, stock_info, values, code):
+def set_name_and_industry(df, stock_info, code):
     #get tmp df
-    tmp_df = df.loc[df.code == code, 'pchange']
+    tmp_df = df.loc[df.code == code, 'code']
     #set name
     name = stock_info[stock_info.code == code].name.values[0]
     names = [name for n in range(len(tmp_df))]
@@ -443,69 +449,65 @@ def adjust_name_and_pchange(df, stock_info, values, code):
     industries = [industry for n in range(len(tmp_df))]
     industry_series = pd.Series(industries, index = tmp_df.index)
     #set pchange
-    pchange_custom = pd.Series(values, index = tmp_df.index)
     new_tmp_df = pd.DataFrame()
     new_tmp_df['name'] = name_series
-    new_tmp_df['pchange'] = tmp_df - pchange_custom
     new_tmp_df['industry'] = industry_series
     return new_tmp_df
 
-def total_length(df, code):
-    return len(df[df.code == code])
-
-def get_good_list(df, max_length, code):
-    return code if len(df[df.code == code]) == max_length else None  
-
 if __name__ == '__main__':
-    creview = CReivew(ct.DB_INFO)
-    if not os.path.exists('norm.json'):
-        start_date = '2018-03-27'
+    if not os.path.exists('/code/norm.json'):
+        creview = CReivew(ct.DB_INFO)
+        start_date = '2017-09-01'
         end_date   = '2018-09-10'
         stock_info = CStockInfo.get()
         stock_info = stock_info[['code', 'name', 'industry', 'timeToMarket']]
         stock_info = stock_info[(stock_info.timeToMarket < 20180327) & (stock_info.timeToMarket > 0)]
-        #上证指数的涨跌数据
-        szzs_df = CIndex(ct.DB_INFO, '000001').get_k_data_in_range(start_date, end_date)
-        szzs_df['pchange'] = 100 * (szzs_df.close - szzs_df.open) / szzs_df.close
-        szzs_df['preclose'] = szzs_df['close'].shift(-1)
-        szzs_df = szzs_df[szzs_df.cdate != start_date]
-        if not os.path.exists('temp.json'):
-            logger.info("start get data")
-            df = creview.gen_stocks_trends(start_date, end_date, stock_info)
+        if not os.path.exists('/code/index.json'):
+            #上证指数的数据
+            logger.info("start get index data")
+            szzs_df = CIndex(ct.DB_INFO, '000001').get_k_data_in_range(start_date, end_date)
+            szzs_df = szzs_df.sort_values(by = 'cdate', ascending= True)
+            szzs_df['code'] = 'i000001'
+            szzs_df['name'] = "上证指数"
+            szzs_df['industry'] = "所有"
+            szzs_df['preclose'] = szzs_df['close'].shift(1)
+            szzs_df = szzs_df[szzs_df.cdate != start_date]
+            szzs_df['pchange'] = 100 * (szzs_df.close - szzs_df.preclose) / szzs_df.preclose
+            #write data to json file
+            with open('/code/index.json', 'w') as f: 
+                f.write(szzs_df.to_json(orient='records', lines=True))
+        else:
+            logger.info("begin read index file")
+            with open('/code/index.json', 'r') as f:
+                szzs_df = pd.read_json(f.read(), orient='records', lines=True,  dtype = {'code' : str})
+
+        max_length = len(szzs_df) + 1
+        if not os.path.exists('/code/stock.json'):
+            #获取股票的数据
+            logger.info("start get stock data")
+            df = creview.gen_stocks_trends(start_date, end_date, stock_info, max_length)
             logger.info("end get data")
             df = df.reset_index(drop = True)
             df.code = df.code.astype(str).str.zfill(6)
             df.close = df.close * df.adj
-            df.open = df.open * df.adj
-            df['pchange'] = 100 * (df.close - df.open) / df.close
-            df['preclose'] = df['close'].shift(-1)
-            df = df[df.cdate != start_date]
-            with open('temp.json', 'w') as f: 
+            df.preclose = df.preclose * df.adj
+            df['pchange'] = 100 * (df.close - df.preclose) / df.preclose
+            #write data to json file
+            with open('/code/stock.json', 'w') as f: 
                 f.write(df.to_json(orient='records', lines=True))
         else:
-            logger.info("begin read file")
-            with open('temp.json', 'r') as f:
+            logger.info("begin read stock file")
+            with open('/code/stock.json', 'r') as f:
                 df = pd.read_json(f.read(), orient='records', lines=True,  dtype = {'code' : str})
 
         logger.info("read file success")
         code_list = set(df.code.tolist())
 
         logger.info("start choose stock, length:%s" % len(code_list))
-        obj_pool = Pool(300)
+        obj_pool = Pool(500)
         MONEY_LIMIT = 80000000
         cfunc = partial(choose_stock, df)
         good_list = [code for code in obj_pool.imap_unordered(cfunc, code_list) if code is not None]
-
-        logger.info("choose stock succeed, length:%s." % len(good_list))
-        cfunc = partial(total_length, df)
-        total_length_list = [code for code in obj_pool.imap_unordered(cfunc, good_list)]
-
-        logger.info("begin compute length")
-        max_length = np.argmax(np.bincount(total_length_list))
-
-        logger.info("max length:%s" % max_length)
-        cfunc = partial(get_good_list, df, max_length)
-        good_list = [code for code in obj_pool.imap_unordered(cfunc, good_list) if code is not None]
 
         logger.info("get new data")
         df = df[df.code.isin(good_list)]
@@ -513,21 +515,26 @@ if __name__ == '__main__':
         df['name'] = ''
         df['industry'] = ''
 
-        logger.info("set name and adjust pchange")
-        cfunc = partial(adjust_name_and_pchange, df, stock_info, szzs_df.pchange.values)
+        logger.info("set name and industry")
+        cfunc = partial(set_name_and_industry, df, stock_info)
         for tmp_df in obj_pool.imap_unordered(cfunc, good_list): 
-            df.at[tmp_df.index, ['name', 'pchange', 'industry']] = tmp_df.values
+            df.at[tmp_df.index, ['name', 'industry']] = tmp_df.values
 
-        logger.info("normalize data")
+        logger.info("normalize data, length:%s" % len(good_list))
         date_only_array = df.cdate.tolist()
         cfunc = partial(data_std, df)
         for tmp_df in obj_pool.imap_unordered(cfunc, date_only_array): 
             df.at[tmp_df.index, 'pchange'] = tmp_df.values
-        with open('norm.json', 'w') as f:
+
+        logger.info("normalize data success")
+        df = df.append(szzs_df)
+        with open('/code/norm.json', 'w') as f:
             f.write(df.to_json(orient='records', lines=True))
+
+        #clear no use obj
         obj_pool.kill()
     else:
-        with open('norm.json', 'r') as f:
+        with open('/code/norm.json', 'r') as f:
             df = pd.read_json(f.read(), orient='records', lines=True,  dtype = {'code' : str})
 
     #logger.info("finish to index pchange")
@@ -556,30 +563,28 @@ if __name__ == '__main__':
     #                creview.plot_price_series(df, s_code, t_code)
     #logger.info("finish all")
 
-    import pdb
-    pdb.set_trace()
     logger.info("finish to index pchange")
+    good_list = list(set(df.code.tolist()))
+    df.reindex(index = df.index[::-1])
     for code in good_list:
         tmp_df = df.loc[df.code == code]
+        name = set(tmp_df.name.tolist()).pop()
         x = [i for i in range(len(tmp_df))]
-        series = tmp_df.close.tolist()
-        min_max_scaler = preprocessing.MinMaxScaler(feature_range=(-3, 3))
+        series = tmp_df.close.values.reshape(-1,1)
+        min_max_scaler = preprocessing.MinMaxScaler(feature_range = (-3, 3), copy = True)
         y = min_max_scaler.fit_transform(series)
-
-
-        fig = plt.figure()
-        plt.plot(x, y, label = name1, linewidth = 1.5)
+        plt.plot(x, y, label = name, linewidth = 1.5)
         plt.xlabel('时间', fontproperties = get_chinese_font())
         plt.ylabel('价格', fontproperties = get_chinese_font())
         plt.title('股价变化', fontproperties = get_chinese_font())
-        fig.autofmt_xdate()
         plt.legend(loc = 'upper right', prop = get_chinese_font())
         plt.show()
+    plt.close()
 
-        clf = Ridge(alpha=.5)
-        clf.fit(x,y)
-        import pdb
-        pdb.set_trace()
+        #clf = Ridge(alpha=.5)
+        #clf.fit(x,y)
+        #import pdb
+        #pdb.set_trace()
 
         #cadf = ts.adfuller(series)
         #if cadf[0] < cadf[4]['1%'] and cadf[1] < 0.00000001

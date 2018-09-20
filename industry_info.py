@@ -31,7 +31,8 @@ class IndustryInfo:
         if len(failed_list) > 0 :
             logger.error("%s create failed" % failed_list)
             return False
-        return self.redis.set(ct.INDUSTRY_INFO, _pickle.dumps(new_df, 2))
+        self.redis.set(ct.INDUSTRY_INFO, _pickle.dumps(new_df, 2))
+        return True
         
     @staticmethod
     def get():

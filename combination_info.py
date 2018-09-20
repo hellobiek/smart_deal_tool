@@ -50,7 +50,8 @@ class CombinationInfo:
         if len(failed_list) > 0 :
             logger.error("%s create failed" % failed_list)
             return False
-        return self.redis.set(ct.COMBINATION_INFO, _pickle.dumps(new_df, 2))
+        self.redis.set(ct.COMBINATION_INFO, _pickle.dumps(new_df, 2))
+        return True
 
     @trace_func(log = logger)
     def read_self_defined(self):

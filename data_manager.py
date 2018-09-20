@@ -286,25 +286,28 @@ class DataManager:
     def init_today_stock_info(self):
         def _set_stock_info(_date, bonus_info, code_id):
             _obj = CStock(self.dbinfo, code_id)
-            if _obj.set_ticket(_date) and _obj.set_k_data(bonus_info): return (code_id, True)
-            return (code_id, False)
-        obj_pool = Pool(300)
+            return (code_id, True) if _obj.set_ticket(_date) and _obj.set_k_data(bonus_info) else (code_id, False) 
+        obj_pool = Pool(500)
         df = self.stock_info_client.get()
         _date = datetime.now().strftime('%Y-%m-%d')
+        _date = '2018-09-19'
         bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
         failed_list = df.code.tolist()
         cfunc = partial(_set_stock_info, _date, bonus_info)
+        failed_count = 0
         while len(failed_list) > 0:
-            logger.info("init_today_stock_info:%s" % failed_list)
-            failed_count = 0
+            is_failed = False
+            logger.info("init_today_stock_info:%s" % len(failed_list))
             for result in obj_pool.imap_unordered(cfunc, failed_list):
                 if True == result[1]: 
                     failed_list.remove(result[0])
                 else:
-                    failed_count += 1
-            if failed_count > 0 and failed_count == len(failed_list): 
-                logger.info("%s stock info init failed" % failed_list)
-                return False
+                    is_failed = True
+            if not is_failed:
+                failed_count += 1
+                if failed_count > 10: 
+                    logger.info("%s stock info init failed" % len(failed_list))
+                    return False
         obj_pool.join(timeout = 10)
         obj_pool.kill()
         return True
@@ -319,17 +322,20 @@ class DataManager:
         obj_pool = Pool(50)
         df = self.industry_info_client.get()
         failed_list = df.code.tolist()
+        failed_count = 0
         while len(failed_list) > 0:
-            logger.info("init_today_industry_info:%s" % failed_list)
-            failed_count = 0
+            is_failed = False
+            logger.info("init_today_industry_info:%s" % len(failed_list))
             for result in obj_pool.imap_unordered(_set_industry_info, failed_list):
                 if True == result[1]: 
                     failed_list.remove(result[0])
                 else:
-                    failed_count += 1
-            if failed_count > 0 and failed_count == len(failed_list): 
-                logger.info("%s industry init failed" % failed_list)
-                return False
+                    is_failed = True
+            if not is_failed: 
+                failed_count += 1
+                if failed_count > 10:
+                    logger.info("%s industry init failed" % len(failed_list))
+                    return False
         obj_pool.join(timeout = 10)
         obj_pool.kill()
         return True
@@ -339,18 +345,21 @@ class DataManager:
             _obj = self.index_objs[code_id] if code_id in self.index_objs else CIndex(self.dbinfo, code_id)
             return (code_id, _obj.set_k_data())
         obj_pool = Pool(50)
-        failed_list = ct.TDX_INDEX_DICT.keys()
+        failed_list = list(ct.TDX_INDEX_DICT.keys())
+        failed_count = 0
         while len(failed_list) > 0:
-            logger.info("init_today_index_info:%s" % failed_list)
-            failed_count = 0
+            is_failed = False
+            logger.info("init_today_index_info:%s" % len(failed_list))
             for result in obj_pool.imap_unordered(_set_index_info, failed_list):
                 if True == result[1]: 
                     failed_list.remove(result[0])
                 else:
-                    failed_count += 1
-            if failed_count > 0 and failed_count == len(failed_list): 
-                logger.info("%s index init failed" % failed_list)
-                return False
+                    is_failed = True
+            if not is_failed: 
+                failed_count += 1
+                if failed_count > 10:
+                    logger.info("%s index init failed" % len(failed_list))
+                    return False
         obj_pool.join(timeout = 10)
         obj_pool.kill()
         return True
@@ -410,7 +419,7 @@ class DataManager:
         
 if __name__ == '__main__':
     dm = DataManager(ct.DB_INFO) 
-    dm.init_today_stock_info()
+    #dm.init_today_stock_info()
     #dm.init_today_industry_info()
     #dm.init_today_index_info()
     #dm.init_today_limit_info()

@@ -13,7 +13,8 @@ class Subscriber:
         self.lock = Semaphore(1)
 
     def __del__(slef):
-        self.quote_ctx.close()
+        if self.quote_ctx is not None:
+            self.quote_ctx.close()
 
     def start(self):
         with self.lock:

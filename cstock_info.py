@@ -72,7 +72,8 @@ class CStockInfo:
             return False
         df['limitUpNum'] = 0
         df['limitDownNum'] = 0
-        return self.redis.set(ct.STOCK_INFO, _pickle.dumps(df, 2))
+        self.redis.set(ct.STOCK_INFO, _pickle.dumps(df, 2))
+        return True
 
     @staticmethod
     def get(code = None, column = None):

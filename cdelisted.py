@@ -55,7 +55,9 @@ class CDelisted:
         if df.empty: return True
         res = self.mysql_client.set(df, self.table)
         if not res: return False
-        if status: return self.redis.set(ct.DELISTED_INFO, _pickle.dumps(df, 2))
+        if status:
+            self.redis.set(ct.DELISTED_INFO, _pickle.dumps(df, 2))
+        return True
 
     @trace_func(log = logger)
     def get_list(self):
@@ -86,5 +88,5 @@ class CDelisted:
         return False
 
 if __name__ == '__main__':
-    cdlist = CDelisted(ct.DB_INFO, 'delisted')
-    cdlist.init()
+    cdlist = CDelisted(ct.DB_INFO)
+    print(cdlist.init(False))
