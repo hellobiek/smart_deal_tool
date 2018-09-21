@@ -13,29 +13,16 @@ import pylab
 MA1 = 10
 MA2 = 50
 
-daylinefilespath = '/Users/hellobiek/Desktop/test/'
-
 stock_b_code = '000036'
 startdate = dt.date(2013, 10, 29)
 enddate = dt.date(2018, 6, 15)
 
-def readstkData(rootpath, stockcode, sday, eday):
-    returndata = pd.DataFrame()
-    for yearnum in range(0, int((eday - sday).days / 365.25) + 1):
-        theyear = sday + dt.timedelta(days = yearnum * 365)
-        filename = rootpath + str(stockcode).zfill(6) + '.csv'
-        try:
-            rawdata = pd.read_csv(filename, parse_dates = True, index_col = 0, encoding = 'gbk')
-        except IOError:
-           raise Exception('IoError when reading dayline data file: ' + filename)
-
+def readstkData():
+    with open('data.json', 'r') as f:
+        data = pd.read_json(f.read(), orient='records', lines=True)
     # Wash data
-    returndata = pd.concat([rawdata, returndata])
-    returndata = returndata.sort_index()
-    returndata.index.name = 'DateTime'
-    returndata.columns = ['Open', 'High', 'Close', 'Low', 'Volume', 'Amount']
-    returndata = returndata[returndata.index < eday.strftime('%Y-%m-%d')]
-    return returndata
+    data.index.name = 'cdate'
+    return data
 
 def movingaverage(x, N):
     return x.rolling(N).mean()
@@ -57,11 +44,17 @@ def computeMACD(x, slow=26, fast=12):
     return emaslow, emafast, emafast - emaslow
 
 def main():
-    days = readstkData(daylinefilespath, stock_b_code, startdate, enddate)
+    data = readstkData()
+    data = data.reset_index()
+    print(data)
+    import sys
+    sys.exit(0)
+
     # drop the date index from the dateframe & make a copy
     daysreshape = days.reset_index()
+
     # convert the datetime64 column in the dataframe to 'float days'
-    daysreshape['DateTime']=mdates.date2num(daysreshape['DateTime'].astype(dt.date))
+    daysreshape['DateTime'] = mdates.date2num(daysreshape['DateTime'].astype(dt.date))
 
     Av1 = movingaverage(daysreshape.Close, MA1)
     Av2 = movingaverage(daysreshape.Close, MA2)

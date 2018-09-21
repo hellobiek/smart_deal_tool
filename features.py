@@ -31,7 +31,7 @@ def VMA(amount, volume, peried = 5):
 if __name__ == "__main__":
     code = '601318'
     prestr = "1" if get_market_name(code) == "sh" else "0"
-    cstock = CStock(ct.DB_INFO, code)
+    cstock = CStock(code, ct.DB_INFO)
     data = cstock.get_k_data()
     data['close'] = data.amount/data.volume
 

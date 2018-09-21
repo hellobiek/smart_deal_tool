@@ -19,7 +19,7 @@ pd.set_option('display.max_rows', None)
 logger = getLogger(__name__)
 
 class CStock(TickerHandlerBase):
-    def __init__(self, dbinfo, code, should_create_influxdb = False, should_create_mysqldb = True):
+    def __init__(self, code, dbinfo = ct.DB_INFO, should_create_influxdb = False, should_create_mysqldb = True):
         self.code = code
         self.dbname = self.get_dbname(code)
         self.redis = create_redis_obj()
@@ -262,5 +262,5 @@ class CStock(TickerHandlerBase):
         return (datetime.strptime(_date, "%Y-%m-%d") - time2Market).days > 0
 
 if __name__ == "__main__":
-    cs = CStock(ct.DB_INFO, '601318')
+    cs = CStock('601318', ct.DB_INFO)
     cs.set_k_data()

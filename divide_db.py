@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     #with open('/tmp/a', 'r') as f:
     #    slist = json.load(f)
-    #old_stock = CStock(ct.OLD_DB_INFO, '000695')
+    #old_stock = CStock('000695', ct.OLD_DB_INFO)
     #for code in slist:
     #    #with open("/tmp/a", 'w') as f:
     #    #    json.dump(slist, f)

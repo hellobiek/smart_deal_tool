@@ -1,7 +1,7 @@
 #-*- coding: utf-8 -*-
 import gevent
 from gevent import monkey
-monkey.patch_all(thread=True)
+monkey.patch_all(thread = True)
 from gevent.pool import Pool
 import os
 import json
@@ -455,14 +455,14 @@ def set_name_and_industry(df, stock_info, code):
     return new_tmp_df
 
 if __name__ == '__main__':
-    if not os.path.exists('/code/norm.json'):
+    if not os.path.exists('norm.json'):
         creview = CReivew(ct.DB_INFO)
-        start_date = '2017-09-01'
+        start_date = '2018-02-09'
         end_date   = '2018-09-10'
         stock_info = CStockInfo.get()
         stock_info = stock_info[['code', 'name', 'industry', 'timeToMarket']]
         stock_info = stock_info[(stock_info.timeToMarket < 20180327) & (stock_info.timeToMarket > 0)]
-        if not os.path.exists('/code/index.json'):
+        if not os.path.exists('index.json'):
             #上证指数的数据
             logger.info("start get index data")
             szzs_df = CIndex(ct.DB_INFO, '000001').get_k_data_in_range(start_date, end_date)
@@ -474,15 +474,15 @@ if __name__ == '__main__':
             szzs_df = szzs_df[szzs_df.cdate != start_date]
             szzs_df['pchange'] = 100 * (szzs_df.close - szzs_df.preclose) / szzs_df.preclose
             #write data to json file
-            with open('/code/index.json', 'w') as f: 
+            with open('index.json', 'w') as f: 
                 f.write(szzs_df.to_json(orient='records', lines=True))
         else:
             logger.info("begin read index file")
-            with open('/code/index.json', 'r') as f:
+            with open('index.json', 'r') as f:
                 szzs_df = pd.read_json(f.read(), orient='records', lines=True,  dtype = {'code' : str})
 
         max_length = len(szzs_df) + 1
-        if not os.path.exists('/code/stock.json'):
+        if not os.path.exists('stock.json'):
             #获取股票的数据
             logger.info("start get stock data")
             df = creview.gen_stocks_trends(start_date, end_date, stock_info, max_length)
@@ -493,21 +493,22 @@ if __name__ == '__main__':
             df.preclose = df.preclose * df.adj
             df['pchange'] = 100 * (df.close - df.preclose) / df.preclose
             #write data to json file
-            with open('/code/stock.json', 'w') as f: 
+            with open('stock.json', 'w') as f: 
                 f.write(df.to_json(orient='records', lines=True))
         else:
             logger.info("begin read stock file")
-            with open('/code/stock.json', 'r') as f:
+            with open('stock.json', 'r') as f:
                 df = pd.read_json(f.read(), orient='records', lines=True,  dtype = {'code' : str})
 
         logger.info("read file success")
         code_list = set(df.code.tolist())
 
         logger.info("start choose stock, length:%s" % len(code_list))
-        obj_pool = Pool(500)
-        MONEY_LIMIT = 80000000
+        process_pool = Pool(1000)
+        MONEY_LIMIT = 100000000
         cfunc = partial(choose_stock, df)
-        good_list = [code for code in obj_pool.imap_unordered(cfunc, code_list) if code is not None]
+        good_list = [code for code in process_pool.imap_unordered(cfunc, code_list) if code is not None]
+        #clear no use obj
 
         logger.info("get new data")
         df = df[df.code.isin(good_list)]
@@ -517,24 +518,23 @@ if __name__ == '__main__':
 
         logger.info("set name and industry")
         cfunc = partial(set_name_and_industry, df, stock_info)
-        for tmp_df in obj_pool.imap_unordered(cfunc, good_list): 
+        for tmp_df in process_pool.imap_unordered(cfunc, good_list):
             df.at[tmp_df.index, ['name', 'industry']] = tmp_df.values
 
         logger.info("normalize data, length:%s" % len(good_list))
-        date_only_array = df.cdate.tolist()
         cfunc = partial(data_std, df)
-        for tmp_df in obj_pool.imap_unordered(cfunc, date_only_array): 
+        date_only_array = df.cdate.tolist()
+        for tmp_df in process_pool.imap_unordered(cfunc, date_only_array):
             df.at[tmp_df.index, 'pchange'] = tmp_df.values
+        process_pool.join(timeout = 5)
+        process_pool.kill()
 
         logger.info("normalize data success")
         df = df.append(szzs_df)
-        with open('/code/norm.json', 'w') as f:
+        with open('norm.json', 'w') as f:
             f.write(df.to_json(orient='records', lines=True))
-
-        #clear no use obj
-        obj_pool.kill()
     else:
-        with open('/code/norm.json', 'r') as f:
+        with open('norm.json', 'r') as f:
             df = pd.read_json(f.read(), orient='records', lines=True,  dtype = {'code' : str})
 
     #logger.info("finish to index pchange")
@@ -566,14 +566,20 @@ if __name__ == '__main__':
     logger.info("finish to index pchange")
     good_list = list(set(df.code.tolist()))
     df.reindex(index = df.index[::-1])
+    min_max_scaler = preprocessing.MinMaxScaler(feature_range = (-10, 10), copy = True)
+    szzs_df = df.loc[df.code == 'i000001']
+    s_normal = szzs_df.close.values.reshape(-1,1)
+    y_normal = min_max_scaler.fit_transform(s_normal)
     for code in good_list:
         tmp_df = df.loc[df.code == code]
         name = set(tmp_df.name.tolist()).pop()
         x = [i for i in range(len(tmp_df))]
+
         series = tmp_df.close.values.reshape(-1,1)
-        min_max_scaler = preprocessing.MinMaxScaler(feature_range = (-3, 3), copy = True)
         y = min_max_scaler.fit_transform(series)
+
         plt.plot(x, y, label = name, linewidth = 1.5)
+        plt.plot(x, y_normal, label = "上证指数", linewidth = 1.5)
         plt.xlabel('时间', fontproperties = get_chinese_font())
         plt.ylabel('价格', fontproperties = get_chinese_font())
         plt.title('股价变化', fontproperties = get_chinese_font())

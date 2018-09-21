@@ -165,9 +165,7 @@ class DataManager:
                     else:
                         sleep_time = 60
                         if self.subscriber.status():
-                            logger.debug("enter stop subscriber")
                             self.subscriber.stop()
-                            logger.debug("subscriber stop success")
             except Exception as e:
                 logger.error(e)
             time.sleep(sleep_time)
@@ -283,14 +281,13 @@ class DataManager:
             if str(code_id) not in self.combination_objs:
                 self.combination_objs[str(code_id)] = Combination(self.dbinfo, code_id)
 
-    def init_today_stock_info(self):
+    def init_today_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, code_id):
-            _obj = CStock(self.dbinfo, code_id)
+            _obj = CStock(code_id, self.dbinfo)
             return (code_id, True) if _obj.set_ticket(_date) and _obj.set_k_data(bonus_info) else (code_id, False) 
         obj_pool = Pool(500)
         df = self.stock_info_client.get()
-        _date = datetime.now().strftime('%Y-%m-%d')
-        _date = '2018-09-19'
+        _date = datetime.now().strftime('%Y-%m-%d') if cdate is not None else cdate
         bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
         failed_list = df.code.tolist()
         cfunc = partial(_set_stock_info, _date, bonus_info)
@@ -303,7 +300,7 @@ class DataManager:
                     failed_list.remove(result[0])
                 else:
                     is_failed = True
-            if not is_failed:
+            if is_failed:
                 failed_count += 1
                 if failed_count > 10: 
                     logger.info("%s stock info init failed" % len(failed_list))
@@ -331,7 +328,7 @@ class DataManager:
                     failed_list.remove(result[0])
                 else:
                     is_failed = True
-            if not is_failed: 
+            if is_failed: 
                 failed_count += 1
                 if failed_count > 10:
                     logger.info("%s industry init failed" % len(failed_list))
@@ -355,7 +352,7 @@ class DataManager:
                     failed_list.remove(result[0])
                 else:
                     is_failed = True
-            if not is_failed: 
+            if is_failed: 
                 failed_count += 1
                 if failed_count > 10:
                     logger.info("%s index init failed" % len(failed_list))
@@ -380,7 +377,7 @@ class DataManager:
         for _index, code_id in df.code.iteritems():
             logger.info("all tick index:%s, code:%s" % ((_index + 1), code_id))
             if code_id in all_stock_set: continue
-            _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(self.dbinfo, code_id)
+            _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(code_id, self.dbinfo)
             for _date in date_only_array:
                 if self.cal_client.is_trading_day(_date):
                     obj_pool.spawn(_obj.set_ticket, _date)
@@ -398,7 +395,7 @@ class DataManager:
         for code_id in concerned_list:
             ret = self.subscriber.subscribe_tick(add_prifix(code_id), CStock)
             if 0 == ret:
-                if code_id not in self.stock_objs: self.stock_objs[code_id] = CStock(self.dbinfo, code_id, should_create_influxdb = True, should_create_mysqldb = False)
+                if code_id not in self.stock_objs: self.stock_objs[code_id] = CStock(code_id, self.dbinfo, should_create_influxdb = True, should_create_mysqldb = False)
             else:
                 return ret
         return 0
@@ -418,8 +415,9 @@ class DataManager:
             return False
         
 if __name__ == '__main__':
-    dm = DataManager(ct.DB_INFO) 
-    #dm.init_today_stock_info()
+    dm = DataManager(ct.DB_INFO)
+    cdate = '2018-09-21'
+    dm.init_today_stock_info(cdate)
     #dm.init_today_industry_info()
     #dm.init_today_index_info()
     #dm.init_today_limit_info()

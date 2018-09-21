@@ -29,8 +29,8 @@ class Subscriber:
     def stop(self):
         with self.lock:
             self.quote_ctx.stop()
-            logger.debug("stop success")
             self._status = False
+            logger.debug("stop success")
 
     def status(self):
         with self.lock:

@@ -12,7 +12,7 @@ def read_stock_csv(stock_dir):
         #logger.info("start :%s" % filename)
         code = filename.split('.')[0]
         d_table_name = "%s_D" % code
-        stock = CStock(ct.DB_INFO, code) 
+        stock = CStock(code, ct.DB_INFO)
         #logger.info("created :%s" % filename)
         try:
             df = pd.read_csv(os.path.join(stock_dir, filename))
