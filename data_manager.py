@@ -284,12 +284,13 @@ class DataManager:
     def init_today_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, code_id):
             _obj = CStock(code_id, self.dbinfo)
-            return (code_id, True) if _obj.set_ticket(_date) and _obj.set_k_data(bonus_info) else (code_id, False) 
+            return (code_id, True) if _obj.set_ticket(_date) and _obj.set_k_data(bonus_info, cdate) else (code_id, False) 
         obj_pool = Pool(500)
         df = self.stock_info_client.get()
         _date = datetime.now().strftime('%Y-%m-%d') if cdate is not None else cdate
         bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-        failed_list = df.code.tolist()
+        #failed_list = df.code.tolist()
+        failed_list = ['603583', '300748', '002936', '603790', '603810', '002938', '300760', '300749', '300694', '002939', '002937', '601577', '601162'] 
         cfunc = partial(_set_stock_info, _date, bonus_info)
         failed_count = 0
         while len(failed_list) > 0:
@@ -303,8 +304,9 @@ class DataManager:
             if is_failed:
                 failed_count += 1
                 if failed_count > 10: 
-                    logger.info("%s stock info init failed" % len(failed_list))
+                    logger.info("%s stock info init failed" % failed_list)
                     return False
+                time.sleep(10)
         obj_pool.join(timeout = 10)
         obj_pool.kill()
         return True
@@ -333,6 +335,7 @@ class DataManager:
                 if failed_count > 10:
                     logger.info("%s industry init failed" % len(failed_list))
                     return False
+                time.sleep(10)
         obj_pool.join(timeout = 10)
         obj_pool.kill()
         return True
@@ -357,6 +360,7 @@ class DataManager:
                 if failed_count > 10:
                     logger.info("%s index init failed" % len(failed_list))
                     return False
+                time.sleep(10)
         obj_pool.join(timeout = 10)
         obj_pool.kill()
         return True
@@ -384,10 +388,8 @@ class DataManager:
             redis.sadd(ALL_STOCKS, code_id)
             if self.cal_client.is_trading_day() and not self.is_morning_time(): 
                 logger.debug("lastest finished index:%s, code:%s, tomorrow continue!" % ((_index + 1), code_id))
-                obj_pool.join(timeout = 120)
-                obj_pool.kill()
                 break
-        obj_pool.join()
+        obj_pool.join(timeout = 120)
         obj_pool.kill()
 
     def init_real_stock_info(self):
@@ -416,7 +418,7 @@ class DataManager:
         
 if __name__ == '__main__':
     dm = DataManager(ct.DB_INFO)
-    cdate = '2018-09-21'
+    cdate = '2018-09-19'
     dm.init_today_stock_info(cdate)
     #dm.init_today_industry_info()
     #dm.init_today_index_info()

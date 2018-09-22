@@ -149,7 +149,9 @@ class CStock(TickerHandlerBase):
             return cdate in set(str(tdate, encoding = "utf8") for tdate in self.redis.smembers(tick_table))
         return False
 
-    def set_k_data(self, info):
+    def set_k_data(self, info, cdate = None):
+        cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
+        if not self.has_on_market(cdate): return True
         prestr = "1" if self.get_market() == ct.MARKET_SH else "0"
         filename = "/data/tdx/history/days/%s%s.csv" % (prestr, self.code)
         if not os.path.exists(filename): return False
