@@ -28,3 +28,26 @@ print(len(df_byte))
 #sql = 'select * from industry where date = "2018-08-24"'
 #df = cm.get(sql)
 #print(df)
+
+#import datetime
+#import pandas as pd
+#from mpl_finance import candlestick_ohlc
+#import matplotlib.pyplot as plt
+#import matplotlib.dates as mdates
+#import pandas_datareader.data as web
+## creating dates
+#start = datetime.datetime(2018, 1, 1)
+#end = datetime.datetime(2018, 1, 27)
+#
+## download data from morningstar
+#f = web.DataReader('AAPL', 'quandl', start, end)
+#
+## change the dates into numbers so that the candlestick function can accept it
+#f['Date'] = f.index.map(mdates.date2num)
+#
+#ohlc = f[['Date', 'Open', 'High', 'Low', 'Close']]
+#f1, ax = plt.subplots(figsize = (10, 5))
+#
+#candlestick_ohlc(ax, ohlc.values.tolist(), width=.6, colorup='green', colordown='red')
+#ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+#plt.show()

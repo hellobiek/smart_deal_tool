@@ -57,8 +57,11 @@ if __name__ == '__main__':
         data = cu.get('601318')
         data = data.reindex(index=data.index[::-1])
         data = data.reset_index(drop = True)
-        data['clode'] = data['adj'] * data['close']
-        data['aprice'] = data['adj'] * data['amount']/data['volume']
+        data['low']    = data['adj'] * data['low']
+        data['open']   = data['adj'] * data['open']
+        data['high']   = data['adj'] * data['high']
+        data['close']  = data['adj'] * data['close']
+        data['aprice'] = data['amount'] / data['volume']
         bprice = 0
         ulist = list()
         tdays = 0
@@ -95,19 +98,17 @@ if __name__ == '__main__':
         with open('data.json', 'w') as f:
             f.write(data.to_json(orient='records', lines=True))
 
-        import sys
-        sys.exit(0)
     else:
         with open('data.json', 'r') as f:
             data = pd.read_json(f.read(), orient='records', lines=True)
 
-    x = data.cdate.tolist()
-    xn = range(len(x))
-    y = data.close.tolist()
-    plt.plot(xn, y, label = "中国平安", linewidth = 1.5)
-    plt.xticks(xn, x)
-    plt.xlabel('时间', fontproperties = get_chinese_font())
-    plt.ylabel('价格', fontproperties = get_chinese_font())
-    plt.title('股价变化', fontproperties = get_chinese_font())
-    plt.legend(loc = 'upper right', prop = get_chinese_font())
-    plt.show()
+        x = data.cdate.tolist()
+        xn = range(len(x))
+        y = data.close.tolist()
+        plt.plot(xn, y, label = "中国平安", linewidth = 1.5)
+        plt.xticks(xn, x)
+        plt.xlabel('时间', fontproperties = get_chinese_font())
+        plt.ylabel('价格', fontproperties = get_chinese_font())
+        plt.title('股价变化', fontproperties = get_chinese_font())
+        plt.legend(loc = 'upper right', prop = get_chinese_font())
+        plt.show()
