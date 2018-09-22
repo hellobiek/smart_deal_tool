@@ -289,8 +289,7 @@ class DataManager:
         df = self.stock_info_client.get()
         _date = datetime.now().strftime('%Y-%m-%d') if cdate is not None else cdate
         bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-        #failed_list = df.code.tolist()
-        failed_list = ['603583', '300748', '002936', '603790', '603810', '002938', '300760', '300749', '300694', '002939', '002937', '601577', '601162'] 
+        failed_list = df.code.tolist()
         cfunc = partial(_set_stock_info, _date, bonus_info)
         failed_count = 0
         while len(failed_list) > 0:

@@ -53,7 +53,6 @@ def main():
 
     SP = len(data.time.values[MA2-1:])
 
-
     fig = plt.figure(facecolor = '#07000d', figsize = (15,10))
     ax1 = plt.subplot2grid((6,4), (1,0), rowspan = 4, colspan = 4, facecolor = '#07000d')
     candlestick_ohlc(ax1, data.values[-SP:], width=.6, colorup = '#ff1717', colordown = '#53c156')
