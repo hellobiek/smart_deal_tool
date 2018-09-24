@@ -30,7 +30,6 @@ import numpy as np
 import pandas as pd
 from log import getLogger
 from ticks import download, unzip
-from pandas import DataFrame
 from datetime import datetime
 from subscriber import Subscriber
 from common import trace_func,is_trading_time,delta_days,create_redis_obj,add_prifix,get_index_list,add_index_prefix
@@ -365,6 +364,7 @@ class DataManager:
         return True
 
     def init_all_stock_tick(self):
+        black_list = {'000031': ['2018-07-01', '2015-07-01'], '300748':['2018-03-30']}
         start_date = '2015-01-01'
         redis = create_redis_obj()
         ALL_STOCKS = 'all_existed_stocks'
@@ -379,11 +379,13 @@ class DataManager:
         df = self.stock_info_client.get()
         for _index, code_id in df.code.iteritems():
             logger.info("all tick index:%s, code:%s" % ((_index + 1), code_id))
-            if code_id in all_stock_set: continue
             _obj = self.stock_objs[code_id] if code_id in self.stock_objs else CStock(code_id, self.dbinfo)
             for _date in date_only_array:
                 if self.cal_client.is_trading_day(_date):
-                    obj_pool.spawn(_obj.set_ticket, _date)
+                    if code_id in black_list and _date in black_list[code_id]:
+                        continue
+                    else:
+                        obj_pool.spawn(_obj.set_ticket, _date)
             redis.sadd(ALL_STOCKS, code_id)
             if self.cal_client.is_trading_day() and not self.is_morning_time(): 
                 logger.debug("lastest finished index:%s, code:%s, tomorrow continue!" % ((_index + 1), code_id))
