@@ -419,7 +419,7 @@ class DataManager:
         
 if __name__ == '__main__':
     dm = DataManager(ct.DB_INFO)
-    cdate = '2018-09-19'
+    cdate = '2018-09-25'
     dm.init_today_stock_info(cdate)
     #dm.init_today_industry_info()
     #dm.init_today_index_info()

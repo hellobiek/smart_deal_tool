@@ -35,7 +35,6 @@ class CTrader:
                 if self.cal_client.is_trading_day():
                     if is_trading_time():
                         _today = datetime.now().strftime('%Y-%m-%d')
-                        logger.debug("buy_succeed_date %s, today:%s." % (self.buy_succeed_date, _today))
                         time.sleep(sleep_time)
                         if self.buy_succeed_date != _today:
                             ret = self.init()

@@ -3,7 +3,6 @@ import cmysql
 import _pickle
 import const as ct
 import pandas as pd
-import tushare as ts
 from log import getLogger
 from datetime import datetime
 from common import trace_func, create_redis_obj, df_delta
@@ -31,7 +30,7 @@ class CCalendar:
 
     def init(self, status):
         old_trading_day = self.get()
-        new_trading_day = ts.trade_cal()
+        new_trading_day = pd.read_csv('/conf/calAll.csv')
         if new_trading_day is None: return False
         if new_trading_day.empty: return False
         if not old_trading_day.empty:
@@ -69,4 +68,3 @@ class CCalendar:
 if __name__ == '__main__':
     ccalendar = CCalendar(ct.DB_INFO, "calendar")
     ccalendar.init(False)
-    ccalendar.is_trading_day()
