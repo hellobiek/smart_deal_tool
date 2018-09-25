@@ -139,3 +139,14 @@ def get_index_list():
         key_str = add_index_prefix(key)
         alist.append(key_str)
     return alist
+
+def get_chinese_font(location = "IN"):
+    fpath = '/Volumes/data/quant/stock/conf/fonts/PingFang.ttc' if location == "OUT" else '/conf/fonts/PingFang.ttc'
+    return FontProperties(fname = fpath)
+
+def df_empty(columns, dtypes, index = None):
+    assert len(columns)==len(dtypes)
+    df = pd.DataFrame(index=index)
+    for c,d in zip(columns, dtypes):
+        df[c] = pd.Series(dtype=d)
+    return df    
