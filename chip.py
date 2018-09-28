@@ -2,30 +2,16 @@
 import os
 import sys
 import datetime
-import matplotlib
 import const as ct
 import numpy as np
 import pandas as pd
-from log import getLogger
-from cstock import CStock
 from cmysql import CMySQL
+from log import getLogger
 from datetime import datetime
-import matplotlib.pyplot as plt
-from matplotlib.font_manager import FontProperties
-from common import df_empty, create_redis_obj, get_chinese_font
+from common import df_empty, create_redis_obj, get_chinese_font, number_of_days
 logger = getLogger(__name__)
 
-def delta_days(pre_pos, pos):
-    return pos - pre_pos
-
 class Chip:
-    def __init__(self):
-        self.redis = create_redis_obj()
-        #self.mysql_client = CMySQL(self.dbinfo)
-
-    def get(self, code):
-        return CStock(code, should_create_mysqldb = False).get_k_data()
-
     def average_volume(self, df, pre_outstanding, outstanding):
         if pre_outstanding != outstanding:
             length = len(df)
@@ -84,16 +70,10 @@ class Chip:
             else:
                 down_volume = s_volume - up_volume
 
-            if s_up_df.volume.sum() < up_volume:
-                logger.error("enter s_up_df s_up_df.volume.sum:%s, up_volume:%s" % (s_up_df.volume.sum(), up_volume))
-                import pdb
-                pdb.set_trace()
+            if s_up_df.volume.sum() < up_volume: raise Exception("s_up_df.volume.sum() is less than up_volume")
             s_up_df = self.change_volume(s_up_df, up_volume)
 
-            if s_down_df.volume.sum() < down_volume:
-                logger.error("enter s_down_df s_down_df.volume.sum:%s, down_volume:%s" % (s_down_df.volume.sum(), down_volume))
-                import pdb
-                pdb.set_trace()
+            if s_down_df.volume.sum() < down_volume: raise Exception("s_down_df.volume.sum() is less than down_volume")
             s_down_df = self.change_volume(s_down_df, down_volume)
             return s_up_df.append(s_down_df)
         else:
@@ -105,11 +85,10 @@ class Chip:
         df = self.average_volume(df, pre_outstanding, outstanding)
 
         #short chip data
-        s_df = df[df.apply(lambda df: delta_days(df['pos'], pos), axis=1) <= 60]
+        s_df = df[df.apply(lambda df: number_of_days(df['pos'], pos), axis=1) <= 60]
         
         #very long chip data
-        #l_df = df[(df.apply(lambda df: delta_days(df['pos'], pos), axis=1) > 60) & (df.apply(lambda df: delta_days(df['pos'], pos), axis=1) <= 560)]
-        l_df = df[df.apply(lambda df: delta_days(df['pos'], pos), axis=1) > 60]
+        l_df = df[df.apply(lambda df: number_of_days(df['pos'], pos), axis=1) > 60]
 
         s_volume_total = s_df.volume.sum()
         l_volume_total = 0 if l_df.empty else l_df.volume.sum()
@@ -129,56 +108,36 @@ class Chip:
             l_volume = volume - s_volume
 
         #change volume rate
-        if s_volume_total < s_volume:
-            import pdb
-            pdb.set_trace()
+        if s_volume_total < s_volume: raise Exception("s_volume_total is less than s_volume")
         s_df = self.adjust_short_volume(s_df, s_volume)
 
-        if l_volume_total < l_volume:
-            import pdb
-            pdb.set_trace()
+        if l_volume_total < l_volume: raise Exception("l_volume_total is less than l_volume")
         l_df = self.change_volume(l_df, l_volume)
 
         return s_df if l_df.empty else s_df.append(l_df)
 
-    def distribution(self, data):
+    def compute_distribution(self, data):
         mdtypes = ['int', 'str', 'str', 'float', 'int', 'int']
-        mcolumns = ['pos', 'sdate', 'date', 'price', 'volume', 'outstanding']
-        df = df_empty(columns = mcolumns, dtypes = mdtypes)
-        tmp_df = df_empty(columns = mcolumns, dtypes = mdtypes)
+        df = df_empty(columns = ct.CHIP_COLUMNS, dtypes = mdtypes)
+        tmp_df = df_empty(columns = ct.CHIP_COLUMNS, dtypes = mdtypes)
         for _index, cdate in data.cdate.iteritems():
             volume = int(data.loc[_index, 'volume'])
             aprice = data.loc[_index, 'aprice']
             outstanding = data.loc[_index, 'outstanding']
             if 0 == _index:
                 open_price = data.loc[_index, 'open'] 
-                tmp_df = tmp_df.append(pd.DataFrame([[_index, cdate, cdate, aprice, volume, outstanding]], columns = mcolumns))
-                tmp_df = tmp_df.append(pd.DataFrame([[_index, cdate, cdate, open_price, outstanding - volume, outstanding]], columns = mcolumns))
+                tmp_df = tmp_df.append(pd.DataFrame([[_index, cdate, cdate, aprice, volume, outstanding]], columns = ct.CHIP_COLUMNS))
+                tmp_df = tmp_df.append(pd.DataFrame([[_index, cdate, cdate, open_price, outstanding - volume, outstanding]], columns = ct.CHIP_COLUMNS))
                 tmp_df = tmp_df.reset_index(drop = True)
             else:
-                logger.info("index:%s, cdate:%s, sum:%s, pre_outstanding:%s, outstanding:%s, length:%s" % (_index, cdate, tmp_df.volume.sum(), pre_outstanding, outstanding, len(tmp_df)))
-                #print('----------------------------S')
-                #print(tmp_df)
-                #print('----------------------------E')
-                #if _index == 561:
-                #    import pdb
-                #    pdb.set_trace()
                 tmp_df = tmp_df.sort_values(by = 'pos', ascending= True)
                 tmp_df = self.adjust_volume(tmp_df, _index, volume, pre_outstanding, outstanding)
-                #print('++++++++++++++++++++++++++++S')
-                #print(tmp_df)
-                #print('++++++++++++++++++++++++++++E')
                 tmp_df.date = cdate
                 tmp_df.outstanding = outstanding
-                tmp_df = tmp_df.append(pd.DataFrame([[_index, cdate, cdate, aprice, volume, outstanding]], columns = mcolumns))
+                tmp_df = tmp_df.append(pd.DataFrame([[_index, cdate, cdate, aprice, volume, outstanding]], columns = ct.CHIP_COLUMNS))
                 tmp_df = tmp_df[tmp_df.volume != 0]
                 tmp_df = tmp_df.reset_index(drop = True)
-                print('============================S')
-                print(tmp_df)
-                print('============================E')
-                if tmp_df.volume.sum() != outstanding:
-                    import pdb
-                    pdb.set_trace()
+                if tmp_df.volume.sum() != outstanding: raise Exception("tmp_df.volume.sum() is not equal to outstanding")
             pre_outstanding = outstanding
             df = df.append(tmp_df)
             df = df[df.volume != 0]
@@ -203,7 +162,7 @@ class Chip:
 if __name__ == '__main__':
     cu = Chip()
     if not os.path.exists('data.json'):
-        data = cu.get('000001')
+        data = cu.get('000002')
         data = data.reindex(index=data.index[::-1])
         data = data.reset_index(drop = True)
         data['low']    = data['adj'] * data['low']
@@ -212,10 +171,10 @@ if __name__ == '__main__':
         data['close']  = data['adj'] * data['close']
         data['volume'] = data['volume'].astype(int)
         data['aprice'] = data['adj'] * data['amount'] / data['volume']
-        data['totals'] = data['totals'] * 10000
         data['totals'] = data['totals'].astype(int)
-        data['outstanding'] = data['outstanding'] * 10000
+        data['totals'] = data['totals'] * 10000
         data['outstanding'] = data['outstanding'].astype(int)
+        data['outstanding'] = data['outstanding'] * 10000
         bprice = 0
         ulist = list()
         tdays = 0
@@ -252,22 +211,10 @@ if __name__ == '__main__':
         with open('data.json', 'w') as f:
             f.write(data.to_json(orient='records', lines=True))
     else:
+        #import matplotlib
+        #import matplotlib.pyplot as plt
+        #from matplotlib.font_manager import FontProperties
         with open('data.json', 'r') as f:
             data = pd.read_json(f.read(), orient='records', lines=True, dtype = {'volume' : int, 'totals': int, 'outstanding': int})
 
-        data = data.sort_values(by = 'cdate', ascending= True)
-        data = data.reset_index(drop = True)
-        data = data[['cdate', 'open', 'aprice', 'outstanding', 'volume', 'amount']]
-
-        dist = cu.distribution(data)
-
-        #x = data.cdate.tolist()
-        #xn = range(len(x))
-        #y = data.close.tolist()
-        #plt.plot(xn, y, label = "中国平安", linewidth = 1.5)
-        #plt.xticks(xn, x)
-        #plt.xlabel('时间', fontproperties = get_chinese_font())
-        #plt.ylabel('价格', fontproperties = get_chinese_font())
-        #plt.title('股价变化', fontproperties = get_chinese_font())
-        #plt.legend(loc = 'upper right', prop = get_chinese_font())
-        #plt.show()
+        dist = cu.compute_distribution(data)

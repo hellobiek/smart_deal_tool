@@ -4429,3 +4429,5 @@ const.URL_MID = ".js?_dc="
 ##################################################
 const.STEPFILE = "/data/stepinfo.json"
 const.TODAY_ALL_STOCK = "TODAY_ALL_STOCK"
+##################################################
+const.CHIP_COLUMNS = ['pos', 'sdate', 'date', 'price', 'volume', 'outstanding']

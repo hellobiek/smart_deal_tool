@@ -4,7 +4,7 @@ import pandas as pd
 import const as ct
 from qfq import qfq
 from common import get_market_name
-from cstock import CStock
+#from cstock import CStock
 
 def MACD(data, fastperiod=12, slowperiod=26, signalperiod=9):
     ewma12 = data.ewm(fastperiod).mean()
@@ -27,6 +27,26 @@ def VMA(amount, volume, peried = 5):
     svolume = sum(volume)
     samount = sum(amount)
     return MA(pd.Series(vprice), peried)
+
+#####################
+#type: u-limitted price
+#    : t-day price
+def Mac(p_series, dtype = 0):
+    tdays = 0
+    bprice = 0
+    ulist = list()
+    if dtype != 0:
+        ulist = p_series.rolling(dtype).mean().tolist()
+        for index in range(dtype - 1):
+            tdays += 1
+            bprice = bprice + p_series[index]
+            ulist[index] = bprice / tdays
+    else:
+        for price in p_series:
+            tdays += 1
+            bprice = bprice + price
+            ulist.append(bprice / tdays)
+    return ulist
 
 if __name__ == "__main__":
     code = '601318'

@@ -255,10 +255,10 @@ class DataManager:
                             self.cviewer.update()
                             self.set_update_info(11)
 
-                        if finished_step < 12:
-                            if not self.init_today_stock_info():
-                                logger.error("init_today_stock_info set failed")
-                            self.set_update_info(12)
+                        #if finished_step < 12:
+                        #    if not self.init_today_stock_info():
+                        #        logger.error("init_today_stock_info set failed")
+                        #    self.set_update_info(12)
             except Exception as e:
                 logger.error(e)
             time.sleep(sleep_time)
@@ -283,7 +283,7 @@ class DataManager:
     def init_today_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, code_id):
             _obj = CStock(code_id, self.dbinfo)
-            return (code_id, True) if _obj.set_ticket(_date) and _obj.set_k_data(bonus_info, cdate) else (code_id, False) 
+            return (code_id, True) if _obj.set_k_data(bonus_info, cdate) else (code_id, False) 
         obj_pool = Pool(500)
         df = self.stock_info_client.get()
         _date = datetime.now().strftime('%Y-%m-%d') if cdate is not None else cdate

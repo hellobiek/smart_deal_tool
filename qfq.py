@@ -17,7 +17,6 @@ def qfq(data, code, info):
     for info_index, start_date in info.date.iteritems():
         dates = data.loc[data.date >= start_date].index.tolist()
         if len(dates) == 0 : continue
-
         rate  = info.loc[info_index, 'rate']    #配k股
         price = info.loc[info_index, 'price']   #配股价格
         money = info.loc[info_index, 'money']   #分红
@@ -59,6 +58,9 @@ def adjust_share(data, code, info):
             data.at[start_index + 1:end_index, 'totals'] = cur_totals
             last_pre_outstanding = pre_outstanding
             last_pre_totals = pre_totals
+            if info_index == len(info) - 1:
+                data.at[end_index + 1:, 'outstanding'] = last_pre_outstanding
+                data.at[end_index + 1:, 'totals'] = last_pre_totals
     return data
 
 if __name__ == '__main__':

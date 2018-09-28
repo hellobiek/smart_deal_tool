@@ -43,6 +43,13 @@ def _fprint(obj):
     print(obj)
     print("***************************e")
 
+def get_years_between(start, end):
+    num_of_years = end - start + 1
+    year_format = time.strftime("%Y", time.strptime(str(start), "%Y"))
+    data_times = pd.date_range(year_format, periods = num_of_years, freq='Y')
+    year_only_array = np.vectorize(lambda s: s.strftime('%Y'))(data_times.to_pydatetime())
+    return year_only_array
+
 def get_dates_array(start_date, end_date):
     num_days = delta_days(start_date, end_date)
     start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(start_date, "%Y-%m-%d"))
@@ -57,6 +64,9 @@ def delta_days(_from, _to):
     _from = datetime(_from[0],_from[1],_from[2])
     _to = datetime(_to[0],_to[1],_to[2])
     return (_to - _from).days + 1
+
+def number_of_days(pre_pos, pos):
+    return pos - pre_pos
 
 def is_afternoon(now_time = None):
     if now_time is None:now_time = datetime.now()

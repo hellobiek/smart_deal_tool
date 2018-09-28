@@ -8,12 +8,14 @@ from qfq import adjust_share, qfq
 import const as ct
 import pandas as pd
 import tushare as ts
+from chip import Chip
+from features import Mac
 from cmysql import CMySQL
+from log import getLogger
 from ticks import read_tick
 from cinfluxdb import CInflux  
-from log import getLogger
+from common import create_redis_obj, get_years_between
 from futuquant.quote.quote_response_handler import TickerHandlerBase
-from common import create_redis_obj
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 logger = getLogger(__name__)
@@ -24,9 +26,10 @@ class CStock(TickerHandlerBase):
         self.dbname = self.get_dbname(code)
         self.redis = create_redis_obj()
         self.data_type_dict = {9:"day"}
+        self.chip_client = Chip()
         self.influx_client = CInflux(ct.IN_DB_INFO, dbname = self.dbname, iredis = self.redis)
         self.mysql_client = CMySQL(dbinfo, dbname = self.dbname, iredis = self.redis)
-        if not self.create(should_create_influxdb, should_create_mysqldb): 
+        if not self.create(should_create_influxdb, should_create_mysqldb):
             raise Exception("create stock %s table failed" % self.code)
 
     def __del__(self):
@@ -69,14 +72,9 @@ class CStock(TickerHandlerBase):
         return True if (datetime.today()-time2Market).days < timeLimit else False
 
     def create(self, should_create_influxdb, should_create_mysqldb):
-        if should_create_influxdb and should_create_mysqldb:
-            return self.create_influx_db() and self.create_mysql_table()
-        elif should_create_influxdb and not should_create_mysqldb:
-            return self.create_influx_db()
-        elif not should_create_influxdb and should_create_mysqldb:
-            return self.create_mysql_table()
-        else:
-            return True
+        influxdb_flag = self.create_influx_db() if should_create_influxdb else True
+        mysqldb_flag = self.create_mysql_table() if should_create_mysqldb else True
+        return influxdb_flag and mysqldb_flag
 
     def create_influx_db(self):
         return self.influx_client.create()
@@ -135,9 +133,22 @@ class CStock(TickerHandlerBase):
         else:
             return ct.MARKET_OTHER
 
+    def get_chip_distribution_table(self, cdate):
+        cdates = cdate.split('-')
+        return "chip_%s_%s" % (self.code, cdates[0])
+
     def get_redis_tick_table(self, cdate):
         cdates = cdate.split('-')
         return "tick_%s_%s_%s" % (self.code, cdates[0], cdates[1])
+
+    def create_chip_table(self, table):
+        sql = 'create table if not exists %s(date varchar(10) not null, ctime varchar(8) not null, price float(5,2), cchange varchar(10) not null, volume int not null, amount int not null, ctype varchar(9) not null, PRIMARY KEY (date, ctime, cchange, volume, amount, ctype))' % table
+        return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
+
+    def is_chip_table_exists(self, chip_table):
+        if self.redis.exists(self.dbname):
+            return chip_table in set(str(table, encoding = "utf8") for table in self.redis.smembers(self.dbname))
+        return False
 
     def is_tick_table_exists(self, tick_table):
         if self.redis.exists(self.dbname):
@@ -157,6 +168,7 @@ class CStock(TickerHandlerBase):
         if not os.path.exists(filename): return False
         df = pd.read_csv(filename, sep = ',')
         df = df[['date', 'open', 'high', 'close', 'low', 'amount', 'volume']]
+
         df = df.sort_index(ascending = False)
         df = df.reset_index(drop = True)
 
@@ -187,8 +199,108 @@ class CStock(TickerHandlerBase):
         df['date'] = df['date'].astype(str)
         df['date'] = pd.to_datetime(df.date).dt.strftime("%Y-%m-%d")
         df = df.rename(columns={'date':'cdate'})
+
+        df['low']    = df['adj'] * df['low']
+        df['open']   = df['adj'] * df['open']
+        df['high']   = df['adj'] * df['high']
+        df['close']  = df['adj'] * df['close']
+        df['volume'] = df['volume'].astype(int)
+        df['aprice'] = df['adj'] * df['amount'] / df['volume']
+        df['totals'] = df['totals'].astype(int)
+        df['totals'] = df['totals'] * 10000
+        df['outstanding'] = df['outstanding'].astype(int)
+        df['outstanding'] = df['outstanding'] * 10000
+
+        df['uprice'] = Mac(df.aprice, 0)
+
+        df['60price'] = Mac(df.aprice, 60)
+
         df = df.reset_index(drop = True)
-        return self.mysql_client.set(df, 'day', method = ct.REPLACE)
+
+        write_kdata_flag = self.mysql_client.set(df, 'day', method = ct.REPLACE)
+        write_chip_flag = self.set_chip_distribution(df.tail(2), cdate)
+        return write_kdata_flag and write_chip_flag
+
+    def get_chip_distribution(self, mdate = None):
+        df = pd.DataFrame()
+        if mdate is not None:
+            table = self.get_chip_distribution_table(table)
+            if self.is_chip_table_exists(table):
+                return self.mysql_client.get("select * from %s" % table)
+        else:
+            for table in [self.get_chip_distribution_table(myear) for myear in year_list]:
+                if self.is_chip_table_exists(table):
+                    tmp_df = self.mysql_client.get("select * from %s" % table)
+                    df = df.append(tmp_df)
+        return df
+
+    def set_chip_distribution(self, data, zdate = None):
+        if zdate is None:
+            data = data.sort_values(by = 'cdate', ascending= True)
+            data = data.reset_index(drop = True)
+            data = data[['cdate', 'open', 'aprice', 'outstanding', 'volume', 'amount']]
+            time2Market = self.get('timeToMarket')
+            start_year = int(time2Market / 10000)
+            end_year = int(datetime.now().strftime('%Y'))
+            year_list = get_years_between(start_year, end_year)
+
+            df = self.chip_client.compute_distribution(data)
+
+            res_flag = True
+            for myear in year_list:
+                chip_table = self.get_chip_distribution_table(mdate)
+                if not self.is_chip_table_exists(chip_table):
+                    if not self.create_chip_table(chip_table):
+                        logger.error("create chip table:%s failed" % chip_table)
+                        return False
+                    self.redis.sadd(self.dbname, chip_table)
+                tmp_df = df[df.sdate.str.split('-', expand = True) == myear]
+                tmp_df = tmp_df.reset_index(drop = True)
+                if not self.mysql_client.set(tmp_df, chip_table, method = ct.REPLACE):
+                    logger.error("%s set data for %s failed" % (self.code, myear))
+                    res_flag = False
+            return res_flag
+        else:
+            chip_table = self.get_chip_distribution_table(zdate)
+            if self.is_date_exists(chip_table, zdate): 
+                logger.debug("existed chip for code:%s, date:%s" % (self.code, cdate))
+                return True
+
+            data = data.sort_values(by = 'cdate', ascending= True)
+            data = data.reset_index(drop = True)
+            data = data[['cdate', 'open', 'aprice', 'outstanding', 'volume', 'amount']]
+
+            mdate_list = data.cdate.tolist()
+            pre_date = mdate_list[0]
+            now_date = mdate_list[1]
+
+            dist_data = self.get_chip_distribution(mdate)
+            existed_df = dist_data.sort_values(by = 'sdate', ascending= False)
+
+            mindex = data.loc[data.cdate == zdate, 'index']
+            volume = data.loc[data.cdate == zdate, 'volume']
+            aprice = data.loc[data.cdate == zdate, 'aprice']
+            outstanding = data.loc[data.cdate == zdate, 'outstanding']
+            pre_outstanding = data.loc[data.cdate == pre_date, 'outstanding']
+
+            tmp_df = self.chip_client.adjust_volume(existed_df, mindex, volume, pre_outstanding, outstanding)
+            tmp_df.date = zdate
+            tmp_df.outstanding = outstanding
+            tmp_df = tmp_df.append(pd.DataFrame([[mindex, cdate, cdate, aprice, volume, outstanding]], columns = ct.CHIP_COLUMNS))
+            tmp_df = tmp_df[tmp_df.volume != 0]
+            tmp_df = tmp_df.reset_index(drop = True)
+
+            if not self.is_chip_table_exists(chip_table):
+                if not self.create_chip_table(chip_table):
+                    logger.error("create chip table failed")
+                    return False
+                self.redis.sadd(self.dbname, chip_table)
+
+            if self.mysql_client.set(df, chip_table): 
+                self.redis.sadd(chip_table, zdate)
+                logger.debug("finish record chip:%s. table:%s" % (self.code, chip_table))
+                return True
+            return False
 
     def set_ticket(self, cdate = None):
         cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
@@ -265,4 +377,5 @@ class CStock(TickerHandlerBase):
 
 if __name__ == "__main__":
     cs = CStock('000031')
-    print(cs.set_ticket('2015-07-01'))
+    bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
+    cs.set_k_data(bonus_info, '2018-09-24')
