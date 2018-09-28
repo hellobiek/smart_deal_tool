@@ -80,7 +80,8 @@ class DataManager:
         while True:
             try:
                 if (not self.cal_client.is_trading_day()) or (self.cal_client.is_trading_day() and self.is_morning_time()):
-                    self.init_all_stock_tick()
+                    self.init_today_stock_info('2018-09-28')
+                    #self.init_all_stock_tick()
             except Exception as e:
                 logger.error(e)
             time.sleep(sleep_time)
@@ -255,10 +256,10 @@ class DataManager:
                             self.cviewer.update()
                             self.set_update_info(11)
 
-                        #if finished_step < 12:
-                        #    if not self.init_today_stock_info():
-                        #        logger.error("init_today_stock_info set failed")
-                        #    self.set_update_info(12)
+                        if finished_step < 12:
+                            if not self.init_today_stock_info():
+                                logger.error("init_today_stock_info set failed")
+                            self.set_update_info(12)
             except Exception as e:
                 logger.error(e)
             time.sleep(sleep_time)
@@ -291,6 +292,7 @@ class DataManager:
         failed_list = df.code.tolist()
         cfunc = partial(_set_stock_info, _date, bonus_info)
         failed_count = 0
+        logger.info("enter init_today_stock_info")
         while len(failed_list) > 0:
             is_failed = False
             logger.info("init_today_stock_info:%s" % len(failed_list))

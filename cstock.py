@@ -304,7 +304,8 @@ class CStock(TickerHandlerBase):
         write_kdata_flag = self.mysql_client.set(df, 'day', method = ct.REPLACE)
 
         #set chip distribution
-        write_chip_flag = self.set_chip_distribution(df.tail(2), cdate)
+        write_chip_flag = self.set_chip_distribution(df)
+        #write_chip_flag = self.set_chip_distribution(df.tail(2), cdate)
 
         return write_kdata_flag and write_chip_flag
 
@@ -361,6 +362,10 @@ class CStock(TickerHandlerBase):
                 return False
 
             pre_date_dist = self.get_chip_distribution(pre_date)
+
+            if pre_date_dist.empty:
+                logger.error("pre data for %s dist %s is empty" % (self.code, pre_date))
+                return False
             pre_date_dist = pre_date_dist.sort_values(by = 'pos', ascending= True)
 
             pos = data.loc[data.cdate == zdate].index[0]
@@ -375,13 +380,11 @@ class CStock(TickerHandlerBase):
             tmp_df = tmp_df.append(pd.DataFrame([[pos, now_date, now_date, aprice, volume, outstanding]], columns = ct.CHIP_COLUMNS))
             tmp_df = tmp_df[tmp_df.volume != 0]
             tmp_df = tmp_df.reset_index(drop = True)
-
             if not self.is_table_exists(chip_table):
                 if not self.create_chip_table(chip_table):
                     logger.error("create chip table failed")
                     return False
                 self.redis.sadd(self.dbname, chip_table)
-
             if self.mysql_client.set(tmp_df, chip_table): 
                 self.redis.sadd(chip_table, zdate)
                 logger.debug("finish record chip:%s. table:%s" % (self.code, chip_table))
