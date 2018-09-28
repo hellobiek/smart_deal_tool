@@ -143,21 +143,6 @@ class Chip:
             df = df[df.volume != 0]
             df = df.reset_index(drop = True)
         return df
-    
-    def volume_up(self):
-        pass
-    
-    def anti_trend_up(self):
-        pass
- 
-    def bull_arrangement(self):
-        pass
-    
-    def bear_arrangement(self):
-        pass
-
-    def big_raise_without_volume(self):
-        pass
 
 if __name__ == '__main__':
     cu = Chip()

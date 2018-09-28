@@ -364,7 +364,7 @@ class DataManager:
         return True
 
     def init_all_stock_tick(self):
-        black_list = {'000031': ['2018-07-01', '2015-07-01'], '300748':['2018-03-30'], '002142':['2015-07-01']}
+        black_list = {'000031': ['2018-07-01', '2015-07-01'], '300748':['2018-03-30'], '002142':['2015-07-01'], '600161':['2015-01-05']}
         start_date = '2015-01-01'
         redis = create_redis_obj()
         ALL_STOCKS = 'all_existed_stocks'

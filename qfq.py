@@ -58,6 +58,8 @@ def adjust_share(data, code, info):
             data.at[start_index + 1:end_index, 'totals'] = cur_totals
             last_pre_outstanding = pre_outstanding
             last_pre_totals = pre_totals
+
+            #finish the last date
             if info_index == len(info) - 1:
                 data.at[end_index + 1:, 'outstanding'] = last_pre_outstanding
                 data.at[end_index + 1:, 'totals'] = last_pre_totals

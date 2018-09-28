@@ -31,13 +31,13 @@ def VMA(amount, volume, peried = 5):
 #####################
 #type: u-limitted price
 #    : t-day price
-def Mac(p_series, dtype = 0):
+def Mac(p_series, peried = 0):
     tdays = 0
     bprice = 0
     ulist = list()
-    if dtype != 0:
-        ulist = p_series.rolling(dtype).mean().tolist()
-        for index in range(dtype - 1):
+    if peried != 0 and len(p_series) >= peried:
+        ulist = p_series.rolling(peried).mean().tolist()
+        for index in range(peried - 1):
             tdays += 1
             bprice = bprice + p_series[index]
             ulist[index] = bprice / tdays
