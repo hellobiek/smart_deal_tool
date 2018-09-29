@@ -1,11 +1,7 @@
 #coding=utf-8
-import os
-import sys
 import datetime
 import const as ct
-import numpy as np
 import pandas as pd
-from cmysql import CMySQL
 from log import getLogger
 from datetime import datetime
 from common import df_empty, create_redis_obj, get_chinese_font, number_of_days
@@ -97,7 +93,7 @@ class Chip:
             if 0 == l_volume_total:
                 l_volume = 0
             else:
-                if int(l_volume_total / 888) > volume:
+                if int(l_volume_total / 666) > volume:
                     l_volume = int(0.38 * volume)
                 else:
                     l_volume = int(l_volume_total / 888)
@@ -143,63 +139,3 @@ class Chip:
             df = df[df.volume != 0]
             df = df.reset_index(drop = True)
         return df
-
-if __name__ == '__main__':
-    cu = Chip()
-    if not os.path.exists('data.json'):
-        data = cu.get('000002')
-        data = data.reindex(index=data.index[::-1])
-        data = data.reset_index(drop = True)
-        data['low']    = data['adj'] * data['low']
-        data['open']   = data['adj'] * data['open']
-        data['high']   = data['adj'] * data['high']
-        data['close']  = data['adj'] * data['close']
-        data['volume'] = data['volume'].astype(int)
-        data['aprice'] = data['adj'] * data['amount'] / data['volume']
-        data['totals'] = data['totals'].astype(int)
-        data['totals'] = data['totals'] * 10000
-        data['outstanding'] = data['outstanding'].astype(int)
-        data['outstanding'] = data['outstanding'] * 10000
-        bprice = 0
-        ulist = list()
-        tdays = 0
-        for index, price in data['aprice'].iteritems():
-            tdays += 1
-            bprice = bprice + price
-            ulist.append(bprice / tdays)
-        data['uprice'] = ulist
-
-        data['8price'] = data.aprice.rolling(8).mean()
-        tdays = 0
-        bprice = 0
-        for index in range(7):
-            tdays += 1
-            bprice = bprice + float(data.loc[index, 'aprice'])
-            data.at[index, '8price'] = bprice / tdays
-
-        data['24price'] = data.aprice.rolling(24).mean()
-        tdays = 0
-        bprice = 0
-        for index in range(23):
-            tdays += 1
-            bprice = bprice + float(data.loc[index, 'aprice'])
-            data.at[index, '24price'] = bprice / tdays
-
-        data['60price'] = data.aprice.rolling(60).mean()
-        tdays = 0
-        bprice = 0
-        for index in range(59):
-            tdays += 1
-            bprice = bprice + float(data.loc[index, 'aprice'])
-            data.at[index, '60price'] = bprice / tdays
-
-        with open('data.json', 'w') as f:
-            f.write(data.to_json(orient='records', lines=True))
-    else:
-        #import matplotlib
-        #import matplotlib.pyplot as plt
-        #from matplotlib.font_manager import FontProperties
-        with open('data.json', 'r') as f:
-            data = pd.read_json(f.read(), orient='records', lines=True, dtype = {'volume' : int, 'totals': int, 'outstanding': int})
-
-        dist = cu.compute_distribution(data)

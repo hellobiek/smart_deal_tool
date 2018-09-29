@@ -291,22 +291,22 @@ class CStock(TickerHandlerBase):
         #transfer data to split-adjusted share prices
         df = self.transfer_2_adjusted(df)
 
-        #get ulimit average price
-        df['uprice'] = Mac(df.aprice, 0)
-
-        #get 60 day average price
-        df['60price'] = Mac(df.aprice, 60)
-
         df = df.sort_values(by = 'cdate', ascending= True)
         df = df.reset_index(drop = True)
+
+        #set chip distribution
+        write_chip_flag = self.set_chip_distribution(df)
+
+        #get moving average price
+        dist_data = self.get_chip_distribution()
+
+        df['uprice'] = Mac(dist_data, 0)
+        df['60price'] = Mac(dist_data, 60)
 
         #set k data
         write_kdata_flag = self.mysql_client.set(df, 'day', method = ct.REPLACE)
 
-        #set chip distribution
-        write_chip_flag = self.set_chip_distribution(df)
         #write_chip_flag = self.set_chip_distribution(df.tail(2), cdate)
-
         return write_kdata_flag and write_chip_flag
 
     def get_chip_distribution(self, mdate = None):
@@ -317,10 +317,15 @@ class CStock(TickerHandlerBase):
                 df = self.mysql_client.get("select * from %s" % table)
                 return df.loc[df.date == mdate]
         else:
+            time2Market = self.get('timeToMarket')
+            start_year = int(time2Market / 10000)
+            end_year = int(datetime.now().strftime('%Y'))
+            year_list = get_years_between(start_year, end_year)
             for table in [self.get_chip_distribution_table(myear) for myear in year_list]:
                 if self.is_table_exists(table):
                     tmp_df = self.mysql_client.get("select * from %s" % table)
                     df = df.append(tmp_df)
+            df = df.reset_index(drop = True)
         return df
 
     def set_chip_distribution(self, data, zdate = None):
@@ -380,6 +385,7 @@ class CStock(TickerHandlerBase):
             tmp_df = tmp_df.append(pd.DataFrame([[pos, now_date, now_date, aprice, volume, outstanding]], columns = ct.CHIP_COLUMNS))
             tmp_df = tmp_df[tmp_df.volume != 0]
             tmp_df = tmp_df.reset_index(drop = True)
+
             if not self.is_table_exists(chip_table):
                 if not self.create_chip_table(chip_table):
                     logger.error("create chip table failed")

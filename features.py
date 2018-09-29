@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import const as ct
 from qfq import qfq
-from common import get_market_name
+from common import get_market_name, number_of_days
 #from cstock import CStock
 
 def MACD(data, fastperiod=12, slowperiod=26, signalperiod=9):
@@ -28,24 +28,23 @@ def VMA(amount, volume, peried = 5):
     samount = sum(amount)
     return MA(pd.Series(vprice), peried)
 
-#####################
-#type: u-limitted price
-#    : t-day price
-def Mac(p_series, peried = 0):
-    tdays = 0
-    bprice = 0
+def GameKline(df, dist_data):
+    pass
+
+#function           : u-limitted t-day moving avering price
+#input data columns : ['pos', 'sdate', 'date', 'price', 'volume', 'outstanding']
+def Mac(df, peried = 0):
+    df = df.sort_values(by = 'date', ascending= True)
+    date_list = df.date.drop_duplicates(keep = 'first').tolist()
     ulist = list()
-    if peried != 0 and len(p_series) >= peried:
-        ulist = p_series.rolling(peried).mean().tolist()
-        for index in range(peried - 1):
-            tdays += 1
-            bprice = bprice + p_series[index]
-            ulist[index] = bprice / tdays
-    else:
-        for price in p_series:
-            tdays += 1
-            bprice = bprice + price
-            ulist.append(bprice / tdays)
+    for cdate in date_list:
+        tmp_df = df.loc[df.date == cdate]
+        if peried != 0 and len(tmp_df) > peried:
+            tmp_df = tmp_df.sort_values(by = 'sdate', ascending= True)
+            tmp_df = tmp_df.tail(peried)
+        total_volume = tmp_df.volume.sum()
+        total_amount = tmp_df.price.dot(tmp_df.volume)
+        ulist.append(total_amount / total_volume)
     return ulist
 
 if __name__ == "__main__":

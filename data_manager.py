@@ -283,7 +283,7 @@ class DataManager:
 
     def init_today_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, code_id):
-            _obj = CStock(code_id, self.dbinfo)
+            _obj = CStock(code_id)
             return (code_id, True) if _obj.set_k_data(bonus_info, cdate) else (code_id, False) 
         obj_pool = Pool(500)
         df = self.stock_info_client.get()
