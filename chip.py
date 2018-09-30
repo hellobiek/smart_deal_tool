@@ -1,10 +1,8 @@
 #coding=utf-8
-import datetime
 import const as ct
 import pandas as pd
 from log import getLogger
-from datetime import datetime
-from common import df_empty, create_redis_obj, get_chinese_font, number_of_days
+from common import df_empty, number_of_days
 logger = getLogger(__name__)
 
 class Chip:
@@ -140,11 +138,13 @@ class Chip:
 
             #change short volume rate
             if s_volume_total < s_volume: raise Exception("s_volume_total is less than s_volume")
-            s_df = self.adjust_short_volume(s_df, s_volume)
+            s_df = self.change_volume(s_df, s_volume)
+            #s_df = self.adjust_short_volume(s_df, s_volume)
 
             #change long volume rate
             if l_volume_total < l_volume: raise Exception("l_volume_total is less than l_volume")
-            l_df = self.adjust_short_volume(l_df, l_volume)
+            l_df = self.change_volume(l_df, l_volume)
+            #l_df = self.adjust_short_volume(l_df, l_volume)
 
             return s_df.append(l_df)
 
