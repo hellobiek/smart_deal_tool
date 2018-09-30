@@ -66,7 +66,7 @@ def onclick(event):
             ax4.set_ylabel("%s no data" % tdate)
             ax4.grid(True, color = 'w')
         else:
-            print(tmp_df[['date', 'sdate', 'price']])
+            print(tmp_df[['date', 'sdate', 'price', 'volume']])
             ax4.clear()
             ax4.set_ylabel(tdate)
             ax4.barh(tmp_df.price, tmp_df.volume, height = 0.3, facecolor = 'lightskyblue', alpha = 1.0)

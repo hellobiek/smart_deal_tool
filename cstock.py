@@ -379,7 +379,7 @@ class CStock(TickerHandlerBase):
             outstanding = data.loc[data.cdate == zdate, 'outstanding'].tolist()[0]
             pre_outstanding = data.loc[data.cdate == pre_date, 'outstanding'].tolist()[0]
 
-            tmp_df = self.chip_client.adjust_volume(pre_date_dist, pos, volume, pre_outstanding, outstanding)
+            tmp_df = self.chip_client.adjust_volume(pre_date_dist, pos, volume, aprice, pre_outstanding, outstanding)
             tmp_df.date = zdate
             tmp_df.outstanding = outstanding
             tmp_df = tmp_df.append(pd.DataFrame([[pos, now_date, now_date, aprice, volume, outstanding]], columns = ct.CHIP_COLUMNS))

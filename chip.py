@@ -77,7 +77,19 @@ class Chip:
             s_up_df = self.change_volume(s_up_df, up_volume)
             return s_up_df
 
-    def adjust_volume(self, df, pos, volume, pre_outstanding, outstanding):
+    def get_profit_volume(self, df, price):
+        profit_df = df.loc[df.price < price]
+        if len(profit_df) > 0:
+            return profit_df.volume.sum()
+        else:
+            return 0
+
+    def adjust_volume(self, df, pos, volume, price, pre_outstanding, outstanding):
+        #logger.info("len:%s" % len(df))
+        #if len(df) == 52:
+        #    import pdb
+        #    pdb.set_trace()
+
         df = self.average_volume(df, pre_outstanding, outstanding)
 
         #short chip data
@@ -86,31 +98,60 @@ class Chip:
         #very long chip data
         l_df = df[df.apply(lambda df: number_of_days(df['pos'], pos), axis=1) > 60]
 
-        s_volume_total = s_df.volume.sum()
-        l_volume_total = 0 if l_df.empty else l_df.volume.sum()
-
-        if s_volume_total > volume:
-            if 0 == l_volume_total:
-                l_volume = 0
-            else:
-                if int(l_volume_total / 666) > volume:
-                    l_volume = int(0.38 * volume)
-                else:
-                    l_volume = int(l_volume_total / 888)
-            s_volume = volume - l_volume
+        if l_df.empty:
+            return self.adjust_short_volume(s_df, volume)
         else:
-            logger.info("should debug date")
-            s_volume = int(volume * s_volume_total / df.volume.sum())
+            #short term volume
+            s_volume_total = s_df.volume.sum()
+            s_p_volume = self.get_profit_volume(s_df, price)
+       
+            #long term volume
+            l_volume_total = l_df.volume.sum()
+            l_p_volume = self.get_profit_volume(l_df, price)
+
+            #total volume
+            p_volume_total = s_p_volume + l_p_volume
+            volume_total = s_volume_total + l_volume_total
+
+            #compute a good short term volume
+            if s_volume_total >= volume and l_volume_total >= volume:
+                if 0 == p_volume_total:
+                    s_volume = int(volume * s_volume_total / volume_total)
+                else:
+                    s_volume = int(volume * s_p_volume / p_volume_total)
+            elif s_volume_total < volume  and l_volume_total > volume:
+                if 0 == p_volume_total or s_p_volume * volume >= p_volume_total * s_volume_total:
+                    s_volume = int(volume * s_volume_total / volume_total)
+                else:
+                    s_volume = int(volume * s_p_volume / p_volume_total)
+            elif s_volume_total > volume and l_volume_total < volume:
+                if 0 == p_volume_total or l_p_volume * volume >= p_volume_total * l_volume_total:
+                    s_volume = int(volume * s_volume_total / volume_total)
+                else:
+                    s_volume = int(volume * s_p_volume / p_volume_total)
+            else:
+                if 0 == p_volume_total or (s_p_volume * volume >= p_volume_total * s_volume_total and l_p_volume * volume >= p_volume_total * l_volume_total):
+                    s_volume = int(volume * s_volume_total / volume_total)
+                else:
+                    s_volume = int(volume * s_p_volume / p_volume_total)
+
+            #give higher priority to short term volume
+            expect_delta_s_volume = int((volume - s_volume) * 0.05)
+            existed_delta_s_volume = s_volume_total - s_volume
+            if existed_delta_s_volume > expect_delta_s_volume:
+                s_volume += expect_delta_s_volume
+
             l_volume = volume - s_volume
 
-        #change volume rate
-        if s_volume_total < s_volume: raise Exception("s_volume_total is less than s_volume")
-        s_df = self.adjust_short_volume(s_df, s_volume)
+            #change short volume rate
+            if s_volume_total < s_volume: raise Exception("s_volume_total is less than s_volume")
+            s_df = self.adjust_short_volume(s_df, s_volume)
 
-        if l_volume_total < l_volume: raise Exception("l_volume_total is less than l_volume")
-        l_df = self.change_volume(l_df, l_volume)
+            #change long volume rate
+            if l_volume_total < l_volume: raise Exception("l_volume_total is less than l_volume")
+            l_df = self.adjust_short_volume(l_df, l_volume)
 
-        return s_df if l_df.empty else s_df.append(l_df)
+            return s_df.append(l_df)
 
     def compute_distribution(self, data):
         mdtypes = ['int', 'str', 'str', 'float', 'int', 'int']
@@ -127,7 +168,7 @@ class Chip:
                 tmp_df = tmp_df.reset_index(drop = True)
             else:
                 tmp_df = tmp_df.sort_values(by = 'pos', ascending= True)
-                tmp_df = self.adjust_volume(tmp_df, _index, volume, pre_outstanding, outstanding)
+                tmp_df = self.adjust_volume(tmp_df, _index, volume, aprice, pre_outstanding, outstanding)
                 tmp_df.date = cdate
                 tmp_df.outstanding = outstanding
                 tmp_df = tmp_df.append(pd.DataFrame([[_index, cdate, cdate, aprice, volume, outstanding]], columns = ct.CHIP_COLUMNS))
