@@ -60,7 +60,7 @@ class Chip:
         if not s_down_df.empty:
             up_volume = int(s_volume * cur_volume_sum / s_volume_sum)
             if cur_volume_sum > up_volume:
-                delta = int(0.1 * (cur_volume_sum - up_volume))
+                delta = int(0.05 * (cur_volume_sum - up_volume))
                 down_volume = max(0, s_volume - up_volume - delta)
                 up_volume = s_volume - down_volume
             else:
@@ -85,11 +85,6 @@ class Chip:
             return 0
 
     def adjust_volume(self, df, pos, volume, price, pre_outstanding, outstanding):
-        #logger.info("len:%s" % len(df))
-        #if len(df) == 52:
-        #    import pdb
-        #    pdb.set_trace()
-
         df = self.average_volume(df, pre_outstanding, outstanding)
 
         #short chip data

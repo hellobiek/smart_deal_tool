@@ -12,7 +12,6 @@ from matplotlib.widgets import MultiCursor
 from matplotlib.dates import DateFormatter, WeekdayLocator, DayLocator, MONDAY, YEARLY
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 from matplotlib.dates import MonthLocator, MONTHLY
-from mpl_finance import candlestick_ohlc
 
 def read_data(code):
     if not os.path.exists('k_data.json'):
@@ -80,6 +79,7 @@ def main():
     global d_data
     k_data, d_data = read_data(code)
 
+    from mpl_finance import candlestick_ohlc
     # convert the datetime64 column in the dataframe
     k_data.time = pd.to_datetime(k_data.time, format='%Y-%m-%d')
     k_data.time = mdates.date2num(k_data.time)
