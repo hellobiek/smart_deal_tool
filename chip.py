@@ -46,7 +46,8 @@ class Chip:
     def adjust_short_volume(self, df, volume, price):
         profit_df = df.loc[df.price < price]
         unprofit_df = df.loc[df.price >= price]
-        if profit_df.empty or unprofit_df.empty: return self.change_volume(df, volume)
+        if profit_df.empty or unprofit_df.empty:
+            return self.change_volume(df, volume)
 
         total_volume = df.volume.sum()
         u_total_volume = unprofit_df.volume.sum()
@@ -111,8 +112,8 @@ class Chip:
         l_df = df[df.apply(lambda df: number_of_days(df['pos'], pos), axis=1) > 60]
 
         if l_df.empty:
-            return self.change_volume(s_df, volume)
-            #return self.adjust_short_volume(s_df, volume)
+            #return self.change_volume(s_df, volume)
+            return self.adjust_short_volume(s_df, volume, price)
         else:
             #short term volume
             s_volume_total = s_df.volume.sum()
@@ -158,14 +159,14 @@ class Chip:
 
             #change short volume rate
             if s_volume_total < s_volume: raise Exception("s_volume_total is less than s_volume")
-            s_df = self.change_volume(s_df, s_volume)
-            #s_df = self.adjust_short_volume(s_df, s_volume)
+            #s_df = self.change_volume(s_df, s_volume)
+            s_df = self.adjust_short_volume(s_df, s_volume, price)
 
             #change long volume rate
             if l_volume_total < l_volume:
                 raise Exception("l_volume_total is less than l_volume")
-            l_df = self.change_volume(l_df, l_volume)
-            #l_df = self.adjust_short_volume(l_df, l_volume)
+            #l_df = self.change_volume(l_df, l_volume)
+            l_df = self.adjust_short_volume(l_df, l_volume, price)
             return s_df.append(l_df)
 
     def compute_distribution(self, data):
@@ -173,6 +174,10 @@ class Chip:
         df = df_empty(columns = ct.CHIP_COLUMNS, dtypes = mdtypes)
         tmp_df = df_empty(columns = ct.CHIP_COLUMNS, dtypes = mdtypes)
         for _index, cdate in data.cdate.iteritems():
+            print(_index)
+            if _index == 254:
+                import pdb
+                pdb.set_trace()
             volume = int(data.loc[_index, 'volume'])
             aprice = data.loc[_index, 'aprice']
             outstanding = data.loc[_index, 'outstanding']
