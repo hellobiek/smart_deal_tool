@@ -296,12 +296,16 @@ class CStock(TickerHandlerBase):
 
         #set chip distribution
         write_chip_flag = self.set_chip_distribution(df)
+        logger.info("set distribution success")
 
         #get moving average price
         dist_data = self.get_chip_distribution()
+        logger.info("get distribution success")
 
         df['uprice'] = Mac(dist_data, 0)
+        logger.info("uprice mac compute success")
         df['60price'] = Mac(dist_data, 60)
+        logger.info("60 price mac compute success")
 
         #set k data
         write_kdata_flag = self.mysql_client.set(df, 'day', method = ct.REPLACE)
@@ -472,8 +476,8 @@ class CStock(TickerHandlerBase):
 
 if __name__ == "__main__":
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    #['601318', '000001', '002460', '002321', '601288']
-    for code in ['002460']:
+    #['601318', '000001', '002460', '002321', '601288', '601668']
+    for code in ['601318']:
         cs = CStock(code)
         logger.info("compute %s" % code)
         cs.set_k_data(bonus_info, '2018-09-28')

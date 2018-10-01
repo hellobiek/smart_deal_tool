@@ -43,7 +43,27 @@ class Chip:
             df.at[df.index.isin(index_list), 'volume'] = df.loc[df.index.isin(index_list), 'volume'] + delta
         return df
 
-    def adjust_short_volume(self, s_df, s_volume):
+    def adjust_short_volume(self, df, volume, price):
+        profit_df = df.loc[df.price < price]
+        unprofit_df = df.loc[df.price >= price]
+        if profit_df.empty or unprofit_df.empty: return self.change_volume(df, volume)
+
+        total_volume = df.volume.sum()
+        u_total_volume = unprofit_df.volume.sum()
+        u_volume = int(u_total_volume * volume/total_volume)
+        p_volume = volume - u_volume
+        # give p volume more priority
+        if u_volume * 0.1 < total_volume - u_total_volume - p_volume:
+            u_volume = int(0.9 * u_volume)
+            p_volume = volume - u_volume
+            if profit_df.volume.sum() < p_volume: raise Exception("profit_df.volume.sum() is less than p_volume")
+            profit_df = self.change_volume(profit_df, p_volume)
+
+            if unprofit_df.volume.sum() < u_volume: raise Exception("unprofit_df.volume.sum() is less than u_volume")
+            unprofit_df = self.change_volume(unprofit_df, u_volume)
+        return profit_df.append(unprofit_df)
+
+    def adjust_short_volume1(self, s_df, s_volume):
         s_df = s_df.sort_values(by = 'price', ascending= False)
         up_index_list = list()
         s_volume_sum = s_df.volume.sum()
