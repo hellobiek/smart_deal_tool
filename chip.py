@@ -8,37 +8,39 @@ logger = getLogger(__name__)
 class Chip:
     def average_volume(self, df, pre_outstanding, outstanding):
         if pre_outstanding != outstanding:
-            length = len(df)
+            volume_sum = df['volume'].sum()
             if pre_outstanding > outstanding:
-                delta_volume = int((pre_outstanding - outstanding) / length)
-                df.volume -= delta_volume
-                if length * delta_volume < pre_outstanding - outstanding:
-                    delta = pre_outstanding - outstanding - length * delta_volume
-                    max_index = df.volume.idxmax()
-                    df.at[max_index, 'volume'] = df.loc[max_index, 'volume'] - delta
+                volume_total = pre_outstanding - outstanding
+                df['volume'] = df['volume'] - volume_total * df['volume'] / volume_sum
+                df['volume'] = df['volume'].astype(int)
+                actaul_sum = volume_sum - df['volume'].sum()
+                delta_sum = volume_total - actaul_sum
+                if delta_sum != 0:
+                    delta = 1 if delta_sum < 0 else -1
+                    index_list = df.nlargest(abs(delta_sum), 'volume').index.tolist()
+                    df.at[df.index.isin(index_list), 'volume'] = df.loc[df.index.isin(index_list), 'volume'] + delta
             else:
-                delta_volume = int((outstanding - pre_outstanding) / length)
-                df.volume += delta_volume
-                if length * delta_volume < outstanding - pre_outstanding:
-                    delta = outstanding - pre_outstanding - length * delta_volume
-                    min_index = df.volume.idxmin()
-                    df.at[min_index, 'volume'] = df.loc[min_index, 'volume'] + delta
+                volume_total = outstanding - pre_outstanding
+                df['volume'] = df['volume'] + volume_total * df['volume'] / volume_sum
+                df['volume'] = df['volume'].astype(int)
+                actaul_sum = df['volume'].sum() - volume_sum
+                delta_sum = volume_total - actaul_sum
+                if delta_sum != 0:
+                    delta = -1 if delta_sum < 0 else 1
+                    index_list = df.nlargest(abs(delta_sum), 'volume').index.tolist()
+                    df.at[df.index.isin(index_list), 'volume'] = df.loc[df.index.isin(index_list), 'volume'] + delta
         return df
 
     def change_volume(self, df, volume_total):
-        while volume_total > 0:
-            aver_volume = int(volume_total / len(df))
-            if aver_volume > 0:
-                for _index, volume in df.volume.iteritems():
-                    if volume != 0:
-                        t_volume = max(volume - aver_volume, 0)
-                        df.at[_index, 'volume'] = t_volume
-                        volume_total -= min(aver_volume, volume)
-            else:
-                max_index = df.volume.idxmax()
-                df.at[max_index, 'volume'] = df.loc[max_index, 'volume'] - volume_total
-                volume_total = 0
-            logger.debug("volume_total:%s, aver_volume:%s, df:%s" % (volume_total, aver_volume, df))
+        volume_sum = df['volume'].sum()
+        df['volume'] = df['volume'] - volume_total * df['volume'] / volume_sum
+        df['volume'] = df['volume'].astype(int)
+        actaul_sum = volume_sum - df['volume'].sum()
+        delta_sum = volume_total - actaul_sum
+        if delta_sum != 0:
+            delta = 1 if delta_sum < 0 else -1
+            index_list = df.nlargest(abs(delta_sum), 'volume').index.tolist()
+            df.at[df.index.isin(index_list), 'volume'] = df.loc[df.index.isin(index_list), 'volume'] + delta
         return df
 
     def adjust_short_volume(self, s_df, s_volume):
@@ -77,10 +79,7 @@ class Chip:
 
     def get_profit_volume(self, df, price):
         profit_df = df.loc[df.price < price]
-        if len(profit_df) > 0:
-            return profit_df.volume.sum()
-        else:
-            return 0
+        return profit_df.volume.sum() if len(profit_df) > 0 else 0
 
     def adjust_volume(self, df, pos, volume, price, pre_outstanding, outstanding):
         df = self.average_volume(df, pre_outstanding, outstanding)
@@ -92,7 +91,8 @@ class Chip:
         l_df = df[df.apply(lambda df: number_of_days(df['pos'], pos), axis=1) > 60]
 
         if l_df.empty:
-            return self.adjust_short_volume(s_df, volume)
+            return self.change_volume(s_df, volume)
+            #return self.adjust_short_volume(s_df, volume)
         else:
             #short term volume
             s_volume_total = s_df.volume.sum()
@@ -129,7 +129,7 @@ class Chip:
                     s_volume = int(volume * s_p_volume / p_volume_total)
 
             #give higher priority to short term volume
-            expect_delta_s_volume = int((volume - s_volume) * 0.05)
+            expect_delta_s_volume = int((volume - s_volume) * 0.1)
             existed_delta_s_volume = s_volume_total - s_volume
             if existed_delta_s_volume > expect_delta_s_volume:
                 s_volume += expect_delta_s_volume
@@ -142,10 +142,10 @@ class Chip:
             #s_df = self.adjust_short_volume(s_df, s_volume)
 
             #change long volume rate
-            if l_volume_total < l_volume: raise Exception("l_volume_total is less than l_volume")
+            if l_volume_total < l_volume:
+                raise Exception("l_volume_total is less than l_volume")
             l_df = self.change_volume(l_df, l_volume)
             #l_df = self.adjust_short_volume(l_df, l_volume)
-
             return s_df.append(l_df)
 
     def compute_distribution(self, data):
@@ -169,7 +169,8 @@ class Chip:
                 tmp_df = tmp_df.append(pd.DataFrame([[_index, cdate, cdate, aprice, volume, outstanding]], columns = ct.CHIP_COLUMNS))
                 tmp_df = tmp_df[tmp_df.volume != 0]
                 tmp_df = tmp_df.reset_index(drop = True)
-                if tmp_df.volume.sum() != outstanding: raise Exception("tmp_df.volume.sum() is not equal to outstanding")
+                if tmp_df.volume.sum() != outstanding:
+                    raise Exception("tmp_df.volume.sum() is not equal to outstanding")
             pre_outstanding = outstanding
             df = df.append(tmp_df)
             df = df[df.volume != 0]

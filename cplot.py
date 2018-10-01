@@ -74,7 +74,7 @@ def onclick(event):
 def main():
     MA1 = 5
     MA2 = 20
-    code = '601318'
+    code = '000001'
     global ax4
     global d_data
     k_data, d_data = read_data(code)

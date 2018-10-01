@@ -471,7 +471,9 @@ class CStock(TickerHandlerBase):
         return (datetime.strptime(_date, "%Y-%m-%d") - time2Market).days > 0
 
 if __name__ == "__main__":
-    #cs = CStock('601606')
-    cs = CStock('601318')
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    cs.set_k_data(bonus_info, '2018-09-28')
+    #['601318', '000001', '002460', '002321', '601288']
+    for code in ['002460']:
+        cs = CStock(code)
+        logger.info("compute %s" % code)
+        cs.set_k_data(bonus_info, '2018-09-28')

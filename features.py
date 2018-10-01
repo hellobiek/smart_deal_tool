@@ -28,7 +28,7 @@ def VMA(amount, volume, peried = 5):
     samount = sum(amount)
     return MA(pd.Series(vprice), peried)
 
-def GameKline(df, dist_data):
+def GameKline(df, dist_data, mdate = None):
     pass
 
 #function           : u-limitted t-day moving avering price
