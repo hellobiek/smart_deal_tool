@@ -336,6 +336,7 @@ class CStock(TickerHandlerBase):
         data = data[['cdate', 'open', 'aprice', 'outstanding', 'volume', 'amount']]
         if zdate is None:
             df = self.chip_client.compute_distribution(data)
+            logger.info("compute_distribution success")
             time2Market = self.get('timeToMarket')
             start_year = int(time2Market / 10000)
             end_year = int(datetime.now().strftime('%Y'))
@@ -477,7 +478,7 @@ class CStock(TickerHandlerBase):
 if __name__ == "__main__":
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
     #['601318', '000001', '002460', '002321', '601288', '601668']
-    for code in ['601318']:
+    for code in ['000001', '002460', '002321', '601288', '601668']:
         cs = CStock(code)
         logger.info("compute %s" % code)
         cs.set_k_data(bonus_info, '2018-09-28')

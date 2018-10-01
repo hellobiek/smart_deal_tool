@@ -6,7 +6,7 @@ from common import df_empty, number_of_days
 logger = getLogger(__name__)
 
 class Chip:
-    def average_volume(self, df, pre_outstanding, outstanding):
+    def evenly_distributed_new_chips(self, df, pre_outstanding, outstanding):
         if pre_outstanding != outstanding:
             volume_sum = df['volume'].sum()
             if pre_outstanding > outstanding:
@@ -31,7 +31,7 @@ class Chip:
                     df.at[df.index.isin(index_list), 'volume'] = df.loc[df.index.isin(index_list), 'volume'] + delta
         return df
 
-    def change_volume(self, df, volume_total):
+    def average_distribute(self, df, volume_total):
         volume_sum = df['volume'].sum()
         df['volume'] = df['volume'] - volume_total * df['volume'] / volume_sum
         df['volume'] = df['volume'].astype(int)
@@ -43,68 +43,34 @@ class Chip:
             df.at[df.index.isin(index_list), 'volume'] = df.loc[df.index.isin(index_list), 'volume'] + delta
         return df
 
-    def adjust_short_volume(self, df, volume, price):
+    def change_volume(self, df, volume, price):
         profit_df = df.loc[df.price < price]
         unprofit_df = df.loc[df.price >= price]
         if profit_df.empty or unprofit_df.empty:
-            return self.change_volume(df, volume)
+            return self.average_distribute(df, volume)
 
         total_volume = df.volume.sum()
         u_total_volume = unprofit_df.volume.sum()
         u_volume = int(u_total_volume * volume/total_volume)
         p_volume = volume - u_volume
         # give p volume more priority
-        if u_volume * 0.1 < total_volume - u_total_volume - p_volume:
-            u_volume = int(0.9 * u_volume)
+        if u_volume * 0.15 < total_volume - u_total_volume - p_volume:
+            u_volume = int(0.85 * u_volume)
             p_volume = volume - u_volume
 
         if profit_df.volume.sum() < p_volume: raise Exception("profit_df.volume.sum() is less than p_volume")
-        profit_df = self.change_volume(profit_df, p_volume)
+        profit_df = self.average_distribute(profit_df, p_volume)
 
         if unprofit_df.volume.sum() < u_volume: raise Exception("unprofit_df.volume.sum() is less than u_volume")
-        unprofit_df = self.change_volume(unprofit_df, u_volume)
+        unprofit_df = self.average_distribute(unprofit_df, u_volume)
         return profit_df.append(unprofit_df)
-
-    def adjust_short_volume1(self, s_df, s_volume):
-        s_df = s_df.sort_values(by = 'price', ascending= False)
-        up_index_list = list()
-        s_volume_sum = s_df.volume.sum()
-        cur_volume_sum = 0
-        for _index, volume in s_df.volume.iteritems():
-            cur_volume_sum += volume
-            up_index_list.append(_index)
-            if float(cur_volume_sum) > 0.5 * s_volume_sum: 
-                break
-
-        s_up_df = s_df.loc[up_index_list]
-        s_down_df = s_df.loc[~s_df.index.isin(up_index_list)]
-
-        if not s_down_df.empty:
-            up_volume = int(s_volume * cur_volume_sum / s_volume_sum)
-            if cur_volume_sum > up_volume:
-                delta = int(0.05 * (cur_volume_sum - up_volume))
-                down_volume = max(0, s_volume - up_volume - delta)
-                up_volume = s_volume - down_volume
-            else:
-                down_volume = s_volume - up_volume
-
-            if s_up_df.volume.sum() < up_volume: raise Exception("s_up_df.volume.sum() is less than up_volume")
-            s_up_df = self.change_volume(s_up_df, up_volume)
-
-            if s_down_df.volume.sum() < down_volume: raise Exception("s_down_df.volume.sum() is less than down_volume")
-            s_down_df = self.change_volume(s_down_df, down_volume)
-            return s_up_df.append(s_down_df)
-        else:
-            up_volume = s_volume
-            s_up_df = self.change_volume(s_up_df, up_volume)
-            return s_up_df
 
     def get_profit_volume(self, df, price):
         profit_df = df.loc[df.price < price]
         return profit_df.volume.sum() if len(profit_df) > 0 else 0
 
     def adjust_volume(self, df, pos, volume, price, pre_outstanding, outstanding):
-        df = self.average_volume(df, pre_outstanding, outstanding)
+        df = self.evenly_distributed_new_chips(df, pre_outstanding, outstanding)
 
         #short chip data
         s_df = df[df.apply(lambda df: number_of_days(df['pos'], pos), axis=1) <= 60]
@@ -112,69 +78,65 @@ class Chip:
         #very long chip data
         l_df = df[df.apply(lambda df: number_of_days(df['pos'], pos), axis=1) > 60]
 
-        if l_df.empty:
-            #return self.change_volume(s_df, volume)
-            return self.adjust_short_volume(s_df, volume, price)
-        else:
-            #short term volume
-            s_volume_total = s_df.volume.sum()
-            s_p_volume = self.get_profit_volume(s_df, price)
+        if l_df.empty: return self.change_volume(s_df, volume, price)
+
+        #short term volume
+        s_volume_total = s_df.volume.sum()
+        s_p_volume = self.get_profit_volume(s_df, price)
        
-            #long term volume
-            l_volume_total = l_df.volume.sum()
-            l_p_volume = self.get_profit_volume(l_df, price)
+        #long term volume
+        l_volume_total = l_df.volume.sum()
+        l_p_volume = self.get_profit_volume(l_df, price)
 
-            #total volume
-            p_volume_total = s_p_volume + l_p_volume
-            volume_total = s_volume_total + l_volume_total
+        #total volume
+        p_volume_total = s_p_volume + l_p_volume
+        volume_total = s_volume_total + l_volume_total
 
-            #compute a good short term volume
-            if s_volume_total >= volume and l_volume_total >= volume:
-                if 0 == p_volume_total:
-                    s_volume = int(volume * s_volume_total / volume_total)
-                else:
-                    s_volume = int(volume * s_p_volume / p_volume_total)
-            elif s_volume_total < volume  and l_volume_total > volume:
-                if 0 == p_volume_total or s_p_volume * volume >= p_volume_total * s_volume_total:
-                    s_volume = int(volume * s_volume_total / volume_total)
-                else:
-                    s_volume = int(volume * s_p_volume / p_volume_total)
-            elif s_volume_total > volume and l_volume_total < volume:
-                if 0 == p_volume_total or l_p_volume * volume >= p_volume_total * l_volume_total:
-                    s_volume = int(volume * s_volume_total / volume_total)
-                else:
-                    s_volume = int(volume * s_p_volume / p_volume_total)
+        #compute a good short term volume
+        if s_volume_total >= volume and l_volume_total >= volume:
+            if 0 == p_volume_total:
+                s_volume = int(volume * s_volume_total / volume_total)
             else:
-                if 0 == p_volume_total or (s_p_volume * volume >= p_volume_total * s_volume_total and l_p_volume * volume >= p_volume_total * l_volume_total):
-                    s_volume = int(volume * s_volume_total / volume_total)
-                else:
-                    s_volume = int(volume * s_p_volume / p_volume_total)
+                s_volume = int(volume * s_p_volume / p_volume_total)
+        elif s_volume_total < volume  and l_volume_total > volume:
+            if 0 == p_volume_total or s_p_volume * volume >= p_volume_total * s_volume_total:
+                s_volume = int(volume * s_volume_total / volume_total)
+            else:
+                s_volume = int(volume * s_p_volume / p_volume_total)
+        elif s_volume_total > volume and l_volume_total < volume:
+            if 0 == p_volume_total or l_p_volume * volume >= p_volume_total * l_volume_total:
+                s_volume = int(volume * s_volume_total / volume_total)
+            else:
+                s_volume = int(volume * s_p_volume / p_volume_total)
+        else:
+            if 0 == p_volume_total or (s_p_volume * volume >= p_volume_total * s_volume_total and l_p_volume * volume >= p_volume_total * l_volume_total):
+                s_volume = int(volume * s_volume_total / volume_total)
+            else:
+                s_volume = int(volume * s_p_volume / p_volume_total)
 
-            #give higher priority to short term volume
-            expect_delta_s_volume = int((volume - s_volume) * 0.1)
-            existed_delta_s_volume = s_volume_total - s_volume
-            if existed_delta_s_volume > expect_delta_s_volume:
-                s_volume += expect_delta_s_volume
+        #give higher priority to short term volume
+        expect_delta_s_volume = int((volume - s_volume) * 0.15)
+        existed_delta_s_volume = s_volume_total - s_volume
+        if existed_delta_s_volume > expect_delta_s_volume:
+            s_volume += expect_delta_s_volume
 
-            l_volume = volume - s_volume
+        l_volume = volume - s_volume
 
-            #change short volume rate
-            if s_volume_total < s_volume: raise Exception("s_volume_total is less than s_volume")
-            #s_df = self.change_volume(s_df, s_volume)
-            s_df = self.adjust_short_volume(s_df, s_volume, price)
+        #change short volume rate
+        if s_volume_total < s_volume: raise Exception("s_volume_total is less than s_volume")
+        s_df = self.change_volume(s_df, s_volume, price)
 
-            #change long volume rate
-            if l_volume_total < l_volume:
-                raise Exception("l_volume_total is less than l_volume")
-            #l_df = self.change_volume(l_df, l_volume)
-            l_df = self.adjust_short_volume(l_df, l_volume, price)
-            return s_df.append(l_df)
+        #change long volume rate
+        if l_volume_total < l_volume: raise Exception("l_volume_total is less than l_volume")
+        l_df = self.change_volume(l_df, l_volume, price)
+        return s_df.append(l_df)
 
     def compute_distribution(self, data):
         mdtypes = ['int', 'str', 'str', 'float', 'int', 'int']
         df = df_empty(columns = ct.CHIP_COLUMNS, dtypes = mdtypes)
         tmp_df = df_empty(columns = ct.CHIP_COLUMNS, dtypes = mdtypes)
         for _index, cdate in data.cdate.iteritems():
+            print(_index)
             volume = int(data.loc[_index, 'volume'])
             aprice = data.loc[_index, 'aprice']
             outstanding = data.loc[_index, 'outstanding']
