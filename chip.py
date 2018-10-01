@@ -57,11 +57,12 @@ class Chip:
         if u_volume * 0.1 < total_volume - u_total_volume - p_volume:
             u_volume = int(0.9 * u_volume)
             p_volume = volume - u_volume
-            if profit_df.volume.sum() < p_volume: raise Exception("profit_df.volume.sum() is less than p_volume")
-            profit_df = self.change_volume(profit_df, p_volume)
 
-            if unprofit_df.volume.sum() < u_volume: raise Exception("unprofit_df.volume.sum() is less than u_volume")
-            unprofit_df = self.change_volume(unprofit_df, u_volume)
+        if profit_df.volume.sum() < p_volume: raise Exception("profit_df.volume.sum() is less than p_volume")
+        profit_df = self.change_volume(profit_df, p_volume)
+
+        if unprofit_df.volume.sum() < u_volume: raise Exception("unprofit_df.volume.sum() is less than u_volume")
+        unprofit_df = self.change_volume(unprofit_df, u_volume)
         return profit_df.append(unprofit_df)
 
     def adjust_short_volume1(self, s_df, s_volume):
@@ -174,10 +175,6 @@ class Chip:
         df = df_empty(columns = ct.CHIP_COLUMNS, dtypes = mdtypes)
         tmp_df = df_empty(columns = ct.CHIP_COLUMNS, dtypes = mdtypes)
         for _index, cdate in data.cdate.iteritems():
-            print(_index)
-            if _index == 254:
-                import pdb
-                pdb.set_trace()
             volume = int(data.loc[_index, 'volume'])
             aprice = data.loc[_index, 'aprice']
             outstanding = data.loc[_index, 'outstanding']
