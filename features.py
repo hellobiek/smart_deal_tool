@@ -73,8 +73,7 @@ def Mac(df, peried = 0):
     df = df.sort_values(by = 'date', ascending= True)
     for name, group in df.groupby(df.date):
         if peried != 0 and len(group) > peried:
-            group = group.sort_values(by = 'pos', ascending= True)
-            group = group.tail(peried)
+            group = group.nlargest(peried, 'pos')
         total_volume = group.volume.sum()
         total_amount = group.price.dot(group.volume)
         ulist.append(total_amount / total_volume)
