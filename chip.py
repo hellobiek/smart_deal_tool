@@ -54,8 +54,8 @@ class Chip:
         u_volume = int(u_total_volume * volume/total_volume)
         p_volume = volume - u_volume
         # give p volume more priority
-        if u_volume * 0.15 < total_volume - u_total_volume - p_volume:
-            u_volume = int(0.85 * u_volume)
+        if u_volume * 0.2 < total_volume - u_total_volume - p_volume:
+            u_volume = int(0.8 * u_volume)
             p_volume = volume - u_volume
 
         if profit_df.volume.sum() < p_volume: raise Exception("profit_df.volume.sum() is less than p_volume")
@@ -115,7 +115,7 @@ class Chip:
                 s_volume = int(volume * s_p_volume / p_volume_total)
 
         #give higher priority to short term volume
-        expect_delta_s_volume = int((volume - s_volume) * 0.15)
+        expect_delta_s_volume = int((volume - s_volume) * 0.2)
         existed_delta_s_volume = s_volume_total - s_volume
         if existed_delta_s_volume > expect_delta_s_volume:
             s_volume += expect_delta_s_volume

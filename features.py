@@ -69,16 +69,14 @@ def GameKline(df, dist_data, mdate = None):
 #function           : u-limitted t-day moving avering price
 #input data columns : ['pos', 'sdate', 'date', 'price', 'volume', 'outstanding']
 def Mac(df, peried = 0):
-    df = df.sort_values(by = 'date', ascending= True)
-    date_list = df.date.drop_duplicates(keep = 'first').tolist()
     ulist = list()
-    for cdate in date_list:
-        tmp_df = df.loc[df.date == cdate]
-        if peried != 0 and len(tmp_df) > peried:
-            tmp_df = tmp_df.sort_values(by = 'sdate', ascending= True)
-            tmp_df = tmp_df.tail(peried)
-        total_volume = tmp_df.volume.sum()
-        total_amount = tmp_df.price.dot(tmp_df.volume)
+    df = df.sort_values(by = 'date', ascending= True)
+    for name, group in df.groupby(df.date):
+        if peried != 0 and len(group) > peried:
+            group = group.sort_values(by = 'pos', ascending= True)
+            group = group.tail(peried)
+        total_volume = group.volume.sum()
+        total_amount = group.price.dot(group.volume)
         ulist.append(total_amount / total_volume)
     return ulist
 

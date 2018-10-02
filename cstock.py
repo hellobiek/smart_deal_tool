@@ -345,8 +345,6 @@ class CStock(TickerHandlerBase):
             res_flag = True
             for myear in year_list:
                 chip_table = self.get_chip_distribution_table(myear)
-                import pdb
-                pdb.set_trace()
                 if not self.is_table_exists(chip_table):
                     if not self.create_chip_table(chip_table):
                         logger.error("create chip table:%s failed" % chip_table)
@@ -483,7 +481,7 @@ class CStock(TickerHandlerBase):
 if __name__ == "__main__":
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
     #['601318', '000001', '002460', '002321', '601288', '601668']
-    for code in ['000001']:
+    for code in ['601318', '000001', '002460', '002321', '601288', '601668']:
         cs = CStock(code)
         logger.info("compute %s" % code)
         cs.set_k_data(bonus_info, '2018-09-28')
