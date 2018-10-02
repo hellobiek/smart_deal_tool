@@ -28,6 +28,10 @@ def VMA(amount, volume, peried = 5):
     samount = sum(amount)
     return MA(pd.Series(vprice), peried)
 
+def BaseFloatingProfit(df, mdate = None):
+    for _index, aprice in df.aprice.iteritems():
+        pass
+
 def GameKline(df, dist_data, mdate = None):
     if mdate is None:
         p_low_vol_list = list()

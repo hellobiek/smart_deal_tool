@@ -341,15 +341,18 @@ class CStock(TickerHandlerBase):
             start_year = int(time2Market / 10000)
             end_year = int(datetime.now().strftime('%Y'))
             year_list = get_years_between(start_year, end_year)
+            logger.info("get_years_between success")
             res_flag = True
             for myear in year_list:
                 chip_table = self.get_chip_distribution_table(myear)
+                import pdb
+                pdb.set_trace()
                 if not self.is_table_exists(chip_table):
                     if not self.create_chip_table(chip_table):
                         logger.error("create chip table:%s failed" % chip_table)
                         return False
                     self.redis.sadd(self.dbname, chip_table)
-                tmp_df = df[df.sdate.str.split('-', expand = True)[0] == myear]
+                tmp_df = df.loc[df.date.str.startswith(myear)]
                 tmp_df = tmp_df.reset_index(drop = True)
                 logger.info("%s set distribution df for %s" % (self.code, chip_table))
                 if not self.mysql_client.set(tmp_df, chip_table, method = ct.REPLACE):
@@ -480,7 +483,7 @@ class CStock(TickerHandlerBase):
 if __name__ == "__main__":
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
     #['601318', '000001', '002460', '002321', '601288', '601668']
-    for code in ['000001', '002460', '002321', '601288', '601668']:
+    for code in ['000001']:
         cs = CStock(code)
         logger.info("compute %s" % code)
         cs.set_k_data(bonus_info, '2018-09-28')
