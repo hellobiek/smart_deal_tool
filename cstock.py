@@ -351,12 +351,14 @@ class CStock(TickerHandlerBase):
                     self.redis.sadd(self.dbname, chip_table)
                 tmp_df = df[df.sdate.str.split('-', expand = True)[0] == myear]
                 tmp_df = tmp_df.reset_index(drop = True)
+                logger.info("%s set distribution df for %s" % (self.code, chip_table))
                 if not self.mysql_client.set(tmp_df, chip_table, method = ct.REPLACE):
                     logger.error("%s set data for %s failed" % (self.code, myear))
                     res_flag = False
                 else:
                     for cdate in tmp_df.date:
                         self.redis.sadd(chip_table, cdate)
+                logger.info("%s set distribution success for %s" % (self.code, myear))
             return res_flag
         else:
             chip_table = self.get_chip_distribution_table(zdate)

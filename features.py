@@ -29,8 +29,39 @@ def VMA(amount, volume, peried = 5):
     return MA(pd.Series(vprice), peried)
 
 def GameKline(df, dist_data, mdate = None):
-    pass
-
+    if mdate is None:
+        p_low_vol_list = list()
+        p_high_vol_list = list()
+        p_open_vol_list = list()
+        p_close_vol_list = list()
+        for _index, date in df.date.iteritems():
+            drow = df.loc[_index]
+            p_low = drow['low']
+            p_high = drow['high']
+            p_open = drow['open']
+            p_close = drow['close']
+            outstanding = drow['outstanding']
+            p_low_vol_list.append(dist_data[dist_data.price < p_low].volume.sum() / outstanding)
+            p_high_vol_list.append(dist_data[dist_data.price < p_high].volume.sum() / outstanding)
+            p_open_vol_list.append(dist_data[dist_data.price < p_open].volume.sum() / outstanding)
+            p_close_vol_list.append(dist_data[dist_data.price < p_close].volume.sum() / outstanding)
+        df['low_p'] = p_low_vol_list
+        df['high_p'] = p_high_vol_list
+        df['open_p'] = p_open_vol_list
+        df['close_p'] = p_close_vol_list
+    else:
+        drow = df.loc[df.date == mdate]
+        p_low = drow['low']
+        p_high = drow['high']
+        p_open = drow['open']
+        p_close = drow['close']
+        outstanding = drow['outstanding']
+        df.at[df.date == mdate, 'low_p']   = dist_data[dist_data.price < p_low].volume.sum() / outstanding
+        df.at[df.date == mdate, 'high_p']  = dist_data[dist_data.price < p_high].volume.sum() / outstanding
+        df.at[df.date == mdate, 'open_p']  = dist_data[dist_data.price < p_open].volume.sum() / outstanding
+        df.at[df.date == mdate, 'close_p'] = dist_data[dist_data.price < p_close].volume.sum() / outstanding
+    return df
+        
 #function           : u-limitted t-day moving avering price
 #input data columns : ['pos', 'sdate', 'date', 'price', 'volume', 'outstanding']
 def Mac(df, peried = 0):
