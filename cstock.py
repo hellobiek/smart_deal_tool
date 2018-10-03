@@ -221,6 +221,7 @@ class CStock(TickerHandlerBase):
             return pd.DataFrame()
         df = pd.read_csv(filename, sep = ',')
         df = df[['date', 'open', 'high', 'close', 'low', 'amount', 'volume']]
+        df = df.loc[df.volume != 0]
         return df
 
     def collect_right_info(self, info):
@@ -480,8 +481,8 @@ class CStock(TickerHandlerBase):
 
 if __name__ == "__main__":
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    #['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153']
-    for code in ['002153']:
+    #['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519']
+    for code in ['000001']:
         cs = CStock(code)
         logger.info("compute %s" % code)
         cs.set_k_data(bonus_info, '2018-09-28')
