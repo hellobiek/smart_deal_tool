@@ -11,7 +11,7 @@ class Chip:
             volume_sum = df['volume'].sum()
             if pre_outstanding > outstanding:
                 volume_total = pre_outstanding - outstanding
-                df['volume'] = df['volume'] - volume_total * df['volume'] / volume_sum
+                df['volume'] = df['volume'] * ((volume_sum - volume_total) / volume_sum)
                 df['volume'] = df['volume'].astype(int)
                 actaul_sum = volume_sum - df['volume'].sum()
                 delta_sum = volume_total - actaul_sum
@@ -21,7 +21,7 @@ class Chip:
                     df.at[df.index.isin(index_list), 'volume'] = df.loc[df.index.isin(index_list), 'volume'] + delta
             else:
                 volume_total = outstanding - pre_outstanding
-                df['volume'] = df['volume'] + volume_total * df['volume'] / volume_sum
+                df['volume'] = df['volume'] * ((volume_sum + volume_total) / volume_sum)
                 df['volume'] = df['volume'].astype(int)
                 actaul_sum = df['volume'].sum() - volume_sum
                 delta_sum = volume_total - actaul_sum
@@ -33,7 +33,7 @@ class Chip:
 
     def average_distribute(self, df, volume_total):
         volume_sum = df['volume'].sum()
-        df['volume'] = df['volume'] - volume_total * df['volume'] / volume_sum
+        df['volume'] = df['volume'] * ((volume_sum - volume_total) / volume_sum)
         df['volume'] = df['volume'].astype(int)
         actaul_sum = volume_sum - df['volume'].sum()
         delta_sum = volume_total - actaul_sum
@@ -43,26 +43,57 @@ class Chip:
             df.at[df.index.isin(index_list), 'volume'] = df.loc[df.index.isin(index_list), 'volume'] + delta
         return df
 
-    def change_volume(self, df, volume, price):
+    def divide_according_time(self, df, total_volume, now_pos):
+        total_holding_time = now_pos * len(df) - df.pos.sum()
+        df = df.sort_values(by = 'pos', ascending= True)
+        while total_volume != 0:
+            for _index, pos in df.pos.iteritems():
+                holding_time = now_pos - pos
+                expected_volume = max(1, int(total_volume * (holding_time / total_holding_time)))
+                if expected_volume > total_volume: expected_volume = total_volume
+                total_volume -= min(df.loc[_index, 'volume'], expected_volume)
+                df.at[_index, 'volume'] = max(0, df.loc[_index, 'volume'] - expected_volume)
+                if 0 == total_volume: break
+        return df
+
+    def divide_according_profit(self, df, total_volume, now_price):
+        total_profit = now_price * len(df) - df.price.sum()
+        df = df.sort_values(by = 'price', ascending = True)
+        while total_volume != 0:
+            for _index, price in df.price.iteritems():
+                profit = now_price - price
+                expected_volume = max(1, int(total_volume * (profit / total_profit)))
+                if expected_volume > total_volume: expected_volume = total_volume
+                total_volume -= min(df.loc[_index, 'volume'], expected_volume)
+                df.at[_index, 'volume'] = max(0, df.loc[_index, 'volume'] - expected_volume)
+                if 0 == total_volume: break
+        return df
+
+    def change_volume(self, df, volume, price, pos):
         profit_df = df.loc[df.price < price]
         unprofit_df = df.loc[df.price >= price]
-        if profit_df.empty or unprofit_df.empty:
-            return self.average_distribute(df, volume)
+        if profit_df.empty:
+            return self.divide_according_time(unprofit_df, volume, pos)
+
+        if unprofit_df.empty:
+            return self.divide_according_profit(profit_df, volume, price)
 
         total_volume = df.volume.sum()
         u_total_volume = unprofit_df.volume.sum()
-        u_volume = int(u_total_volume * volume/total_volume)
+        u_volume = int(volume * (u_total_volume/total_volume))
         p_volume = volume - u_volume
         # give p volume more priority
-        if u_volume * 0.2 < total_volume - u_total_volume - p_volume:
-            u_volume = int(0.8 * u_volume)
+        if u_volume * 0.15 < total_volume - u_total_volume - p_volume:
+            u_volume = int(0.85 * u_volume)
             p_volume = volume - u_volume
 
         if profit_df.volume.sum() < p_volume: raise Exception("profit_df.volume.sum() is less than p_volume")
-        profit_df = self.average_distribute(profit_df, p_volume)
+        #profit_df = self.average_distribute(profit_df, p_volume)
+        profit_df = self.divide_according_profit(profit_df, p_volume, price)
 
         if unprofit_df.volume.sum() < u_volume: raise Exception("unprofit_df.volume.sum() is less than u_volume")
-        unprofit_df = self.average_distribute(unprofit_df, u_volume)
+        #unprofit_df = self.average_distribute(unprofit_df, u_volume)
+        unprofit_df = self.divide_according_time(unprofit_df, u_volume, pos)
         return profit_df.append(unprofit_df)
 
     def get_profit_volume(self, df, price):
@@ -78,7 +109,7 @@ class Chip:
         #very long chip data
         l_df = df[df.apply(lambda df: number_of_days(df['pos'], pos), axis=1) > 60]
 
-        if l_df.empty: return self.change_volume(s_df, volume, price)
+        if l_df.empty: return self.change_volume(s_df, volume, price, pos)
 
         #short term volume
         s_volume_total = s_df.volume.sum()
@@ -95,27 +126,27 @@ class Chip:
         #compute a good short term volume
         if s_volume_total >= volume and l_volume_total >= volume:
             if 0 == p_volume_total:
-                s_volume = int(volume * s_volume_total / volume_total)
+                s_volume = int(volume * (s_volume_total / volume_total))
             else:
-                s_volume = int(volume * s_p_volume / p_volume_total)
+                s_volume = int(volume * (s_p_volume / p_volume_total))
         elif s_volume_total < volume  and l_volume_total > volume:
             if 0 == p_volume_total or s_p_volume * volume >= p_volume_total * s_volume_total:
-                s_volume = int(volume * s_volume_total / volume_total)
+                s_volume = int(volume * (s_volume_total / volume_total))
             else:
-                s_volume = int(volume * s_p_volume / p_volume_total)
+                s_volume = int(volume * (s_p_volume / p_volume_total))
         elif s_volume_total > volume and l_volume_total < volume:
             if 0 == p_volume_total or l_p_volume * volume >= p_volume_total * l_volume_total:
-                s_volume = int(volume * s_volume_total / volume_total)
+                s_volume = int(volume * (s_volume_total / volume_total))
             else:
-                s_volume = int(volume * s_p_volume / p_volume_total)
+                s_volume = int(volume * (s_p_volume / p_volume_total))
         else:
             if 0 == p_volume_total or (s_p_volume * volume >= p_volume_total * s_volume_total and l_p_volume * volume >= p_volume_total * l_volume_total):
-                s_volume = int(volume * s_volume_total / volume_total)
+                s_volume = int(volume * (s_volume_total / volume_total))
             else:
-                s_volume = int(volume * s_p_volume / p_volume_total)
+                s_volume = int(volume * (s_p_volume / p_volume_total))
 
         #give higher priority to short term volume
-        expect_delta_s_volume = int((volume - s_volume) * 0.2)
+        expect_delta_s_volume = int((volume - s_volume) * 0.15)
         existed_delta_s_volume = s_volume_total - s_volume
         if existed_delta_s_volume > expect_delta_s_volume:
             s_volume += expect_delta_s_volume
@@ -124,11 +155,11 @@ class Chip:
 
         #change short volume rate
         if s_volume_total < s_volume: raise Exception("s_volume_total is less than s_volume")
-        s_df = self.change_volume(s_df, s_volume, price)
+        s_df = self.change_volume(s_df, s_volume, price, pos)
 
         #change long volume rate
         if l_volume_total < l_volume: raise Exception("l_volume_total is less than l_volume")
-        l_df = self.change_volume(l_df, l_volume, price)
+        l_df = self.change_volume(l_df, l_volume, price, pos)
         return s_df.append(l_df)
 
     def compute_distribution(self, data):
@@ -152,8 +183,7 @@ class Chip:
                 tmp_df = tmp_df.append(pd.DataFrame([[_index, cdate, cdate, aprice, volume, outstanding]], columns = ct.CHIP_COLUMNS))
                 tmp_df = tmp_df[tmp_df.volume != 0]
                 tmp_df = tmp_df.reset_index(drop = True)
-                if tmp_df.volume.sum() != outstanding:
-                    raise Exception("tmp_df.volume.sum() is not equal to outstanding")
+                if tmp_df.volume.sum() != outstanding: raise Exception("tmp_df.volume.sum() is not equal to outstanding")
             pre_outstanding = outstanding
             df = df.append(tmp_df)
             df = df[df.volume != 0]
