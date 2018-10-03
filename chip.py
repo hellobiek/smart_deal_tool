@@ -136,40 +136,41 @@ class Chip:
 
         #short term volume
         s_volume_total = s_df.volume.sum()
-        s_p_volume = self.get_profit_volume(s_df, price)
+        #s_p_volume = self.get_profit_volume(s_df, price)
        
         #long term volume
         l_volume_total = l_df.volume.sum()
-        l_p_volume = self.get_profit_volume(l_df, price)
+        #l_p_volume = self.get_profit_volume(l_df, price)
 
         #total volume
-        p_volume_total = s_p_volume + l_p_volume
         volume_total = s_volume_total + l_volume_total
+        #p_volume_total = s_p_volume + l_p_volume
 
-        #compute a good short term volume
-        if s_volume_total >= volume and l_volume_total >= volume:
-            if 0 == p_volume_total:
-                s_volume = int(volume * (s_volume_total / volume_total))
-            else:
-                s_volume = int(volume * (s_p_volume / p_volume_total))
-        elif s_volume_total < volume  and l_volume_total > volume:
-            if 0 == p_volume_total or s_p_volume * volume >= p_volume_total * s_volume_total:
-                s_volume = int(volume * (s_volume_total / volume_total))
-            else:
-                s_volume = int(volume * (s_p_volume / p_volume_total))
-        elif s_volume_total > volume and l_volume_total < volume:
-            if 0 == p_volume_total or l_p_volume * volume >= p_volume_total * l_volume_total:
-                s_volume = int(volume * (s_volume_total / volume_total))
-            else:
-                s_volume = int(volume * (s_p_volume / p_volume_total))
-        else:
-            if 0 == p_volume_total or (s_p_volume * volume >= p_volume_total * s_volume_total and l_p_volume * volume >= p_volume_total * l_volume_total):
-                s_volume = int(volume * (s_volume_total / volume_total))
-            else:
-                s_volume = int(volume * (s_p_volume / p_volume_total))
+        ##compute a good short term volume
+        #if s_volume_total >= volume and l_volume_total >= volume:
+        #    if 0 == p_volume_total:
+        #        s_volume = int(volume * (s_volume_total / volume_total))
+        #    else:
+        #        s_volume = int(volume * (s_p_volume / p_volume_total))
+        #elif s_volume_total < volume  and l_volume_total > volume:
+        #    if 0 == p_volume_total or s_p_volume * volume >= p_volume_total * s_volume_total:
+        #        s_volume = int(volume * (s_volume_total / volume_total))
+        #    else:
+        #        s_volume = int(volume * (s_p_volume / p_volume_total))
+        #elif s_volume_total > volume and l_volume_total < volume:
+        #    if 0 == p_volume_total or l_p_volume * volume >= p_volume_total * l_volume_total:
+        #        s_volume = int(volume * (s_volume_total / volume_total))
+        #    else:
+        #        s_volume = int(volume * (s_p_volume / p_volume_total))
+        #else:
+        #    if 0 == p_volume_total or (s_p_volume * volume >= p_volume_total * s_volume_total and l_p_volume * volume >= p_volume_total * l_volume_total):
+        #        s_volume = int(volume * (s_volume_total / volume_total))
+        #    else:
+        #        s_volume = int(volume * (s_p_volume / p_volume_total))
 
-        #give higher priority to short term volume
-        #expect_delta_s_volume = int((volume - s_volume) * 0.05)
+        s_volume = int(volume * (s_volume_total / volume_total))
+        ##give higher priority to short term volume
+        #expect_delta_s_volume = int((volume - s_volume) * 0.1)
         #existed_delta_s_volume = s_volume_total - s_volume
         #if existed_delta_s_volume > expect_delta_s_volume:
         #    s_volume += expect_delta_s_volume
