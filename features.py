@@ -23,6 +23,26 @@ def VMACD(price, volume, fastperiod=12, slowperiod=26, signalperiod=9):
 def MA(data, peried):
     return data.rolling(peried).mean()
 
+def SMA(d, N):
+    last = np.nan
+    v = pd.Series(index=d.index)
+    for key in d.index:
+        x = d[key]
+        x1 = (x + (N - 1) * last) / N if last == last else x
+        last = x1
+        v[key] = x1
+        if x1 != x1: last = x
+    return v
+
+def KDJ(data, N1=9, N2=3, N3=3):
+    low  = data.low.rolling(N1).min()
+    high = data.high.rolling(N1).max()
+    rsv  = (data.close - low) / (high - low) * 100
+    k = SMA(rsv,N2)
+    d = SMA(k, N3)
+    j = k * 3 - d * 2
+    return k, d, j
+
 def VMA(amount, volume, peried = 5):
     svolume = sum(volume)
     samount = sum(amount)

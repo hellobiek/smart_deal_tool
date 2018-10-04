@@ -7,7 +7,7 @@ import const as ct
 import pandas as pd
 import tushare as ts
 from chip import Chip
-from features import Mac
+from features import Mac, KDJ
 from cmysql import CMySQL
 from log import getLogger
 from ticks import read_tick
@@ -222,9 +222,11 @@ class CStock(TickerHandlerBase):
         df = pd.read_csv(filename, sep = ',')
         df = df[['date', 'open', 'high', 'close', 'low', 'amount', 'volume']]
         df = df.loc[df.volume != 0]
+        df = df.sort_values(by = 'date', ascending= False)
+        df = df.reset_index(drop = True)
         return df
 
-    def collect_right_info(self, info):
+    def collect_right_info(self, info, cdate = None):
         info = info[(info.code == self.code) & (info.date <= int(datetime.now().strftime('%Y%m%d')))]
         info = info.sort_values(by = 'date' , ascending = False)
         info = info.reset_index(drop = True)
@@ -243,7 +245,7 @@ class CStock(TickerHandlerBase):
         t_info = t_info.reset_index(drop = True)
         return s_info, t_info
 
-    def transfer_2_adjusted(self, df):
+    def transfer2adjusted(self, df):
         df = df[['date', 'open', 'high', 'close', 'low', 'volume', 'amount', 'outstanding', 'totals', 'adj']]
 
         df['date'] = df['date'].astype(str)
@@ -264,7 +266,6 @@ class CStock(TickerHandlerBase):
 
     def set_k_data(self, info, cdate = None):
         cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
-
         #if not on market, just return True
         if not self.has_on_market(cdate): 
             return True
@@ -274,23 +275,12 @@ class CStock(TickerHandlerBase):
             logger.error("read empty file for:%s" % self.code)
             return False
 
-        df = df.sort_values(by = 'date', ascending= False)
-        df = df.reset_index(drop = True)
-
-        now_time = str(df.head(1).date[0])
-        now_time = "%s-%s-%s" % (now_time[0:4], now_time[4:6], now_time[6:8])
-        if now_time != cdate:
-            logger.error("data new date %s is not equal to now date %s" % (now_time, cdate))
-            return False
-
         s_info, t_info = self.collect_right_info(info)
-
         df = self.adjust_share(df, s_info)
-
         df = self.qfq(df, t_info)
 
         #transfer data to split-adjusted share prices
-        df = self.transfer_2_adjusted(df)
+        df = self.transfer2adjusted(df)
 
         df = df.sort_values(by = 'cdate', ascending= True)
         df = df.reset_index(drop = True)
@@ -305,13 +295,15 @@ class CStock(TickerHandlerBase):
 
         df['uprice'] = Mac(dist_data, 0)
         logger.info("uprice mac compute success")
+
         df['60price'] = Mac(dist_data, 60)
         logger.info("60 price mac compute success")
 
+        df['K'], df['D'], df['J'] = KDJ(df)
+        logger.info("compute K,D,J series")
+
         #set k data
         write_kdata_flag = self.mysql_client.set(df, 'day', method = ct.REPLACE)
-
-        #write_chip_flag = self.set_chip_distribution(df.tail(2), cdate)
         return write_kdata_flag and write_chip_flag
 
     def get_chip_distribution(self, mdate = None):
@@ -481,8 +473,11 @@ class CStock(TickerHandlerBase):
 
 if __name__ == "__main__":
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
+    code = '601318'
+    cs = CStock(code)
+    data = cs.get_k_data()
     #['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519']
-    for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519']:
-        cs = CStock(code)
-        logger.info("compute %s" % code)
-        cs.set_k_data(bonus_info, '2018-09-28')
+    #for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519']:
+    #    cs = CStock(code)
+    #    logger.info("compute %s" % code)
+    #   cs.set_k_data(bonus_info, '2018-09-28')
