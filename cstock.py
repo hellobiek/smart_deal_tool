@@ -7,7 +7,7 @@ import const as ct
 import pandas as pd
 import tushare as ts
 from chip import Chip
-from features import Mac, KDJ
+from features import Mac, KDJ, GameKline
 from cmysql import CMySQL
 from log import getLogger
 from ticks import read_tick
@@ -286,7 +286,8 @@ class CStock(TickerHandlerBase):
         df = df.reset_index(drop = True)
 
         #set chip distribution
-        write_chip_flag = self.set_chip_distribution(df)
+        write_chip_flag = True
+        #write_chip_flag = self.set_chip_distribution(df)
         logger.info("set distribution success")
 
         #get moving average price
@@ -299,8 +300,10 @@ class CStock(TickerHandlerBase):
         df['60price'] = Mac(dist_data, 60)
         logger.info("60 price mac compute success")
 
-        df['K'], df['D'], df['J'] = KDJ(df)
+        df = KDJ(df)
         logger.info("compute K,D,J series")
+
+        df = GameKline(df, dist_data)
 
         #set k data
         write_kdata_flag = self.mysql_client.set(df, 'day', method = ct.REPLACE)
@@ -475,7 +478,7 @@ if __name__ == "__main__":
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
     code = '601318'
     cs = CStock(code)
-    data = cs.get_k_data()
+    data = cs.set_k_data(bonus_info)
     #['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519']
     #for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519']:
     #    cs = CStock(code)
