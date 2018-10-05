@@ -98,5 +98,5 @@ if __name__ == '__main__':
     t_info = t_info.reset_index(drop = True)
 
     data = qfq(data, code, t_info)
-    data = data[['date', 'open', 'high', 'close', 'low', 'volume', 'amount', 'outstanding', 'totals', 'adj']]
+    data = data[['date', 'open', 'high', 'close', 'pre_close', 'low', 'volume', 'amount', 'outstanding', 'totals', 'adj']]
     #print(data)

@@ -40,9 +40,19 @@ def KDJ(data, N1=9, N2=3, N3=3):
     data['J'] = j
     return data
 
-def BaseFloatingProfit(df, mdate = None):
-    for _index, aprice in df.aprice.iteritems():
-        pass
+def BaseFloatingProfit(df, mdate = None, num = 60):
+    if len(df) < num: return df
+    df['breakup'] = 0
+    df.at[(df.preclose < df.uprice) & (df.close > df.uprice), 'breakup'] = 1
+    df.at[(df.preclose > df.uprice) & (df.close < df.uprice), 'breakup'] = -1
+
+    break_index_lists = df.loc[df.breakup != 0].index.tolist()
+    should_remove_index_list = list()
+    for break_index in range(len(break_index_lists) - 1):
+        if break_index_lists[break_index + 1] - break_index_lists[break_index] < 40:
+            should_remove_index_list.append(break_index_lists[break_index])
+    df.at[df.index.isin(should_remove_index_list), 'breakup'] = 0
+    return df
 
 def GameKline(df, dist_data, mdate = None):
     if mdate is None:
@@ -51,17 +61,21 @@ def GameKline(df, dist_data, mdate = None):
         for _index, cdate in df.cdate.iteritems():
             drow = df.loc[_index]
             p_close = drow['close']
+            p_pre_close = drow['preclose']
             outstanding = drow['outstanding']
             group = groups.get_group(cdate)
-            p_close_vol_list.append(100 * group[group.price < p_close].volume.sum() / outstanding)
+            val = 100 * (group[group.price < p_close].volume.sum() - group[group.price < p_pre_close].volume.sum())/outstanding
+            p_close_vol_list.append(val)
         df['gline'] = p_close_vol_list
     else:
         groups = dist_data.groupby(dist_data.date)
         group = groups.get_group(mdate)
         drow = df.loc[df.date == mdate]
         p_close = drow['close']
+        p_pre_close = drow['preclose']
         outstanding = drow['outstanding']
-        df.at[df.date == mdate, 'gline'] = 100 * dist_data[dist_data.price < p_close].volume.sum() / outstanding
+        val = 100 * (group[group.price < p_close].volume.sum() - group[group.price < p_pre_close].volume.sum())/outstanding
+        df.at[df.date == mdate, 'gline'] = val
     return df
         
 #function           : u-limitted t-day moving avering price

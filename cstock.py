@@ -7,7 +7,7 @@ import const as ct
 import pandas as pd
 import tushare as ts
 from chip import Chip
-from features import Mac, KDJ, GameKline
+from features import Mac, KDJ, GameKline, BaseFloatingProfit
 from cmysql import CMySQL
 from log import getLogger
 from ticks import read_tick
@@ -94,6 +94,7 @@ class CStock(TickerHandlerBase):
     def qfq(self, data, info):
         data['adj'] = 1.0
         data['preclose'] = data['close'].shift(-1)
+        data.at[data.index[-1], 'preclose'] = data.loc[data.index[-1], 'open']
         if 0 == len(info): return data
         for info_index, start_date in info.date.iteritems():
             dates = data.loc[data.date >= start_date].index.tolist()
@@ -246,16 +247,17 @@ class CStock(TickerHandlerBase):
         return s_info, t_info
 
     def transfer2adjusted(self, df):
-        df = df[['date', 'open', 'high', 'close', 'low', 'volume', 'amount', 'outstanding', 'totals', 'adj']]
+        df = df[['date', 'open', 'high', 'close', 'preclose', 'low', 'volume', 'amount', 'outstanding', 'totals', 'adj']]
 
         df['date'] = df['date'].astype(str)
         df['date'] = pd.to_datetime(df.date).dt.strftime("%Y-%m-%d")
         df = df.rename(columns={'date':'cdate'})
 
-        df['low']    = df['adj'] * df['low']
-        df['open']   = df['adj'] * df['open']
-        df['high']   = df['adj'] * df['high']
-        df['close']  = df['adj'] * df['close']
+        df['low'] = df['adj'] * df['low']
+        df['open'] = df['adj'] * df['open']
+        df['high'] = df['adj'] * df['high']
+        df['close'] = df['adj'] * df['close']
+        df['preclose'] = df['adj'] * df['preclose']
         df['volume'] = df['volume'].astype(int)
         df['aprice'] = df['adj'] * df['amount'] / df['volume']
         df['totals'] = df['totals'].astype(int)
@@ -304,6 +306,8 @@ class CStock(TickerHandlerBase):
         logger.info("compute K,D,J series")
 
         df = GameKline(df, dist_data)
+
+        df = BaseFloatingProfit(df)
 
         #set k data
         write_kdata_flag = self.mysql_client.set(df, 'day', method = ct.REPLACE)
