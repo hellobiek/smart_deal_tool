@@ -38,10 +38,12 @@ def KDJ(data, N1=9, N2=3, N3=3):
     return data
 
 def BaseFloatingProfit(df, mdate = None, num = 60):
+    #get all breakup points
     df['breakup'] = 0
     df.at[(df.preclose < df.uprice) & (df.close > df.uprice), 'breakup'] = 1
     df.at[(df.preclose > df.uprice) & (df.close < df.uprice), 'breakup'] = -1
     break_index_lists = df.loc[df.breakup != 0].index.tolist()
+    #get all fake break points
     should_remove_index_list = list()
     for break_index in range(len(break_index_lists)):
         if break_index < len(break_index_lists) - 1:
@@ -51,18 +53,18 @@ def BaseFloatingProfit(df, mdate = None, num = 60):
             if len(df) - break_index_lists[break_index] < num:
                 should_remove_index_list.append(break_index_lists[break_index])
     df.at[df.index.isin(should_remove_index_list), 'breakup'] = 0
-
-    start_index = 0
+    #merge break points to better points
+    s_index = 0
     should_remove_index_list = list()
     break_index_lists = df.loc[df.breakup != 0].index.tolist()
     for break_index in range(1, len(break_index_lists)):
-        if df.loc[break_index_lists[start_index], 'breakup'] != df.loc[break_index_lists[break_index], 'breakup']:
-            start_index = break_index
+        if df.loc[break_index_lists[s_index], 'breakup'] != df.loc[break_index_lists[break_index], 'breakup']:
+            s_index = break_index
         else:
             should_remove_index_list.append(break_index_lists[break_index])
     df.at[df.index.isin(should_remove_index_list), 'breakup'] = 0
     break_index_list = df.loc[df.breakup != 0].index.tolist()
-
+    #compute price base and price change
     s_index = 0
     df['base'] = 0
     for e_index in break_index_lists:
@@ -78,7 +80,10 @@ def BaseFloatingProfit(df, mdate = None, num = 60):
             base = df.loc[e_index:, 'uprice'].max() if direction < 0 else df.loc[e_index:, 'uprice'].min()
             df.at[e_index:, 'base'] = base
             df.at[e_index:, 'pchange'] = pchange
+    #compute the base floating profit
     df['profit'] = (np.log(df.uprice) - np.log(df.base)).abs() / np.log(df.pchange)
+    #drop the unnessary columns
+    df = df.drop(['base','pchange', 'breakup'], axis=1)
     return df
 
 def GameKline(df, dist_data, mdate = None):

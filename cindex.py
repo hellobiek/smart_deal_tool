@@ -51,5 +51,6 @@ class CIndex(Combination):
         return self.mysql_client.set(df, 'day', method = ct.REPLACE)
 
 if __name__ == '__main__':
-    av = CIndex(ct.DB_INFO, '880012')
-    av.set_k_data()
+    av = CIndex(ct.DB_INFO, '000001')
+    data = av.get_k_data()
+    print(data)
