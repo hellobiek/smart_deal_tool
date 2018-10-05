@@ -1,10 +1,7 @@
 #-*- coding: utf-8 -*-
+import const as ct
 import numpy as np
 import pandas as pd
-import const as ct
-from qfq import qfq
-from common import get_market_name, number_of_days
-#from cstock import CStock
 
 def MACD(data, fastperiod=12, slowperiod=26, signalperiod=9):
     ewma12 = data.ewm(fastperiod).mean()
@@ -41,17 +38,47 @@ def KDJ(data, N1=9, N2=3, N3=3):
     return data
 
 def BaseFloatingProfit(df, mdate = None, num = 60):
-    if len(df) < num: return df
     df['breakup'] = 0
     df.at[(df.preclose < df.uprice) & (df.close > df.uprice), 'breakup'] = 1
     df.at[(df.preclose > df.uprice) & (df.close < df.uprice), 'breakup'] = -1
-
     break_index_lists = df.loc[df.breakup != 0].index.tolist()
     should_remove_index_list = list()
-    for break_index in range(len(break_index_lists) - 1):
-        if break_index_lists[break_index + 1] - break_index_lists[break_index] < 40:
+    for break_index in range(len(break_index_lists)):
+        if break_index < len(break_index_lists) - 1:
+            if break_index_lists[break_index + 1] - break_index_lists[break_index] < num:
+                should_remove_index_list.append(break_index_lists[break_index])
+        else:
+            if len(df) - break_index_lists[break_index] < num:
+                should_remove_index_list.append(break_index_lists[break_index])
+    df.at[df.index.isin(should_remove_index_list), 'breakup'] = 0
+
+    start_index = 0
+    should_remove_index_list = list()
+    break_index_lists = df.loc[df.breakup != 0].index.tolist()
+    for break_index in range(1, len(break_index_lists)):
+        if df.loc[break_index_lists[start_index], 'breakup'] != df.loc[break_index_lists[break_index], 'breakup']:
+            start_index = break_index
+        else:
             should_remove_index_list.append(break_index_lists[break_index])
     df.at[df.index.isin(should_remove_index_list), 'breakup'] = 0
+    break_index_list = df.loc[df.breakup != 0].index.tolist()
+
+    s_index = 0
+    df['base'] = 0
+    for e_index in break_index_lists:
+        direction = df.loc[e_index, 'breakup']
+        pchange = 0.9 if direction > 0 else 1.1
+        base = df.loc[s_index:e_index - 1, 'uprice'].max() if direction > 0 else df.loc[s_index:e_index - 1, 'uprice'].min()
+        df.at[s_index:e_index-1, 'base'] = base
+        df.at[s_index:e_index-1, 'pchange'] = pchange 
+        s_index = e_index
+        if e_index == break_index_lists[-1]:
+            direction = df.loc[e_index, 'breakup']
+            pchange = 1.1 if direction > 0 else 0.9
+            base = df.loc[e_index:, 'uprice'].max() if direction < 0 else df.loc[e_index:, 'uprice'].min()
+            df.at[e_index:, 'base'] = base
+            df.at[e_index:, 'pchange'] = pchange
+    df['profit'] = (np.log(df.uprice) - np.log(df.base)).abs() / np.log(df.pchange)
     return df
 
 def GameKline(df, dist_data, mdate = None):
@@ -61,10 +88,9 @@ def GameKline(df, dist_data, mdate = None):
         for _index, cdate in df.cdate.iteritems():
             drow = df.loc[_index]
             p_close = drow['close']
-            p_pre_close = drow['preclose']
             outstanding = drow['outstanding']
             group = groups.get_group(cdate)
-            val = 100 * (group[group.price < p_close].volume.sum() - group[group.price < p_pre_close].volume.sum())/outstanding
+            val = 100 * group[group.price < p_close].volume.sum() / outstanding
             p_close_vol_list.append(val)
         df['gline'] = p_close_vol_list
     else:
@@ -72,9 +98,8 @@ def GameKline(df, dist_data, mdate = None):
         group = groups.get_group(mdate)
         drow = df.loc[df.date == mdate]
         p_close = drow['close']
-        p_pre_close = drow['preclose']
         outstanding = drow['outstanding']
-        val = 100 * (group[group.price < p_close].volume.sum() - group[group.price < p_pre_close].volume.sum())/outstanding
+        val = 100 * group[group.price < p_close].volume.sum() / outstanding
         df.at[df.date == mdate, 'gline'] = val
     return df
         
