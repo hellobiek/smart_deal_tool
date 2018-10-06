@@ -2,14 +2,29 @@
 import const as ct
 import numpy as np
 import pandas as pd
-
-def MACD(data, fastperiod=12, slowperiod=26, signalperiod=9):
-    ewma12 = data.ewm(fastperiod).mean()
-    ewma26 = data.ewm(slowperiod).mean()
-    dif = ewma12 - ewma26
-    dea = dif.ewm(signalperiod).mean()
-    bar = (dif - dea)   #有些地方的bar = (dif-dea)*2，但是talib中MACD的计算是bar = (dif-dea) * 1
-    return dif, dea, bar
+#def movingaverage(x, N):
+#    return x.rolling(N).mean()
+#
+#def ExpMovingAverage(values, window):
+#    weights = np.exp(np.linspace(-1., 0., window))
+#    weights /= weights.sum()
+#    a =  np.convolve(values, weights, mode='full')[:len(values)]
+#    a[:window] = a[window]
+#    return a
+#
+#nema  = 9
+#nfast = 12
+#nslow = 26
+#emaslow, emafast, macd = computeMACD(k_data.close.values)
+#ema9 = ExpMovingAverage(macd, nema)
+#def computeMACD(x, slow=26, fast=12):
+#    """
+#    compute the MACD (Moving Average Convergence/Divergence) using a fast and slow exponential moving avg'
+#    return value is emaslow, emafast, macd which are len(x) arrays
+#    """
+#    emaslow = ExpMovingAverage(x, slow)
+#    emafast = ExpMovingAverage(x, fast)
+#    return emaslow, emafast, emafast - emaslow
 
 def MA(data, peried):
     return data.rolling(peried).mean()
