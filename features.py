@@ -78,16 +78,18 @@ def BaseFloatingProfit(df, mdate = None, num = 60):
         else:
             should_remove_index_list.append(break_index_lists[break_index])
     df.at[df.index.isin(should_remove_index_list), 'breakup'] = 0
-    break_index_list = df.loc[df.breakup != 0].index.tolist()
+    break_index_lists = df.loc[df.breakup != 0].index.tolist()
     #compute price base and price change
     s_index = 0
     df['base'] = 0
+    df['pday'] = 0
     for e_index in break_index_lists:
         direction = df.loc[e_index, 'breakup']
         pchange = 0.9 if direction > 0 else 1.1
         base = df.loc[s_index:e_index - 1, 'uprice'].max() if direction > 0 else df.loc[s_index:e_index - 1, 'uprice'].min()
         df.at[s_index:e_index-1, 'base'] = base
         df.at[s_index:e_index-1, 'pchange'] = pchange 
+        df.at[s_index:e_index-1, 'pday'] = -1 * direction * (df.loc[s_index:e_index-1].index - s_index + 1)
         s_index = e_index
         if e_index == break_index_lists[-1]:
             direction = df.loc[e_index, 'breakup']
@@ -95,6 +97,7 @@ def BaseFloatingProfit(df, mdate = None, num = 60):
             base = df.loc[e_index:, 'uprice'].max() if direction < 0 else df.loc[e_index:, 'uprice'].min()
             df.at[e_index:, 'base'] = base
             df.at[e_index:, 'pchange'] = pchange
+            df.at[e_index:, 'pday'] = direction * (df.loc[e_index:].index - e_index + 1)
     #compute the base floating profit
     df['profit'] = (np.log(df.uprice) - np.log(df.base)).abs() / np.log(df.pchange)
     #drop the unnessary columns

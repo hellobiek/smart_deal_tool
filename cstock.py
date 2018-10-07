@@ -482,8 +482,8 @@ class CStock(TickerHandlerBase):
 
 if __name__ == "__main__":
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    #['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519']
-    for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519']:
+    #for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111']:
+    for code in ['601318']:
         cs = CStock(code)
         logger.info("compute %s" % code)
         cs.set_k_data(bonus_info, '2018-09-28')
