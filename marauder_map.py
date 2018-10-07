@@ -34,7 +34,7 @@ class MarauderMap():
         fig, ax = plt.subplots()
 
         Writer = animation.writers['ffmpeg']
-        writer = Writer(fps=1, metadata=dict(artist='biek'), bitrate=1800)
+        writer = Writer(fps=30, metadata=dict(artist='biek'), bitrate=1800)
 
         #get min profit day
         min_pday = self.data.pday.values.min()
@@ -46,8 +46,9 @@ class MarauderMap():
 
         xmax = max(abs(min_pday), max_pday)
         ymax = max(abs(min_profit), max_profit)
+        groups = list(self.data.groupby(self.data.time))
 
-        def animate(i):
+        def init():
             ax.clear()
             ax.set_xlim(-xmax, xmax)
             ax.set_ylim(-ymax, ymax)
@@ -57,15 +58,18 @@ class MarauderMap():
             ax.spines['bottom'].set_position(('data', 0))
             ax.yaxis.set_ticks_position('left')
             ax.spines['left'].set_position(('data', 0))
-            for cdate, day_data in self.data.groupby(self.data.time):
-                for code in self.codes:
-                    pday   = day_data.loc[day_data.code == code, 'pday'].values[0]
-                    profit = day_data.loc[day_data.code == code, 'profit'].values[0]
-                    ax.scatter(pday, profit, alpha = 1)
+            
+        def animate(n):
+            val = groups[n][1].values.tolist()[0]
+            for code in self.codes:
+                pday   = val[1] 
+                profit = val[2] 
+                ax.scatter(pday, profit, s=5, alpha = 1, linewidths = 0.1)
 
-        ani = animation.FuncAnimation(fig, animate, frames=len(self.data.time), interval = 1000, repeat = False)
+        ani = animation.FuncAnimation(fig, animate, frames = 300, init_func = init, interval = 1, repeat = False)
+        #ani = animation.FuncAnimation(fig, animate, frames = len(self.data.time), init_func = init, interval = 1, repeat = False)
         sfile = '/code/animation.mp4'
-        ani.save(sfile, writer)
+        ani.save(sfile, writer, fps = 60, dpi = 100)
         ax.set_title('Marauder Map for date')
         ax.grid(True)
         plt.close(fig)
