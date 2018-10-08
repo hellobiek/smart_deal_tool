@@ -252,14 +252,14 @@ class DataManager:
                                 continue
                             self.set_update_info(10)
 
-                        if finished_step < 11:
-                            self.cviewer.update()
-                            self.set_update_info(11)
+                        #if finished_step < 11:
+                        #    self.cviewer.update()
+                        #    self.set_update_info(11)
 
-                        if finished_step < 12:
-                            if not self.init_today_stock_info():
-                                logger.error("init_today_stock_info set failed")
-                            self.set_update_info(12)
+                        #if finished_step < 12:
+                        #    if not self.init_today_stock_info():
+                        #        logger.error("init_today_stock_info set failed")
+                        #    self.set_update_info(12)
             except Exception as e:
                 logger.error(e)
             time.sleep(sleep_time)
@@ -438,8 +438,7 @@ if __name__ == '__main__':
     index_info = CIndex('000001').get_k_data()
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
     #for code in ['601318']:
-    #for code in ['000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400']:
-    for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400']:
+    for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400', '601606', '300104','300188']:
         cs = CStock(code)
         logger.info("compute %s" % code)
         cs.set_k_data(bonus_info, index_info, '2018-09-28')

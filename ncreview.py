@@ -589,8 +589,6 @@ if __name__ == '__main__':
 
         #clf = Ridge(alpha=.5)
         #clf.fit(x,y)
-        #import pdb
-        #pdb.set_trace()
 
         #cadf = ts.adfuller(series)
         #if cadf[0] < cadf[4]['1%'] and cadf[1] < 0.00000001

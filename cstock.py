@@ -288,8 +288,8 @@ class CStock(TickerHandlerBase):
         df = df.reset_index(drop = True)
 
         #set chip distribution
-        write_chip_flag = True
-        #write_chip_flag = self.set_chip_distribution(df)
+        #write_chip_flag = True
+        write_chip_flag = self.set_chip_distribution(df)
         logger.info("set distribution success")
 
         #get moving average price
@@ -484,10 +484,4 @@ class CStock(TickerHandlerBase):
         return (datetime.strptime(_date, "%Y-%m-%d") - time2Market).days > 0
 
 if __name__ == "__main__":
-    bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    #for code in ['601318']:
-    #for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400']:
-    for code in ['000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400']:
-        cs = CStock(code)
-        logger.info("compute %s" % code)
-        cs.set_k_data(bonus_info, '2018-09-28')
+    pass
