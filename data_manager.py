@@ -119,7 +119,7 @@ class DataManager:
             return ret
         for code in ct.INDEX_DICT:
             if code not in self.index_objs:
-                self.index_objs[code] = CIndex(self.dbinfo, code)
+                self.index_objs[code] = CIndex(code)
         return 0
 
     def collect_index_runtime_data(self):
@@ -282,15 +282,18 @@ class DataManager:
                 self.combination_objs[str(code_id)] = Combination(self.dbinfo, code_id)
 
     def init_today_stock_info(self, cdate = None):
-        def _set_stock_info(_date, bonus_info, code_id):
+        def _set_stock_info(_date, bonus_info, index_info, code_id):
             _obj = CStock(code_id)
-            return (code_id, True) if _obj.set_k_data(bonus_info, cdate) else (code_id, False) 
+            return (code_id, True) if _obj.set_k_data(bonus_info, index_info, cdate) else (code_id, False) 
         obj_pool = Pool(500)
         df = self.stock_info_client.get()
         _date = datetime.now().strftime('%Y-%m-%d') if cdate is not None else cdate
+        #get shanghai index info
+        index_info = self.index_objs['00001'].get_k_data()
+        #get stock bonus info
         bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
         failed_list = df.code.tolist()
-        cfunc = partial(_set_stock_info, _date, bonus_info)
+        cfunc = partial(_set_stock_info, _date, bonus_info, index_info)
         failed_count = 0
         logger.info("enter init_today_stock_info")
         while len(failed_list) > 0:
@@ -317,7 +320,7 @@ class DataManager:
 
     def init_today_industry_info(self):
         def _set_industry_info(code_id):
-            return (code_id, CIndex(self.dbinfo, code_id).set_k_data())
+            return (code_id, CIndex(code_id).set_k_data())
         obj_pool = Pool(50)
         df = self.industry_info_client.get()
         failed_list = df.code.tolist()
@@ -342,7 +345,7 @@ class DataManager:
 
     def init_today_index_info(self):
         def _set_index_info(code_id):
-            _obj = self.index_objs[code_id] if code_id in self.index_objs else CIndex(self.dbinfo, code_id)
+            _obj = self.index_objs[code_id] if code_id in self.index_objs else CIndex(code_id)
             return (code_id, _obj.set_k_data())
         obj_pool = Pool(50)
         failed_list = list(ct.TDX_INDEX_DICT.keys())
@@ -420,9 +423,9 @@ class DataManager:
             return False
         
 if __name__ == '__main__':
-    dm = DataManager(ct.DB_INFO)
-    cdate = '2018-09-25'
-    dm.init_today_stock_info(cdate)
+    #dm = DataManager(ct.DB_INFO)
+    #cdate = '2018-09-25'
+    #dm.init_today_stock_info(cdate)
     #dm.init_today_industry_info()
     #dm.init_today_index_info()
     #dm.init_today_limit_info()
@@ -432,3 +435,11 @@ if __name__ == '__main__':
     #print("collect index_runtime_data success!")
     #dm.animation_client.collect()
     #print("animation client collect success!")
+    index_info = CIndex('000001').get_k_data()
+    bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
+    #for code in ['601318']:
+    #for code in ['000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400']:
+    for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400']:
+        cs = CStock(code)
+        logger.info("compute %s" % code)
+        cs.set_k_data(bonus_info, index_info, '2018-09-28')

@@ -1,5 +1,6 @@
 #encoding=utf-8
 from influxdb import DataFrameClient
+from influxdb.exceptions import InfluxDBServerError
 from common import create_redis_obj
 ALL_IN_DATABASES = 'all_in_databases'
 class CInflux:
@@ -33,7 +34,12 @@ class CInflux:
 
     def set(self, df, dbname = None):
         dbname = dbname if dbname is not None else self.dbname
-        return self.df_client.write_points(df, dbname, protocol='json')
+        try:
+            self.df_client.write_points(df, dbname, protocol='json')
+            return True
+        except InfluxDBServerError as e:
+            print(e)
+            return False
     
     def create(self, dbname = None):
         dbname = dbname if dbname is not None else self.dbname

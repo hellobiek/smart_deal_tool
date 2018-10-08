@@ -6,7 +6,7 @@ from combination import Combination
 from log import getLogger
 logger = getLogger(__name__)
 class CIndex(Combination):
-    def __init__(self, dbinfo, code):
+    def __init__(self, code, dbinfo = ct.DB_INFO):
         Combination.__init__(self, dbinfo, code)
 
     @staticmethod
@@ -46,11 +46,15 @@ class CIndex(Combination):
         df = df[['date', 'open', 'high', 'close', 'low', 'amount', 'volume']]
         df['date'] = df['date'].astype(str)
         df['date'] = pd.to_datetime(df.date).dt.strftime("%Y-%m-%d")
+
+        df['preclose'] = df['close'].shift(1)
+        df.at[0, 'preclose'] = df.loc[0, 'open']
+
         df = df.rename(columns={'date':'cdate'})
         df = df.reset_index(drop = True)
         return self.mysql_client.set(df, 'day', method = ct.REPLACE)
 
 if __name__ == '__main__':
-    av = CIndex(ct.DB_INFO, '000001')
-    data = av.get_k_data()
+    av = CIndex('000001')
+    data = av.set_k_data()
     print(data)

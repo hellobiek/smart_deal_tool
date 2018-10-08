@@ -7,7 +7,7 @@ import const as ct
 import pandas as pd
 import tushare as ts
 from chip import Chip
-from features import Mac, KDJ, GameKline, BaseFloatingProfit
+from features import Mac, KDJ, ProChip_NeiChip, BaseFloatingProfit, RelativeIndexStrength
 from cmysql import CMySQL
 from log import getLogger
 from ticks import read_tick
@@ -266,9 +266,9 @@ class CStock(TickerHandlerBase):
         df['outstanding'] = df['outstanding'] * 10000
         return df
 
-    def set_k_data(self, info, cdate = None):
+    def set_k_data(self, bonus_info, index_info, cdate = None):
         cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
-        #if not on market, just return True
+
         if not self.has_on_market(cdate): 
             return True
 
@@ -277,7 +277,7 @@ class CStock(TickerHandlerBase):
             logger.error("read empty file for:%s" % self.code)
             return False
 
-        s_info, t_info = self.collect_right_info(info)
+        s_info, t_info = self.collect_right_info(bonus_info)
         df = self.adjust_share(df, s_info)
         df = self.qfq(df, t_info)
 
@@ -305,11 +305,14 @@ class CStock(TickerHandlerBase):
         df = KDJ(df)
         logger.info("compute K,D,J series")
 
-        logger.info("compute Game KLine")
-        df = GameKline(df, dist_data)
+        logger.info("compute Profit Chips Percent and Neighboring Chips Percent")
+        df = ProChip_NeiChip(df, dist_data)
 
         logger.info("compute Base Floating Profit")
         df = BaseFloatingProfit(df)
+
+        logger.info("strength relative index")
+        df = RelativeIndexStrength(df, index_info)
 
         #set k data
         write_kdata_flag = self.mysql_client.set(df, 'day', method = ct.REPLACE)
@@ -483,7 +486,8 @@ class CStock(TickerHandlerBase):
 if __name__ == "__main__":
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
     #for code in ['601318']:
-    for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400']:
+    #for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400']:
+    for code in ['000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400']:
         cs = CStock(code)
         logger.info("compute %s" % code)
         cs.set_k_data(bonus_info, '2018-09-28')

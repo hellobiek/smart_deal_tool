@@ -59,7 +59,7 @@ class CReivew:
         df = pd.DataFrame()
         df_info = IndustryInfo.get()
         for _, code in df_info.code.iteritems():
-            data = CIndex(self.dbinfo, code).get_k_data(date = _date)
+            data = CIndex(code).get_k_data(date = _date)
             df = df.append(data)
             df = df.reset_index(drop = True)
         if df.empty: return df

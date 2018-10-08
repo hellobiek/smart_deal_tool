@@ -74,7 +74,7 @@ class CReivew:
         df = pd.DataFrame()
         df_info = IndustryInfo.get()
         for _, code in df_info.code.iteritems():
-            data = CIndex(self.dbinfo, code).get_k_data(date = _date)
+            data = CIndex(code).get_k_data(date = _date)
             df = df.append(data)
             df = df.reset_index(drop = True)
         df['name'] = df_info['name']
@@ -465,7 +465,7 @@ if __name__ == '__main__':
         if not os.path.exists('index.json'):
             #上证指数的数据
             logger.info("start get index data")
-            szzs_df = CIndex(ct.DB_INFO, '000001').get_k_data_in_range(start_date, end_date)
+            szzs_df = CIndex('000001').get_k_data_in_range(start_date, end_date)
             szzs_df = szzs_df.sort_values(by = 'cdate', ascending= True)
             szzs_df['code'] = 'i000001'
             szzs_df['name'] = "上证指数"

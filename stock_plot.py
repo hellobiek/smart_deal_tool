@@ -1,7 +1,6 @@
 #coding=utf-8
 import os
 import sys
-import const as ct
 import numpy as np
 import pandas as pd
 from cindex import CIndex
@@ -55,7 +54,7 @@ class CPlot():
             with open('d_data.json', 'w') as f:
                 f.write(d_data.to_json(orient='records', lines=True))
 
-            iobj = CIndex(ct.DB_INFO, self.index_code)
+            iobj = CIndex(self.index_code)
             i_data = iobj.get_k_data()
             cdates = k_data.cdate.tolist()
             i_data = i_data.loc[i_data.cdate.isin(cdates)]

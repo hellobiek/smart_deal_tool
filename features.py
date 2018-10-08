@@ -104,26 +104,36 @@ def BaseFloatingProfit(df, mdate = None, num = 60):
     df = df.drop(['base','pchange', 'breakup'], axis=1)
     return df
 
-def GameKline(df, dist_data, mdate = None):
+def ProChip_NeiChip(df, dist_data, mdate = None):
     if mdate is None:
-        p_close_vol_list = list()
+        p_profit_vol_list = list()
+        p_neighbor_vol_list = list()
         groups = dist_data.groupby(dist_data.date)
         for _index, cdate in df.cdate.iteritems():
             drow = df.loc[_index]
-            p_close = drow['close']
+            close_price = drow['close']
             outstanding = drow['outstanding']
             group = groups.get_group(cdate)
-            val = 100 * group[group.price < p_close].volume.sum() / outstanding
-            p_close_vol_list.append(val)
-        df['gline'] = p_close_vol_list
+
+            p_val = 100 * group[group.price < close_price].volume.sum() / outstanding
+            n_val = 100 * group[(group.price < close_price * 1.08) & (group.price > close_price * 0.92)].volume.sum() / outstanding
+
+            p_profit_vol_list.append(p_val)
+            p_neighbor_vol_list.append(n_val)
+
+        df['ppercent'] = p_profit_vol_list
+        df['npercent'] = p_neighbor_vol_list
     else:
         groups = dist_data.groupby(dist_data.date)
         group = groups.get_group(mdate)
         drow = df.loc[df.date == mdate]
         p_close = drow['close']
         outstanding = drow['outstanding']
-        val = 100 * group[group.price < p_close].volume.sum() / outstanding
-        df.at[df.date == mdate, 'gline'] = val
+        p_val = 100 * group[group.price < uprice].volume.sum() / outstanding
+        n_val = 100 * group[(group.price < close_price * 1.08) & (group.price > close_price * 0.92)].volume.sum() / outstanding
+
+        df.at[df.date == mdate, 'ppercent'] = p_val
+        df.at[df.date == mdate, 'npercent'] = n_val
     return df
         
 #function           : u-limitted t-day moving avering price
@@ -138,3 +148,14 @@ def Mac(df, peried = 0):
         total_amount = group.price.dot(group.volume)
         ulist.append(total_amount / total_volume)
     return ulist
+
+def RelativeIndexStrength(df, index_df, mdate = None):
+    if mdate is None:
+        s_pchange = (df['close'] - df['preclose']) / df['preclose']
+        i_pchange = (index_df['close'] - index_df['preclose']) / index_df['preclose']
+        df['sri'] = 100 * (s_pchange - i_pchange)
+    else:
+        s_pchange = (df.loc[df.date == mdate, 'close'] - df.loc[df.date == mdate, 'preclose']) / df.loc[df.date == mdate, 'preclose']
+        i_pchange = (index_df.loc[index_df.date == mdate, 'close'] - index_df.loc[index_df.date == mdate, 'preclose']) / index_df.loc[index_df.date == mdate, 'preclose']
+        df.at[df.date == mdate, 'sri'] = 100 * (s_pchange - i_pchange)
+    return df 
