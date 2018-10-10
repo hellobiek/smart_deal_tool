@@ -22,6 +22,7 @@
     - creview的情绪指标
     - gevent和python多进程并发
 ##2018-09-21
+    - 根据日线生成周线和月线
     - 资金的每日成交来源（融资融券，港股通，基金，MSCI，十大股东等）
     - stock\_info和stock\_data都存入mysql中
     - influxdb的写入过程中需要增加列名字

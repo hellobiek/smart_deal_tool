@@ -260,6 +260,7 @@ class DataManager:
                         #    if not self.init_today_stock_info():
                         #        logger.error("init_today_stock_info set failed")
                         #    self.set_update_info(12)
+                        logger.info("updating succeed")
             except Exception as e:
                 logger.error(e)
             time.sleep(sleep_time)
