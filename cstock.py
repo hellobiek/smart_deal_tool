@@ -20,10 +20,10 @@ pd.set_option('display.max_rows', None)
 logger = getLogger(__name__)
 
 class CStock(TickerHandlerBase):
-    def __init__(self, code, dbinfo = ct.DB_INFO, should_create_influxdb = False, should_create_mysqldb = True):
+    def __init__(self, code, dbinfo = ct.DB_INFO, should_create_influxdb = False, should_create_mysqldb = True, redis_host = None):
         self.code = code
         self.dbname = self.get_dbname(code)
-        self.redis = create_redis_obj()
+        self.redis = create_redis_obj() if redis_host is None else create_redis_obj('127.0.0.1')
         self.data_type_dict = {9:"day"}
         self.chip_client = Chip()
         self.influx_client = CInflux(ct.IN_DB_INFO, dbname = self.dbname, iredis = self.redis)

@@ -108,9 +108,9 @@ class BasicBar(Bar):
     __slots__ = (
         '__dateTime',
         '__open',
-        '__close',
         '__high',
         '__low',
+        '__close',
         '__volume',
         '__adjClose',
         '__frequency',
@@ -118,22 +118,17 @@ class BasicBar(Bar):
         '__extra',
     )
     def __init__(self, dateTime, open_, high, low, close, volume, adjClose, frequency, extra={}):
-        if high < low:
-            raise Exception("high < low on %s" % (dateTime))
-        elif high < open_:
-            raise Exception("high < open on %s" % (dateTime))
-        elif high < close:
-            raise Exception("high < close on %s" % (dateTime))
-        elif low > open_:
-            raise Exception("low > open on %s" % (dateTime))
-        elif low > close:
-            raise Exception("low > close on %s" % (dateTime))
+        if high < low: raise Exception("high < low on %s" % (dateTime))
+        elif high < open_: raise Exception("high < open on %s" % (dateTime))
+        elif high < close: raise Exception("high < close on %s" % (dateTime))
+        elif low > open_: raise Exception("low > open on %s" % (dateTime))
+        elif low > close: raise Exception("low > close on %s" % (dateTime))
 
         self.__dateTime = dateTime
         self.__open = open_
-        self.__close = close
         self.__high = high
         self.__low = low
+        self.__close = close
         self.__volume = volume
         self.__adjClose = adjClose
         self.__frequency = frequency
@@ -143,9 +138,9 @@ class BasicBar(Bar):
     def __setstate__(self, state):
         (self.__dateTime,
          self.__open,
-         self.__close,
          self.__high,
          self.__low,
+         self.__close,
          self.__volume,
          self.__adjClose,
          self.__frequency,
@@ -156,9 +151,9 @@ class BasicBar(Bar):
         return (
             self.__dateTime,
             self.__open,
-            self.__close,
             self.__high,
             self.__low,
+            self.__close,
             self.__volume,
             self.__adjClose,
             self.__frequency,
@@ -167,8 +162,7 @@ class BasicBar(Bar):
         )
 
     def setUseAdjustedValue(self, useAdjusted):
-        if useAdjusted and self.__adjClose is None:
-            raise Exception("Adjusted close is not available")
+        if useAdjusted: raise Exception("Adjusted close is not available")
         self.__useAdjustedValue = useAdjusted
 
     def getUseAdjValue(self):
@@ -177,52 +171,29 @@ class BasicBar(Bar):
     def getDateTime(self):
         return self.__dateTime
 
-    def getOpen(self, adjusted=False):
-        if adjusted:
-            if self.__adjClose is None:
-                raise Exception("Adjusted close is missing")
-            return self.__adjClose * self.__open / float(self.__close)
-        else:
-            return self.__open
+    def getOpen(self, useAdjusted = False):
+        return self.__open
 
-    def getHigh(self, adjusted=False):
-        if adjusted:
-            if self.__adjClose is None:
-                raise Exception("Adjusted close is missing")
-            return self.__adjClose * self.__high / float(self.__close)
-        else:
-            return self.__high
+    def getAdjClose(self, useAdjusted = False):
+        return self.__adjClose
 
-    def getLow(self, adjusted=False):
-        if adjusted:
-            if self.__adjClose is None:
-                raise Exception("Adjusted close is missing")
-            return self.__adjClose * self.__low / float(self.__close)
-        else:
-            return self.__low
+    def getHigh(self, useAdjusted = False):
+        return self.__high
 
-    def getClose(self, adjusted=False):
-        if adjusted:
-            if self.__adjClose is None:
-                raise Exception("Adjusted close is missing")
-            return self.__adjClose
-        else:
-            return self.__close
+    def getLow(self, useAdjusted = False):
+        return self.__low
+
+    def getClose(self, useAdjusted = False):
+        return self.__close
 
     def getVolume(self):
         return self.__volume
-
-    def getAdjClose(self):
-        return self.__adjClose
 
     def getFrequency(self):
         return self.__frequency
 
     def getPrice(self):
-        if self.__useAdjustedValue:
-            return self.__adjClose
-        else:
-            return self.__close
+        return self.__close
 
     def getExtraColumns(self):
         return self.__extra
@@ -235,8 +206,7 @@ class Bars(object):
     :note::All bars must have the same datetime.
     """
     def __init__(self, barDict):
-        if len(barDict) == 0:
-            raise Exception("No bars supplied")
+        if len(barDict) == 0: raise Exception("No bars supplied")
         # Check that bar datetimes are in sync
         firstDateTime = None
         firstInstrument = None

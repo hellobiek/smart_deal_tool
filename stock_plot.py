@@ -38,10 +38,11 @@ class CPlot():
         self.multi = MultiCursor(self.fig.canvas, (self.price_ax, self.volume_ax, self.index_ax), color='b', lw=1, horizOn = True, vertOn = True)
 
     def __del__(self):
-        self.fig.canvas.mpl_disconnect(self.keypress)
-        self.fig.canvas.mpl_disconnect(self.cidpress)
-        self.fig.canvas.mpl_disconnect(self.cidrelease)
-        plt.close(self.fig)
+        if hasattr(self, "fig"):
+            self.fig.canvas.mpl_disconnect(self.keypress)
+            self.fig.canvas.mpl_disconnect(self.cidpress)
+            self.fig.canvas.mpl_disconnect(self.cidrelease)
+            plt.close(self.fig)
 
     def read_data(self):
         if not os.path.exists('i_data.json'):
@@ -94,6 +95,7 @@ class CPlot():
 
     def on_release(self, event):
         self.release = event.xdata
+        print("start_date:%s, end_date:%s" % (self.press, self.release))
         if self.press is not None and self.release is not None:
             start_date = self.press
             end_date = self.release
@@ -109,6 +111,18 @@ class CPlot():
                 self.plot_distribution(self.d_data, start_date)
                 self.fig.suptitle(self.code, color='k')
                 self.fig.autofmt_xdate()
+        elif self.press is not None and self.release is None:
+            start_date = self.press
+            k_data = self.k_data.loc[self.k_data.time >= start_date]
+            i_data = self.i_data.loc[self.i_data.time >= start_date]
+            self.plot_stock(k_data)
+            self.plot_volume(k_data)
+            self.plot_index(i_data)
+            self.plot_distribution(self.d_data, start_date)
+            self.fig.suptitle(self.code, color='k')
+            self.fig.autofmt_xdate()
+        self.press = None
+        self.release = None
 
     def plot_volume(self, k_data):
         self.volumeMax = k_data.volume.values.max()
@@ -169,5 +183,5 @@ class CPlot():
         plt.show()
 
 if __name__ == '__main__':
-    cp = CPlot('601318')
+    cp = CPlot('002153')
     cp.plot()

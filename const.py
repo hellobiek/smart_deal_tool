@@ -4431,3 +4431,7 @@ const.STEPFILE = "/data/stepinfo.json"
 const.TODAY_ALL_STOCK = "TODAY_ALL_STOCK"
 ##################################################
 const.CHIP_COLUMNS = ['pos', 'sdate', 'date', 'price', 'volume', 'outstanding']
+##################################################
+const.RESUME = 0 
+const.PAPER_TRADING = 1
+const.REAL_TRADING = 2

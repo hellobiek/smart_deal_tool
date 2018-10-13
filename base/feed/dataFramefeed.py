@@ -107,45 +107,35 @@ class RowParser(dataFrameBarfeed.RowParser):
 
     #row的结构 row[0]为时间，string类型。row[1]为Series类型:'open'\high\close\low\volume\amoun或price——change等，前面6项和tushare对应
     def parseBar(self, row):
-        if isinstance(row[0],str):
-            if len(row[0].strip())==19:
-                dateTime = parse_date19(row[0]) #date
-            elif len(row[0].strip())==16:  #tushare～～～～16位数据
-                dateTime = parse_date16(row[0])  # date
+        if isinstance(row[0], str):
+            if len(row[0].strip()) == 19:
+                dateTime = parse_date19(row[0])
+            elif len(row[0].strip()) == 16:
+                dateTime = parse_date16(row[0])
             else:
-                dateTime = parse_date(row[0]) #date
+                dateTime = parse_date(row[0])
         else:
             dateTime =row[0]
-
-        close   = float(row[1]['close'])
-        open_   = float(row[1]['open'])
-        high    = float(row[1]['high'])
-        low     = float(row[1]['low'])
-        volume  = float(row[1]['volume'])
-        adjClose= float(row[1][5])
+        
+        open_       = float(row[1]['open'])
+        high        = float(row[1]['high'])
+        low         = float(row[1]['low'])
+        close       = float(row[1]['close'])
+        volume      = float(row[1]['volume'])
+        adjClose    = float(row[1]['close'])
+        #preclose    = float(row[1]['preclose'])
+        #aprice      = float(row[1]['aprice'])
+        #uprice      = float(row[1]['uprice'])
+        #ppercent    = float(row[1]['ppercent'])
+        #npercent    = float(row[1]['npercent'])
+        #outstanding = float(row[1]['outstanding'])
+        #sri         = float(row[1]['sri'])
         
         if self.__sanitize:
             open_, high, low, close = common.sanitize_ohlc(open_, high, low, close)
 
         #row的结构 row[0]为时间，string类型。row[1]为Series类型:'open'\high\close\low\volume\amoun或price——change等，前面6项和tushare 对应
         return bar.BasicBar(dateTime, open_, high, low, close, volume, adjClose, self.__frequency)
-
-    def parseTickBar(self,sid,row):
-        """
-        转换tick格式的bar,将‘ap’或‘ap1’作为tickds.__apDataSeries 以及bar.__ap
-        :param row:,tick的格式稍微简单，设置一个defaluttick format
-        :return:
-        """
-        tmp_extra = {}
-        if isinstance(sid,str):
-            sid = parse_date23(sid)
-
-        for key in row.index:
-            # extract extra component
-            if key not in ['open','ap1','bp1','av1','bv1','high', 'low', 'close', 'volume', 'amount', 'preclose', 'new_price', 'bought_amount', 'sold_amount', 'bought_volume', 'sold_volume', 'frequency']:
-                tmp_extra[key] = row[key]
-
-        return bar.BasicTick(sid, float(row['open']), float(row['high']), float(row['low']), float(row['close']), float(row['volume']), float(row['amount']), float(row['bp1']),float(row['bv1']),float(row['ap1']), float(row['av1']), float(row['preclose']), float(row['bought_volume']), float(row['sold_volume']), float(row['bought_amount']), float(row['sold_amount']), bar.Frequency.TRADE, False, tmp_extra)
 
 class Feed(dataFrameBarfeed.BarFeed):
     """
@@ -188,7 +178,6 @@ class Feed(dataFrameBarfeed.BarFeed):
         :param timezone: The timezone to use to localize bars. Check :mod:`pyalgotrade.marketsession`.
         :type timezone: A pytz timezone.
         """
-
         if isinstance(timezone, int):
             raise Exception("timezone as an int parameter is not supported anymore. Please use a pytz timezone instead.")
 

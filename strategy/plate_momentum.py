@@ -1,70 +1,57 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Oct 06 11:13:33 2015
-提供两种数据调取方式，一种为系统自带画图，另一种提供array方式各数据的接口，详见cn.lib.pyalg_utils.py
-@author: lenovo
-"""
-import pandas as pd
-from pandas import DataFrame
-from pyalgotrade import plotter, strategy
-from pyalgotrade.technical import highlow
-from pyalgotrade.stratanalyzer import returns
-from matplotlib.pyplot import plot
-
-import os
 import sys
 from os.path import abspath, dirname, join
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
+import const as ct
+from cmysql import CMySQL
+from cstock import CStock
+from pandas import DataFrame
 from base.feed import dataFramefeed 
+from pyalgotrade.technical import highlow, ma
+from pyalgotrade.stratanalyzer import returns
+from pyalgotrade import plotter, strategy, broker
 
 class PlateMomentumStrategy(strategy.BacktestingStrategy):
-    def __init__(self, feed, instrument, N1, N2):
-        super(PlateMomentumStrategy, self).__init__(feed)
-        self.__instrument = instrument
+    def __init__(self, feed, instruments, brk, threshold):
+        super(PlateMomentumStrategy, self).__init__(feed, brk)
         self.__feed = feed
         self.__position = None
+        self.__instruments = instruments
+        self.__sma = dict()
+        self.__info_dict = dict()
+        self.__threshold = dict()
+        for element in instruments:
+            self.__threshold[element] = threshold
+            self.__sma[element] = ma.SMA(feed[element].getCloseDataSeries(), 15)
+            self.__info_dict[element] = DataFrame(columns={'date', 'id', 'action', 'quantity', 'price'})
         self.setUseAdjustedValues(False)
-        self.__prices = feed[instrument].getPriceDataSeries()
-        self.__high = highlow.High(self.__prices, N1, 3)
-        self.__low = highlow.Low(self.__prices, N2, 3)
-        self.__info = DataFrame(columns={'date', 'id', 'action', 'instrument', 'quantity', 'price'})  # 交易记录信息
-        self.__info_matrix = []
 
-    def addInfo(self, order):
-        __date = order.getSubmitDateTime()  # 时间
-        __action = order.getAction()        # 动作
-        __id = order.getId()                # 订单号
-        __instrument = order.getInstrument()# 股票
-        __quantity = order.getQuantity()    # 数量
+    def setInfo(self, order):
+        __date = order.getSubmitDateTime()      # 时间
+        __action = order.getAction()            # 动作
+        __id = order.getId()                    # 订单号
+        __instrument = order.getInstrument()    # 股票
+        __quantity = order.getQuantity()        # 数量
         __price = order.getAvgFillPrice()
-        self.__info_matrix.append([__date, __id, __action, __instrument, __quantity, __price])
+        self.__info_dict[__instrument].at[len(self.__info_dict)] = [__date, __id, __action, __quantity, __price]
 
-    # 有多重实现方式和存储方式，考虑到组合数据，最终选用dataFrame且ID默认，因为或存在一日多单
-    def getInfo(self):
-        _matrix = np.array(self.__info_matrix).reshape((len(self.__info_matrix), 6))
-        return DataFrame({'date': _matrix[:, 0], 'id': _matrix[:, 1], 'action': _matrix[:, 2], 'instrument': _matrix[:, 3], 'quantity': _matrix[:, 4], 'price': _matrix[:, 5]})
-        # 返回某一instrument的时间序列
+    def getInfo(self, instrument):
+        return self.__info_dict[instrument]
 
-    def getDateTimeSeries(self, instrument=None):  # 海龟交易法和vwamp方法不一样，一个instrument为数组，一个为值
-        if instrument is None:
-            return self.__feed[self.__instrument].getPriceDataSeries().getDateTimes()
+    def getThreshold(self, instrument):
+        return self.__threshold[instrument]
+
+    def getDateTimeSeries(self, instrument = None):
         return self.__feed[instrument].getPriceDataSeries().getDateTimes()
-
-    def getHigh(self):
-        return self.__high
 
     def onEnterOk(self, position):
         execInfo = position.getEntryOrder().getExecutionInfo()
-        self.info("BUY at ￥%.2f" % (execInfo.getPrice()))
-        self.addInfo(position.getEntryOrder())  # 在此处添加信息
 
     def onEnterCanceled(self, position):
         self.__position = None
 
     def onExitOk(self, position):
         execInfo = position.getExitOrder().getExecutionInfo()
-        self.info("SELL at ￥%.2f" % (execInfo.getPrice()))
-        self.addInfo(position.getExitOrder())  # 在此处添加信息
         self.__position = None
 
     def onExitCanceled(self, position):
@@ -72,44 +59,52 @@ class PlateMomentumStrategy(strategy.BacktestingStrategy):
         self.__position.exitMarket()
 
     def onBars(self, bars):
-        # 若使用self__high[-1]这种值的话，不能是none,self.__high[0:0]为取前一日的  #也可以self.__high.__len__()！=3
-        if self.__high[-1] == None:
-            return
+        for element in bars.getInstruments():
+            price = bars[element].getClose()
+            volume = bars[element].getVolume()
+            if self.__sma[element][-1] is None: continue
+            price = bars[element].getClose()
+            if self.__position is None:
+                if price < self.__sma[element][-1] * 0.9:
+                    shares = 100 * int(self.getBroker().getCash()/(100 * price))
+                    self.info("before buy %s %s at ￥%.2f, exists cash:%s" % (element, shares, price, self.getBroker().getCash()))
+                    self.__position = self.enterLong(element, shares, True)
+                    self.info("after buy %s %s at ￥%.2f, exists cash:%s" % (element, shares, price, self.getBroker().getCash()))
+            else:
+                if price > self.__sma[element][-1] * 1.1:
+                    if self.__position is not None and not self.__position.exitActive():
+                        self.info("before sell %s %s at ￥%.2f, exists cash:%s" % (element, self.getBroker().getShares(element), price, self.getBroker().getCash()))
+                        self.__position.exitMarket()
+                        self.info("after sell %s %s at ￥%.2f, exists cash:%s" % (element, self.getBroker().getShares(element), price, self.getBroker().getCash()))
+        
+def choose_stock():
+    #return ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519']
+    return ['002153']
 
-        if self.__high[-2] == None or self.__high[-3] == None:
-            return
+def plate_momentum(mode = ct.PAPER_TRADING, start_date = '2018-03-01', end_date = '2018-10-28'):
+    if mode == ct.PAPER_TRADING:
+        threshold = 100000
+        feed = dataFramefeed.Feed()
+        instruments = choose_stock()
+        for code in instruments:
+            data = CStock(code, should_create_influxdb = False, should_create_mysqldb = False).get_k_data_in_range(start_date, end_date)
+            data = data.rename(columns={'cdate':'date'})
+            data = data.set_index('date')
+            feed.addBarsFromDataFrame(code, data)
 
-        bar = bars[self.__instrument]
-        # If a position was not opened, check if we should enter a long position.
-        # 如果不设定high的长度为3的话，可能取不到-3的值
-        if self.__position is None or not self.__position.isOpen():
-            # 判定今天价比昨日的最高价高，昨天价比前天的最高价低
-            if self.__prices[-1] > self.__high[-2] and self.__prices[-2] < self.__high[-3]:
-                shares = int(self.getBroker().getCash() * 0.9 / bars[self.__instrument].getPrice())
-                # Enter a buy market order. The order is good till canceled.
-                self.__position = self.enterLong(self.__instrument, shares, True)  # 多种实现方式，为记录信息简要写于一处
-        elif not self.__position.exitActive() and self.__prices[-1] < self.__low[-2] and self.__prices[-2] > self.__low[-3]:
-            # Check if we have to exit the position.
-            self.__position.exitMarket()
+        # broker setting
+        # broker commission类设置
+        broker_commission = broker.backtesting.TradePercentage(0.002)
+        # fill strategy设置
+        #fill_stra = broker.fillstrategy.DefaultStrategy(volumeLimit = 1.0)
+        #sli_stra = broker.slippage.NoSlippage()
+        #fill_stra.setSlippageModel(sli_stra)
+        # 完善broker类
+        brk = broker.backtesting.Broker(threshold * len(instruments), feed, broker_commission)
+        #brk.setFillStrategy(fill_stra)
 
-def plate_momentum():
-    # 从dataFrame中加载
-    scode = "601318"
-    feed = dataFramefeed.Feed()
-    instrument = [scode]
-    for code in instrument:
-        filename = "/Volumes/data/quant/stock/data/tdx/history/days/1%s.csv" % code
-        dat = pd.read_csv(filename, sep = ',')
-        dat = dat.reset_index(drop = True)
-        dat['adj close'] = dat['close']
-        dat = dat.loc[(dat.date >= 20170101) & (dat.date <= 20180601)]
-        dat['date'] = dat['date'].astype(str)
-        dat['date'] = pd.to_datetime(dat.date).dt.strftime("%Y-%m-%d")
-        dat = dat[['date', 'open', 'high', 'low', 'close', 'volume', 'adj close']]
-        dat = dat.set_index('date')
-        feed.addBarsFromDataFrame(code, dat)
+    myStrategy = PlateMomentumStrategy(feed, instruments, brk, threshold)
 
-    myStrategy = PlateMomentumStrategy(feed, scode, 20, 10)
     # Attach a returns analyzers to the strategy.
     returnsAnalyzer = returns.Returns()
     myStrategy.attachAnalyzer(returnsAnalyzer)
