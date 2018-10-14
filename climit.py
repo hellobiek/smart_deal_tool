@@ -13,7 +13,6 @@ from log import getLogger
 from cmysql import CMySQL
 from datetime import datetime
 logger = getLogger(__name__)
-
 class CLimit:
     def __init__(self, dbinfo):
         self.table = self.get_tbname()

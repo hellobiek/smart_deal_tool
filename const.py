@@ -4435,3 +4435,6 @@ const.CHIP_COLUMNS = ['pos', 'sdate', 'date', 'price', 'volume', 'outstanding']
 const.RESUME = 0 
 const.PAPER_TRADING = 1
 const.REAL_TRADING = 2
+##################################################
+const.ROLLING_UP = 1
+const.ROLLING_DOWN = -1

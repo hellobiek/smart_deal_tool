@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys
-from os.path import abspath, dirname, join
+from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import const as ct
 from cmysql import CMySQL
@@ -76,10 +76,15 @@ class PlateMomentumStrategy(strategy.BacktestingStrategy):
                         self.info("before sell %s %s at ￥%.2f, exists cash:%s" % (element, self.getBroker().getShares(element), price, self.getBroker().getCash()))
                         self.__position.exitMarket()
                         self.info("after sell %s %s at ￥%.2f, exists cash:%s" % (element, self.getBroker().getShares(element), price, self.getBroker().getCash()))
-        
+ 
 def choose_stock():
     #return ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519']
     return ['002153']
+
+def choose():
+    get code, datas:
+    for data in datas:
+        if data.KlineWithoutVolume():
 
 def plate_momentum(mode = ct.PAPER_TRADING, start_date = '2018-03-01', end_date = '2018-10-28'):
     if mode == ct.PAPER_TRADING:
