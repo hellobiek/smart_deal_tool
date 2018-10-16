@@ -280,7 +280,7 @@ class DataManager:
         trading_info = self.comb_info_client.get()
         for _, code_id in trading_info['code'].iteritems():
             if str(code_id) not in self.combination_objs:
-                self.combination_objs[str(code_id)] = Combination(self.dbinfo, code_id)
+                self.combination_objs[str(code_id)] = Combination(code_id, self.dbinfo)
 
     def init_today_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, index_info, code_id):
@@ -290,7 +290,7 @@ class DataManager:
         df = self.stock_info_client.get()
         _date = datetime.now().strftime('%Y-%m-%d') if cdate is not None else cdate
         #get shanghai index info
-        index_info = self.index_objs['00001'].get_k_data()
+        index_info = self.index_objs['00001'].get_k_data(_date)
         #get stock bonus info
         bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
         failed_list = df.code.tolist()
@@ -436,10 +436,14 @@ if __name__ == '__main__':
     #print("collect index_runtime_data success!")
     #dm.animation_client.collect()
     #print("animation client collect success!")
-    index_info = CIndex('000001').get_k_data()
-    bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    #for code in ['601318']:
-    for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400', '601606', '300104','300188']:
-        cs = CStock(code)
+    mdate = '2018-06-21'
+    index_obj = CIndex('000001', redis_host='127.0.0.1')
+    index_obj.set_k_data(fpath = '/Volumes/data/quant/stock/data/tdx/history/days/%s')
+    index_info = index_obj.get_k_data(mdate)
+    bonus_info = pd.read_csv("/Volumes/data/quant/stock/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
+    #for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400', '601606', '300104','300188']:
+    for code in ['601318']:
+        cs = CStock(code, redis_host = '127.0.0.1')
         logger.info("compute %s" % code)
-        cs.set_k_data(bonus_info, index_info, '2018-09-28')
+        #cs.set_k_data(bonus_info, index_info)
+        cs.set_k_data(bonus_info, index_info, cdate = mdate)

@@ -33,6 +33,7 @@ const.NEW_STOCK_URL = "http://newstock.cfi.cn/"
 const.FUTU_HOST = os.environ['dockerhost']
 const.FUTU_PORT = 11111
 const.USER_FILE = "/code/configure/user.json"
+const.TUSHAE_FILE = "/code/configure/tushare.json"
 const.SLEEP_TIME = 3
 const.SHORT_SLEEP_TIME = 1
 const.LONG_SLEEP_TIME = 10800 

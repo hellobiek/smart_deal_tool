@@ -2,13 +2,13 @@
 import sys
 import time
 import redis
-from tempfile import TemporaryFile
 import datetime
-from datetime import datetime,timedelta
 import const as ct
 import numpy as np
 import pandas as pd
+import tushare as ts
 from crack_bmp import crack_bmp
+from datetime import datetime,timedelta
 
 def trace_func(*dargs, **dkargs):
     def wrapper(func):
@@ -159,4 +159,9 @@ def df_empty(columns, dtypes, index = None):
     df = pd.DataFrame(index=index)
     for c,d in zip(columns, dtypes):
         df[c] = pd.Series(dtype=d)
-    return df    
+    return df
+
+def get_tushare_client(fpath = None):
+    fpath = ct.TUSHAE_FILE if fpath is None else fpath
+    with open(fpath) as f: key_info = json.load(f)
+    return ts.pro_api(key_info['key'])

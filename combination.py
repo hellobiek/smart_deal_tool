@@ -13,13 +13,13 @@ from cstock import CStock
 from common import create_redis_obj
 logger = getLogger(__name__)
 class Combination:
-    def __init__(self, dbinfo, code):
+    def __init__(self, code, dbinfo = ct.DB_INFO, redis_host = None):
         self.code = code
         self.dbname = self.get_dbname(code)
-        self.redis = create_redis_obj()
+        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
         self.data_type_dict = {9:"day"}
-        self.influx_client = CInflux(ct.IN_DB_INFO, self.dbname)
-        self.mysql_client = cmysql.CMySQL(dbinfo, self.dbname)
+        self.influx_client = CInflux(ct.IN_DB_INFO, self.dbname, iredis = self.redis)
+        self.mysql_client = cmysql.CMySQL(dbinfo, self.dbname, iredis = self.redis)
         if not self.create(): raise Exception("%s create combination table failed" % code)
 
     @staticmethod

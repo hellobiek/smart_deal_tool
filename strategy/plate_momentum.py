@@ -78,13 +78,7 @@ class PlateMomentumStrategy(strategy.BacktestingStrategy):
                         self.info("after sell %s %s at ￥%.2f, exists cash:%s" % (element, self.getBroker().getShares(element), price, self.getBroker().getCash()))
  
 def choose_stock():
-    #return ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519']
     return ['002153']
-
-def choose():
-    get code, datas:
-    for data in datas:
-        if data.KlineWithoutVolume():
 
 def plate_momentum(mode = ct.PAPER_TRADING, start_date = '2018-03-01', end_date = '2018-10-28'):
     if mode == ct.PAPER_TRADING:
@@ -93,7 +87,6 @@ def plate_momentum(mode = ct.PAPER_TRADING, start_date = '2018-03-01', end_date 
         instruments = choose_stock()
         for code in instruments:
             data = CStock(code, should_create_influxdb = False, should_create_mysqldb = False).get_k_data_in_range(start_date, end_date)
-            data = data.rename(columns={'cdate':'date'})
             data = data.set_index('date')
             feed.addBarsFromDataFrame(code, data)
 

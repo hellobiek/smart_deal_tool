@@ -7,7 +7,6 @@ import const as ct
 import pandas as pd
 import tushare as ts
 from chip import Chip
-from features import Mac, KDJ, ProChip_NeiChip, BaseFloatingProfit, RelativeIndexStrength
 from cmysql import CMySQL
 from log import getLogger
 from ticks import read_tick
@@ -15,6 +14,7 @@ from cinfluxdb import CInflux
 from datetime import datetime
 from common import create_redis_obj, get_years_between
 from futuquant.quote.quote_response_handler import TickerHandlerBase
+from features import Mac, ProChip_NeiChip, RelativeIndexStrength
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 logger = getLogger(__name__)
@@ -23,7 +23,7 @@ class CStock(TickerHandlerBase):
     def __init__(self, code, dbinfo = ct.DB_INFO, should_create_influxdb = False, should_create_mysqldb = True, redis_host = None):
         self.code = code
         self.dbname = self.get_dbname(code)
-        self.redis = create_redis_obj() if redis_host is None else create_redis_obj('127.0.0.1')
+        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
         self.data_type_dict = {9:"day"}
         self.chip_client = Chip()
         self.influx_client = CInflux(ct.IN_DB_INFO, dbname = self.dbname, iredis = self.redis)
@@ -54,50 +54,44 @@ class CStock(TickerHandlerBase):
         data['outstanding'] = 0
         data['totals'] = 0
         if 0 == len(info): return data
-        end_index = 0
-        pre_totals = 0
-        pre_outstanding = 0
-        last_pre_totals = 0
-        last_pre_outstanding = 0
-        for info_index, start_date in info.date.iteritems():
-            dates = data.loc[data.date >= start_date].index.tolist()
+        cur_totals = 0
+        cur_outstanding = 0
+        next_totals = 0
+        next_outstanding = 0
+        start_index = 0
+        for info_index, end_date in info.date.iteritems():
+            dates = data.loc[data.date < end_date].index.tolist()
             if len(dates) == 0 : continue
-            start_index = end_index
+
             end_index = dates[len(dates) - 1]
-    
-            pre_outstanding = int(info.loc[info_index, 'money'])   #前流通盘
-            pre_totals = int(info.loc[info_index, 'price'])   #前总股本
-            cur_outstanding = int(info.loc[info_index, 'count'])   #后流通盘
-            cur_totals = int(info.loc[info_index, 'rate'])    #后总股本
-    
-            if 0 == info_index:
-                data.at[start_index:end_index, 'outstanding'] = cur_outstanding
-                data.at[start_index:end_index, 'totals'] = cur_totals
-                last_pre_outstanding = pre_outstanding
-                last_pre_totals = pre_totals
-            else:
-                #if cur_outstanding != last_pre_outstanding:
-                #   logger.debug("%s 日期:%s 前流通盘:%s 不等于 预期前流通盘:%s" % (self.code, start_date, cur_outstanding, last_pre_outstanding))
-                #elif cur_totals != last_pre_totals:
-                #   logger.debug("%s 日期:%s 后流通盘:%s 不等于 预期后流通盘:%s" % (self.code, start_date, cur_totals, last_pre_totals))
-                data.at[start_index + 1:end_index, 'outstanding'] = cur_outstanding
-                data.at[start_index + 1:end_index, 'totals'] = cur_totals
-                last_pre_outstanding = pre_outstanding
-                last_pre_totals = pre_totals
-    
-                #finish the last date
-                if info_index == len(info) - 1:
-                    data.at[end_index + 1:, 'outstanding'] = last_pre_outstanding
-                    data.at[end_index + 1:, 'totals'] = last_pre_totals
+            cur_outstanding = int(info.at[info_index, 'money'])   #当前流通盘
+            cur_totals = int(info.at[info_index, 'price'])       #当前总股本
+            next_outstanding = int(info.at[info_index, 'count']) #后流通盘
+            next_totals = int(info.at[info_index, 'rate'])       #后总股本
+
+            #if cur_outstanding != last_pre_outstanding:
+            #   logger.debug("%s 日期:%s 前流通盘:%s 不等于 预期前流通盘:%s" % (self.code, start_date, cur_outstanding, last_pre_outstanding))
+            #elif cur_totals != last_pre_totals:
+            #   logger.debug("%s 日期:%s 后流通盘:%s 不等于 预期后流通盘:%s" % (self.code, start_date, cur_totals, last_pre_totals))
+            data.at[start_index:end_index - 1, 'outstanding'] = cur_outstanding
+            data.at[start_index:end_index - 1, 'totals'] = cur_totals
+            cur_outstanding = next_outstanding
+            cur_totals = next_totals
+            start_index = end_index
+
+            #finish the last date
+            if info_index == len(info) - 1:
+                data.at[start_index:, 'outstanding'] = cur_outstanding
+                data.at[start_index:, 'totals'] = cur_totals
         return data
     
     def qfq(self, data, info):
         data['adj'] = 1.0
-        data['preclose'] = data['close'].shift(-1)
-        data.at[data.index[-1], 'preclose'] = data.loc[data.index[-1], 'open']
+        data['preclose'] = data['close'].shift(1)
+        data.at[0, 'preclose'] = data.loc[0, 'open']
         if 0 == len(info): return data
         for info_index, start_date in info.date.iteritems():
-            dates = data.loc[data.date >= start_date].index.tolist()
+            dates = data.loc[data.date <= start_date].index.tolist()
             if len(dates) == 0 : continue
             rate  = info.loc[info_index, 'rate']    #配k股
             price = info.loc[info_index, 'price']   #配股价格
@@ -105,7 +99,7 @@ class CStock(TickerHandlerBase):
             count = info.loc[info_index, 'count']   #转送股数量
             start_index = dates[len(dates) - 1]
             adj = (data.loc[start_index, 'preclose'] * 10 - money + rate * price) / ((10 + rate + count) * data.loc[start_index, 'preclose'])
-            data.at[start_index + 1:, 'adj'] = data.loc[start_index + 1:, 'adj'] * adj
+            data.at[:start_index - 1, 'adj'] = data.loc[:start_index - 1, 'adj'] * adj
         return data
 
     def has_on_market(self, cdate):
@@ -139,12 +133,12 @@ class CStock(TickerHandlerBase):
     def create_mysql_table(self):
         for _, table_name in self.data_type_dict.items():
             if table_name not in self.mysql_client.get_all_tables():
-                sql = 'create table if not exists %s(cdate varchar(10) not null, open float, high float, close float, low float, volume float, amount float, outstanding float, totals float, adj float, PRIMARY KEY(cdate))' % table_name 
+                sql = 'create table if not exists %s(date varchar(10) not null, open float, high float, close float, low float, volume float, amount float, outstanding float, totals float, adj float, PRIMARY KEY(date))' % table_name 
                 if not self.mysql_client.create(sql, table_name): return False
         return True
 
     def create_ticket_table(self, table):
-        sql = 'create table if not exists %s(date varchar(10) not null, ctime varchar(8) not null, price float(5,2), cchange varchar(10) not null, volume int not null, amount int not null, ctype varchar(9) not null, PRIMARY KEY (date, ctime, cchange, volume, amount, ctype))' % table
+        sql = 'create table if not exists %s(date varchar(10) not null, time varchar(8) not null, price float(5,2), cchange varchar(10) not null, volume int not null, amount int not null, ctype varchar(9) not null, PRIMARY KEY (date, time, cchange, volume, amount, ctype))' % table
         return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
 
     def get(self, attribute):
@@ -159,7 +153,7 @@ class CStock(TickerHandlerBase):
         self.influx_client.set(data)
 
     def merge_ticket(self, df):
-        ex = df[df.duplicated(subset = ['ctime', 'cchange', 'volume', 'amount', 'ctype'], keep=False)]
+        ex = df[df.duplicated(subset = ['time', 'cchange', 'volume', 'amount', 'ctype'], keep=False)]
         dlist = list(ex.index)
         while len(dlist) > 0:
             snum = 1
@@ -178,7 +172,7 @@ class CStock(TickerHandlerBase):
                     sindex = dlist[_index]
                     snum = 1
             df = df.reset_index(drop = True)
-            ex = df[df.duplicated(subset = ['ctime', 'cchange', 'volume', 'amount', 'ctype'], keep=False)]
+            ex = df[df.duplicated(subset = ['time', 'cchange', 'volume', 'amount', 'ctype'], keep=False)]
             dlist = list(ex.index)
         return df
 
@@ -215,44 +209,50 @@ class CStock(TickerHandlerBase):
     def get_pre_str(self):
         return "1" if self.get_market() == ct.MARKET_SH else "0"
 
-    def read_file(self):
+    def read(self, cdate = None, fpath = "/data/tdx/history/days/%s%s.csv"):
         prestr = self.get_pre_str()
-        filename = "/data/tdx/history/days/%s%s.csv" % (prestr, self.code)
-        if not os.path.exists(filename): 
-            return pd.DataFrame()
+        filename = fpath % (prestr, self.code)
+        if not os.path.exists(filename): return pd.DataFrame()
         df = pd.read_csv(filename, sep = ',')
         df = df[['date', 'open', 'high', 'close', 'low', 'amount', 'volume']]
         df = df.loc[df.volume != 0]
-        df = df.sort_values(by = 'date', ascending= False)
+        df = df.sort_values(by = 'date', ascending= True)
         df = df.reset_index(drop = True)
-        return df
+        if cdate is not None:
+            preday_index = df.loc[df.date == self.transfer_date_string_to_int(cdate)].index.values[0] - 1
+            if preday_index < 0:
+                return df, None
+            else:
+                pre_day = df.loc[preday_index, 'date']
+                return df.loc[df.date == self.transfer_date_string_to_int(cdate)], self.transfer_int_to_date_string(pre_day)
+        return df, None
 
     def collect_right_info(self, info, cdate = None):
         info = info[(info.code == self.code) & (info.date <= int(datetime.now().strftime('%Y%m%d')))]
-        info = info.sort_values(by = 'date' , ascending = False)
+        info = info.sort_values(by = 'date' , ascending = True)
         info = info.reset_index(drop = True)
 
         #collect stock amount change info
+        #6:增发新股(如: 600887 2002-08-20), no change for stock or price 
         total_stock_change_type_list = ['2', '3', '4', '5', '7', '8', '9', '10', '11']
-        s_info = info[info.type.isin(total_stock_change_type_list)]
-        s_info = s_info[['date', 'type', 'money', 'price', 'count', 'rate']] 
-        s_info = s_info.sort_index(ascending = True)
-        s_info = s_info.reset_index(drop = True)
+        quantity_change_info = info[info.type.isin(total_stock_change_type_list)]
+        quantity_change_info = quantity_change_info[['date', 'type', 'money', 'price', 'count', 'rate']] 
+        quantity_change_info = quantity_change_info.sort_index(ascending = True)
+        quantity_change_info = quantity_change_info.reset_index(drop = True)
+        quantity_change_info['money'] = quantity_change_info['money'].astype(int)
+        quantity_change_info['price'] = quantity_change_info['price'].astype(int)
 
         #collect stock price change info
-        t_info = info[info.type == 1]
-        t_info = t_info[['money', 'price', 'count', 'rate', 'date']]
-        t_info = t_info.sort_index(ascending = True)
-        t_info = t_info.reset_index(drop = True)
-        return s_info, t_info
+        price_change_info = info[info.type == 1]
+        price_change_info = price_change_info[['money', 'price', 'count', 'rate', 'date']]
+        price_change_info = price_change_info.sort_index(ascending = True)
+        price_change_info = price_change_info.reset_index(drop = True)
+        return quantity_change_info, price_change_info
 
     def transfer2adjusted(self, df):
         df = df[['date', 'open', 'high', 'close', 'preclose', 'low', 'volume', 'amount', 'outstanding', 'totals', 'adj']]
-
         df['date'] = df['date'].astype(str)
         df['date'] = pd.to_datetime(df.date).dt.strftime("%Y-%m-%d")
-        df = df.rename(columns={'date':'cdate'})
-
         df['low'] = df['adj'] * df['low']
         df['open'] = df['adj'] * df['open']
         df['high'] = df['adj'] * df['high']
@@ -264,59 +264,143 @@ class CStock(TickerHandlerBase):
         df['totals'] = df['totals'] * 10000
         df['outstanding'] = df['outstanding'].astype(int)
         df['outstanding'] = df['outstanding'] * 10000
+        df['pchange'] = 100 * (df['close'] - df['preclose']) / df['preclose']
+        df['turnover'] = 100 * df['volume'] / df['outstanding']
         return df
 
-    def set_k_data(self, bonus_info, index_info, cdate = None):
-        cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
+    def transfer_date_string_to_int(self, cdate):
+        cdates = cdate.split('-')
+        return int(cdates[0]) * 10000 + int(cdates[1]) * 100 + int(cdates[2])
 
-        if not self.has_on_market(cdate): 
-            return True
+    def transfer_int_to_date_string(self, cdate):
+        return time.strftime('%Y-%m-%d', time.strptime(str(cdate), "%Y%m%d"))
 
-        df = self.read_file()
+    def is_need_reright(self, cdate, quantity_change_info, price_change_info):
+        return False
+        q_index = quantity_change_info.date.index[-1]
+        p_index = price_change_info.date.index[-1]
+        latest_date = max(quantity_change_info.date[q_index], price_change_info.date[p_index])
+        now_date = self.transfer_date_string_to_int(cdate)
+        return now_date < latest_date
+
+    def set_today_data(self, df, index_df, pre_date, cdate):
         if df.empty:
             logger.error("read empty file for:%s" % self.code)
             return False
 
-        s_info, t_info = self.collect_right_info(bonus_info)
-        df = self.adjust_share(df, s_info)
-        df = self.qfq(df, t_info)
+        preday_df = self.get_k_data(date = pre_date)
+
+        df['adj']         = 1.0
+        df['preclose']    = preday_df['close'][0]
+        df['totals']      = preday_df['totals'][0] 
+        df['outstanding'] = preday_df['outstanding'][0]
+
+        #transfer data to split-adjusted share prices
+        df = self.transfer2adjusted(df)
+        df = RelativeIndexStrength(df, index_df, cdate, preday_df['sri'][0])
+
+        #set chip distribution
+        write_chip_flag = self.set_chip_distribution(df, zdate = cdate)
+
+        if write_chip_flag:
+            logger.info("set distribution")
+            data = self.get_chip_distribution(cdate)
+            logger.info("uprice mac compute success")
+            df = Mac(df, data, 0)
+            logger.info("compute Profit Chips Percent and Neighboring Chips Percent")
+            df = ProChip_NeiChip(df, data, cdate)
+            logger.info("set k data for today data")
+            write_kdata_flag = self.mysql_client.set(df, 'day', method = ct.APPEND)
+        return write_chip_flag and write_kdata_flag
+
+    def set_all_data(self, quantity_change_info, price_change_info, index_info):
+        #"/Volumes/data/quant/stock/data/tdx/history/days/%s%s.csv"
+        df, _ = self.read(fpath = "/Volumes/data/quant/stock/data/tdx/history/days/%s%s.csv")
+        if df.empty:
+            logger.error("read empty file for:%s" % self.code)
+            return False
+
+        #modify price and quanity for all split-adjusted share prices
+        df = self.adjust_share(df, quantity_change_info)
+        df = self.qfq(df, price_change_info)
 
         #transfer data to split-adjusted share prices
         df = self.transfer2adjusted(df)
 
-        df = df.sort_values(by = 'cdate', ascending= True)
-        df = df.reset_index(drop = True)
-
-        #set chip distribution
-        #write_chip_flag = True
-        write_chip_flag = self.set_chip_distribution(df)
-        logger.info("set distribution success")
-
-        #get moving average price
-        dist_data = self.get_chip_distribution()
-        logger.info("get distribution success")
-
-        df['uprice'] = Mac(dist_data, 0)
-        logger.info("uprice mac compute success")
-
-        df['60price'] = Mac(dist_data, 60)
-        logger.info("60 price mac compute success")
-
-        df = KDJ(df)
-        logger.info("compute K,D,J series")
-
-        logger.info("compute Profit Chips Percent and Neighboring Chips Percent")
-        df = ProChip_NeiChip(df, dist_data)
-
-        logger.info("compute Base Floating Profit")
-        df = BaseFloatingProfit(df)
-
         logger.info("strength relative index")
         df = RelativeIndexStrength(df, index_info)
 
-        #set k data
-        write_kdata_flag = self.mysql_client.set(df, 'day', method = ct.REPLACE)
-        return write_kdata_flag and write_chip_flag
+        #set chip distribution
+        logger.info("set chip distribution")
+        write_chip_flag = self.set_chip_distribution(df)
+        if write_chip_flag:
+            logger.info("set distribution")
+            data = self.get_chip_distribution()
+            logger.info("uprice mac compute success")
+            df = Mac(df, data, 0)
+            logger.info("compute Profit Chips Percent and Neighboring Chips Percent")
+            df = ProChip_NeiChip(df, data)
+            logger.info("set k data for all data")
+            write_kdata_flag = self.mysql_client.set(df, 'day', method = ct.REPLACE)
+        return write_chip_flag and write_kdata_flag
+
+    def set_k_data(self, bonus_info, index_info, cdate = None):
+        if not self.has_on_market(datetime.now().strftime('%Y-%m-%d')): return True
+        quantity_change_info, price_change_info = self.collect_right_info(bonus_info)
+        if cdate is None or self.is_need_reright(cdate, quantity_change_info, price_change_info):
+            return self.set_all_data(quantity_change_info, price_change_info, index_info)
+        else:
+            today_df, pre_date = self.read(cdate = cdate, fpath = "/Volumes/data/quant/stock/data/tdx/history/days/%s%s.csv")
+            if pre_date is None:
+                return self.set_all_data(quantity_change_info, price_change_info, index_info)
+            else:
+                return self.set_today_data(today_df, index_info, pre_date, cdate)
+
+    #def set_k_data(self, bonus_info, index_info, cdate = None):
+    #    cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
+
+    #    if not self.has_on_market(cdate): 
+    #        return True
+
+    #    df = self.read_file()
+    #    if df.empty:
+    #        logger.error("read empty file for:%s" % self.code)
+    #        return False
+
+    #    s_info, t_info = self.collect_right_info(bonus_info)
+    #    df = self.adjust_share(df, s_info)
+    #    df = self.qfq(df, t_info)
+
+    #    #transfer data to split-adjusted share prices
+    #    df = self.transfer2adjusted(df)
+
+    #    df = df.sort_values(by = 'date', ascending= True)
+    #    df = df.reset_index(drop = True)
+
+    #    #set chip distribution
+    #    #write_chip_flag = True
+    #    write_chip_flag = self.set_chip_distribution(df)
+    #    logger.info("set distribution success")
+
+    #    #get moving average price
+    #    dist_data = self.get_chip_distribution()
+    #    logger.info("get distribution success")
+
+    #    df['uprice'] = Mac(dist_data, 0)
+    #    logger.info("uprice mac compute success")
+
+    #    df['60price'] = Mac(dist_data, 60)
+    #    logger.info("60 price mac compute success")
+
+    #    logger.info("compute Profit Chips Percent and Neighboring Chips Percent")
+    #    df = ProChip_NeiChip(df, dist_data)
+
+    #    logger.info("strength relative index")
+    #    df = RelativeIndexStrength(df, index_info)
+
+    #    #set k data
+    #    write_kdata_flag = self.mysql_client.set(df, 'day', method = ct.REPLACE)
+    #    return write_kdata_flag and write_chip_flag
 
     def get_chip_distribution(self, mdate = None):
         df = pd.DataFrame()
@@ -338,10 +422,10 @@ class CStock(TickerHandlerBase):
         return df
 
     def set_chip_distribution(self, data, zdate = None):
-        data = data[['cdate', 'open', 'aprice', 'outstanding', 'volume', 'amount']]
+        data = data[['date', 'open', 'aprice', 'outstanding', 'volume', 'amount']]
         if zdate is None:
             df = self.chip_client.compute_distribution(data)
-            logger.info("compute_distribution success")
+            logger.info("compute distribution success")
             time2Market = self.get('timeToMarket')
             start_year = int(time2Market / 10000)
             end_year = int(datetime.now().strftime('%Y'))
@@ -369,10 +453,10 @@ class CStock(TickerHandlerBase):
         else:
             chip_table = self.get_chip_distribution_table(zdate)
             if self.is_date_exists(chip_table, zdate): 
-                logger.debug("existed chip for code:%s, date:%s" % (self.code, cdate))
+                logger.debug("existed chip for code:%s, date:%s" % (self.code, zdate))
                 return True
 
-            mdate_list = data.cdate.tolist()
+            mdate_list = data.date.tolist()
             pre_date = mdate_list[0]
             now_date = mdate_list[1]
             if now_date != zdate:
@@ -386,11 +470,11 @@ class CStock(TickerHandlerBase):
                 return False
             pre_date_dist = pre_date_dist.sort_values(by = 'pos', ascending= True)
 
-            pos = data.loc[data.cdate == zdate].index[0]
-            volume = data.loc[data.cdate == zdate, 'volume'].tolist()[0]
-            aprice = data.loc[data.cdate == zdate, 'aprice'].tolist()[0]
-            outstanding = data.loc[data.cdate == zdate, 'outstanding'].tolist()[0]
-            pre_outstanding = data.loc[data.cdate == pre_date, 'outstanding'].tolist()[0]
+            pos = data.loc[data.date == zdate].index[0]
+            volume = data.loc[data.date == zdate, 'volume'].tolist()[0]
+            aprice = data.loc[data.date == zdate, 'aprice'].tolist()[0]
+            outstanding = data.loc[data.date == zdate, 'outstanding'].tolist()[0]
+            pre_outstanding = data.loc[data.date == pre_date, 'outstanding'].tolist()[0]
 
             tmp_df = self.chip_client.adjust_volume(pre_date_dist, pos, volume, aprice, pre_outstanding, outstanding)
             tmp_df.date = zdate
@@ -404,6 +488,7 @@ class CStock(TickerHandlerBase):
                     logger.error("create chip table failed")
                     return False
                 self.redis.sadd(self.dbname, chip_table)
+
             if self.mysql_client.set(tmp_df, chip_table): 
                 self.redis.sadd(chip_table, zdate)
                 logger.debug("finish record chip:%s. table:%s" % (self.code, chip_table))
@@ -425,7 +510,7 @@ class CStock(TickerHandlerBase):
             logger.debug("existed code:%s, date:%s" % (self.code, cdate))
             return True
         logger.debug("%s read code from file %s" % (self.code, cdate))
-        df = ts.get_tick_data(self.code, date=cdate)
+        df = ts.get_tick_data(self.code, date = cdate)
         df_tdx = read_tick(os.path.join(ct.TIC_DIR, '%s.tic' % datetime.strptime(cdate, "%Y-%m-%d").strftime("%Y%m%d")), self.code)
         if not df_tdx.empty:
             if df is not None and not df.empty and df.loc[0]['time'].find("当天没有数据") == -1:
@@ -444,7 +529,7 @@ class CStock(TickerHandlerBase):
             if df.loc[0]['time'].find("当天没有数据") != -1:
                 logger.debug("nodata code:%s, date:%s" % (self.code, cdate))
                 return True
-        df.columns = ['ctime', 'price', 'cchange', 'volume', 'amount', 'ctype']
+        df.columns = ['time', 'price', 'cchange', 'volume', 'amount', 'ctype']
         logger.debug("merge ticket code:%s date:%s" % (self.code, cdate))
         df = self.merge_ticket(df)
         df['date'] = cdate
@@ -465,7 +550,7 @@ class CStock(TickerHandlerBase):
     
     def get_k_data_in_range(self, start_date, end_date, dtype = 9):
         table_name = self.data_type_dict[dtype]
-        sql = "select * from %s where cdate between \"%s\" and \"%s\"" %(table_name, start_date, end_date)
+        sql = "select * from %s where date between \"%s\" and \"%s\"" %(table_name, start_date, end_date)
         return self.mysql_client.get(sql)
 
     def get_k_data(self, date = None, dtype = 9):
@@ -482,6 +567,3 @@ class CStock(TickerHandlerBase):
         y,m,d = t[0:3]
         time2Market = datetime(y,m,d)
         return (datetime.strptime(_date, "%Y-%m-%d") - time2Market).days > 0
-
-if __name__ == "__main__":
-    pass

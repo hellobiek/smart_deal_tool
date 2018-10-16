@@ -57,8 +57,8 @@ class CPlot():
 
             iobj = CIndex(self.index_code)
             i_data = iobj.get_k_data()
-            cdates = k_data.cdate.tolist()
-            i_data = i_data.loc[i_data.cdate.isin(cdates)]
+            cdates = k_data.date.tolist()
+            i_data = i_data.loc[i_data.date.isin(cdates)]
             with open('i_data.json', 'w') as f:
                 f.write(i_data.to_json(orient='records', lines=True))
             sys.exit(0)
@@ -70,16 +70,16 @@ class CPlot():
             with open('i_data.json', 'r') as f:
                 i_data = pd.read_json(f.read(), orient = 'records', lines = True)
 
-            k_data = k_data[['cdate', 'open', 'high', 'low', 'close', 'volume', 'amount', 'outstanding', 'totals', 'adj', 'aprice', 'uprice', '60price']]
-            k_data = k_data.rename(columns = {"cdate": "time"})
+            k_data = k_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount', 'outstanding', 'totals', 'adj', 'aprice', 'uprice', '60price']]
+            k_data = k_data.rename(columns = {"date": "time"})
 
             init_date = k_data.time.tail(1).values[0]
             k_data.time = pd.to_datetime(k_data.time, format='%Y-%m-%d')
             k_data.time = mdates.date2num(k_data.time)
             k_data.time = k_data.time.astype(int)
 
-            i_data = i_data[['cdate', 'open', 'high', 'low', 'close', 'volume', 'amount']]
-            i_data = i_data.rename(columns = {"cdate": "time"})
+            i_data = i_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount']]
+            i_data = i_data.rename(columns = {"date": "time"})
             i_data.time = pd.to_datetime(i_data.time, format='%Y-%m-%d')
             i_data.time = mdates.date2num(i_data.time)
             i_data.time = i_data.time.astype(int)

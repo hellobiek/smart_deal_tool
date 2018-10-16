@@ -32,14 +32,14 @@ class CombinationTest(unittest.TestCase):
         mock_create.return_value = True
         mock_mysql_create.return_value = True
         mock_get_all_table.return_value = ["table"]
-        cm = combination.Combination(ct.DB_INFO, "111111", "table")
+        cm = combination.Combination("111111", ct.DB_INFO, "table")
         self.assertTrue(cm.create_static())
         mock_get_all_table.return_value = ["table1"]
-        cm = combination.Combination(ct.DB_INFO, "111111", "table")
+        cm = combination.Combination("111111", ct.DB_INFO, "table")
         self.assertTrue(cm.create_static())
         mock_mysql_create.return_value = False
         mock_get_all_table.return_value = ["table1"]
-        cm = combination.Combination(ct.DB_INFO, "111111", "table")
+        cm = combination.Combination("111111", ct.DB_INFO, "table")
         self.assertTrue(not cm.create_static())
 
     @patch('cmysql.CMySQL.create')
@@ -55,17 +55,17 @@ class CombinationTest(unittest.TestCase):
         mock_create.return_value = True
         mock_mysql_create.return_value = True
         mock_get_all_table.return_value = ["table1"]
-        cm = combination.Combination(ct.DB_INFO, "111111", "table")
+        cm = combination.Combination("111111", ct.DB_INFO, "table")
         self.assertTrue(cm.create_realtime())
 
         mock_mysql_create.return_value = False
         mock_get_all_table.return_value = ["table1"]
-        cm = combination.Combination(ct.DB_INFO, "111111", "table")
+        cm = combination.Combination("111111", ct.DB_INFO, "table")
         self.assertTrue(not cm.create_realtime())
 
         mock_mysql_create.return_value = False
         mock_get_all_table.return_value = ["c111111_realtime"]
-        cm = combination.Combination(ct.DB_INFO, "111111", "table")
+        cm = combination.Combination("111111", ct.DB_INFO, "table")
         self.assertTrue(cm.create_realtime())
 
     @patch('combination.Combination.create_static')
@@ -78,7 +78,7 @@ class CombinationTest(unittest.TestCase):
         mock_combination_info_create.return_value = True
         mock_combination_get.return_value = True
 
-        cm = combination.Combination(ct.DB_INFO, "111111", "table")
+        cm = combination.Combination("111111", ct.DB_INFO, "table")
         mock_create_static.return_value = True
         mock_create_realtime.return_value = True
         self.assertTrue(cm.create())
@@ -86,7 +86,7 @@ class CombinationTest(unittest.TestCase):
         mock_create_static.return_value = False
         mock_create_realtime.return_value = True
         with self.assertRaises(Exception):
-            combination.Combination(ct.DB_INFO, "111111", "table")
+            combination.Combination("111111", ct.DB_INFO, "table")
 
     @patch('cmysql.CMySQL.set')
     @patch('combination.ts.get_k_data')
@@ -98,7 +98,7 @@ class CombinationTest(unittest.TestCase):
         mock_sqlalchemy_create_engine.return_value = True
         mock_combination_info_create.return_value = True
         mock_combination_get.return_value = True
-        cm = combination.Combination(ct.DB_INFO, "111111", "table")
+        cm = combination.Combination("111111", ct.DB_INFO, "table")
         mock_com_get_k_data.return_value = pd.DataFrame({'date': Series(['20170921'])})
         ts_get_k_data.return_value = pd.DataFrame({'date': Series(['20170923'])})
         cm.init()
@@ -110,11 +110,11 @@ class CombinationTest(unittest.TestCase):
     def test_get_k_data(self, mock_create_info, mock_create, mock_sql_get):
         mock_create.return_value = True
         mock_create_info.return_value = True
-        cs = combination.Combination(ct.DB_INFO, '111111', 'testa')
+        cs = combination.Combination('111111', ct.DB_INFO, 'testa')
         cs.get_k_data('2017-3-18')
         mock_sql_get.assert_called_with("select * from c111111_D where date=\"2017-3-18\"")
 
-        cs = combination.Combination(ct.DB_INFO, '111111', 'testa')
+        cs = combination.Combination('111111', ct.DB_INFO, 'testa')
         cs.get_k_data()
         mock_sql_get.assert_called_with("select * from c111111_D")
 

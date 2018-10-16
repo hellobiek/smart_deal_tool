@@ -22,11 +22,11 @@ class CAnimation:
         if not self.register(): raise Exception("create animation trigger %s failed" % self.trigger)
 
     def register(self):
-        sql = "create trigger %s after insert on %s for each row set @set=gman_do_background('%s', json_object('cdate', NEW.cdate, 'ctime', NEW.ctime, 'price', NEW.price, 'volume', NEW.volume, 'amount', NEW.amount, 'name', NEW.name));" % (self.trigger, self.table, self.trigger)
+        sql = "create trigger %s after insert on %s for each row set @set=gman_do_background('%s', json_object('date', NEW.date, 'time', NEW.time, 'price', NEW.price, 'volume', NEW.volume, 'amount', NEW.amount, 'name', NEW.name));" % (self.trigger, self.table, self.trigger)
         return True if self.trigger in self.mysql_client.get_all_triggers() else self.mysql_client.register(sql, self.trigger)
 
     def create(self):
-        sql = 'create table if not exists %s(ctime varchar(10) not null, cdate varchar(10) not null, price float, volume float, amount float, name varchar(30) not null, PRIMARY KEY (cdate, ctime, name))' % self.table
+        sql = 'create table if not exists %s(time varchar(10) not null, date varchar(10) not null, price float, volume float, amount float, name varchar(30) not null, PRIMARY KEY (date, time, name))' % self.table
         return True if self.table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.table)
 
     @staticmethod
@@ -69,8 +69,8 @@ class CAnimation:
             cdata['volume'].append(p_volume)
             cdata['amount'].append(p_amount)
         df = pd.DataFrame.from_dict(cdata)
-        df['ctime'] = datetime.fromtimestamp(time.time()).strftime('%H:%M:%S')
-        df['cdate'] = datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d')
+        df['time'] = datetime.fromtimestamp(time.time()).strftime('%H:%M:%S')
+        df['date'] = datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d')
         self.mysql_client.set(df, self.table)
         return True
 

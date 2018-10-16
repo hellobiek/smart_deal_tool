@@ -34,7 +34,7 @@ def main():
     objlist.append(gevent.spawn_later(1, worker, "3", ct.SYNC_COMBINATION_2_REDIS, pd.DataFrame(), ct.COMBINATION_INFO, ['code']))
     objlist.append(gevent.spawn_later(1, worker, "4", ct.SYNC_HALTED_2_REDIS, pd.DataFrame(), ct.HALTED_INFO, ['code','date']))
     objlist.append(gevent.spawn_later(1, worker, "5", ct.SYNC_DELISTED_2_REDIS, pd.DataFrame(), ct.DELISTED_INFO, ['code']))
-    objlist.append(gevent.spawn_later(1, worker, "6", ct.SYNC_ANIMATION_2_REDIS, pd.DataFrame(), ct.ANIMATION_INFO, ['cdate','ctime','name']))
+    objlist.append(gevent.spawn_later(1, worker, "6", ct.SYNC_ANIMATION_2_REDIS, pd.DataFrame(), ct.ANIMATION_INFO, ['date','time','name']))
     gevent.joinall(objlist)
 
 if __name__ == "__main__":

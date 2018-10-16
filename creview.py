@@ -180,7 +180,7 @@ class CReivew:
         df = pd.DataFrame()
         for code, name in ct.TDX_INDEX_DICT.items():
             self.mysql_client.changedb(CIndex.get_dbname(code))
-            data = self.mysql_client.get("select * from day where cdate=\"%s\";" % _date)
+            data = self.mysql_client.get("select * from day where date=\"%s\";" % _date)
             data['name'] = name
             df = df.append(data)
         self.mysql_client.changedb()
@@ -229,10 +229,10 @@ class CReivew:
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
         _today = datetime.now().strftime('%Y-%m-%d')
-        cdata = self.mysql_client.get('select * from %s where cdate = "%s"' % (ct.ANIMATION_INFO, _today))
+        cdata = self.mysql_client.get('select * from %s where date = "%s"' % (ct.ANIMATION_INFO, _today))
         if cdata is None: return None
         cdata = cdata.reset_index(drop = True)
-        ctime_list = cdata.ctime.unique()
+        ctime_list = cdata.time.unique()
         name_list = cdata.name.unique()
         ctime_list = [datetime.strptime(ctime,'%H:%M:%S') for ctime in ctime_list]
         frame_num = len(ctime_list)

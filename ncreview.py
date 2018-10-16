@@ -195,7 +195,7 @@ class CReivew:
         df = pd.DataFrame()
         for code, name in ct.TDX_INDEX_DICT.items():
             self.mysql_client.changedb(CIndex.get_dbname(code))
-            data = self.mysql_client.get("select * from day where cdate=\"%s\";" % _date)
+            data = self.mysql_client.get("select * from day where date=\"%s\";" % _date)
             data['name'] = name
             df = df.append(data)
         self.mysql_client.changedb()
@@ -239,10 +239,10 @@ class CReivew:
         fig = plt.figure()
         ax = fig.add_subplot(1,1,1)
         _today = datetime.now().strftime('%Y-%m-%d')
-        cdata = self.mysql_client.get('select * from %s where cdate = "%s"' % (ct.ANIMATION_INFO, _today))
+        cdata = self.mysql_client.get('select * from %s where date = "%s"' % (ct.ANIMATION_INFO, _today))
         if cdata is None: return None
         cdata = cdata.reset_index(drop = True)
-        ctime_list = cdata.ctime.unique()
+        ctime_list = cdata.time.unique()
         name_list = cdata.name.unique()
         ctime_list = [datetime.strptime(ctime,'%H:%M:%S') for ctime in ctime_list]
         frame_num = len(ctime_list)
@@ -271,7 +271,7 @@ class CReivew:
         plt.close(fig)
 
     def get_range_data(self, start_date, end_date, code):
-        sql = "select * from day where cdate between \"%s\" and \"%s\"" %(start_date, end_date)
+        sql = "select * from day where date between \"%s\" and \"%s\"" %(start_date, end_date)
         self.mysql_client.changedb(CStock.get_dbname(code))
         return (code, self.mysql_client.get(sql))
 
@@ -287,10 +287,10 @@ class CReivew:
                 if code_data[1] is not None:
                     tem_df = code_data[1]
                     if len(tem_df) == max_length:
-                        tem_df = tem_df.sort_values(by = 'cdate', ascending= True)
+                        tem_df = tem_df.sort_values(by = 'date', ascending= True)
                         tem_df['code'] = code_data[0]
                         tem_df['preclose'] = tem_df['close'].shift(1)
-                        tem_df = tem_df[tem_df.cdate != start_date]
+                        tem_df = tem_df[tem_df.date != start_date]
                         all_df = all_df.append(tem_df)
                     failed_list.remove(code_data[0])
         obj_pool.join(timeout = 5)
@@ -409,7 +409,7 @@ class CReivew:
    
     def plot_price_series(self, df, ts1, ts2):
         fig = plt.figure()
-        x = df.loc[df.code == ts1].cdate.tolist()
+        x = df.loc[df.code == ts1].date.tolist()
         xn = range(len(x))
         y1 = df.loc[df.code == ts1].close.tolist()
         name1 = df[df.code == ts1].name.values[0]
@@ -433,7 +433,7 @@ def choose_stock(df, code):
     return code if median_value > MONEY_LIMIT and mean_value > MONEY_LIMIT else None
 
 def data_std(df, _date):
-    ntmp_df = df.loc[df.cdate == _date, 'pchange']
+    ntmp_df = df.loc[df.date == _date, 'pchange']
     x = preprocessing.scale(ntmp_df)
     return pd.Series(x, index = ntmp_df.index)
 
@@ -466,12 +466,12 @@ if __name__ == '__main__':
             #上证指数的数据
             logger.info("start get index data")
             szzs_df = CIndex('000001').get_k_data_in_range(start_date, end_date)
-            szzs_df = szzs_df.sort_values(by = 'cdate', ascending= True)
+            szzs_df = szzs_df.sort_values(by = 'date', ascending= True)
             szzs_df['code'] = 'i000001'
             szzs_df['name'] = "上证指数"
             szzs_df['industry'] = "所有"
             szzs_df['preclose'] = szzs_df['close'].shift(1)
-            szzs_df = szzs_df[szzs_df.cdate != start_date]
+            szzs_df = szzs_df[szzs_df.date != start_date]
             szzs_df['pchange'] = 100 * (szzs_df.close - szzs_df.preclose) / szzs_df.preclose
             #write data to json file
             with open('index.json', 'w') as f: 
@@ -523,7 +523,7 @@ if __name__ == '__main__':
 
         logger.info("normalize data, length:%s" % len(good_list))
         cfunc = partial(data_std, df)
-        date_only_array = df.cdate.tolist()
+        date_only_array = df.date.tolist()
         for tmp_df in process_pool.imap_unordered(cfunc, date_only_array):
             df.at[tmp_df.index, 'pchange'] = tmp_df.values
         process_pool.join(timeout = 5)

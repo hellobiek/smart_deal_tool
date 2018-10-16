@@ -18,8 +18,8 @@ class MarauderMap():
             df = pd.DataFrame()
             for code in self.codes:
                 tmp_data = CStock(code).get_k_data()
-                tmp_data = tmp_data[['cdate', 'profit', 'pday']]
-                tmp_data = tmp_data.rename(columns = {"cdate": "time"})
+                tmp_data = tmp_data[['date', 'profit', 'pday']]
+                tmp_data = tmp_data.rename(columns = {"date": "time"})
                 tmp_data['code'] = code
                 df = df.append(tmp_data)
             with open('m_data.json', 'w') as f:

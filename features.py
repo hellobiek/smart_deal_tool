@@ -85,23 +85,23 @@ def BaseFloatingProfit(df, mdate = None, num = 60):
     df['pday'] = 0
     for e_index in break_index_lists:
         direction = df.loc[e_index, 'breakup']
-        pchange = 0.9 if direction > 0 else 1.1
+        ppchange = 0.9 if direction > 0 else 1.1
         base = df.loc[s_index:e_index - 1, 'uprice'].max() if direction > 0 else df.loc[s_index:e_index - 1, 'uprice'].min()
         df.at[s_index:e_index-1, 'base'] = base
-        df.at[s_index:e_index-1, 'pchange'] = pchange 
+        df.at[s_index:e_index-1, 'ppchange'] = ppchange 
         df.at[s_index:e_index-1, 'pday'] = -1 * direction * (df.loc[s_index:e_index-1].index - s_index + 1)
         s_index = e_index
         if e_index == break_index_lists[-1]:
             direction = df.loc[e_index, 'breakup']
-            pchange = 1.1 if direction > 0 else 0.9
+            ppchange = 1.1 if direction > 0 else 0.9
             base = df.loc[e_index:, 'uprice'].max() if direction < 0 else df.loc[e_index:, 'uprice'].min()
             df.at[e_index:, 'base'] = base
-            df.at[e_index:, 'pchange'] = pchange
+            df.at[e_index:, 'ppchange'] = ppchange
             df.at[e_index:, 'pday'] = direction * (df.loc[e_index:].index - e_index + 1)
     #compute the base floating profit
-    df['profit'] = (np.log(df.uprice) - np.log(df.base)).abs() / np.log(df.pchange)
+    df['profit'] = (np.log(df.uprice) - np.log(df.base)).abs() / np.log(df.ppchange)
     #drop the unnessary columns
-    df = df.drop(['base','pchange', 'breakup'], axis=1)
+    df = df.drop(['base','ppchange','breakup'], axis=1)
     return df
 
 def ProChip_NeiChip(df, dist_data, mdate = None):
@@ -109,53 +109,52 @@ def ProChip_NeiChip(df, dist_data, mdate = None):
         p_profit_vol_list = list()
         p_neighbor_vol_list = list()
         groups = dist_data.groupby(dist_data.date)
-        for _index, cdate in df.cdate.iteritems():
+        for _index, cdate in df.date.iteritems():
             drow = df.loc[_index]
             close_price = drow['close']
             outstanding = drow['outstanding']
             group = groups.get_group(cdate)
-
             p_val = 100 * group[group.price < close_price].volume.sum() / outstanding
             n_val = 100 * group[(group.price < close_price * 1.08) & (group.price > close_price * 0.92)].volume.sum() / outstanding
-
             p_profit_vol_list.append(p_val)
             p_neighbor_vol_list.append(n_val)
-
         df['ppercent'] = p_profit_vol_list
         df['npercent'] = p_neighbor_vol_list
     else:
-        groups = dist_data.groupby(dist_data.date)
-        group = groups.get_group(mdate)
-        drow = df.loc[df.date == mdate]
-        p_close = drow['close']
-        outstanding = drow['outstanding']
-        p_val = 100 * group[group.price < uprice].volume.sum() / outstanding
-        n_val = 100 * group[(group.price < close_price * 1.08) & (group.price > close_price * 0.92)].volume.sum() / outstanding
-
-        df.at[df.date == mdate, 'ppercent'] = p_val
-        df.at[df.date == mdate, 'npercent'] = n_val
+        p_close     = df['close'].values[0]
+        outstanding = df['outstanding'].values[0]
+        p_val = 100 * dist_data[dist_data.price < p_close].volume.sum() / outstanding
+        n_val = 100 * dist_data[(dist_data.price < p_close * 1.08) & (dist_data.price > p_close * 0.92)].volume.sum() / outstanding
+        df['ppercent'] = p_val
+        df['npercent'] = n_val
     return df
         
 #function           : u-limitted t-day moving avering price
 #input data columns : ['pos', 'sdate', 'date', 'price', 'volume', 'outstanding']
-def Mac(df, peried = 0):
+def Mac(df, data, peried = 0):
     ulist = list()
-    df = df.sort_values(by = 'date', ascending= True)
-    for name, group in df.groupby(df.date):
+    for name, group in data.groupby(data.date):
         if peried != 0 and len(group) > peried:
             group = group.nlargest(peried, 'pos')
         total_volume = group.volume.sum()
         total_amount = group.price.dot(group.volume)
         ulist.append(total_amount / total_volume)
-    return ulist
+    df['uprice'] = ulist
+    return df
 
-def RelativeIndexStrength(df, index_df, mdate = None):
-    if mdate is None:
+def RelativeIndexStrength(df, index_df, cdate = None, preday_sri = None):
+    if cdate is None:
+        df['sai'] = 0 
         s_pchange = (df['close'] - df['preclose']) / df['preclose']
         i_pchange = (index_df['close'] - index_df['preclose']) / index_df['preclose']
         df['sri'] = 100 * (s_pchange - i_pchange)
+        df.at[df.sri > 0, 'sai'] = df.loc[df.sri > 0, 'sri']
+        df['sri'] = df['sri'].cumsum()
     else:
-        s_pchange = (df.loc[df.date == mdate, 'close'] - df.loc[df.date == mdate, 'preclose']) / df.loc[df.date == mdate, 'preclose']
-        i_pchange = (index_df.loc[index_df.date == mdate, 'close'] - index_df.loc[index_df.date == mdate, 'preclose']) / index_df.loc[index_df.date == mdate, 'preclose']
-        df.at[df.date == mdate, 'sri'] = 100 * (s_pchange - i_pchange)
+        s_pchange = (df.loc[df.date == cdate, 'close'] - df.loc[df.date == cdate, 'preclose']) / df.loc[df.date == cdate, 'preclose']
+        s_pchange = s_pchange.values[0]
+        i_pchange = (index_df.loc[index_df.date == cdate, 'close'] - index_df.loc[index_df.date == cdate, 'preclose']) / index_df.loc[index_df.date == cdate, 'preclose']
+        i_pchange = i_pchange.values[0]
+        df['sai'] = 100 * (s_pchange - i_pchange) if s_pchange > 0 and i_pchange < 0 else 0
+        df['sri'] = preday_sri + 100 * (s_pchange - i_pchange)
     return df 
