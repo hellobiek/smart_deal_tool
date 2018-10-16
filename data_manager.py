@@ -439,11 +439,11 @@ if __name__ == '__main__':
     mdate = '2018-06-21'
     index_obj = CIndex('000001', redis_host='127.0.0.1')
     index_obj.set_k_data(fpath = '/Volumes/data/quant/stock/data/tdx/history/days/%s')
-    index_info = index_obj.get_k_data(mdate)
+    index_info = index_obj.get_k_data()
     bonus_info = pd.read_csv("/Volumes/data/quant/stock/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    #for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400', '601606', '300104','300188']:
-    for code in ['601318']:
+    #for code in ['601318']:
+    for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400', '601606', '300104', '300188', '002079', '002119', '002129', '002156', '002185', '002218', '002449', '002638', '002654', '002724', '002745', '002815', '002913', '300046', '300053', '300077', '300080', '300102', '300111', '300118', '300223', '300232', '300236', '300241', '300269', '300296', '300301', '300303', '300317', '300323']:
         cs = CStock(code, redis_host = '127.0.0.1')
         logger.info("compute %s" % code)
         #cs.set_k_data(bonus_info, index_info)
-        cs.set_k_data(bonus_info, index_info, cdate = mdate)
+        cs.set_k_data(bonus_info, index_info)
