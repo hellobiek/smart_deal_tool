@@ -12,13 +12,11 @@ import pandas as pd
 import tushare as ts
 from common import delta_days, create_redis_obj
 from log import getLogger
-from cstock import CStock
-from cstock_info import CStockInfo
 from ccalendar import CCalendar
 from collections import OrderedDict
+from industry_info import IndustryInfo
 logger = getLogger(__name__)
-
-class RIndexStock:
+class RIndexIndustryInfo:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
         self.dbname = self.get_dbname()
@@ -27,7 +25,7 @@ class RIndexStock:
 
     @staticmethod
     def get_dbname():
-        return ct.RINDEX_STOCK_INFO_DB
+        return ct.RINDEX_INDUSTRY_INFO_DB
 
     def get_table_name(self, cdate):
         cdates = cdate.split('-')
@@ -46,20 +44,16 @@ class RIndexStock:
     def create_table(self, table):
         sql = 'create table if not exists %s(date varchar(10) not null,\
                                              code varchar(10) not null,\
-                                             name varchar(10),\
-                                             changepercent float,\
-                                             trade float,\
                                              open float,\
                                              high float,\
+                                             close float,\
+                                             preclose float,\
                                              low float,\
-                                             settlement float,\
                                              volume float,\
-                                             turnoverratio float,\
                                              amount float,\
-                                             per float,\
-                                             pb float,\
-                                             mktcap float,\
-                                             nmc float,\
+                                             preamount float,\
+                                             pchange float,\
+                                             mchange float,\
                                              PRIMARY KEY (date, code))' % table
         return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
 
@@ -102,12 +96,12 @@ class RIndexStock:
         self.mysql_client.changedb(CStock.get_dbname(code))
         return (code, self.mysql_client.get(sql))
 
-    def generate_all_data(self, cdate):
+    def generate_data(self, cdate):
         good_list = list()
         obj_pool = Pool(500)
         all_df = pd.DataFrame()
-        stock_info = CStockInfo.get()
-        failed_list = stock_info.code.tolist()
+        today_industry_info = IndustryInfo.get()
+        failed_list = today_industry_info.code.tolist()
         cfunc = partial(self.get_stock_data, cdate)
         while len(failed_list) > 0:
             logger.info("restart failed ip len(%s)" % len(failed_list))
@@ -135,7 +129,7 @@ class RIndexStock:
         if self.is_date_exists(table_name, cdate): 
             logger.debug("existed table:%s, date:%s" % (table_name, cdate))
             return False
-        df = self.generate_all_data(cdate)
+        df = self.generate_data(cdate)
         self.redis.set(ct.TODAY_ALL_STOCK, _pickle.dumps(df, 2))
         if self.mysql_client.set(df, table_name):
             self.redis.sadd(table_name, cdate)
@@ -145,5 +139,5 @@ class RIndexStock:
 if __name__ == '__main__':
     #start_date = '2018-03-25'
     #end_date = '2018-04-05'
-    ris = RIndexStock(ct.DB_INFO, redis_host = '127.0.0.1')
+    ris = RIndexIndustryInfo(ct.DB_INFO, redis_host = '127.0.0.1')
     ris.set_data()

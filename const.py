@@ -107,6 +107,7 @@ const.OTHER_ERROR = 999
 const.HALTED_TABLE = "halted"
 const.STOCK_INFO_TABLE = "stock"
 const.RINDEX_STOCK_INFO_DB = "rindex_stock"
+const.RINDEX_INDUSTRY_INFO_DB = "rindex_industry"
 const.CALENDAR_TABLE = "calendar"
 const.DAILY_STATIC_TABLE = "static"
 const.COMBINATION_INFO_TABLE = "combination"
@@ -4430,6 +4431,7 @@ const.URL_MID = ".js?_dc="
 ##################################################
 const.STEPFILE = "/data/stepinfo.json"
 const.TODAY_ALL_STOCK = "TODAY_ALL_STOCK"
+const.TODAY_ALL_INDUSTRY = "TODAY_ALL_INDUSTRY"
 ##################################################
 const.CHIP_COLUMNS = ['pos', 'sdate', 'date', 'price', 'volume', 'outstanding']
 ##################################################

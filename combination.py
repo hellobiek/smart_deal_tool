@@ -30,19 +30,11 @@ class Combination:
     def get_redis_name(code):
         return "realtime_%s" % code
 
-    def create_mysql_table(self):
-        for _, table_name in self.data_type_dict.items():
-            if table_name not in self.mysql_client.get_all_tables():
-                sql = 'create table if not exists %s(date varchar(10), open float, high float, close float, low float, volume float)' % table_name
-                if not self.mysql_client.create(sql, table_name): return False
-        return True
-
     def create_influx_db(self):
         self.influx_client.create()
 
     def create(self):
-        self.create_influx_db()
-        return self.create_mysql_table()
+        return self.create_influx_db()
 
     def get_code_list(self):
         contentStr = self.get('content')

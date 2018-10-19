@@ -6,7 +6,7 @@ from log import getLogger
 logger = getLogger(__name__)
 
 class IndexInfo:
-    def __init__(self, dbinfo):
+    def __init__(self, dbinfo = ct.DB_INFO):
         self.mysql_client = cmysql.CMySQL(dbinfo)
         self.mysql_dbs = self.mysql_client.get_all_databases()
         if not self.init(): raise Exception("init index info table failed")

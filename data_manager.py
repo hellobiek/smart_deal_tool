@@ -14,7 +14,8 @@ from gevent.pool import Pool
 from functools import partial
 from creview import CReivew
 from cgreent import CGreenlet
-from rstock import RIndexStock 
+from rstock import RIndexStock
+from common import get_market_name
 from cdelisted import CDelisted
 from ccalendar import CCalendar
 from animation import CAnimation
@@ -316,18 +317,23 @@ class DataManager:
         return True
 
     def init_today_stock_info(self, cdate = None):
-        def _set_stock_info(_date, bonus_info, index_info, code_id):
+        def _set_stock_info(_date, bonus_info, sh_index_info, sz_index_info, code_id):
             _obj = CStock(code_id)
-            return (code_id, True) if _obj.set_k_data(bonus_info, index_info, cdate) else (code_id, False) 
+            market = get_market_name(code)
+            if market == 'sh':
+                return (code_id, True) if _obj.set_k_data(bonus_info, sh_index_info, cdate) else (code_id, False) 
+            else:
+                return (code_id, True) if _obj.set_k_data(bonus_info, sz_index_info, cdate) else (code_id, False) 
         obj_pool = Pool(500)
         df = self.stock_info_client.get()
         _date = datetime.now().strftime('%Y-%m-%d') if cdate is not None else cdate
         #get shanghai index info
-        index_info = self.index_objs['00001'].get_k_data(_date)
+        sh_index_info = self.index_objs['000001'].get_k_data(_date)
+        sz_index_info = self.index_objs['399001'].get_k_data(_date)
         #get stock bonus info
         bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
         failed_list = df.code.tolist()
-        cfunc = partial(_set_stock_info, _date, bonus_info, index_info)
+        cfunc = partial(_set_stock_info, _date, bonus_info, sh_index_info, sz_index_info)
         failed_count = 0
         logger.info("enter init_today_stock_info")
         while len(failed_list) > 0:
@@ -470,13 +476,22 @@ if __name__ == '__main__':
     #dm.animation_client.collect()
     #print("animation client collect success!")
     mdate = '2018-06-21'
-    index_obj = CIndex('000001', redis_host='127.0.0.1')
-    index_obj.set_k_data(fpath = '/Volumes/data/quant/stock/data/tdx/history/days/%s')
-    index_info = index_obj.get_k_data()
+    sh_index_obj = CIndex('000001', redis_host='127.0.0.1')
+    sz_index_obj = CIndex('399001', redis_host='127.0.0.1')
+    #sh_index_obj.set_k_data(fpath = "/Volumes/data/quant/stock/data/tdx/history/days/%s")
+    #sz_index_obj.set_k_data(fpath = "/Volumes/data/quant/stock/data/tdx/history/days/%s")
+    sh_index_info = sh_index_obj.get_k_data()
+    sz_index_info = sz_index_obj.get_k_data()
     bonus_info = pd.read_csv("/Volumes/data/quant/stock/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    #for code in ['300749']:
-    for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400', '601606', '300104', '300188', '002079', '002119', '002129', '002156', '002185', '002218', '002449', '002638', '002654', '002724', '002745', '002815', '002913', '300046', '300053', '300077', '300080', '300102', '300111', '300118', '300223', '300232', '300236', '300241', '300269', '300296', '300301', '300303', '300317', '300323', '300327', '300373', '300389', '300582', '300613', '300623', '300625', '300632', '300671', '300672', '300708', '600151', '600171', '600206', '600360', '600460', '600171', '600206', '600360', '600460', '600537', '600584', '600667', '600703', '601012', '603005', '603501', '603986', '300749']:
+    #for code in ['000001']:
+    #for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400', '601606', '300104', '300188', '002079', '002119', '002129', '002156', '002185', '002218', '002449', '002638', '002654', '002724', '002745', '002815', '002913', '300046', '300053', '300077', '300080', '300102', '300111', '300118', '300223', '300232', '300236', '300241', '300269', '300296', '300301', '300303', '300317', '300323', '300327', '300373', '300389', '300582', '300613', '300623', '300625', '300632', '300671', '300672', '300708', '600151', '600171', '600206', '600360', '600460', '600171', '600206', '600360', '600460', '600537', '600584', '600667', '600703', '601012', '603005', '603501', '603986', '300749']:
+    for code in ['000400', '601606', '300104', '300188', '002079', '002119', '002129', '002156', '002185', '002218', '002449', '002638', '002654', '002724', '002745', '002815', '002913', '300046', '300053', '300077', '300080', '300102', '300111', '300118', '300223', '300232', '300236', '300241', '300269', '300296', '300301', '300303', '300317', '300323', '300327', '300373', '300389', '300582', '300613', '300623', '300625', '300632', '300671', '300672', '300708', '600151', '600171', '600206', '600360', '600460', '600171', '600206', '600360', '600460', '600537', '600584', '600667', '600703', '601012', '603005', '603501', '603986', '300749']:
         cs = CStock(code, redis_host = '127.0.0.1')
+        market = get_market_name(code)
+        if market == 'sh':
+            index_info = sh_index_info
+        else:
+            index_info = sz_index_info
         logger.info("compute %s" % code)
         cs.set_k_data(bonus_info, index_info)
         cs.set_base_floating_profit()

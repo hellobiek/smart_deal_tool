@@ -4,10 +4,13 @@ from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import const as ct
 from cmysql import CMySQL
+from cindex import CIndex
 from cstock import CStock
 from pandas import DataFrame
-from technical import bfp, gkr, prt, pvh, rat, rolling_peak
 from base.feed import dataFramefeed 
+from rindustry import RIndexIndustryInfo
+from common import get_day_nday_ago, get_dates_array
+from technical import bfp, gkr, prt, pvh, rat, rolling_peak
 from pyalgotrade.technical import highlow, ma
 from pyalgotrade.stratanalyzer import returns
 from pyalgotrade import plotter, strategy, broker
@@ -77,9 +80,32 @@ class PlateMomentumStrategy(strategy.BacktestingStrategy):
                         self.info("before sell %s %s at ￥%.2f, exists cash:%s" % (element, self.getBroker().getShares(element), price, self.getBroker().getCash()))
                         self.__position.exitMarket()
                         self.info("after sell %s %s at ￥%.2f, exists cash:%s" % (element, self.getBroker().getShares(element), price, self.getBroker().getCash()))
- 
-def choose_stock():
-    return ['002153']
+
+#获取sdate日期涨幅最大的板块，跌幅最大的板块，资金变化最大的板块
+    #获取板块的成交金额变化
+    #获取板块的相对大盘强弱
+    #获取板块的逆势大盘上涨的强弱
+
+#分析该板块中的个股:
+    #逆势飘红的强度
+    #筹码密集的程度
+    #相对大盘涨跌的强度
+    #博弈K线无量长阳的状态
+    #成交量的中位数和平均数
+    #成交额的中位数和平均数
+    #相对盈利状态，相对60日成本均线的状态。
+    #绝对盈利状态，处于下成本区，上成本区，盈利区域。
+
+def choose_stock(name = None, sdate = '2016-03-11', ndays = 90):
+    edate = get_day_nday_ago(sdate, '%Y-%m-%d')
+    #get sh index data
+    sh_index_obj = CIndex('000001', redis_host='127.0.0.1')
+    sh_index_info = sh_index_obj.get_k_data_in_range(sdate, edate)
+    #get industry data
+    rindustry_info_client = RIndexIndustryInfo()
+    all_industry_df = rindustry_info_client.get_data_between(sdate, edate)
+    for code, industry in all_industry_df.groupby('code'):
+        return True
 
 def plate_momentum(mode = ct.PAPER_TRADING, start_date = '2018-03-01', end_date = '2018-10-28'):
     if mode == ct.PAPER_TRADING:

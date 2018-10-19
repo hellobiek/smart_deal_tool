@@ -8,6 +8,7 @@ logger = getLogger(__name__)
 class CIndex(Combination):
     def __init__(self, code, dbinfo = ct.DB_INFO, redis_host = None):
         Combination.__init__(self, code, dbinfo, redis_host)
+        return self.create_mysql_table()
 
     @staticmethod
     def get_dbname(code):
@@ -25,6 +26,13 @@ class CIndex(Combination):
             return ct.MARKET_SZ
         else:
             return ct.MARKET_OTHER
+
+    def create_mysql_table(self):
+        for _, table_name in self.data_type_dict.items():
+            if table_name not in self.mysql_client.get_all_tables():
+                sql = 'create table if not exists %s(date varchar(10), open float, high float, close float, preclose float, low float, volume float, amount float, preamount float, pchange float, mchange float, PRIMARY KEY(date))' % table_name
+                if not self.mysql_client.create(sql, table_name): return False
+        return True
 
     def get_k_data_in_range(self, start_date, end_date):
         table_name = 'day'
@@ -49,6 +57,11 @@ class CIndex(Combination):
 
         df['preclose'] = df['close'].shift(1)
         df.at[0, 'preclose'] = df.loc[0, 'open']
+        df['pchange'] = 100 * (df['close'] - df['preclose']) / df['preclose']
+
+        df['preamount'] = df['amount'].shift(1)
+        df.at[0, 'preamount'] = 0
+        df['mchange'] = 100 * (df['amount'] - df['preamount']) / df['amount']
 
         df = df.reset_index(drop = True)
         return self.mysql_client.set(df, 'day', method = ct.REPLACE)

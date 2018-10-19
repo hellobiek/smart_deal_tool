@@ -328,9 +328,10 @@ class CStock(TickerHandlerBase):
 
     def relative_index_strength(self, df, index_df, cdate = None):
         index_df = index_df.loc[index_df.date.isin(df.date.tolist())]
-        index_df.index = df.index
+        index_df.index = df.loc[df.date.isin(index_df.date.tolist())].index
         if cdate is None:
-            df['sai'] = 0 
+            df['sai'] = 0
+            df['sri'] = 0
             s_pchange = (df['close'] - df['preclose']) / df['preclose']
             i_pchange = (index_df['close'] - index_df['preclose']) / index_df['preclose']
             df['sri'] = 100 * (s_pchange - i_pchange)
