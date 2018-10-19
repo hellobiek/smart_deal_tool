@@ -247,8 +247,8 @@ class DataManager:
                             self.set_update_info(9)
                            
                         if finished_step < 10:
-                            if not self.rindex_stock_data_client.set_data():
-                                logger.error("rindex_stock_data set failed")
+                            if not self.init_today_stock_info():
+                                logger.error("init_today_stock_info set failed")
                                 continue
                             self.set_update_info(10)
 
@@ -256,10 +256,15 @@ class DataManager:
                         #    self.cviewer.update()
                         #    self.set_update_info(11)
 
-                        #if finished_step < 12:
-                        #    if not self.init_today_stock_info():
-                        #        logger.error("init_today_stock_info set failed")
-                        #    self.set_update_info(12)
+                        if finished_step < 12:
+                            if not self.rindex_stock_data_client.set_data():
+                                logger.error("rindex_stock_data set failed")
+                                continue
+
+                        if finished_step < 13:
+                            if not self.init_base_float_profit():
+                                logger.error("init base float profit for all stock")
+                                continue
                         logger.info("updating succeed")
             except Exception as e:
                 logger.error(e)
@@ -281,6 +286,34 @@ class DataManager:
         for _, code_id in trading_info['code'].iteritems():
             if str(code_id) not in self.combination_objs:
                 self.combination_objs[str(code_id)] = Combination(code_id, self.dbinfo)
+
+    def init_base_float_profit(self):
+        def _set_base_float_profit(code_id):
+            _obj = CStock(code_id, should_create_mysqldb = False)
+            return (code_id, True) if _obj.set_base_floating_profit() else (code_id, False)
+
+        obj_pool = Pool(500)
+        df = self.stock_info_client.get()
+        failed_list = df.code.tolist()
+        failed_count = 0
+        logger.info("enter init_base_float_profit")
+        while len(failed_list) > 0:
+            is_failed = False
+            logger.info("init_base_float_profit:%s" % len(failed_list))
+            for result in obj_pool.imap_unordered(_set_base_float_profit, failed_list):
+                if True == result[1]: 
+                    failed_list.remove(result[0])
+                else:
+                    is_failed = True
+            if is_failed:
+                failed_count += 1
+                if failed_count > 10: 
+                    logger.info("%s base float profit init failed" % failed_list)
+                    return False
+                time.sleep(10)
+        obj_pool.join(timeout = 10)
+        obj_pool.kill()
+        return True
 
     def init_today_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, index_info, code_id):
@@ -441,9 +474,9 @@ if __name__ == '__main__':
     index_obj.set_k_data(fpath = '/Volumes/data/quant/stock/data/tdx/history/days/%s')
     index_info = index_obj.get_k_data()
     bonus_info = pd.read_csv("/Volumes/data/quant/stock/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    #for code in ['601318']:
-    for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400', '601606', '300104', '300188', '002079', '002119', '002129', '002156', '002185', '002218', '002449', '002638', '002654', '002724', '002745', '002815', '002913', '300046', '300053', '300077', '300080', '300102', '300111', '300118', '300223', '300232', '300236', '300241', '300269', '300296', '300301', '300303', '300317', '300323']:
+    #for code in ['300749']:
+    for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400', '601606', '300104', '300188', '002079', '002119', '002129', '002156', '002185', '002218', '002449', '002638', '002654', '002724', '002745', '002815', '002913', '300046', '300053', '300077', '300080', '300102', '300111', '300118', '300223', '300232', '300236', '300241', '300269', '300296', '300301', '300303', '300317', '300323', '300327', '300373', '300389', '300582', '300613', '300623', '300625', '300632', '300671', '300672', '300708', '600151', '600171', '600206', '600360', '600460', '600171', '600206', '600360', '600460', '600537', '600584', '600667', '600703', '601012', '603005', '603501', '603986', '300749']:
         cs = CStock(code, redis_host = '127.0.0.1')
         logger.info("compute %s" % code)
-        #cs.set_k_data(bonus_info, index_info)
         cs.set_k_data(bonus_info, index_info)
+        cs.set_base_floating_profit()

@@ -3,21 +3,26 @@ import time
 import cmysql
 import _pickle
 import datetime
+from gevent.pool import Pool
 from datetime import datetime
+from functools import partial
 import const as ct
 import numpy as np
 import pandas as pd
 import tushare as ts
-from log import getLogger
 from common import delta_days, create_redis_obj
+from log import getLogger
+from cstock import CStock
+from cstock_info import CStockInfo
 from ccalendar import CCalendar
 from collections import OrderedDict
 logger = getLogger(__name__)
+
 class RIndexStock:
-    def __init__(self, dbinfo):
-        self.redis = create_redis_obj()
+    def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
+        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
         self.dbname = self.get_dbname()
-        self.mysql_client = cmysql.CMySQL(dbinfo, self.dbname)
+        self.mysql_client = cmysql.CMySQL(dbinfo, self.dbname, iredis = self.redis)
         if not self.mysql_client.create_db(self.get_dbname()): raise Exception("init rindex stock database failed")
 
     @staticmethod
@@ -58,7 +63,7 @@ class RIndexStock:
                                              PRIMARY KEY (date, code))' % table
         return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
 
-    def get_data_in_range(self, start_date, end_date):
+    def get_k_data_in_range(self, start_date, end_date):
         ndays = delta_days(start_date, end_date)
         date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(start_date, "%Y-%m-%d"))
         data_times = pd.date_range(date_dmy_format, periods=ndays, freq='D')
@@ -87,10 +92,37 @@ class RIndexStock:
         sql = "select * from %s where date between \"%s\" and \"%s\"" % (self.get_table_name(start_date), start_date, end_date)
         return self.mysql_client.get(sql)
 
-    def get_data(self, cdate):
+    def get_k_data(self, cdate):
         cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
         sql = "select * from %s where date=\"%s\"" % (self.get_table_name(cdate), cdate)
         return self.mysql_client.get(sql)
+
+    def get_stock_data(self, date, code):
+        sql = "select * from day where date=\"%s\"" % date
+        self.mysql_client.changedb(CStock.get_dbname(code))
+        return (code, self.mysql_client.get(sql))
+
+    def generate_all_data(self, cdate):
+        good_list = list()
+        obj_pool = Pool(500)
+        all_df = pd.DataFrame()
+        stock_info = CStockInfo.get()
+        failed_list = stock_info.code.tolist()
+        failed_list = ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400', '601606', '300104', '300188', '002079', '002119', '002129', '002156', '002185', '002218', '002449', '002638', '002654', '002724', '002745', '002815', '002913', '300046', '300053', '300077', '300080', '300102', '300111', '300118', '300223', '300232', '300236', '300241', '300269', '300296', '300301', '300303', '300317', '300323', '300327', '300373', '300389', '300582', '300613', '300623', '300625', '300632', '300671', '300672', '300708', '600151', '600171', '600206', '600360', '600460', '600171', '600206', '600360', '600460', '600537', '600584', '600667', '600703', '601012', '603005', '603501', '603986']
+        cfunc = partial(self.get_stock_data, cdate)
+        while len(failed_list) > 0:
+            logger.info("restart failed ip len(%s)" % len(failed_list))
+            for code_data in obj_pool.imap_unordered(cfunc, failed_list):
+                if code_data[1] is not None:
+                    tem_df = code_data[1]
+                    tem_df['code'] = code_data[0]
+                    all_df = all_df.append(tem_df)
+                    failed_list.remove(code_data[0])
+        obj_pool.join(timeout = 5)
+        obj_pool.kill()
+        self.mysql_client.changedb(self.get_dbname())
+        all_df = all_df.reset_index(drop = True)
+        return all_df
 
     def set_data(self):
         cdate = datetime.now().strftime('%Y-%m-%d')
@@ -104,8 +136,7 @@ class RIndexStock:
         if self.is_date_exists(table_name, cdate): 
             logger.debug("existed table:%s, date:%s" % (table_name, cdate))
             return False
-        df = ts.get_today_all()
-        df['date'] = cdate
+        df = self.generate_all_data(cdate)
         self.redis.set(ct.TODAY_ALL_STOCK, _pickle.dumps(df, 2))
         if self.mysql_client.set(df, table_name):
             self.redis.sadd(table_name, cdate)
@@ -115,5 +146,5 @@ class RIndexStock:
 if __name__ == '__main__':
     #start_date = '2018-03-25'
     #end_date = '2018-04-05'
-    ris = RIndexStock(ct.DB_INFO)
+    ris = RIndexStock(ct.DB_INFO, redis_host = '127.0.0.1')
     ris.set_data()

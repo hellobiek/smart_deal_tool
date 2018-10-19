@@ -6,6 +6,7 @@ import const as ct
 from cmysql import CMySQL
 from cstock import CStock
 from pandas import DataFrame
+from technical import bfp, gkr, prt, pvh, rat, rolling_peak
 from base.feed import dataFramefeed 
 from pyalgotrade.technical import highlow, ma
 from pyalgotrade.stratanalyzer import returns

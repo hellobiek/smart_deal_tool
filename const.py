@@ -4439,3 +4439,5 @@ const.REAL_TRADING = 2
 ##################################################
 const.ROLLING_UP = 1
 const.ROLLING_DOWN = -1
+##################################################
+const.PRE_DAYS_NUM = 60

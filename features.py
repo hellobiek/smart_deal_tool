@@ -52,109 +52,77 @@ def KDJ(data, N1=9, N2=3, N3=3):
     data['J'] = j
     return data
 
-def BaseFloatingProfit(df, mdate = None, num = 60):
-    #get all breakup points
-    df['breakup'] = 0
-    df.at[(df.preclose < df.uprice) & (df.close > df.uprice), 'breakup'] = 1
-    df.at[(df.preclose > df.uprice) & (df.close < df.uprice), 'breakup'] = -1
-    break_index_lists = df.loc[df.breakup != 0].index.tolist()
-    #get all fake break points
-    should_remove_index_list = list()
-    for break_index in range(len(break_index_lists)):
+def get_effective_breakup_index(break_index_lists, num, df):
+    break_index = 0
+    effective_breakup_index_list = list()
+    while break_index < len(break_index_lists):
+        pre_price = df.at[break_index_lists[break_index], 'uprice']
         if break_index < len(break_index_lists) - 1:
-            if break_index_lists[break_index + 1] - break_index_lists[break_index] < num:
-                should_remove_index_list.append(break_index_lists[break_index])
+            now_price = df.at[break_index_lists[break_index + 1],'uprice']
+            if now_price > pre_price * 1.2 or now_price < pre_price * 0.8:
+                effective_breakup_index_list.append(break_index_lists[break_index])
+            else:
+                if break_index_lists[break_index + 1] - break_index_lists[break_index] > num:
+                    if df.at[break_index_lists[break_index + 1], 'breakup'] * df.at[break_index_lists[break_index], 'breakup'] > 0: raise("get error ip failed")
+                    effective_breakup_index_list.append(break_index_lists[break_index])
         else:
-            if len(df) - break_index_lists[break_index] < num:
-                should_remove_index_list.append(break_index_lists[break_index])
-    df.at[df.index.isin(should_remove_index_list), 'breakup'] = 0
-    #merge break points to better points
-    s_index = 0
-    should_remove_index_list = list()
-    break_index_lists = df.loc[df.breakup != 0].index.tolist()
-    for break_index in range(1, len(break_index_lists)):
-        if df.loc[break_index_lists[s_index], 'breakup'] != df.loc[break_index_lists[break_index], 'breakup']:
-            s_index = break_index
-        else:
-            should_remove_index_list.append(break_index_lists[break_index])
-    df.at[df.index.isin(should_remove_index_list), 'breakup'] = 0
-    break_index_lists = df.loc[df.breakup != 0].index.tolist()
-    #compute price base and price change
-    s_index = 0
-    df['base'] = 0
-    df['pday'] = 0
-    for e_index in break_index_lists:
-        direction = df.loc[e_index, 'breakup']
-        ppchange = 0.9 if direction > 0 else 1.1
-        base = df.loc[s_index:e_index - 1, 'uprice'].max() if direction > 0 else df.loc[s_index:e_index - 1, 'uprice'].min()
-        df.at[s_index:e_index-1, 'base'] = base
-        df.at[s_index:e_index-1, 'ppchange'] = ppchange 
-        df.at[s_index:e_index-1, 'pday'] = -1 * direction * (df.loc[s_index:e_index-1].index - s_index + 1)
-        s_index = e_index
-        if e_index == break_index_lists[-1]:
-            direction = df.loc[e_index, 'breakup']
-            ppchange = 1.1 if direction > 0 else 0.9
-            base = df.loc[e_index:, 'uprice'].max() if direction < 0 else df.loc[e_index:, 'uprice'].min()
-            df.at[e_index:, 'base'] = base
-            df.at[e_index:, 'ppchange'] = ppchange
-            df.at[e_index:, 'pday'] = direction * (df.loc[e_index:].index - e_index + 1)
-    #compute the base floating profit
-    df['profit'] = (np.log(df.uprice) - np.log(df.base)).abs() / np.log(df.ppchange)
-    #drop the unnessary columns
-    df = df.drop(['base','ppchange','breakup'], axis=1)
+            now_price = df.at[len(df) - 1, 'uprice']
+            if now_price > pre_price * 1.2 or now_price < pre_price * 0.8:
+                effective_breakup_index_list.append(break_index_lists[break_index])
+            else:
+                if len(df) - break_index_lists[break_index] > num:
+                    effective_breakup_index_list.append(break_index_lists[break_index])
+        break_index += 1
+    return effective_breakup_index_list
+
+def get_breakup_data(df):
+    df['pos'] = 0
+    df.at[df.close > df.uprice, 'pos'] = 1
+    df.at[df.close < df.uprice, 'pos'] = -1
+    df['pre_pos'] = df['pos'].shift(1)
+    df.at[0, 'pre_pos'] = 0
+    df['pre_pos'] = df['pre_pos'].astype(int)
+    df['breakup'] = 0
+    df.at[(df.pre_pos <= 0) & (df.pos > 0), 'breakup'] = 1
+    df.at[(df.pre_pos >= 0) & (df.pos < 0), 'breakup'] = -1
+    df = df.drop(['pos', 'pre_pos'],  axis=1)
     return df
 
-def ProChip_NeiChip(df, dist_data, mdate = None):
+def base_floating_profit(df, num, mdate = None):
     if mdate is None:
-        p_profit_vol_list = list()
-        p_neighbor_vol_list = list()
-        groups = dist_data.groupby(dist_data.date)
-        for _index, cdate in df.date.iteritems():
-            drow = df.loc[_index]
-            close_price = drow['close']
-            outstanding = drow['outstanding']
-            group = groups.get_group(cdate)
-            p_val = 100 * group[group.price < close_price].volume.sum() / outstanding
-            n_val = 100 * group[(group.price < close_price * 1.08) & (group.price > close_price * 0.92)].volume.sum() / outstanding
-            p_profit_vol_list.append(p_val)
-            p_neighbor_vol_list.append(n_val)
-        df['ppercent'] = p_profit_vol_list
-        df['npercent'] = p_neighbor_vol_list
-    else:
-        p_close     = df['close'].values[0]
-        outstanding = df['outstanding'].values[0]
-        p_val = 100 * dist_data[dist_data.price < p_close].volume.sum() / outstanding
-        n_val = 100 * dist_data[(dist_data.price < p_close * 1.08) & (dist_data.price > p_close * 0.92)].volume.sum() / outstanding
-        df['ppercent'] = p_val
-        df['npercent'] = n_val
-    return df
-        
-#function           : u-limitted t-day moving avering price
-#input data columns : ['pos', 'sdate', 'date', 'price', 'volume', 'outstanding']
-def Mac(df, data, peried = 0):
-    ulist = list()
-    for name, group in data.groupby(data.date):
-        if peried != 0 and len(group) > peried:
-            group = group.nlargest(peried, 'pos')
-        total_volume = group.volume.sum()
-        total_amount = group.price.dot(group.volume)
-        ulist.append(total_amount / total_volume)
-    df['uprice'] = ulist
-    return df
-
-def RelativeIndexStrength(df, index_df, cdate = None, preday_sri = None):
-    if cdate is None:
-        df['sai'] = 0 
-        s_pchange = (df['close'] - df['preclose']) / df['preclose']
-        i_pchange = (index_df['close'] - index_df['preclose']) / index_df['preclose']
-        df['sri'] = 100 * (s_pchange - i_pchange)
-        df.at[df.sri > 0, 'sai'] = df.loc[df.sri > 0, 'sri']
-        df['sri'] = df['sri'].cumsum()
-    else:
-        s_pchange = (df.loc[df.date == cdate, 'close'] - df.loc[df.date == cdate, 'preclose']) / df.loc[df.date == cdate, 'preclose']
-        s_pchange = s_pchange.values[0]
-        i_pchange = (index_df.loc[index_df.date == cdate, 'close'] - index_df.loc[index_df.date == cdate, 'preclose']) / index_df.loc[index_df.date == cdate, 'preclose']
-        i_pchange = i_pchange.values[0]
-        df['sai'] = 100 * (s_pchange - i_pchange) if s_pchange > 0 and i_pchange < 0 else 0
-        df['sri'] = preday_sri + 100 * (s_pchange - i_pchange)
-    return df 
+        df = get_breakup_data(df)
+        break_index_lists = df.loc[df.breakup != 0].index.tolist()
+        effective_breakup_index_list = get_effective_breakup_index(break_index_lists, num, df)
+        df['pday'] = 1
+        df['base'] = df['close']
+        df['ppchange'] = 0
+        if len(effective_breakup_index_list) == 0:
+            df['profit'] = (df.close - df.uprice) / df.uprice
+        else:
+            s_index = 0
+            for e_index in effective_breakup_index_list:
+                if s_index == e_index:
+                    if len(effective_breakup_index_list) == 1:
+                        base = df.loc[s_index, 'uprice']
+                        direction = df.loc[s_index, 'breakup']
+                        ppchange = 1.1 if direction > 0 else 0.9
+                        df.at[s_index:, 'base'] = base
+                        df.at[s_index:, 'ppchange'] = ppchange
+                        df.at[s_index:, 'pday'] = direction * (df.loc[s_index:].index - s_index + 1)
+                else:
+                    base = df.loc[s_index, 'uprice']
+                    direction = df.loc[e_index, 'breakup']
+                    ppchange = 1.1 if direction < 0 else 0.9
+                    df.at[s_index:e_index - 1, 'base'] = base
+                    df.at[s_index:e_index - 1, 'ppchange'] = ppchange
+                    df.at[s_index:e_index - 1, 'pday'] = -1 * direction * (df.loc[s_index:e_index - 1].index - s_index + 1)
+                    s_index = e_index
+                    if e_index == effective_breakup_index_list[-1]:
+                        base = df.loc[e_index, 'uprice']
+                        direction = df.loc[e_index, 'breakup']
+                        ppchange = 1.1 if direction > 0 else 0.9
+                        df.at[e_index:, 'base'] = base
+                        df.at[e_index:, 'ppchange'] = ppchange
+                        df.at[e_index:, 'pday'] = direction * (df.loc[e_index:].index - e_index + 1)
+            df['profit'] = (np.log(df.close) - np.log(df.base)).abs() / np.log(df.ppchange)
+    return df[['date', 'profit', 'pday']]
