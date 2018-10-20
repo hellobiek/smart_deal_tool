@@ -12,6 +12,7 @@ import pandas as pd
 import tushare as ts
 from common import delta_days, create_redis_obj
 from log import getLogger
+from cindex import CIndex
 from ccalendar import CCalendar
 from collections import OrderedDict
 from industry_info import IndustryInfo
@@ -29,10 +30,11 @@ class RIndexIndustryInfo:
 
     def get_table_name(self, cdate):
         cdates = cdate.split('-')
-        return "day_%s_%s" % (cdates[0], (int(cdates[1])-1)//3 + 1)
+        return "rindex_day_%s_%s" % (cdates[0], (int(cdates[1])-1)//3 + 1)
 
     def is_date_exists(self, table_name, cdate):
         if self.redis.exists(table_name):
+            return False
             return cdate in set(str(tdate, encoding = "utf8") for tdate in self.redis.smembers(table_name))
         return False
 
@@ -91,20 +93,20 @@ class RIndexIndustryInfo:
         sql = "select * from %s where date=\"%s\"" % (self.get_table_name(cdate), cdate)
         return self.mysql_client.get(sql)
 
-    def get_stock_data(self, date, code):
+    def get_industry_data(self, date, code):
         sql = "select * from day where date=\"%s\"" % date
-        self.mysql_client.changedb(CStock.get_dbname(code))
+        self.mysql_client.changedb(CIndex.get_dbname(code))
         return (code, self.mysql_client.get(sql))
 
     def generate_data(self, cdate):
         good_list = list()
         obj_pool = Pool(500)
         all_df = pd.DataFrame()
-        today_industry_info = IndustryInfo.get()
+        today_industry_info = IndustryInfo.get(self.redis)
         failed_list = today_industry_info.code.tolist()
-        cfunc = partial(self.get_stock_data, cdate)
+        cfunc = partial(self.get_industry_data, cdate)
         while len(failed_list) > 0:
-            logger.info("restart failed ip len(%s)" % len(failed_list))
+            logger.debug("restart failed ip len(%s)" % len(failed_list))
             for code_data in obj_pool.imap_unordered(cfunc, failed_list):
                 if code_data[1] is not None:
                     tem_df = code_data[1]
@@ -117,10 +119,10 @@ class RIndexIndustryInfo:
         all_df = all_df.reset_index(drop = True)
         return all_df
 
-    def set_data(self):
-        cdate = datetime.now().strftime('%Y-%m-%d')
+    def set_data(self, cdate = '2018-10-18'):
+        cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
+        if not CCalendar.is_trading_day(cdate, redis = self.redis): return False
         table_name = self.get_table_name(cdate)
-        self.create_table(table_name)
         if not self.is_table_exists(table_name):
             if not self.create_table(table_name):
                 logger.error("create tick table failed")
@@ -130,14 +132,20 @@ class RIndexIndustryInfo:
             logger.debug("existed table:%s, date:%s" % (table_name, cdate))
             return False
         df = self.generate_data(cdate)
-        self.redis.set(ct.TODAY_ALL_STOCK, _pickle.dumps(df, 2))
-        if self.mysql_client.set(df, table_name):
+        self.redis.set(ct.TODAY_ALL_INDUSTRY, _pickle.dumps(df, 2))
+        if self.mysql_client.set(df, table_name, method = ct.APPEND):
             self.redis.sadd(table_name, cdate)
             return True
         return False
 
 if __name__ == '__main__':
-    #start_date = '2018-03-25'
-    #end_date = '2018-04-05'
+    start_date = '2016-03-11'
+    end_date = '2018-10-19'
+    ndays = delta_days(start_date, end_date)
+    date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(start_date, "%Y-%m-%d"))
+    data_times = pd.date_range(date_dmy_format, periods=ndays, freq='D')
+    date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
     ris = RIndexIndustryInfo(ct.DB_INFO, redis_host = '127.0.0.1')
-    ris.set_data()
+    for cdate in date_only_array:
+        print(cdate)
+        ris.set_data(cdate)

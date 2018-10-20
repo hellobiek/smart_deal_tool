@@ -11,12 +11,14 @@ import numpy as np
 import pandas as pd
 from log import getLogger
 from cmysql import CMySQL
+from common import create_redis_obj 
 from datetime import datetime
 logger = getLogger(__name__)
 class CLimit:
-    def __init__(self, dbinfo):
+    def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.table = self.get_tbname()
-        self.mysql_client = CMySQL(dbinfo)
+        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
+        self.mysql_client = CMySQL(dbinfo, iredis = self.redis)
         self.header = {"Host": "home.flashdata2.jrj.com.cn",
                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36"}
         if not self.create(): raise Exception("create stock %s failed" % self.table)

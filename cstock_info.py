@@ -13,10 +13,10 @@ from common import trace_func, create_redis_obj
 logger = getLogger(__name__)
 
 class CStockInfo:
-    def __init__(self, dbinfo):
+    def __init__(self, dbinfo, redis_host = None):
         self.table = ct.STOCK_INFO_TABLE
-        self.redis = create_redis_obj()
-        self.mysql_client = cmysql.CMySQL(dbinfo)
+        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
+        self.mysql_client = cmysql.CMySQL(dbinfo, iredis = self.redis)
         self.mysql_dbs = self.mysql_client.get_all_databases()
         #self.trigger = ct.SYNCSTOCK2REDIS
         #if not self.create(): raise Exception("create stock info table:%s failed" % self.table)
@@ -76,8 +76,8 @@ class CStockInfo:
         return True
 
     @staticmethod
-    def get(code = None, column = None):
-        redis = create_redis_obj()
+    def get(code = None, column = None, redis = None):
+        redis = create_redis_obj() if redis is None else redis
         df_byte = redis.get(ct.STOCK_INFO)
         if df_byte is None: return pd.DataFrame()
         df = _pickle.loads(df_byte)

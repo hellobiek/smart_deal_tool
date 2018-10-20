@@ -10,10 +10,10 @@ from pandas import DataFrame
 from common import trace_func, create_redis_obj
 logger = getLogger(__name__)
 class IndustryInfo:
-    def __init__(self, dbinfo):
+    def __init__(self, dbinfo, redis_host = None):
         self.table = ct.INDUSTRY_INFO
-        self.redis = create_redis_obj()
-        self.mysql_client = cmysql.CMySQL(dbinfo)
+        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
+        self.mysql_client = cmysql.CMySQL(dbinfo, iredis = self.redis)
         self.mysql_dbs = self.mysql_client.get_all_databases()
         if not self.init(): raise Exception("init combination table failed")
 
@@ -35,8 +35,8 @@ class IndustryInfo:
         return True
         
     @staticmethod
-    def get():
-        redis = create_redis_obj()
+    def get(redis = None):
+        redis = create_redis_obj() if redis is None else redis
         df_byte = redis.get(ct.INDUSTRY_INFO) 
         return pd.DataFrame() if df_byte is None else _pickle.loads(df_byte)
 

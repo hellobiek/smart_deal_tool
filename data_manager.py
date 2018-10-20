@@ -40,22 +40,22 @@ pd.set_option('display.max_rows', None)
 logger = getLogger(__name__)
 
 class DataManager:
-    def __init__(self, dbinfo):
-        self.combination_objs = dict()
-        self.stock_objs = dict()
-        self.index_objs = dict()
+    def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.dbinfo = dbinfo
-        self.cal_client = CCalendar(dbinfo)
-        self.comb_info_client = CombinationInfo(dbinfo)
-        self.stock_info_client = CStockInfo(dbinfo)
-        self.rindex_stock_data_client = RIndexStock(dbinfo) 
-        self.index_info_client = IndexInfo(dbinfo)
-        self.industry_info_client = IndustryInfo(dbinfo)
-        self.delisted_info_client = CDelisted(dbinfo)
-        self.limit_client = CLimit(dbinfo)
-        self.animation_client = CAnimation(dbinfo)
+        self.index_objs = dict()
+        self.stock_objs = dict()
+        self.combination_objs = dict()
+        self.cal_client = CCalendar(dbinfo, redis_host)
+        self.comb_info_client = CombinationInfo(dbinfo, redis_host)
+        self.stock_info_client = CStockInfo(dbinfo, redis_host)
+        self.rindex_stock_data_client = RIndexStock(dbinfo, redis_host) 
+        self.index_info_client = IndexInfo(dbinfo, redis_host)
+        self.industry_info_client = IndustryInfo(dbinfo, redis_host)
+        self.delisted_info_client = CDelisted(dbinfo, redis_host)
+        self.limit_client = CLimit(dbinfo, redis_host)
+        self.animation_client = CAnimation(dbinfo, redis_host)
+        self.cviewer = CReivew(dbinfo, redis_host)
         self.subscriber = Subscriber()
-        self.cviewer = CReivew(dbinfo)
 
     def is_collecting_time(self, now_time = None):
         if now_time is None: now_time = datetime.now()
@@ -463,7 +463,7 @@ class DataManager:
             return False
         
 if __name__ == '__main__':
-    #dm = DataManager(ct.DB_INFO)
+    dm = DataManager()
     #cdate = '2018-09-25'
     #dm.init_today_stock_info(cdate)
     #dm.init_today_industry_info()
@@ -475,23 +475,20 @@ if __name__ == '__main__':
     #print("collect index_runtime_data success!")
     #dm.animation_client.collect()
     #print("animation client collect success!")
-    mdate = '2018-06-21'
+
     sh_index_obj = CIndex('000001', redis_host='127.0.0.1')
     sz_index_obj = CIndex('399001', redis_host='127.0.0.1')
-    #sh_index_obj.set_k_data(fpath = "/Volumes/data/quant/stock/data/tdx/history/days/%s")
-    #sz_index_obj.set_k_data(fpath = "/Volumes/data/quant/stock/data/tdx/history/days/%s")
+    sh_index_obj.set_k_data(fpath = "/Volumes/data/quant/stock/data/tdx/history/days/%s")
+    sz_index_obj.set_k_data(fpath = "/Volumes/data/quant/stock/data/tdx/history/days/%s")
     sh_index_info = sh_index_obj.get_k_data()
     sz_index_info = sz_index_obj.get_k_data()
+
     bonus_info = pd.read_csv("/Volumes/data/quant/stock/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
     #for code in ['000001']:
-    #for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400', '601606', '300104', '300188', '002079', '002119', '002129', '002156', '002185', '002218', '002449', '002638', '002654', '002724', '002745', '002815', '002913', '300046', '300053', '300077', '300080', '300102', '300111', '300118', '300223', '300232', '300236', '300241', '300269', '300296', '300301', '300303', '300317', '300323', '300327', '300373', '300389', '300582', '300613', '300623', '300625', '300632', '300671', '300672', '300708', '600151', '600171', '600206', '600360', '600460', '600171', '600206', '600360', '600460', '600537', '600584', '600667', '600703', '601012', '603005', '603501', '603986', '300749']:
-    for code in ['000400', '601606', '300104', '300188', '002079', '002119', '002129', '002156', '002185', '002218', '002449', '002638', '002654', '002724', '002745', '002815', '002913', '300046', '300053', '300077', '300080', '300102', '300111', '300118', '300223', '300232', '300236', '300241', '300269', '300296', '300301', '300303', '300317', '300323', '300327', '300373', '300389', '300582', '300613', '300623', '300625', '300632', '300671', '300672', '300708', '600151', '600171', '600206', '600360', '600460', '600171', '600206', '600360', '600460', '600537', '600584', '600667', '600703', '601012', '603005', '603501', '603986', '300749']:
+    for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400', '601606', '300104', '300188', '002079', '002119', '002129', '002156', '002185', '002218', '002449', '002638', '002654', '002724', '002745', '002815', '002913', '300046', '300053', '300077', '300080', '300102', '300111', '300118', '300223', '300232', '300236', '300241', '300269', '300296', '300301', '300303', '300317', '300323', '300327', '300373', '300389', '300582', '300613', '300623', '300625', '300632', '300671', '300672', '300708', '600151', '600171', '600206', '600360', '600460', '600171', '600206', '600360', '600460', '600537', '600584', '600667', '600703', '601012', '603005', '603501', '603986', '300749']:
         cs = CStock(code, redis_host = '127.0.0.1')
         market = get_market_name(code)
-        if market == 'sh':
-            index_info = sh_index_info
-        else:
-            index_info = sz_index_info
+        index_info = sh_index_info if  market == 'sh' else sz_index_info
         logger.info("compute %s" % code)
         cs.set_k_data(bonus_info, index_info)
         cs.set_base_floating_profit()

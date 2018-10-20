@@ -1,13 +1,15 @@
 # coding=utf-8
 import cmysql
 import const as ct
+from common import create_redis_obj
 from cindex import CIndex
 from log import getLogger
 logger = getLogger(__name__)
 
 class IndexInfo:
-    def __init__(self, dbinfo = ct.DB_INFO):
-        self.mysql_client = cmysql.CMySQL(dbinfo)
+    def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
+        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
+        self.mysql_client = cmysql.CMySQL(dbinfo, iredis = self.redis)
         self.mysql_dbs = self.mysql_client.get_all_databases()
         if not self.init(): raise Exception("init index info table failed")
 

@@ -8,13 +8,13 @@ import pandas as pd
 from cindex import CIndex
 from cmysql import CMySQL
 from log import getLogger
-from combination import Combination 
 from common import create_redis_obj
+from combination import Combination 
 from combination_info import CombinationInfo
 logger = getLogger(__name__)
 class CAnimation:
-    def __init__(self, dbinfo):
-        self.redis = create_redis_obj()
+    def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
+        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
         self.mysql_client = CMySQL(dbinfo)
         self.table = ct.ANIMATION_INFO
         self.trigger = ct.SYNC_ANIMATION_2_REDIS

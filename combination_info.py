@@ -14,10 +14,10 @@ logger = getLogger(__name__)
 # include index and concept in stock
 class CombinationInfo:
     @trace_func(log = logger)
-    def __init__(self, dbinfo):
+    def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.table = ct.COMBINATION_INFO_TABLE
-        self.redis = create_redis_obj()
-        self.mysql_client = cmysql.CMySQL(dbinfo)
+        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
+        self.mysql_client = cmysql.CMySQL(dbinfo, iredis = self.redis)
         self.mysql_dbs = self.mysql_client.get_all_databases()
         if not self.init(): raise Exception("init combination table failed")
         #self.trigger = ct.SYNC_COMBINATION_2_REDIS
@@ -61,8 +61,8 @@ class CombinationInfo:
         return df
         
     @staticmethod
-    def get(index_type = None):
-        redis = create_redis_obj()
+    def get(index_type = None, redis = None):
+        redis = create_redis_obj() if redis is None else redis
         df_byte = redis.get(ct.COMBINATION_INFO) 
         if df_byte is None: return pd.DataFrame() 
         df = _pickle.loads(df_byte)

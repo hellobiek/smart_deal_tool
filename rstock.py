@@ -31,7 +31,7 @@ class RIndexStock:
 
     def get_table_name(self, cdate):
         cdates = cdate.split('-')
-        return "day_%s_%s" % (cdates[0], (int(cdates[1])-1)//3 + 1)
+        return "rstock_day_%s_%s" % (cdates[0], (int(cdates[1])-1)//3 + 1)
 
     def is_date_exists(self, table_name, cdate):
         if self.redis.exists(table_name):
@@ -126,7 +126,6 @@ class RIndexStock:
     def set_data(self):
         cdate = datetime.now().strftime('%Y-%m-%d')
         table_name = self.get_table_name(cdate)
-        self.create_table(table_name)
         if not self.is_table_exists(table_name):
             if not self.create_table(table_name):
                 logger.error("create tick table failed")

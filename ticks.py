@@ -258,7 +258,7 @@ def exists(path):
     return r.status_code == requests.codes.ok
 
 def download(output_directory):
-    _date = get_day_nday_ago(datetime.now().strftime('%Y%m%d'), 9)
+    _date = get_day_nday_ago(datetime.now().strftime('%Y%m%d'), num = 9)
     start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(_date, "%Y%m%d"))
     data_times = pd.date_range(start_date_dmy_format, periods=10, freq='D')
     date_only_array = np.vectorize(lambda s: s.strftime('%Y%m%d'))(data_times.to_pydatetime())

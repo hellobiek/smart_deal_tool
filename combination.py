@@ -31,7 +31,7 @@ class Combination:
         return "realtime_%s" % code
 
     def create_influx_db(self):
-        self.influx_client.create()
+        return self.influx_client.create()
 
     def create(self):
         return self.create_influx_db()

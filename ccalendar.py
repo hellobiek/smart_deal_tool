@@ -8,11 +8,11 @@ from datetime import datetime
 from common import trace_func, create_redis_obj, df_delta
 logger = getLogger(__name__)
 class CCalendar:
-    def __init__(self, dbinfo = ct.DB_INFO, without_init = False):
+    def __init__(self, dbinfo = ct.DB_INFO, without_init = False, redis_host = None):
         self.table = ct.CALENDAR_TABLE
         self.trigger = ct.SYNCCAL2REDIS
-        self.mysql_client = cmysql.CMySQL(dbinfo)
-        self.redis = create_redis_obj()
+        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
+        self.mysql_client = cmysql.CMySQL(dbinfo, iredis = self.redis)
         if without_init == False:
             if not self.create(): raise Exception("create calendar table failed")
             if not self.init(True): raise Exception("calendar table init failed")
@@ -43,12 +43,12 @@ class CCalendar:
     @staticmethod
     def is_trading_day(_date = None, redis = None):
         _redis = create_redis_obj() if redis is None else redis
+        df = CCalendar.get(redis = _redis)
         tmp_date = _date if _date is not None else datetime.now().strftime('%Y-%m-%d')
-        df = CCalendar.get()
         return True if df.empty else 1 == df.loc[df.calendarDate == tmp_date].isOpen.values[0]
 
     @staticmethod
-    def get(redis = None, _date = None):
+    def get(_date = None, redis = None):
         _redis = create_redis_obj() if redis is None else redis
         df_byte = _redis.get(ct.CALENDAR_INFO)
         if df_byte is None: return pd.DataFrame() 

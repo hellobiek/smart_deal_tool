@@ -8,7 +8,8 @@ logger = getLogger(__name__)
 class CIndex(Combination):
     def __init__(self, code, dbinfo = ct.DB_INFO, redis_host = None):
         Combination.__init__(self, code, dbinfo, redis_host)
-        return self.create_mysql_table()
+        if not self.create_mysql_table():
+            raise Exception("create index %s table failed" % self.code)
 
     @staticmethod
     def get_dbname(code):
@@ -60,8 +61,8 @@ class CIndex(Combination):
         df['pchange'] = 100 * (df['close'] - df['preclose']) / df['preclose']
 
         df['preamount'] = df['amount'].shift(1)
-        df.at[0, 'preamount'] = 0
-        df['mchange'] = 100 * (df['amount'] - df['preamount']) / df['amount']
+        df.at[0, 'preamount'] = df.loc[0, 'amount']
+        df['mchange'] = 100 * (df['amount'] - df['preamount']) / df['preamount']
 
         df = df.reset_index(drop = True)
         return self.mysql_client.set(df, 'day', method = ct.REPLACE)

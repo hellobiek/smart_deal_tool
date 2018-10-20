@@ -16,11 +16,11 @@ logger = getLogger(__name__)
 
 class CDelisted:
     @trace_func(log = logger)
-    def __init__(self, dbinfo):
+    def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.table = ct.DELISTED_INFO_TABLE
         self.trigger = ct.SYNC_DELISTED_2_REDIS
         self.mysql_client = CMySQL(dbinfo)
-        self.redis = create_redis_obj()
+        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
         if not self.create(): raise Exception("create delisted table failed")
         if not self.init(True): raise Exception("init delisted table failed")
         if not self.register(): raise Exception("create delisted trigger failed")

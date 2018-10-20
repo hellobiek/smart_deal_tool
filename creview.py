@@ -33,12 +33,12 @@ def get_chinese_font():
     return FontProperties(fname='/conf/fonts/PingFang.ttc')
 
 class CReivew:
-    def __init__(self, dbinfo):
+    def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.dbinfo = dbinfo
         self.sdir = '/data/docs/blog/hellobiek.github.io/source/_posts'
         self.doc = CDoc(self.sdir)
-        self.redis = create_redis_obj()
-        self.mysql_client = CMySQL(self.dbinfo)
+        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
+        self.mysql_client = CMySQL(self.dbinfo, iredis = self.redis)
         self.cal_client = ccalendar.CCalendar(without_init = True)
         self.animating = False
         self.emotion_table = ct.EMOTION_TABLE

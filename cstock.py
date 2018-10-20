@@ -409,6 +409,9 @@ class CStock(TickerHandlerBase):
     def get_base_floating_profit(self, date = None):
         return self.get_k_data(date, dtype = 10)
 
+    def get_base_floating_profit_in_range(self, start_date, end_date):
+        return self.get_k_data_in_range(start_date, end_date, dtype = 10)
+
     def set_base_floating_profit(self):
         df = self.get_k_data()
         df = base_floating_profit(df, num = ct.PRE_DAYS_NUM)
