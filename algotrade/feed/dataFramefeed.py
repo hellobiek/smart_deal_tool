@@ -20,7 +20,7 @@ from base.feed import dataFrameBarfeed
 
 from pyalgotrade.utils import dt
 from pyalgotrade.barfeed import common
-from pyalgotrade import dataseries
+from pyalgotrade.dataseries import DEFAULT_MAX_LEN
 
 ######################################################################
 # Each bar must be on its own line and fields must be separated by comma (,).
@@ -150,7 +150,7 @@ class Feed(dataFrameBarfeed.BarFeed):
         * If all the instruments loaded are in the same timezone, then the timezone parameter may not be specified.
         * If any of the instruments loaded are in different timezones, then the timezone parameter must be set.
     """
-    def __init__(self, frequency=bar.Frequency.DAY, timezone=None, maxLen=dataseries.DEFAULT_MAX_LEN):
+    def __init__(self, frequency = bar.Frequency.DAY, timezone = None, maxLen = DEFAULT_MAX_LEN):
         if isinstance(timezone, int):
             raise Exception("timezone as an int parameter is not supported anymore. Please use a pytz timezone instead.")
 
@@ -186,3 +186,35 @@ class Feed(dataFrameBarfeed.BarFeed):
 
         rowParser = RowParser(self.getDailyBarTime(), self.getFrequency(), timezone, self.__sanitizeBars)
         dataFrameBarfeed.BarFeed.addBarsFromDataFrame(self, instrument, rowParser, dataFrame)
+
+class TickFeed(dataFrameBarfeed.TickFeed):
+    def __init__(self, frequency = bar.Frequency.TRADE, timezone = None, maxLen = DEFAULT_MAX_LEN):
+        if isinstance(timezone, int): raise Exception("timezone as an int parameter is not supported anymore. Please use a pytz timezone instead.")
+        dataFrameBarfeed.TickFeed.__init__(self, frequency, maxLen)
+        self.__timezone = timezone
+        self.__sanitizeBars = False
+        self.__datetime_format = '%Y-%m-%d %H:%M:%S.%f'
+
+    def sanitizeBars(self, sanitize):
+        self.__sanitizeBars = sanitize
+
+    def set_datetime_format(self,datetime_format):
+        self.__datetime_format = datetime_format
+
+    def barsHaveAdjClose(self):
+        return True
+
+    def addBarsFromDataFrame(self, instrument, dataFrame, timezone=None):
+        if isinstance(timezone, int): raise Exception("timezone as an int parameter is not supported anymore. Please use a pytz timezone instead.")
+
+        if timezone is None: timezone = self.__timezone
+        dataFrame = dataFrame.sort_values(by='datetime')
+        dataFrame.drop_duplicates('datetime', inplace=True)
+
+        read_list = ['open', 'high', 'low', 'close', 'volume', 'amount', 'preclose', 'new_price', 'bought_amount', 'sold_amount', 'bought_volume', 'sold_volume', 'frequency']
+        for col in read_list:
+            if col not in dataFrame.columns:
+                dataFrame[col] = 0
+
+        rowParser = RowParser(self.getDailyBarTime(), self.getFrequency(), timezone, self.__sanitizeBars)
+        dataFrameBarfeed.TickFeed.addBarsFromDataFrame(self, instrument,rowParser,dataFrame)

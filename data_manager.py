@@ -32,13 +32,12 @@ import pandas as pd
 from log import getLogger
 from ticks import download, unzip
 from datetime import datetime
-from subscriber import Subscriber
-from common import trace_func,is_trading_time,delta_days,create_redis_obj,add_prifix,get_index_list,add_index_prefix
+from subscriber import Subscriber, StockQuoteHandler, TickerHandler, OrderBookHandler
+from common import is_trading_time,delta_days,create_redis_obj,add_prifix,add_index_prefix
 pd.options.mode.chained_assignment = None #default='warn'
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 logger = getLogger(__name__)
-
 class DataManager:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.dbinfo = dbinfo
@@ -112,27 +111,33 @@ class DataManager:
                 logger.info(e)
         obj_pool.join()
         obj_pool.kill()
-    
+
+    def init_real_stock_info(self):
+        concerned_list = self.get_concerned_list()
+        for code_id in concerned_list:
+            ret = self.subscriber.subscribe_tick(add_prifix(code_id), TickerHandler)
+            if 0 == ret:
+                if code_id not in self.stock_objs: self.stock_objs[code_id] = CStock(code_id, self.dbinfo, should_create_influxdb = True, should_create_mysqldb = False)
+            else:
+                return ret
+        return 0
+
     def init_index_info(self):
-        ret, data = self.subscriber.subscribe_quote(get_index_list())
-        if 0 != ret: 
-            logger.error("index subscribe failed")
-            return ret
-        for code in ct.INDEX_DICT:
-            if code not in self.index_objs:
-                self.index_objs[code] = CIndex(code)
+        index_list = ct.INDEX_DICT.keys()
+        for index_id in index_list:
+            ret, data = self.subscriber.subscribe_quote(add_index_prefix(index_id), StockQuoteHandler)
+            if 0 == ret: 
+                if code not in self.index_objs: self.index_objs[code] = CIndex(code)
+            else:
+                return ret
         return 0
 
     def collect_index_runtime_data(self):
-        ret, data = self.subscriber.get_quote_data(get_index_list())
-        if 0 != ret:
-            logger.error("index get subscribe data failed, %s" % data)
-            return
         obj_pool = Pool(10)
         for code in self.index_objs:
             code_str = add_index_prefix(code)
-            df = data[data.code == code_str]
-            df = df.reset_index(drop = True)
+            ret, data = self.subscriber.get_quote_data(code_str)
+            if ret != 0: continue
             df['time'] = df.data_date + ' ' + df.data_time
             df = df.drop(['data_date', 'data_time'], axis = 1)
             df = df.set_index('time')
@@ -153,7 +158,7 @@ class DataManager:
                         sleep_time = 1
                         if not self.subscriber.status():
                             self.subscriber.start()
-                            if self.init_index_info() | self.init_real_stock_info() == 0: 
+                            if self.init_index_info() | self.init_real_stock_info(): 
                                 self.init_combination_info()
                             else:
                                 logger.debug("enter stop dict time")
@@ -437,16 +442,6 @@ class DataManager:
                 break
         obj_pool.join(timeout = 120)
         obj_pool.kill()
-
-    def init_real_stock_info(self):
-        concerned_list = self.get_concerned_list()
-        for code_id in concerned_list:
-            ret = self.subscriber.subscribe_tick(add_prifix(code_id), CStock)
-            if 0 == ret:
-                if code_id not in self.stock_objs: self.stock_objs[code_id] = CStock(code_id, self.dbinfo, should_create_influxdb = True, should_create_mysqldb = False)
-            else:
-                return ret
-        return 0
 
     def download_and_extract(self):
         try:

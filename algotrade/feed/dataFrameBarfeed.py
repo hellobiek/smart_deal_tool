@@ -1,27 +1,10 @@
 # -*- coding: utf-8 -*-
-#
-# Copyright 2011-2015 Gabriel Martin Becedillas Ruiz
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-"""
-.. moduleauthor:: Gabriel Martin Becedillas Ruiz <gabriel.becedillas@gmail.com>
-"""
 import pytz
 import datetime
-from base.feed import bar
+import bar
+import tickfeed
 from pyalgotrade import barfeed, utils
-from pyalgotrade import dataseries
+from pyalgotrade.dataseries import DEFAULT_MAX_LEN
 from pyalgotrade.utils import dt
 
 # Interface for csv row parsers.
@@ -82,7 +65,7 @@ class BarFeed(barfeed.BaseBarFeed):
        ::note::
        This is a base class and should not be used directly.
     """
-    def __init__(self, frequency, maxLen=dataseries.DEFAULT_MAX_LEN):
+    def __init__(self, frequency, maxLen = DEFAULT_MAX_LEN):
         barfeed.BaseBarFeed.__init__(self, frequency, maxLen)
         self.__bars = dict()
         self.__nextPos = dict()
@@ -180,6 +163,103 @@ class BarFeed(barfeed.BaseBarFeed):
         loadedBars = []
         for row in df.iterrows():
             bar_ = rowParser.parseBar(row)
+            if bar_ is not None and (self.__barFilter is None or self.__barFilter.includeBar(bar_)):
+                loadedBars.append(bar_)
+        self.addBarsFromSequence(instrument, loadedBars)
+
+class TickFeed(tickfeed.BaseBarFeed):
+    def __init__(self, frequency, maxLen = DEFAULT_MAX_LEN):
+        tickfeed.BaseBarFeed.__init__(self, frequency, maxLen)
+        self.__bars = {}
+        self.__nextPos = {}
+        self.__started = False
+        self.__currDateTime = None
+        self.__barFilter = None
+        self.__dailyTime = datetime.time(0, 0, 0)
+
+    def reset(self):
+        self.__nextPos = {}
+        for instrument in self.__bars.keys():
+            self.__nextPos.setdefault(instrument, 0)
+        self.__currDateTime = None
+        super(TickFeed, self).reset()
+
+    def getCurrentDateTime(self):
+        return self.__currDateTime
+
+    def start(self):
+        super(TickFeed, self).start()
+        self.__started = True
+
+    def stop(self):
+        pass
+
+    def join(self):
+        pass
+
+    def addBarsFromSequence(self, instrument, bars):
+        if self.__started: raise Exception("Can't add more bars once you started consuming bars")
+        self.__bars.setdefault(instrument, [])
+        self.__nextPos.setdefault(instrument, 0)
+        # Add and sort the bars
+        self.__bars[instrument].extend(bars)
+        barCmp = lambda x, y: cmp(x.getDateTime(), y.getDateTime())
+        self.__bars[instrument].sort(barCmp)
+        self.registerInstrument(instrument)
+
+    def eof(self):
+        ret = True
+        for instrument, bars in self.__bars.items():
+            nextPos = self.__nextPos[instrument]
+            if nextPos < len(bars):
+                ret = False
+                break
+        return ret
+
+    def peekDateTime(self):
+        ret = None
+        for instrument, bars in self.__bars.items():
+            nextPos = self.__nextPos[instrument]
+            if nextPos < len(bars):
+                ret = utils.safe_min(ret, bars[nextPos].getDateTime())
+        return ret
+
+    def getNextBars(self):
+        smallestDateTime = self.peekDateTime()
+        if smallestDateTime is None:
+            return None
+
+        ret = {}
+        for instrument, bars in self.__bars.items():
+            nextPos = self.__nextPos[instrument]
+            if nextPos < len(bars) and bars[nextPos].getDateTime() == smallestDateTime:
+                ret[instrument] = bars[nextPos]
+                self.__nextPos[instrument] += 1
+        if self.__currDateTime == smallestDateTime: raise Exception("Duplicate bars found for %s on %s" % (ret.keys(), smallestDateTime))
+
+        self.__currDateTime = smallestDateTime
+        return bar.Bars(ret)
+
+    def loadAll(self):
+        for dateTime, bars in self:
+            pass
+
+    def getDailyBarTime(self):
+        return self.__dailyTime
+
+    def setDailyBarTime(self, time):
+        self.__dailyTime = time
+
+    def getBarFilter(self):
+        return self.__barFilter
+
+    def setBarFilter(self, barFilter):
+        self.__barFilter = barFilter
+
+    def addBarsFromDataFrame(self, instrument, rowParser,df):
+        loadedBars = []
+        for id,row in df.iterrows():
+            bar_ = rowParser.parseTickBar(id,row)
             if bar_ is not None and (self.__barFilter is None or self.__barFilter.includeBar(bar_)):
                 loadedBars.append(bar_)
         self.addBarsFromSequence(instrument, loadedBars)

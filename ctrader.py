@@ -18,10 +18,10 @@ IPO_CODE_HEAD = 'xcode'
 IPO_PRICE_HEAD = 'price'
 logger = getLogger(__name__)
 class CTrader:
-    def __init__(self, dbinfo):
+    def __init__(self, dbinfo, fpath = ct.USER_FILE):
         self.mysql_client = CMySQL(dbinfo)
         self.cal_client = ccalendar.CCalendar(without_init = True)
-        with open(ct.USER_FILE) as f: infos = json.load(f)
+        with open(fpath) as f: infos = json.load(f)
         self.trader = Trader(infos[0]["account"], infos[0]["passwd_encrypted"], infos[0]["secuids_sh"], infos[0]["secuids_sz"])
         self.buy_succeed_date = ""
 
@@ -75,5 +75,5 @@ class CTrader:
         return stock_list
 
 if __name__ == "__main__":
-    trader = CTrader(ct.DB_INFO) 
+    trader = CTrader(ct.DB_INFO, fpath = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/user.json") 
     trader.buy_new_stock(0)

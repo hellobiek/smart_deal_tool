@@ -12,14 +12,13 @@ from log import getLogger
 from ticks import read_tick
 from cinfluxdb import CInflux
 from datetime import datetime
-from common import create_redis_obj, get_years_between
-from futuquant.quote.quote_response_handler import TickerHandlerBase
 from features import base_floating_profit
+from common import create_redis_obj, get_years_between
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 logger = getLogger(__name__)
 
-class CStock(TickerHandlerBase):
+class CStock():
     def __init__(self, code, dbinfo = ct.DB_INFO, should_create_influxdb = False, should_create_mysqldb = True, redis_host = None):
         self.code = code
         self.dbname = self.get_dbname(code)
@@ -44,11 +43,6 @@ class CStock(TickerHandlerBase):
     @staticmethod
     def get_redis_name(code):
         return "realtime_%s" % code
-
-    def on_recv_rsp(self, rsp_pb):
-        '''获取逐笔 get_rt_ticker 和 TickerHandlerBase'''
-        ret, data = super(CStock, self).on_recv_rsp(rsp_pb)
-        return ret, data
 
     def adjust_share(self, data, info):
         data['outstanding'] = 0
@@ -335,7 +329,7 @@ class CStock(TickerHandlerBase):
             s_pchange = (df['close'] - df['preclose']) / df['preclose']
             i_pchange = (index_df['close'] - index_df['preclose']) / index_df['preclose']
             df['sri'] = 100 * (s_pchange - i_pchange)
-            df.at[df.sri > 0, 'sai'] = df.loc[df.sri > 0, 'sri']
+            df.at[(s_pchange < 0) & (s_pchange > 0), 'sai'] = df.loc[(s_pchange < 0) & (s_pchange > 0), 'sri']
         else:
             s_pchange = (df.loc[df.date == cdate, 'close'] - df.loc[df.date == cdate, 'preclose']) / df.loc[df.date == cdate, 'preclose']
             s_pchange = s_pchange.values[0]

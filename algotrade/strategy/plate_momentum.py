@@ -2,8 +2,9 @@
 import sys
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
-import const as ct
 import json
+import numpy as np
+import const as ct
 from cmysql import CMySQL
 from cindex import CIndex
 from cstock import CStock
@@ -73,66 +74,96 @@ class PlateMomentumStrategy(strategy.BacktestingStrategy):
             if self.__position is None:
                 if price < self.__sma[element][-1] * 0.9:
                     shares = 100 * int(self.getBroker().getCash()/(100 * price))
-                    self.info("before buy %s %s at ￥%.2f, exists cash:%s" % (element, shares, price, self.getBroker().getCash()))
                     self.__position = self.enterLong(element, shares, True)
-                    self.info("after buy %s %s at ￥%.2f, exists cash:%s" % (element, shares, price, self.getBroker().getCash()))
+                    self.info("buy %s %s at ￥%.2f, exists cash:%s" % (element, shares, price, self.getBroker().getCash()))
             else:
                 if price > self.__sma[element][-1] * 1.1:
                     if self.__position is not None and not self.__position.exitActive():
-                        self.info("before sell %s %s at ￥%.2f, exists cash:%s" % (element, self.getBroker().getShares(element), price, self.getBroker().getCash()))
                         self.__position.exitMarket()
-                        self.info("after sell %s %s at ￥%.2f, exists cash:%s" % (element, self.getBroker().getShares(element), price, self.getBroker().getCash()))
+                        self.info("sell %s %s at ￥%.2f, exists cash:%s" % (element, self.getBroker().getShares(element), price, self.getBroker().getCash()))
 
-#获取sdate日期涨幅最大的板块，跌幅最大的板块，资金变化最大的板块
-    #获取板块的相对大盘强弱
-    #获取板块的逆势大盘上涨的强弱
+def max_turnover(df):
+    return True if len(df.loc[df.turnover > 6]) < 3 else False
 
-#分析该板块中的个股:
-    #逆势飘红的强度
-    #筹码密集的程度
-    #相对大盘涨跌的强度
-    #博弈K线无量长阳的状态
-    #换手率的中位数和平均数
-    #成交额的中位数和平均数
-    #相对盈利状态，相对60日成本均线的状态。
-    #绝对盈利状态，处于下成本区，上成本区，盈利区域。
+def average_amount_volume(df):
+    MONEY_LIMIT = 100000000
+    mean_value = np.mean(df.amount)
+    median_value = np.median(df.amount)
+    return median_value > MONEY_LIMIT and mean_value > MONEY_LIMIT
 
-KL = 0
-QL = 1
-JL = 2
-FL = 3
-def get_stock_condition(code_list, start_date, end_date):
+def large_down_time(df):
+    num = len(df.loc[df.pchange < -8])
+    return True if num < 3 else False
+
+def game_kline_without_high_turnover(df):
+    df['preppercent'] = df['ppercent'].shift(1)
+    df['kline'] = df['ppercent'] - df['preppercent']
+    return len(df.loc[(df.kline > 18) & (df.turnoever < 3)])
+
+#选股的指标
+    #condition 1: 平均成交额 > 1亿
+    #condition 3: 基础浮动盈利
+    #condition 3: 短期浮动盈利
+    #condition 4: 相对大盘的涨跌
+    #condition 5: 连续暴跌的次数的最大次数
+    #condition 5: 逆势飘红的次数 
+    #condition 6: 近邻筹码的平均比例
+    #condition 7: 获利筹码的平均比例
+    #condition 8: 博弈K线穿越>10%筹码，且换手率小于3%的次数
+    #condition 9: 博弈K线穿越>10%筹码，且换手率大于3%的次数
+def choose_stock(code_list, start_date, end_date):
     state_dict = dict()
-    state_dict[FL] = list()
-    state_dict[JL] = list()
-    state_dict[QL] = list()
-    state_dict[KL] = list()
+    state_dict[ct.FL] = list()
+    state_dict[ct.JL] = list()
+    state_dict[ct.QL] = list()
+    state_dict[ct.KL] = list()
+    good_code_list    = list()
+    #stock_info = DataFrame(columns={'code', 'ppercent', 'npercent', 'sai', 'sri', 'pchange'})
+    stock_info = DataFrame()
     for code in code_list:
-        df = CStock(code, redis_host = '127.0.0.1').get_base_floating_profit_in_range(start_date, end_date)
-        if df.profit.mean() > 2:
-            state_dict[FL].append(code)
-        elif df.profit.mean() < -2:
-            state_dict[KL].append(code)
-        elif df.profit.mean() >= -2 and df.profit.mean() <= 0:
-            state_dict[QL].append(code)
+        cstock_obj = CStock(code, redis_host = '127.0.0.1')
+        df_profit = cstock_obj.get_base_floating_profit_in_range(start_date, end_date)
+        if df_profit.profit.mean() > 2:
+            state_dict[ct.FL].append(code)
+        elif df_profit.profit.mean() < -2:
+            state_dict[ct.KL].append(code)
+        elif df_profit.profit.mean() >= -2 and df_profit.profit.mean() <= 0:
+            state_dict[ct.QL].append(code)
         else:
-            state_dict[JL].append(code)
-    return state_dict
+            state_dict[ct.JL].append(code)
+        df = cstock_obj.get_k_data_in_range(start_date, end_date)
+        if df is None or df.empty or len(df) < 55: continue
+        if average_amount_volume(df) and large_down_time(df) and max_turnover(df):
+            good_code_list.append(code)
+    return state_dict, good_code_list
 
-def choose_plate(name = None, edate = '2016-10-11', ndays = 90):
+#edate日的状态
+    #涨幅最大的板块
+    #跌幅最大的板块
+    #资金变化最大的板块
+    #板块的相对大盘强弱
+    #板块的逆势大盘上涨的强弱
+def choose_plate(edate = '2016-10-11', ndays = 90):
+    rindustry_info_client = RIndexIndustryInfo(redis_host='127.0.0.1')
+    today_industry_df = rindustry_info_client.get_k_data(edate)
+    pchange_df = today_industry_df.sort_values(by = 'pchange', ascending = False).head(3)
+    mchange_df = today_industry_df.sort_values(by = 'mchange', ascending = False).head(3)
+    plate_code_list = list(set(pchange_df.code.tolist()).intersection(pchange_df.code.tolist()))
+    if len(plate_code_list) == 0: 
+        logger.info("no interested plate for date:%s" % edate)
+        return list()
     sdate = get_day_nday_ago(edate, ndays, '%Y-%m-%d')
     #get sh index data
     sh_index_obj = CIndex('000001', redis_host='127.0.0.1')
     sh_index_info = sh_index_obj.get_k_data_in_range(sdate, edate)
     sh_index_pchange = 100 * (sh_index_info.loc[len(sh_index_info) - 1, 'close'] -  sh_index_info.loc[0, 'preclose']) / sh_index_info.loc[0, 'preclose']
     #get industry data
-    rindustry_info_client = RIndexIndustryInfo(redis_host='127.0.0.1')
     all_industry_df = rindustry_info_client.get_k_data_in_range(sdate, edate)
-    industry_static_info = DataFrame(columns={'code', 'sai', 'pchange'})
-
+    all_industry_df = all_industry_df.loc[all_industry_df.code.isin(plate_code_list)]
+    industry_static_info = DataFrame(columns={'code', 'sai', 'pchange', ct.KL, ct.QL, ct.JL, ct.FL})
+    #choose better industry
     redisobj = create_redis_obj("127.0.0.1") 
     today_industry_info = IndustryInfo.get(redisobj)
-
     for code, industry in all_industry_df.groupby('code'):
         industry = industry.reset_index(drop = True)
         industry['sri'] = 0
@@ -141,22 +172,19 @@ def choose_plate(name = None, edate = '2016-10-11', ndays = 90):
         industry.at[(industry.pchange > 0) & (sh_index_info.pchange < 0), 'sai'] = industry.loc[(industry.pchange > 0) & (sh_index_info.pchange < 0), 'sri']
         industry_sai = len(industry.loc[industry.sai > 0])
         industry_pchange = 100 * (industry.loc[len(industry) - 1, 'close'] -  industry.loc[0, 'preclose']) / industry.loc[0, 'preclose']
-        industry_static_info = industry_static_info.append(DataFrame([[code, industry_sai, industry_pchange]], columns = ['code', 'sai', 'pchange']), sort = 'True')
-        industry_static_info = industry_static_info.reset_index(drop = True)
-        if code == '880491':
-            code_list = json.loads(today_industry_info.loc[today_industry_info.code == code, 'content'].values[0])
-            info_dict = get_stock_condition(code_list, sdate, edate)
-            import pdb
-            pdb.set_trace()
+        code_list = json.loads(today_industry_info.loc[today_industry_info.code == code, 'content'].values[0])
+        info_dict, good_code_list = choose_stock(code_list, sdate, edate)
+        industry_static_info = industry_static_info.append(DataFrame([[code, industry_sai, industry_pchange, info_dict[ct.KL], info_dict[ct.QL], info_dict[ct.JL], info_dict[ct.FL]]], columns = ['code', 'sai', 'pchange', ct.KL, ct.QL, ct.JL, ct.FL]), sort = 'True')
+    industry_static_info = industry_static_info.reset_index(drop = True)
     industry_static_info = industry_static_info.sort_values(by=['pchange'], ascending=False)
-    import pdb
-    pdb.set_trace()
+    return good_code_list
 
 def plate_momentum(mode = ct.PAPER_TRADING, start_date = '2018-03-01', end_date = '2018-10-28'):
     if mode == ct.PAPER_TRADING:
         threshold = 100000
         feed = dataFramefeed.Feed()
         instruments = choose_plate()
+        if len(instruments): return 0
         for code in instruments:
             data = CStock(code, should_create_influxdb = False, should_create_mysqldb = False).get_k_data_in_range(start_date, end_date)
             data = data.set_index('date')
@@ -166,12 +194,12 @@ def plate_momentum(mode = ct.PAPER_TRADING, start_date = '2018-03-01', end_date 
         # broker commission类设置
         broker_commission = broker.backtesting.TradePercentage(0.002)
         # fill strategy设置
-        #fill_stra = broker.fillstrategy.DefaultStrategy(volumeLimit = 1.0)
-        #sli_stra = broker.slippage.NoSlippage()
-        #fill_stra.setSlippageModel(sli_stra)
+        fill_stra = broker.fillstrategy.DefaultStrategy(volumeLimit = 1.0)
+        sli_stra = broker.slippage.NoSlippage()
+        fill_stra.setSlippageModel(sli_stra)
         # 完善broker类
         brk = broker.backtesting.Broker(threshold * len(instruments), feed, broker_commission)
-        #brk.setFillStrategy(fill_stra)
+        brk.setFillStrategy(fill_stra)
 
     myStrategy = PlateMomentumStrategy(feed, instruments, brk, threshold)
 

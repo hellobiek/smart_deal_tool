@@ -1,5 +1,6 @@
 # coding=utf-8
 import sys
+import json
 import time
 import redis
 import datetime
@@ -161,7 +162,14 @@ def df_empty(columns, dtypes, index = None):
         df[c] = pd.Series(dtype=d)
     return df
 
-def get_tushare_client(fpath = None):
-    fpath = ct.TUSHAE_FILE if fpath is None else fpath
+def get_real_trading_stocks(fpath = ct.USER_FILE):
+    with open(fpath) as f:
+        infos = json.load(f)
+    return infos
+
+def get_tushare_client(fpath = ct.TUSHAE_FILE):
     with open(fpath) as f: key_info = json.load(f)
     return ts.pro_api(key_info['key'])
+
+#df = df[['code', 'data_date', 'data_time', 'last_price', 'open_price', 'high_price', 'low_price', 'prev_close_price', 'volume', 'turnover', 'turnover_rate', 'amplitude']]
+#df = df.rename(columns = {"data_date": "date", 'data_time': 'time', 'last_price': 'last', 'open_price': 'open', 'high_price': 'high', 'low_price': 'low', 'prev_close_price': 'preclose', 'turnover': 'amount'})

@@ -31,7 +31,10 @@ const.LOGIN_URL = "https://trade.cgws.com/cgi-bin/user/Login?function=tradeLogou
 const.ENTRUST_QUERY = "https://trade.cgws.com/cgi-bin/stock/EntrustQuery?function=MyAccount"
 const.NEW_STOCK_URL = "http://newstock.cfi.cn/"
 const.FUTU_HOST = os.environ['dockerhost']
+const.FUTU_HOST_LOCAL = '127.0.0.1'
 const.FUTU_PORT = 11111
+const.FUTU_PATH = "/code/configure/futu.json"
+const.TRADING_FILE = "/code/configure/trading.json"
 const.USER_FILE = "/code/configure/user.json"
 const.TUSHAE_FILE = "/code/configure/tushare.json"
 const.SLEEP_TIME = 3
@@ -4443,3 +4446,8 @@ const.ROLLING_UP = 1
 const.ROLLING_DOWN = -1
 ##################################################
 const.PRE_DAYS_NUM = 60
+##################################################
+const.KL = "亢龙"
+const.QL = "潜龙"
+const.JL = "见龙"
+const.FL = "飞龙"

@@ -1,21 +1,4 @@
-# PyAlgoTrade
-# Copyright 2011-2015 Gabriel Martin Becedillas Ruiz
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-"""
-.. moduleauthor:: Gabriel Martin Becedillas Ruiz <gabriel.becedillas@gmail.com>]
-.. modified by: Hellbiek(hellobiek@gmail.com)
-"""
+# -*- coding: utf-8 -*-
 import abc
 class Frequency(object):
     """
@@ -205,6 +188,262 @@ class Bars(object):
     :type barDict: map.
     :note::All bars must have the same datetime.
     """
+    def __init__(self, barDict):
+        if len(barDict) == 0: raise Exception("No bars supplied")
+        # Check that bar datetimes are in sync
+        firstDateTime = None
+        firstInstrument = None
+        for instrument, currentBar in barDict.items():
+            if firstDateTime is None:
+                firstDateTime = currentBar.getDateTime()
+                firstInstrument = instrument
+            elif currentBar.getDateTime() != firstDateTime:
+                raise Exception("Bar data times are not in sync. %s %s != %s %s" % (
+                    instrument,
+                    currentBar.getDateTime(),
+                    firstInstrument,
+                    firstDateTime
+                ))
+        self.__barDict = barDict
+        self.__dateTime = firstDateTime
+
+    def __getitem__(self, instrument):
+        """Returns the :class:`pyalgotrade.bar.Bar` for the given instrument.
+        If the instrument is not found an exception is raised."""
+        return self.__barDict[instrument]
+
+    def __contains__(self, instrument):
+        """Returns True if a :class:`pyalgotrade.bar.Bar` for the given instrument is available."""
+        return instrument in self.__barDict
+
+    def items(self):
+        return self.__barDict.items()
+
+    def keys(self):
+        return self.__barDict.keys()
+
+    def getInstruments(self):
+        """Returns the instrument symbols."""
+        return self.__barDict.keys()
+
+    def getDateTime(self):
+        """Returns the :class:`datetime.datetime` for this set of bars."""
+        return self.__dateTime
+
+    def getBar(self, instrument):
+        """Returns the :class:`pyalgotrade.bar.Bar` for the given instrument or None if the instrument is not found."""
+        return self.__barDict.get(instrument, None)
+
+class BasicTick(object):
+    __slots__ = (
+        '__dateTime',
+        '__open',
+        '__high',
+        '__low',
+        '__close',
+        '__preclose',
+        '__volume',
+        '__amount',
+        '__bp1',
+        '__bv1',
+        '__bp2',
+        '__bv2',
+        '__bp3',
+        '__bv3',
+        '__bp4',
+        '__bv4',
+        '__bp5',
+        '__bv5',
+        '__ap1',
+        '__av1',
+        '__ap2',
+        '__av2',
+        '__ap3',
+        '__av3',
+        '__ap4',
+        '__av4',
+        '__ap5',
+        '__av5',
+        '__frequency',
+        '__extra',
+        '__adjClose',
+        '__useAdjustedValue',
+    )
+
+    def __init__(self, dateTime, open_, high, low, close, preclose, volume, amount, 
+                bp1, bv1, bp2, bv2, bp3, bv3, bp4, bv4, bp5, bv5,  
+                ap1, av1, ap2, av2, ap3, av3, ap4, av4, ap5, av5, 
+                frequency, extra={}):
+        self.__dateTime = dateTime
+        self.__open = open_
+        self.__high = high
+        self.__low = low
+        self.__close = close
+        self.__preclose = preclose
+        self.__volume = volume
+        self.__amount = amount
+        self.__bp1 = bp1
+        self.__bv1 = bv1
+        self.__bp2 = bp2
+        self.__bv2 = bv2
+        self.__bp3 = bp3
+        self.__bv3 = bv3
+        self.__bp4 = bp4
+        self.__bv4 = bv4
+        self.__bp5 = bp5
+        self.__bv5 = bv5
+        self.__ap1 = ap1
+        self.__av1 = av1
+        self.__ap2 = ap2
+        self.__av2 = av2
+        self.__ap3 = ap3
+        self.__av3 = av3
+        self.__ap4 = ap4
+        self.__av4 = av4
+        self.__ap5 = ap5
+        self.__av5 = av5
+        self.__frequency = frequency
+        self.__extra = extra
+        self.__useAdjustedValue = False
+        self.__adjClose = close
+
+    def __setstate__(self, state):
+        (self.__dateTime,
+         self.__open,
+         self.__high,
+         self.__low,
+         self.__close,
+         self.__preclose,
+         self.__volume,
+         self.__amount,
+         self.__bp1,
+         self.__bv1,
+         self.__bp2,
+         self.__bv2,
+         self.__bp3,
+         self.__bv4,
+         self.__bp4,
+         self.__bv5,
+         self.__bp5,
+         self.__ap1,
+         self.__av1,
+         self.__ap2,
+         self.__av2,
+         self.__ap3,
+         self.__av3,
+         self.__ap4,
+         self.__av4,
+         self.__ap5,
+         self.__av5,
+         self.__frequency,
+         self.__adjClose,
+         self.__extra) = state
+
+    def __getstate__(self):
+        return (self.__dateTime,
+                self.__open,
+                self.__high,
+                self.__low,
+                self.__close,
+                self.__preclose,
+                self.__volume,
+                self.__amount,
+                self.__bp1,
+                self.__bv1,
+                self.__bp2,
+                self.__bv2,
+                self.__bp3,
+                self.__bv3,
+                self.__bp4,
+                self.__bv4,
+                self.__bp5,
+                self.__bv5,
+                self.__ap1,
+                self.__av1,
+                self.__ap2,
+                self.__av2,
+                self.__ap3,
+                self.__av3,
+                self.__ap4,
+                self.__av4,
+                self.__ap5,
+                self.__av5,
+                self.__frequency,
+                self.__adjClose,
+                self.__extra)
+
+    def getDateTime(self):
+        return self.__dateTime
+
+    def getOpen(self, adjusted = False):
+        if adjusted:
+            if self.__adjClose is None:
+                raise Exception("Adjusted close is missing")
+            return self.__adjClose * self.__open / float(self.__close)
+        else:
+            return self.__open
+
+    def getHigh(self, adjusted=False):
+        if adjusted:
+            if self.__adjClose is None:
+                raise Exception("Adjusted close is missing")
+            return self.__adjClose * self.__high / float(self.__close)
+        else:
+            return self.__high
+
+    def getLow(self, adjusted=False):
+        if adjusted:
+            if self.__adjClose is None:
+                raise Exception("Adjusted close is missing")
+            return self.__adjClose * self.__low / float(self.__close)
+        else:
+            return self.__low
+
+    def getClose(self, adjusted=False):
+        return self.__close
+
+    def getVolume(self):
+        return self.__volume
+
+    def getAmount(self):
+        return self.__amount
+
+    def getFrequency(self):
+        return self.__frequency
+
+    def getBp(self):
+        return self.__bp1
+
+    def getBv(self):
+        return self.__bv1
+
+    def getAp(self):
+        return self.__ap1
+
+    def getAv(self):
+        return self.__av1
+
+    def getPreclose(self):
+        return self.__preclose
+
+    def getExtraColumns(self):
+        return self.__extra
+
+    def setUseAdjustedValue(self, useAdjusted):
+        if useAdjusted and self.__adjClose is None:
+            raise Exception("Adjusted close is not available")
+        self.__useAdjustedValue = useAdjusted
+
+    def getUseAdjValue(self):
+        return self.__useAdjustedValue
+
+    def getAdjClose(self):
+        return self.__close
+
+    def getPrice(self):
+        return self.__close
+
+class Ticks(object):
     def __init__(self, barDict):
         if len(barDict) == 0: raise Exception("No bars supplied")
         # Check that bar datetimes are in sync
