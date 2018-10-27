@@ -2,7 +2,8 @@
 import json
 import threading
 import const as ct
-from futuquant import OrderType, TrdSide, TrdEnv, OpenCNTradeContext
+from futuquant import OrderType, TrdSide, TrdEnv, OpenCNTradeContext, OpenUSTradeContext, OpenHKTradeContext
+
 class MDeal(object):
     def __init__(self, jsonDict):
         self.__jsonDict = jsonDict
@@ -72,12 +73,17 @@ class MOrder(object):
         return self.__jsonDict["dealt_avg_price"]
 
 class FutuTrader:
-    def __init__(self, host, port, trd_env, market):
-        if market != "CN": raise Exception("not supported market:%s" % market)
+    def __init__(self, host, port, trd_env, market, unlock_path = ct.FUTU_PATH):
+        if market != "CN" or market != "US" or market != "HK": raise Exception("not supported market:%s" % market)
+        if "CN" == market:
+            self.trd_ctx = OpenCNTradeContext(host, port)
+        elif "US" == market:
+            self.trd_ctx = OpenUSTradeContext(host, port)
+        else:
+            self.trd_ctx = OpenHKTradeContext(host, port)
         self.trd_env = trd_env
-        self.trd_ctx = OpenCNTradeContext(host, port)
         self.acc_id = self.get_acc_id()
-        self.unlock_pwd = self.get_unlock_pwd(fpath = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/futu.json")
+        self.unlock_pwd = self.get_unlock_pwd(fpath = unlock_path)
         self._status = True
         self._lock   = threading.Lock()
 
@@ -121,12 +127,12 @@ class FutuTrader:
             orders.append(MOrder(mdict))
         return orders if id_ != "" else orders[0]
 
-    def trade(self, order, direction):
-        code      = order.getCode()
+    def trade(self, order):
+        code      = order.getInstrument()
         price     = order.getLimitPrice()
         quantity  = order.getQuantity()
-        type_     = order.getOrderType()
-        side      = order.getOrderDirection()
+        type_     = OrderType.NORMAL
+        direction = TrdSide.BUY if order.isBuy() else TrdSide.SELL
         ret, data = self.trd_ctx.place_order(price, quantity, code, trd_side = direction, order_type = type_, adjust_limit = 0, trd_env = self.trd_env, acc_id = self.acc_id)
         return ret, data
 
@@ -134,13 +140,10 @@ class FutuTrader:
         if self.trd_env == TrdEnv.REAL:
             self.trd_ctx.unlock_trade(self.unlock_pwd)
         ret, data = self.trd_ctx.place_order(code = code, price = price, qty = quantity, trd_side = TrdSide.BUY, order_type = OrderType.NORMAL, trd_env = self.trd_env)
-        print("AAAAAAAAA01")
-        print(ret, data)
-        print("AAAAAAAAA02")
         return ret, data
 
     def modify(self, order, operation):
-        id_      = order.getId()
+        id_       = order.getId()
         price     = order.getLimitPrice()
         quantity  = order.getQuantity()
         type_     = order.getOrderType()
@@ -158,4 +161,5 @@ class FutuTrader:
             return self._status
 
 if __name__ =="__main__":
-    fb = FutuTrader("127.0.0.1", 11111, TrdEnv.SIMULATE, market = "CN")
+    apath = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/futu.json"
+    fb = FutuTrader("127.0.0.1", 11111, TrdEnv.SIMULATE, market = "CN", unlock_path = apath)

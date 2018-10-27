@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 import pytz
 import datetime
-import bar
-import tickfeed
+from algotrade.feed import bar, tickfeed
 from pyalgotrade import barfeed, utils
 from pyalgotrade.dataseries import DEFAULT_MAX_LEN
 from pyalgotrade.utils import dt

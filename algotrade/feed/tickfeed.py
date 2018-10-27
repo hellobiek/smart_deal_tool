@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import abc
-import bar
-import tickds
+from algotrade.feed import bar, tickds
 from pyalgotrade import feed
 from pyalgotrade import dispatchprio
 Frequency = bar.Frequency
@@ -107,7 +106,6 @@ class BaseBarFeed(feed.BaseFeed):
 
     def getDispatchPriority(self):
         return dispatchprio.BAR_FEED
-
 
 # This class is used by the optimizer module. The barfeed is already built on the server side,
 # and the bars are sent back to workers.

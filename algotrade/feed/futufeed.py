@@ -65,7 +65,7 @@ def build_bar(quote_dict, order_dict):
 class GetBarThread(PollingThread):
     ON_BARS = 1
     ON_END  = 2
-    def __init__(self, mqueue, identifiers, frequency = 3):
+    def __init__(self, mqueue, identifiers, end_time, frequency = 3):
         PollingThread.__init__(self)
         self.__queue = mqueue
         self.__identifiers = identifiers 
@@ -73,10 +73,10 @@ class GetBarThread(PollingThread):
         self.__frequency = frequency
         self.__subscriber = Subscriber()
         self.__last_response_time = None
-        self.__end_time = "15:00:00" 
+        self.__end_time = end_time
 
     def getNextCallDateTime(self):
-        self.__nextCallDatetime = max(localnow(), self.__nextCallDatetime + self.__frequency)
+        self.__nextCallDatetime = max(localnow(), self.__nextCallDatetime + datetime.timedelta(seconds = self.__frequency))
         return self.__nextCallDatetime
 
     def doCall(self):
@@ -91,7 +91,7 @@ class GetBarThread(PollingThread):
                 self.__last_response_time = quote_data.iloc[-1]['time']
         if len(bar_dict) > 0:
             bars = bar.Ticks(bar_dict)
-            if self.__last_response_time == "15:00:00":
+            if self.__last_response_time == self.__end_time:
                 self.__queue.put((GetBarThread.ON_END, bars))
             else:
                 self.__queue.put((GetBarThread.ON_BARS, bars))
@@ -113,7 +113,7 @@ class GetBarThread(PollingThread):
         self.__subscriber.stop()
         self.__subscriber.close()
 
-class LiveFeed(dataFramefeed.TickFeed):
+class FutuFeed(dataFramefeed.TickFeed):
     """
         a real-time BarFeed that builds bars using futu api
         :param identifiers: codes
@@ -121,11 +121,11 @@ class LiveFeed(dataFramefeed.TickFeed):
         :param maxLen:
     """
     QUEUE_TIMEOUT = 0.01
-    def __init__(self, identifiers, frequency = 3, maxLen = DEFAULT_MAX_LEN):
+    def __init__(self, identifiers, end_time, frequency = 3, maxLen = DEFAULT_MAX_LEN):
         dataFramefeed.TickFeed.__init__(self, bar.Frequency.TRADE, None, maxLen)
         if not isinstance(identifiers, list): raise Exception("identifiers must be a list")
-        self.__queue = queue.Queue()
-        self.__thread = GetBarThread(self.__queue, identifiers, datetime.timedelta(seconds = frequency))
+        self.__queue  = queue.Queue()
+        self.__thread = GetBarThread(self.__queue, identifiers, end_time, datetime.timedelta(seconds = frequency))
         for instrument in identifiers: self.registerInstrument(instrument)
 
     def start(self):
@@ -154,7 +154,7 @@ class LiveFeed(dataFramefeed.TickFeed):
     def getNextBars(self):
         ret = None
         try:
-            eventType, eventData = self.__queue.get(True, LiveFeed.QUEUE_TIMEOUT)
+            eventType, eventData = self.__queue.get(True, FutuFeed.QUEUE_TIMEOUT)
             if eventType == GetBarThread.ON_BARS:
                 ret = eventData
             elif eventType == GetBarThread.ON_END:

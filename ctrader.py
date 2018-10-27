@@ -73,7 +73,3 @@ class CTrader:
                 price = stocks_info.at[i, IPO_PRICE_HEAD]
                 stock_list.append((code, price))
         return stock_list
-
-if __name__ == "__main__":
-    trader = CTrader(ct.DB_INFO, fpath = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/user.json") 
-    trader.buy_new_stock(0)

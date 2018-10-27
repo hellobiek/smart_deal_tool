@@ -15,8 +15,8 @@
 # limitations under the License.
 
 import datetime
-from base.feed import bar
-from base.feed import dataFrameBarfeed
+from algotrade.feed import bar
+from algotrade.feed import dataFrameBarfeed
 
 from pyalgotrade.utils import dt
 from pyalgotrade.barfeed import common
