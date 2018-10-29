@@ -1,4 +1,5 @@
 #coding=utf-8
+from datamanager.hk_crawl import MCrawl 
 class StockConnect(object):
     def __init__(self, market_from = "SH", market_to = "HK", dbinfo = ct.DB_INFO, redis_host = None):
         self.market_from  = market_from

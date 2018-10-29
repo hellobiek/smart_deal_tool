@@ -1,12 +1,10 @@
+#coding=utf-8
 import pandas as pd
 from bs4 import BeautifulSoup
-from langconv import Converter
 from selenium import webdriver
+from base.base import traditional2simplified
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.chrome.options import Options
-def traditional2simplified(sentence):
-    return Converter('zh-hans').convert(sentence)
-
 class SrcSelenium:
     def __init__(self, req_date, link):
         self.link = link
