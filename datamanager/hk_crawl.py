@@ -2,6 +2,7 @@
 import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from const import ct 
 from base.base import traditional2simplified
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.chrome.options import Options
@@ -37,10 +38,9 @@ class SrcSelenium:
 class MCrawl:
     RET_ERR = -1
     LINK_PATH = 'http://www.hkexnews.hk/sdw/search/mutualmarket_c.aspx?t=%s'
-    def __init__(self, req_date, type_):
+    def __init__(self, type_):
         self.link       = self.LINK_PATH % type_
         self.type       = type_
-        self.req_date   = req_date
 
     def transfer_code(self, code):
         if code.startswith("9"):
@@ -54,16 +54,16 @@ class MCrawl:
         else:
             return code
 
-    def crawl(self):
-        soup      = BeautifulSoup(SrcSelenium(self.req_date, self.link).process(), "html.parser")
+    def crawl(self, req_date = None):
+        soup      = BeautifulSoup(SrcSelenium(req_date, self.link).process(), "html.parser")
         real_date = soup.select("h2.ccass-heading")[0].span.text.strip().split(":")[1].strip()
-        if self.req_date != real_date.replace('/', '-'): return RET_ERR, pd.DataFrame()
+        if req_date != real_date.replace('/', '-'): return RET_ERR, pd.DataFrame()
         data = []
         rows = soup.select("table#mutualmarket-result")[0].find_all('tr')
         for index in range(1, len(rows)):
             items = rows[index].get_text().strip().split('\n\n')
             code_str = items[0].strip().split(':')[1].strip()
-            code     = code_str if self.type == "HK" else self.transfer_code(code_str)
+            code     = code_str if self.type == ct.HK_MARKET_SYMBOL else self.transfer_code(code_str)
             name     = traditional2simplified(items[1].strip().split(':')[1].strip())
             quanity  = items[2].strip().split(':')[1].strip()
             precent  = items[3].strip().split(':')[1].strip()

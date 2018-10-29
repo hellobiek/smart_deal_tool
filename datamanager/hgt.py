@@ -1,9 +1,11 @@
 #coding=utf-8
+import const as ct
 from datamanager.hk_crawl import MCrawl 
 class StockConnect(object):
-    def __init__(self, market_from = "SH", market_to = "HK", dbinfo = ct.DB_INFO, redis_host = None):
+    def __init__(self, market_from = ct.SH_MARKET_SYMBOL, market_to = ct.HK_MARKET_SYMBOL, dbinfo = ct.DB_INFO, redis_host = None):
         self.market_from  = market_from
         self.market_to    = market_to
+        self.crawler      = MCrawl(market_from)
         self.dbname       = self.get_dbname()
         self.redis        = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
         self.mysql_client = cmysql.CMySQL(dbinfo, self.dbname, iredis = self.redis)
@@ -67,11 +69,10 @@ class StockConnect(object):
         pass
 
     def crawl_data(self, date):
-        cdate = datetime.strptime(date, "%Y-%m-%d").strftime("%Y%m%d") 
-        df = self.gen_df()
+        cdate = datetime.strptime(date, "%Y-%m-%d").strftime("%Y%m%d")
+        df = self.crawler.crawl(cdate)
         if df.empty: return False
         df = df.reset_index(drop = True)
-        df.columns = ['code', 'price', 'pchange', 'prange', 'fcb', 'flb', 'fdmoney', 'first_time', 'last_time', 'open_times', 'intensity', 'concept']
         df['date'] = date
         return df
 

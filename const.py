@@ -4451,3 +4451,8 @@ const.KL = "亢龙"
 const.QL = "潜龙"
 const.JL = "见龙"
 const.FL = "飞龙"
+##################################################
+const.SH_MARKET_SYMBOL = "SH"
+const.SZ_MARKET_SYMBOL = "SZ"
+const.HK_MARKET_SYMBOL = "HK"
+const.US_MARKET_SYMBOL = "US"
