@@ -124,8 +124,8 @@ class DataManager:
 
     def init_index_info(self):
         index_list = ct.INDEX_DICT.keys()
-        for index_id in index_list:
-            ret, data = self.subscriber.subscribe_quote(add_index_prefix(index_id), StockQuoteHandler)
+        for code in index_list:
+            ret = self.subscriber.subscribe_quote(add_index_prefix(code), StockQuoteHandler)
             if 0 == ret: 
                 if code not in self.index_objs: self.index_objs[code] = CIndex(code)
             else:
@@ -459,6 +459,7 @@ class DataManager:
         
 if __name__ == '__main__':
     dm = DataManager()
+    dm.run1()
     #cdate = '2018-09-25'
     #dm.init_today_stock_info(cdate)
     #dm.init_today_industry_info()
@@ -471,19 +472,19 @@ if __name__ == '__main__':
     #dm.animation_client.collect()
     #print("animation client collect success!")
 
-    sh_index_obj = CIndex('000001', redis_host='127.0.0.1')
-    sz_index_obj = CIndex('399001', redis_host='127.0.0.1')
-    sh_index_obj.set_k_data(fpath = "/Volumes/data/quant/stock/data/tdx/history/days/%s")
-    sz_index_obj.set_k_data(fpath = "/Volumes/data/quant/stock/data/tdx/history/days/%s")
-    sh_index_info = sh_index_obj.get_k_data()
-    sz_index_info = sz_index_obj.get_k_data()
+    #sh_index_obj = CIndex('000001', redis_host='127.0.0.1')
+    #sz_index_obj = CIndex('399001', redis_host='127.0.0.1')
+    #sh_index_obj.set_k_data(fpath = "/Volumes/data/quant/stock/data/tdx/history/days/%s")
+    #sz_index_obj.set_k_data(fpath = "/Volumes/data/quant/stock/data/tdx/history/days/%s")
+    #sh_index_info = sh_index_obj.get_k_data()
+    #sz_index_info = sz_index_obj.get_k_data()
 
-    bonus_info = pd.read_csv("/Volumes/data/quant/stock/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    #for code in ['000001']:
-    for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400', '601606', '300104', '300188', '002079', '002119', '002129', '002156', '002185', '002218', '002449', '002638', '002654', '002724', '002745', '002815', '002913', '300046', '300053', '300077', '300080', '300102', '300111', '300118', '300223', '300232', '300236', '300241', '300269', '300296', '300301', '300303', '300317', '300323', '300327', '300373', '300389', '300582', '300613', '300623', '300625', '300632', '300671', '300672', '300708', '600151', '600171', '600206', '600360', '600460', '600171', '600206', '600360', '600460', '600537', '600584', '600667', '600703', '601012', '603005', '603501', '603986', '300749']:
-        cs = CStock(code, redis_host = '127.0.0.1')
-        market = get_market_name(code)
-        index_info = sh_index_info if  market == 'sh' else sz_index_info
-        logger.info("compute %s" % code)
-        cs.set_k_data(bonus_info, index_info)
-        cs.set_base_floating_profit()
+    #bonus_info = pd.read_csv("/Volumes/data/quant/stock/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
+    ##for code in ['000001']:
+    #for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400', '601606', '300104', '300188', '002079', '002119', '002129', '002156', '002185', '002218', '002449', '002638', '002654', '002724', '002745', '002815', '002913', '300046', '300053', '300077', '300080', '300102', '300111', '300118', '300223', '300232', '300236', '300241', '300269', '300296', '300301', '300303', '300317', '300323', '300327', '300373', '300389', '300582', '300613', '300623', '300625', '300632', '300671', '300672', '300708', '600151', '600171', '600206', '600360', '600460', '600171', '600206', '600360', '600460', '600537', '600584', '600667', '600703', '601012', '603005', '603501', '603986', '300749']:
+    #    cs = CStock(code, redis_host = '127.0.0.1')
+    #    market = get_market_name(code)
+    #    index_info = sh_index_info if  market == 'sh' else sz_index_info
+    #    logger.info("compute %s" % code)
+    #    cs.set_k_data(bonus_info, index_info)
+    #    cs.set_base_floating_profit()

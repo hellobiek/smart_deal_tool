@@ -88,11 +88,11 @@ class RIndexStock:
         return all_df
 
     def get_data_between(self, start_date, end_date):
-        #start_date and end_date shoulw be in the same table
+        #start_date and end_date should be in the same table
         sql = "select * from %s where date between \"%s\" and \"%s\"" % (self.get_table_name(start_date), start_date, end_date)
         return self.mysql_client.get(sql)
 
-    def get_k_data(self, cdate):
+    def get_data(self, cdate):
         cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
         sql = "select * from %s where date=\"%s\"" % (self.get_table_name(cdate), cdate)
         return self.mysql_client.get(sql)
