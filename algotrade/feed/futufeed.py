@@ -9,22 +9,23 @@ import threading
 import const as ct
 import dataFramefeed
 from datetime import timedelta, datetime
-from base.base import PollingThread, localnow
+from base.base import PollingThread, localnow, get_today_time
 from pyalgotrade.dataseries import DEFAULT_MAX_LEN
 from subscriber import Subscriber, StockQuoteHandler, OrderBookHandler
 from log import getLogger
 logger = getLogger(__name__)
 class GetBarThread(PollingThread):
-    ON_BARS = 1
-    ON_END  = 2
-    def __init__(self, mqueue, identifiers, end_time, frequency, timezone):
+    ON_END  = 1
+    ON_BARS = 2
+    def __init__(self, mqueue, identifiers, start_time, end_time, frequency, timezone):
         PollingThread.__init__(self)
-        self.__queue = mqueue
-        self.__end_time = end_time
-        self.__timezone = timezone
-        self.__frequency = frequency
+        self.__queue       = mqueue
+        self.__start_time  = get_today_time(start_time)
+        self.__end_time    = get_today_time(end_time)
+        self.__timezone    = timezone
+        self.__frequency   = frequency
         self.__identifiers = identifiers 
-        self.__subscriber = Subscriber()
+        self.__subscriber  = Subscriber()
         self.__next_call_time = localnow(self.__timezone)
         self.__last_response_time = localnow(self.__timezone)
 
@@ -54,10 +55,9 @@ class GetBarThread(PollingThread):
                 if res is not None: bar_dict[identifier] = res
         if len(bar_dict) > 0:
             bars = bar.Ticks(bar_dict)
-            if self.__last_response_time == self.__end_time:
-                self.__queue.put((GetBarThread.ON_END, bars))
-            else:
-                self.__queue.put((GetBarThread.ON_BARS, bars))
+            self.__queue.put((GetBarThread.ON_BARS, bars))
+        if localnow(self.__timezone) >= self.__end_time:
+            self.stop()
 
     def init_real_trading(self):
         for identifier in self.__identifiers:
@@ -68,9 +68,9 @@ class GetBarThread(PollingThread):
 
     def wait(self):
         next_call_time = self.getNextCallDateTime()
-        start_time = localnow(self.__timezone)
-        while not self.is_stopped() and localnow(self.__timezone) < next_call_time:
-            time.sleep((next_call_time - start_time).seconds)
+        begin_time = localnow(self.__timezone)
+        while not self.stopped and localnow(self.__timezone) < next_call_time:
+            time.sleep((next_call_time - begin_time).seconds)
 
     def start(self):
         if not self.__subscriber.status(): self.__subscriber.start(host = ct.FUTU_HOST_LOCAL)
@@ -99,12 +99,14 @@ class FutuFeed(dataFramefeed.TickFeed):
         :param maxLen:
     """
     QUEUE_TIMEOUT = 0.01
-    def __init__(self, identifiers, end_time, timezone, frequency = 3, maxLen = DEFAULT_MAX_LEN):
+    def __init__(self, identifiers, timezone, dealtime, frequency = 3, maxLen = DEFAULT_MAX_LEN):
         dataFramefeed.TickFeed.__init__(self, bar.Frequency.TRADE, None, maxLen)
         if not isinstance(identifiers, list): raise Exception("identifiers must be a list")
         self.__timezone = timezone
+        self.__start_time = dealtime['start']
+        self.__end_time   = dealtime['end']
         self.__queue  = queue.Queue()
-        self.__thread = GetBarThread(self.__queue, identifiers, end_time, timedelta(seconds = frequency), self.__timezone)
+        self.__thread = GetBarThread(self.__queue, identifiers, self.__start_time, self.__end_time, timedelta(seconds = frequency), self.__timezone)
         for instrument in identifiers: self.registerInstrument(instrument)
 
     def start(self):
@@ -119,7 +121,7 @@ class FutuFeed(dataFramefeed.TickFeed):
             self.__thread.join()
 
     def eof(self):
-        return self.__thread.is_stopped()
+        return self.__thread.stopped
 
     def peekDateTime(self):
         return dataFramefeed.TickFeed.peekDateTime(self)

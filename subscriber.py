@@ -44,15 +44,13 @@ class Subscriber:
             self._status = True
 
     def stop(self):
-        with self.lock:
-            self.quote_ctx.stop()
-            self._status = False
-            logger.debug("stop success")
+        self.quote_ctx.stop()
+        self._status = False
+        logger.debug("stop success")
 
     def close(self):
-        with self.lock:
-            self.quote_ctx.close()
-            logger.debug("close success")
+        self.quote_ctx.close()
+        logger.debug("close success")
 
     def status(self):
         with self.lock:

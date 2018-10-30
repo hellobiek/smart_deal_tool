@@ -47,20 +47,13 @@ def main():
     trading_info = get_real_trading_stocks(fpath)
     stocks  = trading_info['buy']
     stocks.extend(trading_info['sell'])
-    #dataFeed   = dataFramefeed.Feed()
-    #start_date = '2018-03-01'
-    #end_date   = '2018-10-28'
-    #for code in stocks:
-    #    obj  = CStock(code, should_create_influxdb = False, should_create_mysqldb = True, redis_host = "127.0.0.1")
-    #    data = obj.get_k_data_in_range(start_date, end_date)
-    #    data = data.set_index('date')
-    #    dataFeed.addBarsFromDataFrame(code, data)
     stocks = [add_prifix(code) for code in stocks]
-    market_   = ct.CN_MARKET_SYMBOL
-    timezone_ = ct.TIMEZONE_DICT[market_]
+    market_     = ct.CN_MARKET_SYMBOL
+    deal_time   = ct.MARKET_DEAL_TIME_DICT[market_]
+    timezone_   = ct.TIMEZONE_DICT[market_]
     apath       = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/futu.json"
-    dataFeed    = FutuFeed(stocks, end_time = "15:00:00", timezone = timezone_)
-    futuBroker  = FutuBroker(host = ct.FUTU_HOST_LOCAL, port = ct.FUTU_PORT, trd_env = TrdEnv.SIMULATE, market = market_, unlock_path = apath)
+    dataFeed    = FutuFeed(stocks, dealtime = deal_time, timezone = timezone_)
+    futuBroker  = FutuBroker(host = ct.FUTU_HOST_LOCAL, port = ct.FUTU_PORT, trd_env = TrdEnv.SIMULATE, market = market_, timezone = timezone_, dealtime = deal_time, unlock_path = apath)
     strat       = LiveTradingStrategy(dataFeed, futuBroker, stocks)
     strat.run()
 

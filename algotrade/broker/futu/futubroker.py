@@ -10,7 +10,7 @@ import threading
 import const as ct
 from log import getLogger
 from pyalgotrade import broker
-from base.base import PollingThread
+from base.base import get_today_time, localnow
 from algotrade.broker.futu.fututrader import FutuTrader, MOrder, MDeal
 from futuquant import OrderStatus, OrderType, TrdEnv, TradeDealHandlerBase, TradeOrderHandlerBase
 logger = getLogger(__name__)
@@ -113,7 +113,7 @@ class TradeDealHandler(TradeOrderHandlerBase):
                     self.__queue.put(MDeal(mdict))
 
 class FutuBroker(broker.Broker):
-    def __init__(self, host = ct.FUTU_HOST_LOCAL, port = ct.FUTU_PORT, trd_env = TrdEnv.SIMULATE, order_type = OrderType.NORMAL, market = "CN", unlock_path = ct.FUTU_PATH):
+    def __init__(self, host, port, trd_env, timezone, dealtime, order_type = OrderType.NORMAL, market = "CN", unlock_path = ct.FUTU_PATH):
         super(FutuBroker, self).__init__()
         self.__stop          = False
         self.__trader        = None 
@@ -124,6 +124,9 @@ class FutuBroker(broker.Broker):
         self.__market        = market
         self.__trd_env       = trd_env
         self.__order_type    = order_type
+        self.__timezone      = timezone
+        self.__start_time    = get_today_time(dealtime['start'])
+        self.__end_time      = get_today_time(dealtime['end'])
         self.__activeOrders  = dict()
         self.__unlock_path   = unlock_path
         self.__deal_manager  = TradeDealHandler()
@@ -156,6 +159,8 @@ class FutuBroker(broker.Broker):
         pass
 
     def eof(self):
+        if localnow(self.__timezone) >= self.__end_time:
+            self.stop()
         return self.__stop
 
     def dispatch(self):

@@ -4462,23 +4462,17 @@ const.TIMEZONE_DICT = {
     const.HK_MARKET_SYMBOL: 'Asia/Hong_Kong',
     const.US_MARKET_SYMBOL: 'EST'
 }
-const.MARKET_END_TIME = {
+const.MARKET_DEAL_TIME_DICT = {
     const.CN_MARKET_SYMBOL: {
-        "am_start": "09:30",
-        "am_end"  : "11:30",
-        "pm_start": "13:00",
-        "pm_end"  : "15:00"
+        "start": "09:30:00",
+        "end"  : "15:00:00"
     },
     const.HK_MARKET_SYMBOL: {
-        "am_start": "09:30",
-        "am_end"  : "12:00",
-        "pm_start": "13:00",
-        "pm_end"  : "16:00"
+        "start": "09:30:00",
+        "end"  : "16:00:00"
     },    
     const.US_MARKET_SYMBOL: {
-        "am_start": "09:30",
-        "am_end"  : "12:00",
-        "pm_start": "13:00",
-        "pm_end"  : "16:00"
+        "start": "09:30:00",
+        "end"  : "16:00:00"
     }
 }
