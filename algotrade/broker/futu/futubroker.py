@@ -1,4 +1,4 @@
-#-*-coding:utf-8-*-
+#coding=utf-8
 import sys
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(dirname(dirname(abspath(__file__))))))
@@ -8,9 +8,13 @@ import random
 import datetime
 import threading
 import const as ct
+from log import getLogger
 from pyalgotrade import broker
+from base.base import PollingThread
 from algotrade.broker.futu.fututrader import FutuTrader, MOrder, MDeal
 from futuquant import OrderStatus, OrderType, TrdEnv, TradeDealHandlerBase, TradeOrderHandlerBase
+logger = getLogger(__name__)
+
 class EquityTraits(broker.InstrumentTraits):
     def roundQuantity(self, quantity):
         return int(quantity)
@@ -84,7 +88,7 @@ class StopLimitOrder(broker.StopLimitOrder, LiveOrder):
     def process(self, broker_, bar_):
         return broker_.getFillStrategy().fillStopLimitOrder(broker_, self, bar_)
 
-class TradeDealHandler(TradeDealHandlerBase):
+class TradeDealHandler(TradeOrderHandlerBase):
     def __init__(self):
         super(TradeDealHandler, self).__init__()
         self.__lock  = threading.Lock()
@@ -101,13 +105,14 @@ class TradeDealHandler(TradeDealHandlerBase):
     def on_recv_rsp(self, rsp_pb):
         ret, data = super(TradeDealHandler, self).on_recv_rsp(rsp_pb)
         if ret != 0: return
-        data = data[['deal_id', 'trd_side', 'order_id', 'code', 'qty', 'price', 'create_time']]
+        data = data[['order_id', 'order_status', 'trd_side', 'code', 'qty', 'price', 'create_time', 'trd_env']]
         data_dict = data.to_dict("records")
         with self.__lock:
             for mdict in data_dict:
-                self.__queue.put(MDeal(mdict))
+                if mdict['order_status'] in ["FILLED_PART", "FILLED_ALL"]:
+                    self.__queue.put(MDeal(mdict))
 
-class FutuBroker(broker.Broker, TradeDealHandlerBase, TradeOrderHandlerBase):
+class FutuBroker(broker.Broker):
     def __init__(self, host = ct.FUTU_HOST_LOCAL, port = ct.FUTU_PORT, trd_env = TrdEnv.SIMULATE, order_type = OrderType.NORMAL, market = "CN", unlock_path = ct.FUTU_PATH):
         super(FutuBroker, self).__init__()
         self.__stop          = False
@@ -120,7 +125,7 @@ class FutuBroker(broker.Broker, TradeDealHandlerBase, TradeOrderHandlerBase):
         self.__trd_env       = trd_env
         self.__order_type    = order_type
         self.__activeOrders  = dict()
-        self.__unlock_path   =
+        self.__unlock_path   = unlock_path
         self.__deal_manager  = TradeDealHandler()
 
     def update_account_balance(self):
@@ -139,7 +144,8 @@ class FutuBroker(broker.Broker, TradeDealHandlerBase, TradeOrderHandlerBase):
     def start(self):
         super(FutuBroker, self).start()
         self.__trader = FutuTrader(self.__host, self.__port, self.__trd_env, self.__market, unlock_path = self.__unlock_path)
-        self.__trader.set_handler(TradeDealHandler())
+        self.__trader.set_handler(self.__deal_manager)
+        self.__trader.start()
         self.update_account_balance()
 
     def stop(self):
@@ -196,7 +202,7 @@ class FutuBroker(broker.Broker, TradeDealHandlerBase, TradeOrderHandlerBase):
 
     def submitOrder(self, order):
         ret, data = self.__trader.trade(order)
-        if ret != 0: print(ret, data)
+        if ret != 0: logger.error("submit order failed. ret:%s, output:%s" % (ret, data))
 
     def cancelOrder(self, order):
         raise Exception("cancel orders are not supported")

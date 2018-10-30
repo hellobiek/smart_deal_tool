@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
 from copy import deepcopy
-from zh_wiki import zh2Hant, zh2Hans
+from base.zh_wiki import zh2Hant, zh2Hans
 UEMPTY = ''
 # states
 (START, END, FAIL, WAIT_TAIL) = list(range(4))

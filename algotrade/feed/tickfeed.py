@@ -53,6 +53,7 @@ class BaseBarFeed(feed.BaseFeed):
         bars = self.getNextBars()
         if bars is not None:
             dateTime = bars.getDateTime()
+            #if self.__currentBars is not None: print(dateTime, self.__currentBars.getDateTime())
             # Check that current bar datetimes are greater than the previous one.
             if self.__currentBars is not None and self.__currentBars.getDateTime() >= dateTime:
                 raise Exception(

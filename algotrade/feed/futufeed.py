@@ -5,79 +5,42 @@ sys.path.insert(0, dirname(abspath(__file__)))
 import bar
 import time
 import queue
-import datetime
 import threading
-import dataFramefeed
 import const as ct
-from pyalgotrade.utils import dt
+import dataFramefeed
+from datetime import timedelta, datetime
+from base.base import PollingThread, localnow
 from pyalgotrade.dataseries import DEFAULT_MAX_LEN
 from subscriber import Subscriber, StockQuoteHandler, OrderBookHandler
 from log import getLogger
 logger = getLogger(__name__)
-
-def localnow():
-    return dt.as_utc(datetime.datetime.now())
-
-class PollingThread(threading.Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-        self.__stopped = True
-
-    def __wait(self):
-        next_call_time = self.getNextCallDateTime()
-        start_time = localnow()
-        while not self.__stopped and localnow() < next_call_time:
-            time.sleep((next_call_time - start_time).seconds)
-
-    def stopped(self):
-        return self.__stopped
-
-    def run(self):
-        while not self.__stopped:
-            self.__wait()
-            if not self.__stopped:
-                try:
-                    self.doCall()
-                except Exception as e:
-                    logger.error("unhandled exception:%s" % e)
-
-    def start(self):
-        self.__stopped = False
-        threading.Thread.start(self)
-
-    def stop(self):
-        self.__stopped = True
-
-    def getNextCallDateTime(self):
-        raise NotImplementedError()
-
-    def doCall(self):
-        raise NotImplementedError()
-
-def build_bar(quote_dict, order_dict):
-    time_str = "%s %s" % (quote_dict["date"][0], quote_dict["time"][0])
-    sdatetime = datetime.datetime.strptime(time_str, '%Y-%m-%d %H:%M:%S')
-    return bar.BasicTick(sdatetime, quote_dict['open'][0], quote_dict['high'][0], quote_dict['low'][0], quote_dict['close'][0], quote_dict['preclose'][0], quote_dict['volume'][0], quote_dict['amount'][0],
-                        order_dict['Bid'][0][0], order_dict['Bid'][0][1], order_dict['Bid'][1][0], order_dict['Bid'][1][1], order_dict['Bid'][2][0], order_dict['Bid'][2][1], order_dict['Bid'][3][0], order_dict['Bid'][3][1], order_dict['Bid'][4][0], order_dict['Bid'][4][1],
-                        order_dict['Ask'][0][0], order_dict['Ask'][0][1], order_dict['Ask'][1][0], order_dict['Ask'][1][1], order_dict['Ask'][2][0], order_dict['Ask'][2][1], order_dict['Ask'][3][0], order_dict['Ask'][3][1], order_dict['Ask'][4][0], order_dict['Ask'][4][1],
-                        bar.Frequency.TRADE)
-
 class GetBarThread(PollingThread):
     ON_BARS = 1
     ON_END  = 2
-    def __init__(self, mqueue, identifiers, end_time, frequency = 3):
+    def __init__(self, mqueue, identifiers, end_time, frequency, timezone):
         PollingThread.__init__(self)
         self.__queue = mqueue
-        self.__identifiers = identifiers 
-        self.__nextCallDatetime = localnow()
-        self.__frequency = frequency
-        self.__subscriber = Subscriber()
-        self.__last_response_time = None
         self.__end_time = end_time
+        self.__timezone = timezone
+        self.__frequency = frequency
+        self.__identifiers = identifiers 
+        self.__subscriber = Subscriber()
+        self.__next_call_time = localnow(self.__timezone)
+        self.__last_response_time = localnow(self.__timezone)
 
     def getNextCallDateTime(self):
-        self.__nextCallDatetime = max(localnow(), self.__nextCallDatetime + datetime.timedelta(seconds = self.__frequency))
-        return self.__nextCallDatetime
+        self.__next_call_time = max(localnow(self.__timezone), self.__next_call_time + self.__frequency)
+        return self.__next_call_time
+
+    def build_bar(self, quote_dict, order_dict):
+        time_str = "%s %s" % (quote_dict["date"][0], quote_dict["time"][0])
+        sdatetime = datetime.strptime(time_str, '%Y-%m-%d %H:%M:%S')
+        if self.__last_response_time >= sdatetime: return None
+        self.__last_response_time = sdatetime
+        return bar.BasicTick(sdatetime, quote_dict['open'][0], quote_dict['high'][0], quote_dict['low'][0], quote_dict['close'][0], quote_dict['preclose'][0], quote_dict['volume'][0], quote_dict['amount'][0],
+                            order_dict['Bid'][0][0], order_dict['Bid'][0][1], order_dict['Bid'][1][0], order_dict['Bid'][1][1], order_dict['Bid'][2][0], order_dict['Bid'][2][1], order_dict['Bid'][3][0], order_dict['Bid'][3][1], order_dict['Bid'][4][0], order_dict['Bid'][4][1],
+                            order_dict['Ask'][0][0], order_dict['Ask'][0][1], order_dict['Ask'][1][0], order_dict['Ask'][1][1], order_dict['Ask'][2][0], order_dict['Ask'][2][1], order_dict['Ask'][3][0], order_dict['Ask'][3][1], order_dict['Ask'][4][0], order_dict['Ask'][4][1],
+                            bar.Frequency.TRADE)
 
     def doCall(self):
         bar_dict = {}
@@ -87,8 +50,8 @@ class GetBarThread(PollingThread):
             if 0 == order_ret and 0 == quote_ret:
                 quote_data = quote_data[['data_date', 'data_time', 'open_price', 'high_price', 'low_price', 'last_price', 'prev_close_price', 'volume', 'turnover']]
                 quote_data = quote_data.rename(columns = {"data_date": "date", "data_time": "time", "open_price": "open", "high_price": "high", "low_price": "low", "last_price": "close", "prev_close_price": "preclose", "turnover": "amount"})
-                bar_dict[identifier] = build_bar(quote_data.to_dict(), order_data)
-                self.__last_response_time = quote_data.iloc[-1]['time']
+                res = self.build_bar(quote_data.to_dict(), order_data)
+                if res is not None: bar_dict[identifier] = res
         if len(bar_dict) > 0:
             bars = bar.Ticks(bar_dict)
             if self.__last_response_time == self.__end_time:
@@ -103,10 +66,25 @@ class GetBarThread(PollingThread):
             if 0 != order_ret or 0 != quote_ret: return False
         return True
 
+    def wait(self):
+        next_call_time = self.getNextCallDateTime()
+        start_time = localnow(self.__timezone)
+        while not self.is_stopped() and localnow(self.__timezone) < next_call_time:
+            time.sleep((next_call_time - start_time).seconds)
+
     def start(self):
         if not self.__subscriber.status(): self.__subscriber.start(host = ct.FUTU_HOST_LOCAL)
         if not self.init_real_trading(): raise Exception("init_real_trading subscribe failed")
         PollingThread.start(self)
+
+    def run(self):
+        while not self.stopped:
+            self.wait()
+            if not self.stopped:
+                try:
+                    self.doCall()
+                except Exception as e:
+                    print("unhandled exception:%s" % e)
 
     def stop(self):
         PollingThread.stop(self)
@@ -121,11 +99,12 @@ class FutuFeed(dataFramefeed.TickFeed):
         :param maxLen:
     """
     QUEUE_TIMEOUT = 0.01
-    def __init__(self, identifiers, end_time, frequency = 3, maxLen = DEFAULT_MAX_LEN):
+    def __init__(self, identifiers, end_time, timezone, frequency = 3, maxLen = DEFAULT_MAX_LEN):
         dataFramefeed.TickFeed.__init__(self, bar.Frequency.TRADE, None, maxLen)
         if not isinstance(identifiers, list): raise Exception("identifiers must be a list")
+        self.__timezone = timezone
         self.__queue  = queue.Queue()
-        self.__thread = GetBarThread(self.__queue, identifiers, end_time, datetime.timedelta(seconds = frequency))
+        self.__thread = GetBarThread(self.__queue, identifiers, end_time, timedelta(seconds = frequency), self.__timezone)
         for instrument in identifiers: self.registerInstrument(instrument)
 
     def start(self):
@@ -140,13 +119,13 @@ class FutuFeed(dataFramefeed.TickFeed):
             self.__thread.join()
 
     def eof(self):
-        return self.__thread.stopped()
+        return self.__thread.is_stopped()
 
     def peekDateTime(self):
         return dataFramefeed.TickFeed.peekDateTime(self)
 
     def getCurrentDateTime(self):
-        return localnow()
+        return localnow(self.__timezone)
 
     def barsHaveAdjClose(self):
         return False

@@ -2,8 +2,9 @@
 import json
 import threading
 import const as ct
+from log import getLogger
 from futuquant import OrderType, TrdSide, TrdEnv, OpenCNTradeContext, OpenUSTradeContext, OpenHKTradeContext
-
+logger = getLogger(__name__)
 class MDeal(object):
     def __init__(self, jsonDict):
         self.__jsonDict = jsonDict
@@ -74,10 +75,10 @@ class MOrder(object):
 
 class FutuTrader:
     def __init__(self, host, port, trd_env, market, unlock_path = ct.FUTU_PATH):
-        if market != "CN" or market != "US" or market != "HK": raise Exception("not supported market:%s" % market)
-        if "CN" == market:
+        if market != ct.CN_MARKET_SYMBOL and market != ct.US_MARKET_SYMBOL and market != ct.HK_MARKET_SYMBOL: raise Exception("not supported market:%s" % market)
+        if ct.CN_MARKET_SYMBOL == market:
             self.trd_ctx = OpenCNTradeContext(host, port)
-        elif "US" == market:
+        elif ct.US_MARKET_SYMBOL == market:
             self.trd_ctx = OpenUSTradeContext(host, port)
         else:
             self.trd_ctx = OpenHKTradeContext(host, port)
@@ -90,6 +91,10 @@ class FutuTrader:
     def __del__(self):
         if self.trd_ctx is not None:
             self.trd_ctx.close()
+
+    def start(self):
+        if self.trd_ctx is not None:
+            self.trd_ctx.start()
 
     def get_acc_id(self):
         ret, data = self.trd_ctx.get_acc_list()
@@ -114,7 +119,7 @@ class FutuTrader:
         ret, data = self.trd_ctx.position_list_query(trd_env = self.trd_env)
         if ret != 0: raise Exception("get shares failed")
         for index, code in data.code.iteritems():
-            mshares['code'] = data.loc[index, 'qty']
+            mshares[code] = data.loc[index, 'qty']
         return mshares
            
     def get_order(self, id_ = "", filter_list = list()):
@@ -134,6 +139,8 @@ class FutuTrader:
         type_     = OrderType.NORMAL
         direction = TrdSide.BUY if order.isBuy() else TrdSide.SELL
         ret, data = self.trd_ctx.place_order(price, quantity, code, trd_side = direction, order_type = type_, adjust_limit = 0, trd_env = self.trd_env, acc_id = self.acc_id)
+        if  ret  != 0: logger.error("trade failed, ret:%s, data:%s" % (ret, data))
+        #logger.info("trade %s success, ret:%s, data:%s" % (code, ret, data))
         return ret, data
 
     def buy(self, code, price, quantity):
@@ -159,7 +166,3 @@ class FutuTrader:
     def status(self):
         with self._lock:
             return self._status
-
-if __name__ =="__main__":
-    apath = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/futu.json"
-    fb = FutuTrader("127.0.0.1", 11111, TrdEnv.SIMULATE, market = "CN", unlock_path = apath)

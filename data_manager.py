@@ -136,7 +136,7 @@ class DataManager:
         obj_pool = Pool(10)
         for code in self.index_objs:
             code_str = add_index_prefix(code)
-            ret, data = self.subscriber.get_quote_data(code_str)
+            ret, df = self.subscriber.get_quote_data(code_str)
             if ret != 0: continue
             df['time'] = df.data_date + ' ' + df.data_time
             df = df.drop(['data_date', 'data_time'], axis = 1)
@@ -158,7 +158,7 @@ class DataManager:
                         sleep_time = 1
                         if not self.subscriber.status():
                             self.subscriber.start()
-                            if self.init_index_info() | self.init_real_stock_info(): 
+                            if 0 == self.init_index_info() and 0 == self.init_real_stock_info():
                                 self.init_combination_info()
                             else:
                                 logger.debug("enter stop dict time")
@@ -173,6 +173,7 @@ class DataManager:
                         if self.subscriber.status():
                             self.subscriber.stop()
             except Exception as e:
+                traceback.print_exc()
                 logger.error(e)
             time.sleep(sleep_time)
 

@@ -4454,5 +4454,31 @@ const.FL = "飞龙"
 ##################################################
 const.SH_MARKET_SYMBOL = "SH"
 const.SZ_MARKET_SYMBOL = "SZ"
+const.CN_MARKET_SYMBOL = "CN"
 const.HK_MARKET_SYMBOL = "HK"
 const.US_MARKET_SYMBOL = "US"
+const.TIMEZONE_DICT = {
+    const.CN_MARKET_SYMBOL: 'Asia/Shanghai', 
+    const.HK_MARKET_SYMBOL: 'Asia/Hong_Kong',
+    const.US_MARKET_SYMBOL: 'EST'
+}
+const.MARKET_END_TIME = {
+    const.CN_MARKET_SYMBOL: {
+        "am_start": "09:30",
+        "am_end"  : "11:30",
+        "pm_start": "13:00",
+        "pm_end"  : "15:00"
+    },
+    const.HK_MARKET_SYMBOL: {
+        "am_start": "09:30",
+        "am_end"  : "12:00",
+        "pm_start": "13:00",
+        "pm_end"  : "16:00"
+    },    
+    const.US_MARKET_SYMBOL: {
+        "am_start": "09:30",
+        "am_end"  : "12:00",
+        "pm_start": "13:00",
+        "pm_end"  : "16:00"
+    }
+}
