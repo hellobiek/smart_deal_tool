@@ -6,7 +6,6 @@ from futuquant import OpenQuoteContext
 from futuquant.common.constant import SubType
 from futuquant.quote.quote_response_handler import OrderBookHandlerBase, TickerHandlerBase, StockQuoteHandlerBase
 logger = getLogger(__name__)
-
 class StockQuoteHandler(StockQuoteHandlerBase):
     def on_recv_rsp(self, rsp_str):
         ret, data = super(StockQuoteHandler, self).on_recv_rsp(rsp_str)
@@ -68,48 +67,26 @@ class Subscriber:
         ret, data = self.quote_ctx.get_stock_quote(code)
         return ret, data
 
-    def subscribe_order_book(self, code, callback):
-        if SubType.ORDER_BOOK in self.sub_dict and code in self.sub_dict[SubType.ORDER_BOOK]: return 0
+    def subscribe(self, code_list, callback, dtype):
+        if dtype in self.sub_dict and set(code_list).issubset(set(self.sub_dict[dtype])): return 0
         self.quote_ctx.set_handler(callback)
-        ret, msg = self.quote_ctx.subscribe(code, SubType.ORDER_BOOK)
+        ret, msg = self.quote_ctx.subscribe(code_list, dtype)
         if 0 == ret:
-            if SubType.ORDER_BOOK not in self.sub_dict: self.sub_dict[SubType.ORDER_BOOK] = list()
-            self.sub_dict[SubType.ORDER_BOOK].append(code)
+            if dtype not in self.sub_dict: self.sub_dict[dtype] = list()
+            self.sub_dict[dtype].extend(code_list)
         else:
-            logger.error("%s subscrbe failed, msg:%s" % (code, msg))
+            logger.error("%s subscrbe failed, msg:%s, dtype:%s" % (code, msg, dtype))
         return ret
 
-    def subscribe_tick(self, code, callback):
-        if SubType.TICKER in self.sub_dict and code in self.sub_dict[SubType.TICKER]: return 0
-        self.quote_ctx.set_handler(callback)
-        ret, msg = self.quote_ctx.subscribe(code, SubType.TICKER)
-        if 0 == ret:
-            if SubType.TICKER not in self.sub_dict: self.sub_dict[SubType.TICKER] = list()
-            self.sub_dict[SubType.TICKER].append(code)
-        else:
-            logger.error("%s subscrbe failed, msg:%s" % (code, msg))
-        return ret
-
-    def subscribe_quote(self, code, callback):
-        if SubType.QUOTE in self.sub_dict and code in self.sub_dict[SubType.QUOTE]: return 0
-        self.quote_ctx.set_handler(callback)
-        ret, msg = self.quote_ctx.subscribe(code, SubType.QUOTE)
-        if 0 == ret:
-            if SubType.QUOTE not in self.sub_dict: self.sub_dict[SubType.QUOTE] = list()
-            self.sub_dict[SubType.QUOTE].append(code)
-        else:
-            logger.error("%s subscrbe failed, msg:%s" % (code, msg))
-        return ret
-
-    def unsubscribe_tick(self, code_list, subtype = SubType.TICKER):
+    def unsubscribe(self, code_list, subtype = SubType.TICKER):
         '''
         code_list – 取消订阅的股票代码列表
         subtype_list – 取消订阅的类型，参见SubType
         '''
         ret, msg = self.quote_ctx.unsubscribe(code_list, subtype)
         if 0 == ret:
-            if SubType.TICKER in self.sub_dict and code in self.sub_dict[SubType.TICKER]:
-                self.sub_dict[SubType.TICKER].remove(code)
+            if subtype in self.sub_dict and code in self.sub_dict[subtype]:
+                self.sub_dict[subtype].remove(code)
         else:
             logger.error(msg)
         return ret

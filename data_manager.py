@@ -114,23 +114,23 @@ class DataManager:
 
     def init_real_stock_info(self):
         concerned_list = self.get_concerned_list()
-        for code_id in concerned_list:
-            ret = self.subscriber.subscribe_tick(add_prifix(code_id), TickerHandler)
-            if 0 == ret:
-                if code_id not in self.stock_objs: self.stock_objs[code_id] = CStock(code_id, self.dbinfo, should_create_influxdb = True, should_create_mysqldb = False)
-            else:
-                return ret
-        return 0
+        prefix_concerned_list = [add_prifix(code_id) for code_id in concerned_list]
+        ret = self.subscriber.subscribe(prefix_concerned_list, TickerHandler, SubType.TICKER)
+        if 0 == ret:
+            for code in concerned_list:
+                if code_id not in self.stock_objs:
+                    self.stock_objs[code_id] = CStock(code_id, self.dbinfo, should_create_influxdb = True, should_create_mysqldb = False)
+        return ret
 
     def init_index_info(self):
         index_list = ct.INDEX_DICT.keys()
-        for code in index_list:
-            ret = self.subscriber.subscribe_quote(add_index_prefix(code), StockQuoteHandler)
-            if 0 == ret: 
-                if code not in self.index_objs: self.index_objs[code] = CIndex(code)
-            else:
-                return ret
-        return 0
+        prefix_index_list = [add_index_prifix(code_id) for code_id in index_list]
+        ret = self.subscriber.subscribe(prefix_index_list, StockQuoteHandler, SubType.QUOTE)
+        if 0 == ret:
+            for code in index_list: 
+                if code not in self.index_objs:
+                    self.index_objs[code] = CIndex(code)
+        return ret
 
     def collect_index_runtime_data(self):
         obj_pool = Pool(10)

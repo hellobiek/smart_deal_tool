@@ -60,10 +60,9 @@ class GetBarThread(PollingThread):
             self.stop()
 
     def init_real_trading(self):
-        for identifier in self.__identifiers:
-            quote_ret = self.__subscriber.subscribe_quote(identifier, StockQuoteHandler)
-            order_ret = self.__subscriber.subscribe_order_book(identifier, OrderBookHandler)
-            if 0 != order_ret or 0 != quote_ret: return False
+        quote_ret = self.__subscriber.subscribe(self.__identifiers, StockQuoteHandler, SubType.QUOTE)
+        order_ret = self.__subscriber.subscribe(self.__identifiers, OrderBookHandler,  SubType.ORDER_BOOK)
+        if 0 != order_ret or 0 != quote_ret: return False
         return True
 
     def wait(self):
