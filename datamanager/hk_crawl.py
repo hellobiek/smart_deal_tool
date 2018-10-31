@@ -120,7 +120,9 @@ class MCrawl:
 
     def crawl(self, req_date = None):
         result = self.crawer.process(req_date)
-        if result is None: return 1, pd.DataFrame()
+        if result is None:
+            self.driver.refresh()
+            return 1, pd.DataFrame()
         soup      = BeautifulSoup(result, "html.parser")
         real_date = soup.select("h2.ccass-heading")[0].span.text.strip().split(":")[1].strip()
         if req_date != real_date.replace('/', '-'): return 1, pd.DataFrame()

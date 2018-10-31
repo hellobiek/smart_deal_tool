@@ -51,17 +51,17 @@ def get_years_between(start, end):
     year_only_array = np.vectorize(lambda s: s.strftime('%Y'))(data_times.to_pydatetime())
     return year_only_array
 
-def get_dates_array(start_date, end_date):
+def get_dates_array(start_date, end_date, dformat = "%Y-%m-%d"):
     num_days = delta_days(start_date, end_date)
-    start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(start_date, "%Y-%m-%d"))
+    start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(start_date, dformat))
     data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
-    date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
+    date_only_array = np.vectorize(lambda s: s.strftime(dformat))(data_times.to_pydatetime())
     date_only_array = date_only_array[::-1]
     return date_only_array
 
-def delta_days(_from, _to):
-    _from = time.strptime(_from,"%Y-%m-%d")
-    _to = time.strptime(_to,"%Y-%m-%d")
+def delta_days(_from, _to, dformat = "%Y-%m-%d"):
+    _from = time.strptime(_from, dformat)
+    _to = time.strptime(_to, dformat)
     _from = datetime(_from[0],_from[1],_from[2])
     _to = datetime(_to[0],_to[1],_to[2])
     return (_to - _from).days + 1
@@ -171,5 +171,9 @@ def get_tushare_client(fpath = ct.TUSHAE_FILE):
     with open(fpath) as f: key_info = json.load(f)
     return ts.pro_api(key_info['key'])
 
-#df = df[['code', 'data_date', 'data_time', 'last_price', 'open_price', 'high_price', 'low_price', 'prev_close_price', 'volume', 'turnover', 'turnover_rate', 'amplitude']]
-#df = df.rename(columns = {"data_date": "date", 'data_time': 'time', 'last_price': 'last', 'open_price': 'open', 'high_price': 'high', 'low_price': 'low', 'prev_close_price': 'preclose', 'turnover': 'amount'})
+def transfer_date_string_to_int(cdate):
+    cdates = cdate.split('-')
+    return int(cdates[0]) * 10000 + int(cdates[1]) * 100 + int(cdates[2])
+
+def transfer_int_to_date_string(cdate):
+    return time.strftime('%Y-%m-%d', time.strptime(str(cdate), "%Y%m%d"))

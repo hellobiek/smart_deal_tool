@@ -145,7 +145,7 @@ class FutuTrader:
 
     def buy(self, code, price, quantity):
         if self.trd_env == TrdEnv.REAL:
-            self.trd_ctx.unlock_trade(self.unlock_pwd)
+            self.trd_ctx.unlock_trade(password_md5 = self.unlock_pwd)
         ret, data = self.trd_ctx.place_order(code = code, price = price, qty = quantity, trd_side = TrdSide.BUY, order_type = OrderType.NORMAL, trd_env = self.trd_env)
         return ret, data
 

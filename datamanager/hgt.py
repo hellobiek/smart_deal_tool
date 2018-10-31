@@ -15,6 +15,7 @@ class StockConnect(object):
     def __init__(self, market_from = ct.SH_MARKET_SYMBOL, market_to = ct.HK_MARKET_SYMBOL, dbinfo = ct.DB_INFO, redis_host = None):
         self.market_from  = market_from
         self.market_to    = market_to
+        self.balcklist    = ["2018-10-17", "2018-09-25", "2018-07-02", "2018-05-22", "2018-04-02", "2018-03-30"] if market_from in [ct.SH_MARKET_SYMBOL, ct.SZ_MARKET_SYMBOL] else list()
         self.crawler      = MCrawl(market_from)
         self.dbname       = self.get_dbname(market_from, market_to)
         self.redis        = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
@@ -81,9 +82,9 @@ class StockConnect(object):
         #end_date   = datetime.now().strftime('%Y-%m-%d')
         #start_date = get_day_nday_ago(end_date, num = 9, dformat = "%Y-%m-%d")
         start_date = '2017-10-31'
-        end_date = '2018-10-30'
-        date_array = get_dates_array(start_date, end_date)
-        for mdate in date_array:
+        end_date   = '2018-10-30'
+        for mdate in get_dates_array(start_date, end_date):
+            if mdate in self.balcklist: continue
             if CCalendar.is_trading_day(mdate, redis = self.redis):
                 res = self.set_data(mdate)
                 if not res:
@@ -116,5 +117,5 @@ class StockConnect(object):
         return False
 
 if __name__ == '__main__':
-    sc = StockConnect(market_from = "SH", market_to = "HK", redis_host = '127.0.0.1')
+    sc = StockConnect(market_from = "SZ", market_to = "HK", redis_host = '127.0.0.1')
     sc.update()

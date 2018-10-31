@@ -13,7 +13,7 @@ from ticks import read_tick
 from cinfluxdb import CInflux
 from datetime import datetime
 from features import base_floating_profit
-from common import create_redis_obj, get_years_between
+from common import create_redis_obj, get_years_between, transfer_date_string_to_int, transfer_int_to_date_string
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 logger = getLogger(__name__)
@@ -221,12 +221,12 @@ class CStock():
         df = df.sort_values(by = 'date', ascending= True)
         df = df.reset_index(drop = True)
         if cdate is not None:
-            preday_index = df.loc[df.date == self.transfer_date_string_to_int(cdate)].index.values[0] - 1
+            preday_index = df.loc[df.date == transfer_date_string_to_int(cdate)].index.values[0] - 1
             if preday_index < 0:
                 return df, None
             else:
                 pre_day = df.loc[preday_index, 'date']
-                return df.loc[df.date == self.transfer_date_string_to_int(cdate)], self.transfer_int_to_date_string(pre_day)
+                return df.loc[df.date == transfer_date_string_to_int(cdate)], transfer_int_to_date_string(pre_day)
         return df, None
 
     def collect_right_info(self, info, cdate = None):
@@ -270,18 +270,11 @@ class CStock():
         df['turnover'] = 100 * df['volume'] / df['outstanding']
         return df
 
-    def transfer_date_string_to_int(self, cdate):
-        cdates = cdate.split('-')
-        return int(cdates[0]) * 10000 + int(cdates[1]) * 100 + int(cdates[2])
-
-    def transfer_int_to_date_string(self, cdate):
-        return time.strftime('%Y-%m-%d', time.strptime(str(cdate), "%Y%m%d"))
-
     def is_need_reright(self, cdate, quantity_change_info, price_change_info):
         q_index = quantity_change_info.date.index[-1]
         p_index = price_change_info.date.index[-1]
         latest_date = max(quantity_change_info.date[q_index], price_change_info.date[p_index])
-        now_date = self.transfer_date_string_to_int(cdate)
+        now_date = transfer_date_string_to_int(cdate)
         return now_date < latest_date
 
     def pro_nei_chip(self, df, dist_data, mdate = None):
