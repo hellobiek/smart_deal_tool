@@ -253,25 +253,25 @@ class DataManager:
                                 continue
                             self.set_update_info(9)
                            
-                        if finished_step < 10:
-                            if not self.init_today_stock_info():
-                                logger.error("init_today_stock_info set failed")
-                                continue
-                            self.set_update_info(10)
+                        #if finished_step < 10:
+                        #    if not self.init_today_stock_info():
+                        #        logger.error("init_today_stock_info set failed")
+                        #        continue
+                        #    self.set_update_info(10)
 
                         #if finished_step < 11:
                         #    self.cviewer.update()
                         #    self.set_update_info(11)
 
-                        if finished_step < 12:
-                            if not self.rindex_stock_data_client.set_data():
-                                logger.error("rindex_stock_data set failed")
-                                continue
+                        #if finished_step < 12:
+                        #    if not self.rindex_stock_data_client.set_data():
+                        #        logger.error("rindex_stock_data set failed")
+                        #        continue
 
-                        if finished_step < 13:
-                            if not self.init_base_float_profit():
-                                logger.error("init base float profit for all stock")
-                                continue
+                        #if finished_step < 13:
+                        #    if not self.init_base_float_profit():
+                        #        logger.error("init base float profit for all stock")
+                        #        continue
                         logger.info("updating succeed")
             except Exception as e:
                 logger.error(e)

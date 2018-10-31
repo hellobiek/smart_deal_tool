@@ -1,15 +1,25 @@
 #coding=utf-8
+import sys
+from os.path import abspath, dirname
+sys.path.insert(0, dirname(dirname(abspath(__file__))))
+import _pickle
 import const as ct
+from log import getLogger
+from cmysql import CMySQL
+from datetime import datetime
+from ccalendar import CCalendar
+from common import get_day_nday_ago, create_redis_obj, get_dates_array
 from datamanager.hk_crawl import MCrawl 
+logger = getLogger(__name__)
 class StockConnect(object):
     def __init__(self, market_from = ct.SH_MARKET_SYMBOL, market_to = ct.HK_MARKET_SYMBOL, dbinfo = ct.DB_INFO, redis_host = None):
         self.market_from  = market_from
         self.market_to    = market_to
         self.crawler      = MCrawl(market_from)
-        self.dbname       = self.get_dbname()
+        self.dbname       = self.get_dbname(market_from, market_to)
         self.redis        = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
-        self.mysql_client = cmysql.CMySQL(dbinfo, self.dbname, iredis = self.redis)
-        if not self.mysql_client.create_db(self.get_dbname()): raise Exception("init stock connect database failed")
+        self.mysql_client = CMySQL(dbinfo, self.dbname, iredis = self.redis)
+        if not self.mysql_client.create_db(self.dbname): raise Exception("init stock connect database failed")
 
     @staticmethod
     def get_dbname(mfrom, mto):
@@ -17,7 +27,7 @@ class StockConnect(object):
 
     def get_table_name(self, cdate):
         cdates = cdate.split('-')
-        return "%s_stock_connect_day_%s_%s" % (self.dbname, cdates[0], (int(cdates[1])-1)//3 + 1)
+        return "%s_stock_day_%s_%s" % (self.dbname, cdates[0], (int(cdates[1])-1)//3 + 1)
 
     def is_date_exists(self, table_name, cdate):
         if self.redis.exists(table_name):
@@ -28,6 +38,8 @@ class StockConnect(object):
         sql = 'create table if not exists %s(date varchar(10) not null,\
                                              code varchar(10) not null,\
                                              name varchar(10),\
+                                             volume int,\
+                                             percent float,\
                                              PRIMARY KEY (date, code))' % table
         return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
 
@@ -65,16 +77,22 @@ class StockConnect(object):
         sql = "select * from %s where date=\"%s\"" % (self.get_table_name(cdate), cdate)
         return self.mysql_client.get(sql)
 
-    def gen_df(self, date):
-        pass
+    def update(self):
+        end_date   = datetime.now().strftime('%Y-%m-%d')
+        start_date = get_day_nday_ago(end_date, num = 9, dformat = "%Y-%m-%d")
+        date_array = get_dates_array(start_date, end_date)
+        for mdate in date_array:
+            if CCalendar.is_trading_day(mdate, redis = self.redis):
+                res = self.set_data(mdate)
+                if not res:
+                    logger.error("%s get data failed" % mdate)
+                else:
+                    logger.info("%s get data success" % mdate)
 
-    def crawl_data(self, date):
-        cdate = datetime.strptime(date, "%Y-%m-%d").strftime("%Y%m%d")
-        df = self.crawler.crawl(cdate)
-        if df.empty: return False
-        df = df.reset_index(drop = True)
-        df['date'] = date
-        return df
+    def is_table_exists(self, table_name):
+        if self.redis.exists(self.dbname):
+            return table_name in set(str(table, encoding = "utf8") for table in self.redis.smembers(self.dbname))
+        return False
 
     def set_data(self, cdate = datetime.now().strftime('%Y-%m-%d')):
         table_name = self.get_table_name(cdate)
@@ -85,9 +103,11 @@ class StockConnect(object):
             self.redis.sadd(self.dbname, table_name)
         if self.is_date_exists(table_name, cdate): 
             logger.debug("existed table:%s, date:%s" % (table_name, cdate))
-            return False
-        df = self.crawl_data(cdate)
-        self.redis.set(ct.TODAY_ALL_STOCK, _pickle.dumps(df, 2))
+            return True
+        ret, df = self.crawler.crawl(cdate)
+        if ret != 0: return False
+        df = df.reset_index(drop = True)
+        df['date'] = cdate
         if self.mysql_client.set(df, table_name):
             self.redis.sadd(table_name, cdate)
             return True
@@ -95,4 +115,4 @@ class StockConnect(object):
 
 if __name__ == '__main__':
     sc = StockConnect(market_from = "SH", market_to = "HK", redis_host = '127.0.0.1')
-    sc.crawl_data()
+    sc.update()

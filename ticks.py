@@ -15,7 +15,7 @@ import time
 import datetime
 from datetime import datetime, timedelta
 from log import getLogger
-from common import get_market_name, get_day_nday_ago
+from common import get_market_name, get_day_nday_ago, get_dates_array
 from models import TickTradeDetail, TickDetailModel
 logger = getLogger(__name__)
 pd.options.mode.chained_assignment = None #default='warn'
