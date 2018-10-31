@@ -90,11 +90,11 @@ class MSelenium:
 
         element = self.smart_get(self.driver.find_element_by_name, "btnSearch")
         if element is None:
-            self.logger.error("find day element by xpath failed.")
+            self.logger.error("find search button by xpath failed.")
             return None
 
         if not self.smart_call(element.click, None):
-            self.logger.error("get day element by xpath failed.")
+            self.logger.error("get search button result by xpath failed.")
             return None
         return self.driver.page_source
 

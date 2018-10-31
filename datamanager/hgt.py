@@ -37,7 +37,7 @@ class StockConnect(object):
     def create_table(self, table):
         sql = 'create table if not exists %s(date varchar(10) not null,\
                                              code varchar(10) not null,\
-                                             name varchar(10),\
+                                             name varchar(90),\
                                              volume int,\
                                              percent float,\
                                              PRIMARY KEY (date, code))' % table
@@ -78,8 +78,10 @@ class StockConnect(object):
         return self.mysql_client.get(sql)
 
     def update(self):
-        end_date   = datetime.now().strftime('%Y-%m-%d')
-        start_date = get_day_nday_ago(end_date, num = 9, dformat = "%Y-%m-%d")
+        #end_date   = datetime.now().strftime('%Y-%m-%d')
+        #start_date = get_day_nday_ago(end_date, num = 9, dformat = "%Y-%m-%d")
+        start_date = '2017-10-31'
+        end_date = '2018-10-30'
         date_array = get_dates_array(start_date, end_date)
         for mdate in date_array:
             if CCalendar.is_trading_day(mdate, redis = self.redis):
