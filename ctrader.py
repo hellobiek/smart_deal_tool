@@ -29,8 +29,8 @@ class CTrader:
 
     def init(self):
         for i in range(len(self.traders)):
-            ret = self.traders[i].prepare()
-        return ret
+            if 0 != self.traders[i].prepare(): return False
+        return True
 
     def buy_new_stock(self, sleep_time):
         while True:
@@ -40,8 +40,7 @@ class CTrader:
                         _today = datetime.now().strftime('%Y-%m-%d')
                         time.sleep(sleep_time)
                         if self.buy_succeed_date != _today:
-                            ret = self.init()
-                            if ret != 0: raise Exception("login failed, return value:%s" % ret)
+                            if not self.init(): raise Exception("trader login failed")
                             n_list = self.get_new_stock_list()
                             if len(n_list) == 0:
                                 logger.info("no new stock for %s." % _today)
