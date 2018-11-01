@@ -24,6 +24,7 @@ from industry_info import IndustryInfo
 from cstock_info import CStockInfo
 from combination import Combination
 from combination_info import CombinationInfo
+from futuquant.common.constant import SubType
 import chalted
 import traceback
 import const as ct
@@ -114,17 +115,17 @@ class DataManager:
 
     def init_real_stock_info(self):
         concerned_list = self.get_concerned_list()
-        prefix_concerned_list = [add_prifix(code_id) for code_id in concerned_list]
+        prefix_concerned_list = [add_prifix(code) for code in concerned_list]
         ret = self.subscriber.subscribe(prefix_concerned_list, TickerHandler, SubType.TICKER)
         if 0 == ret:
             for code in concerned_list:
-                if code_id not in self.stock_objs:
-                    self.stock_objs[code_id] = CStock(code_id, self.dbinfo, should_create_influxdb = True, should_create_mysqldb = False)
+                if code not in self.stock_objs:
+                    self.stock_objs[code] = CStock(code, self.dbinfo, should_create_influxdb = True, should_create_mysqldb = False)
         return ret
 
     def init_index_info(self):
         index_list = ct.INDEX_DICT.keys()
-        prefix_index_list = [add_index_prifix(code_id) for code_id in index_list]
+        prefix_index_list = [add_index_prefix(code) for code in index_list]
         ret = self.subscriber.subscribe(prefix_index_list, StockQuoteHandler, SubType.QUOTE)
         if 0 == ret:
             for code in index_list: 

@@ -3,7 +3,6 @@ import const as ct
 from log import getLogger
 from gevent.lock import Semaphore
 from futuquant import OpenQuoteContext
-from futuquant.common.constant import SubType
 from futuquant.quote.quote_response_handler import OrderBookHandlerBase, TickerHandlerBase, StockQuoteHandlerBase
 logger = getLogger(__name__)
 class StockQuoteHandler(StockQuoteHandlerBase):
@@ -78,7 +77,7 @@ class Subscriber:
             logger.error("%s subscrbe failed, msg:%s, dtype:%s" % (code, msg, dtype))
         return ret
 
-    def unsubscribe(self, code_list, subtype = SubType.TICKER):
+    def unsubscribe(self, code_list, subtype):
         '''
         code_list – 取消订阅的股票代码列表
         subtype_list – 取消订阅的类型，参见SubType
