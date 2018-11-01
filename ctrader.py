@@ -28,7 +28,8 @@ class CTrader:
         self.buy_succeed_date = ""
 
     def init(self):
-        ret = self.trader.prepare()
+        for i in range(len(self.traders)):
+            ret = self.traders[i].prepare()
         return ret
 
     def buy_new_stock(self, sleep_time):
@@ -47,10 +48,10 @@ class CTrader:
                                 self.buy_succeed_date = _today
                             succeed = True
                             for stock in n_list:
-                                for trader in self.traders:
-                                    ret, amount = self.trader.max_amounts(stock[0], stock[1])
+                                for i in range(len(self.traders)):
+                                    ret, amount = self.traders[i].max_amounts(stock[0], stock[1])
                                     if 0 == ret:
-                                        ret, msg = self.trader.deal(stock[0], stock[1], amount, "B")
+                                        ret, msg = self.traders[i].deal(stock[0], stock[1], amount, "B")
                                         if ret != 0 and ret != ct.ALREADY_BUY:
                                             logger.error("buy new stock:%s amount:%s for %s error, msg:%s, ret:%s" % (stock, amount, _today, msg, ret))
                                             succeed = False
@@ -61,7 +62,7 @@ class CTrader:
                             if True == succeed: 
                                 self.buy_succeed_date = _today
             except Exception as e:
-                self.trader = None
+                self.traders = None
                 logger.error(e)
                 traceback.print_exc()
     
