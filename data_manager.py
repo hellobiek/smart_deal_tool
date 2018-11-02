@@ -33,7 +33,7 @@ import pandas as pd
 from log import getLogger
 from ticks import download, unzip
 from datetime import datetime
-from subscriber import Subscriber, StockQuoteHandler, TickerHandler, OrderBookHandler
+from subscriber import Subscriber, StockQuoteHandler, TickerHandler
 from common import is_trading_time,delta_days,create_redis_obj,add_prifix,add_index_prefix
 pd.options.mode.chained_assignment = None #default='warn'
 pd.set_option('display.max_columns', None)
@@ -56,6 +56,8 @@ class DataManager:
         self.animation_client = CAnimation(dbinfo, redis_host)
         self.cviewer = CReivew(dbinfo, redis_host)
         self.subscriber = Subscriber()
+        self.quote_handler  = StockQuoteHandler()
+        self.ticker_handler = TickerHandler()
 
     def is_collecting_time(self, now_time = None):
         if now_time is None: now_time = datetime.now()
@@ -99,24 +101,20 @@ class DataManager:
         obj_pool.kill()
 
     def collect_stock_runtime_data(self):
-        obj_pool = Pool(100)
-        for code_id in self.stock_objs:
-            try:
-                if obj_pool.full(): obj_pool.join()
-                ret, df = self.subscriber.get_tick_data(add_prifix(code_id))
-                if 0 == ret:
-                    df = df.set_index('time')
-                    df.index = pd.to_datetime(df.index)
-                    obj_pool.spawn(self.stock_objs[code_id].run, df)
-            except Exception as e:
-                logger.info(e)
-        obj_pool.join()
-        obj_pool.kill()
+        if self.ticker_handler.empty(): return
+        datas = self.ticker_handler.getQueue()
+        while not datas.empty():
+            df = datas.get()
+            df = df.set_index('time')
+            df.index = pd.to_datetime(df.index)
+            for code_str in set(df.code):
+                code_id = code_str.split('.')[1]
+                self.stock_objs[code_id].run(df.loc[df.code == code_str])
 
     def init_real_stock_info(self):
         concerned_list = self.get_concerned_list()
         prefix_concerned_list = [add_prifix(code) for code in concerned_list]
-        ret = self.subscriber.subscribe(prefix_concerned_list, TickerHandler, SubType.TICKER)
+        ret = self.subscriber.subscribe(prefix_concerned_list, SubType.TICKER, self.ticker_handler)
         if 0 == ret:
             for code in concerned_list:
                 if code not in self.stock_objs:
@@ -126,7 +124,7 @@ class DataManager:
     def init_index_info(self):
         index_list = ct.INDEX_DICT.keys()
         prefix_index_list = [add_index_prefix(code) for code in index_list]
-        ret = self.subscriber.subscribe(prefix_index_list, StockQuoteHandler, SubType.QUOTE)
+        ret = self.subscriber.subscribe(prefix_index_list, SubType.QUOTE, self.quote_handler)
         if 0 == ret:
             for code in index_list: 
                 if code not in self.index_objs:
@@ -134,22 +132,18 @@ class DataManager:
         return ret
 
     def collect_index_runtime_data(self):
+        if self.quote_handler.empty(): return
+        datas = self.quote_handler.getQueue()
         obj_pool = Pool(10)
-        for code in self.index_objs:
-            code_str = add_index_prefix(code)
-            ret, df = self.subscriber.get_quote_data(code_str)
-            if ret != 0: continue
+        while not datas.empty():
+            df = datas.get()
             df['time'] = df.data_date + ' ' + df.data_time
             df = df.drop(['data_date', 'data_time'], axis = 1)
             df = df.set_index('time')
             df.index = pd.to_datetime(df.index)
-            try:
-                if obj_pool.full(): obj_pool.join()
-                if 0 == ret: obj_pool.spawn(self.index_objs[code].run, df)
-            except Exception as e:
-                logger.info(e)
-        obj_pool.join()
-        obj_pool.kill()
+            for code_str in set(df.code):
+                code_id = code_str.split('.')[1]
+                self.index_objs[code_id].run(df.loc[df.code == code_str])
 
     def run(self, sleep_time):
         while True:

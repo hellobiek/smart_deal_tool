@@ -17,7 +17,7 @@ class CIndex(Combination):
 
     def run(self, data):
         if not data.empty:
-            self.redis.set(self.get_redis_name(self.get_dbname(self.code)), _pickle.dumps(data, 2))
+            self.redis.set(self.get_redis_name(self.get_dbname(self.code)), _pickle.dumps(data.tail(1), 2))
             self.influx_client.set(data)
 
     def get_market(self):

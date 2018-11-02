@@ -1,4 +1,6 @@
 #-*-coding:utf-8-*-
+import queue
+import threading
 import const as ct
 from log import getLogger
 from gevent.lock import Semaphore
@@ -6,19 +8,58 @@ from futuquant import OpenQuoteContext
 from futuquant.quote.quote_response_handler import OrderBookHandlerBase, TickerHandlerBase, StockQuoteHandlerBase
 logger = getLogger(__name__)
 class StockQuoteHandler(StockQuoteHandlerBase):
+    def __init__(self):
+        super(StockQuoteHandler, self).__init__()
+        self.__lock  = Semaphore(1)
+        self.__queue = queue.Queue()
+
+    def empty(self):
+        with self.__lock:
+            return self.__queue.empty()
+
+    def getQueue(self):
+        with self.__lock:
+            return self.__queue
+
     def on_recv_rsp(self, rsp_str):
         ret, data = super(StockQuoteHandler, self).on_recv_rsp(rsp_str)
-        return ret, data
+        if ret == 0: self.__queue.put(data)
 
 class TickerHandler(TickerHandlerBase):
+    def __init__(self):
+        super(TickerHandler, self).__init__()
+        self.__lock  = Semaphore(1)
+        self.__queue = queue.Queue()
+
+    def empty(self):
+        with self.__lock:
+            return self.__queue.empty()
+
+    def getQueue(self):
+        with self.__lock:
+            return self.__queue
+
     def on_recv_rsp(self, rsp_pb):
         ret, data = super(TickerHandler, self).on_recv_rsp(rsp_pb)
-        return ret, data
+        if ret == 0: self.__queue.put(data)
 
 class OrderBookHandler(OrderBookHandlerBase):
+    def __init__(self):
+        super(OrderBookHandler, self).__init__()
+        self.__lock  = Semaphore(1)
+        self.__queue = queue.Queue()
+
+    def empty(self):
+        with self.__lock:
+            return self.__queue.empty()
+
+    def getQueue(self):
+        with self.__lock:
+            return self.__queue
+
     def on_recv_rsp(self, rsp_pb):
         ret, data = super(OrderBookHandler, self).on_recv_rsp(rsp_pb)
-        return ret, data
+        if ret == 0: self.__queue.put(data)
 
 class Subscriber:
     def __init__(self):
@@ -66,9 +107,9 @@ class Subscriber:
         ret, data = self.quote_ctx.get_stock_quote(code)
         return ret, data
 
-    def subscribe(self, code_list, callback, dtype):
+    def subscribe(self, code_list, dtype, callback = None):
         if dtype in self.sub_dict and set(code_list).issubset(set(self.sub_dict[dtype])): return 0
-        self.quote_ctx.set_handler(callback)
+        if callback is not None: self.quote_ctx.set_handler(callback)
         ret, msg = self.quote_ctx.subscribe(code_list, dtype)
         if 0 == ret:
             if dtype not in self.sub_dict: self.sub_dict[dtype] = list()
