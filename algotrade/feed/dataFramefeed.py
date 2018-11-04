@@ -105,7 +105,6 @@ class RowParser(dataFrameBarfeed.RowParser):
     def handler(x):
         pass
 
-    #row的结构 row[0]为时间，string类型。row[1]为Series类型:'open'\high\close\low\volume\amoun或price——change等，前面6项和tushare对应
     def parseBar(self, row):
         if isinstance(row[0], str):
             if len(row[0].strip()) == 19:
@@ -123,10 +122,10 @@ class RowParser(dataFrameBarfeed.RowParser):
         close       = float(row[1]['close'])
         volume      = float(row[1]['volume'])
         adjClose    = float(row[1]['close'])
+        pchange     = float(row[1]['pchange'])
         #preclose    = float(row[1]['preclose'])
         #aprice      = float(row[1]['aprice'])
         #uprice      = float(row[1]['uprice'])
-        #ppercent    = float(row[1]['ppercent'])
         #npercent    = float(row[1]['npercent'])
         #outstanding = float(row[1]['outstanding'])
         #sri         = float(row[1]['sri'])
@@ -134,8 +133,7 @@ class RowParser(dataFrameBarfeed.RowParser):
         if self.__sanitize:
             open_, high, low, close = common.sanitize_ohlc(open_, high, low, close)
 
-        #row的结构 row[0]为时间，string类型。row[1]为Series类型:'open'\high\close\low\volume\amoun或price——change等，前面6项和tushare 对应
-        return bar.BasicBar(dateTime, open_, high, low, close, volume, adjClose, self.__frequency)
+        return bar.BasicBar(dateTime, open_, high, low, close, volume, adjClose, self.__frequency, extra = {"pchange":pchange})
 
 class Feed(dataFrameBarfeed.BarFeed):
     """

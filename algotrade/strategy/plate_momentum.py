@@ -10,10 +10,9 @@ from cindex import CIndex
 from cstock import CStock
 from industry_info import IndustryInfo
 from pandas import DataFrame
-from base.feed import dataFramefeed 
+from algotrade.feed import dataFramefeed 
 from rindustry import RIndexIndustryInfo
 from common import get_day_nday_ago, get_dates_array, create_redis_obj
-from technical import bfp, gkr, prt, pvh, rat, rolling_peak
 from pyalgotrade.technical import highlow, ma
 from pyalgotrade.stratanalyzer import returns
 from pyalgotrade import plotter, strategy, broker

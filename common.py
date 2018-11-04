@@ -52,7 +52,7 @@ def get_years_between(start, end):
     return year_only_array
 
 def get_dates_array(start_date, end_date, dformat = "%Y-%m-%d"):
-    num_days = delta_days(start_date, end_date)
+    num_days = delta_days(start_date, end_date, dformat)
     start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(start_date, dformat))
     data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
     date_only_array = np.vectorize(lambda s: s.strftime(dformat))(data_times.to_pydatetime())
@@ -121,6 +121,12 @@ def add_prifix(stock_code):
         return "SH." + stock_code
     else:
         return "SZ." + stock_code
+
+def add_suffix(stock_code):
+    if get_market_name(stock_code) == "sh":
+        return stock_code + ".SH"
+    else:
+        return stock_code + ".SZ"
 
 def get_available_tdx_server(api):
     for k,v in ct.TDX_SERVERS.items():
