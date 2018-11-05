@@ -49,7 +49,7 @@ def compute_cointegration_pairs(df):
                     spread  = spread.dropna()
                     sta     = sts.adfuller(spread)
                     if sta[0] < sta[4]['1%'] and sta[1] < 0.001:
-                        print(code_i, code_j, beta, sta)
+                        #print(code_i, code_j, beta, sta)
                         rank[code_i + '_' + code_j] = (np.std(spread, ddof = 1), np.mean(spread), beta)
         visited.append(code_i)
     pairs = sorted(rank.items(), key = operator.itemgetter(1), reverse = True)
@@ -62,9 +62,11 @@ def plot(pair, df):
     tmp_df = pd.concat([df[xcode], df[ycode]], axis = 1, sort = False)
     tmp_df = tmp_df.dropna()
     tmp_df = tmp_df.reset_index(drop = True)
+    average_mean  = np.mean(tmp_df[ycode] - tmp_df[xcode])
     delta = tmp_df[ycode] - beta * tmp_df[xcode]
+
     plt.plot(tmp_df.index.tolist(), tmp_df[xcode], label = '%s' % xcode)
-    plt.plot(tmp_df.index.tolist(), tmp_df[ycode], label = '%s' % ycode)
+    plt.plot(tmp_df.index.tolist(), tmp_df[ycode] - average_mean, label = '%s' % ycode)
     plt.xlabel('time')
     plt.ylabel('price')
     plt.title('price and time between %s and %s' % (xcode, ycode))
@@ -73,7 +75,6 @@ def plot(pair, df):
     #####################
     plt.plot(tmp_df.index.tolist(), (delta - mean)/std, label = 'delta price')
     plt.show()
-    plt.legend()
     plt.xlabel('hist')
     plt.ylabel('value')
     plt.title('price and time between %s and %s' % (xcode, ycode))

@@ -95,7 +95,7 @@ class PairTradingStrategy(strategy.BacktestingStrategy):
             if x_share > 0: self.__position = self.enterShort(self.__codex, x_share, True)
             if y_share > 0: self.__position = self.enterShort(self.__codey, y_share, True) 
 
-def main(mode = ct.PAPER_TRADING, start_date = '20180214', end_date = '20180628'):
+def main(mode = ct.PAPER_TRADING, start_date = '20170815', end_date = '20171113'):
     if mode == ct.PAPER_TRADING:
         cash = 100000
         beta = 9.49
@@ -117,7 +117,7 @@ def main(mode = ct.PAPER_TRADING, start_date = '20180214', end_date = '20180628'
         broker_commission = broker.backtesting.TradePercentage(0.002)
         # fill strategy设置
         fill_stra = broker.fillstrategy.DefaultStrategy(volumeLimit = 1.0)
-        sli_stra = broker.slippage.NoSlippage()
+        sli_stra  = broker.slippage.NoSlippage()
         fill_stra.setSlippageModel(sli_stra)
         # 完善broker类
         brk = broker.backtesting.Broker(cash, feed, broker_commission)
@@ -144,53 +144,52 @@ def main(mode = ct.PAPER_TRADING, start_date = '20180214', end_date = '20180628'
 
     pStrategy.run()
 
-    pStrategy.info("Final portfolio value: $%.2f" % pStrategy.getResult())
-    pStrategy.info("Cumulative returns: %.2f %%" % (returnsAnalyzer.getCumulativeReturns()[-1] * 100))
-    pStrategy.info("Sharpe ratio: %.2f" % (sharpeRatioAnalyzer.getSharpeRatio(0.05)))
-    pStrategy.info("Max. drawdown: %.2f %%" % (drawDownAnalyzer.getMaxDrawDown() * 100))
-    pStrategy.info("Longest drawdown duration: %s" % (drawDownAnalyzer.getLongestDrawDownDuration()))
-
-    pStrategy.info("Final portfolio value: $%.2f" % pStrategy.getResult())
-
-    pStrategy.info("Total trades: %d" % (tradesAnalyzer.getCount()))
-    if tradesAnalyzer.getCount() > 0:
-        profits = tradesAnalyzer.getAll()
-        pStrategy.info("Avg. profit: $%2.f" % (profits.mean()))
-        pStrategy.info("Profits std. dev.: $%2.f" % (profits.std()))
-        pStrategy.info("Max. profit: $%2.f" % (profits.max()))
-        pStrategy.info("Min. profit: $%2.f" % (profits.min()))
-        returns = tradesAnalyzer.getAllReturns()
-        pStrategy.info("Avg. return: %2.f %%" % (returns.mean() * 100))
-        pStrategy.info("Returns std. dev.: %2.f %%" % (returns.std() * 100))
-        pStrategy.info("Max. return: %2.f %%" % (returns.max() * 100))
-        pStrategy.info("Min. return: %2.f %%" % (returns.min() * 100))
-    
-    pStrategy.info("Profitable trades: %d" % (tradesAnalyzer.getProfitableCount()))
-    if tradesAnalyzer.getProfitableCount() > 0:
-        profits = tradesAnalyzer.getProfits()
-        pStrategy.info("Avg. profit: $%2.f" % (profits.mean()))
-        pStrategy.info("Profits std. dev.: $%2.f" % (profits.std()))
-        pStrategy.info("Max. profit: $%2.f" % (profits.max()))
-        pStrategy.info("Min. profit: $%2.f" % (profits.min()))
-        returns = tradesAnalyzer.getPositiveReturns()
-        pStrategy.info("Avg. return: %2.f %%" % (returns.mean() * 100))
-        pStrategy.info("Returns std. dev.: %2.f %%" % (returns.std() * 100))
-        pStrategy.info("Max. return: %2.f %%" % (returns.max() * 100))
-        pStrategy.info("Min. return: %2.f %%" % (returns.min() * 100))
-    
-    pStrategy.info("Unprofitable trades: %d" % (tradesAnalyzer.getUnprofitableCount()))
-    if tradesAnalyzer.getUnprofitableCount() > 0:
-        losses = tradesAnalyzer.getLosses()
-        pStrategy.info("Avg. loss: $%2.f" % (losses.mean()))
-        pStrategy.info("Losses std. dev.: $%2.f" % (losses.std()))
-        pStrategy.info("Max. loss: $%2.f" % (losses.min()))
-        pStrategy.info("Min. loss: $%2.f" % (losses.max()))
-        returns = tradesAnalyzer.getNegativeReturns()
-        pStrategy.info("Avg. return: %2.f %%" % (returns.mean() * 100))
-        pStrategy.info("Returns std. dev.: %2.f %%" % (returns.std() * 100))
-        pStrategy.info("Max. return: %2.f %%" % (returns.max() * 100))
-        pStrategy.info("Min. return: %2.f %%" % (returns.min() * 100))
     plt.plot()
+
+    print("Final portfolio value: $%.2f" % pStrategy.getResult())
+    print("Cumulative returns: %.2f %%" % (returnsAnalyzer.getCumulativeReturns()[-1] * 100))
+    print("Sharpe ratio: %.2f" % (sharpeRatioAnalyzer.getSharpeRatio(0.05)))
+    print("Max. drawdown: %.2f %%" % (drawDownAnalyzer.getMaxDrawDown() * 100))
+    print("Longest drawdown duration: %s" % (drawDownAnalyzer.getLongestDrawDownDuration()))
+
+    #pStrategy.info("Total trades: %d" % (tradesAnalyzer.getCount()))
+    #if tradesAnalyzer.getCount() > 0:
+    #    profits = tradesAnalyzer.getAll()
+    #    pStrategy.info("Avg. profit: $%2.f" % (profits.mean()))
+    #    pStrategy.info("Profits std. dev.: $%2.f" % (profits.std()))
+    #    pStrategy.info("Max. profit: $%2.f" % (profits.max()))
+    #    pStrategy.info("Min. profit: $%2.f" % (profits.min()))
+    #    returns = tradesAnalyzer.getAllReturns()
+    #    pStrategy.info("Avg. return: %2.f %%" % (returns.mean() * 100))
+    #    pStrategy.info("Returns std. dev.: %2.f %%" % (returns.std() * 100))
+    #    pStrategy.info("Max. return: %2.f %%" % (returns.max() * 100))
+    #    pStrategy.info("Min. return: %2.f %%" % (returns.min() * 100))
+    #
+    #pStrategy.info("Profitable trades: %d" % (tradesAnalyzer.getProfitableCount()))
+    #if tradesAnalyzer.getProfitableCount() > 0:
+    #    profits = tradesAnalyzer.getProfits()
+    #    pStrategy.info("Avg. profit: $%2.f" % (profits.mean()))
+    #    pStrategy.info("Profits std. dev.: $%2.f" % (profits.std()))
+    #    pStrategy.info("Max. profit: $%2.f" % (profits.max()))
+    #    pStrategy.info("Min. profit: $%2.f" % (profits.min()))
+    #    returns = tradesAnalyzer.getPositiveReturns()
+    #    pStrategy.info("Avg. return: %2.f %%" % (returns.mean() * 100))
+    #    pStrategy.info("Returns std. dev.: %2.f %%" % (returns.std() * 100))
+    #    pStrategy.info("Max. return: %2.f %%" % (returns.max() * 100))
+    #    pStrategy.info("Min. return: %2.f %%" % (returns.min() * 100))
+    #
+    #pStrategy.info("Unprofitable trades: %d" % (tradesAnalyzer.getUnprofitableCount()))
+    #if tradesAnalyzer.getUnprofitableCount() > 0:
+    #    losses = tradesAnalyzer.getLosses()
+    #    pStrategy.info("Avg. loss: $%2.f" % (losses.mean()))
+    #    pStrategy.info("Losses std. dev.: $%2.f" % (losses.std()))
+    #    pStrategy.info("Max. loss: $%2.f" % (losses.min()))
+    #    pStrategy.info("Min. loss: $%2.f" % (losses.max()))
+    #    returns = tradesAnalyzer.getNegativeReturns()
+    #    pStrategy.info("Avg. return: %2.f %%" % (returns.mean() * 100))
+    #    pStrategy.info("Returns std. dev.: %2.f %%" % (returns.std() * 100))
+    #    pStrategy.info("Max. return: %2.f %%" % (returns.max() * 100))
+    #    pStrategy.info("Min. return: %2.f %%" % (returns.min() * 100))
 
 if __name__ == '__main__':
     try:
