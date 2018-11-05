@@ -23,6 +23,8 @@ from index_info import IndexInfo
 from industry_info import IndustryInfo
 from cstock_info import CStockInfo
 from combination import Combination
+from datamanager.margin import Margin
+from datamanager.hgt import StockConnect
 from combination_info import CombinationInfo
 from futuquant.common.constant import SubType
 import chalted
@@ -58,6 +60,8 @@ class DataManager:
         self.subscriber = Subscriber()
         self.quote_handler  = StockQuoteHandler()
         self.ticker_handler = TickerHandler()
+        self.connect_client = StockConnect(market_from = ct.SH_MARKET_SYMBOL, market_to = ct.HK_MARKET_SYMBOL, dbinfo = dbinfo, redis_host = redis_host)
+        self.margin_client = Margin(dbinfo = dbinfo, redis_host = redis_host) 
 
     def is_collecting_time(self, now_time = None):
         if now_time is None: now_time = datetime.now()
@@ -247,6 +251,18 @@ class DataManager:
                                 logger.error("init_today_limit_info failed")
                                 continue
                             self.set_update_info(9)
+
+                        if finished_step < 10:
+                            if not self.init_yesterday_hk_info():
+                                logger.error("init_yesterday_hk_info failed")
+                                continue
+                            self.set_update_info(10)
+
+                        if finished_step < 11:
+                            if not self.init_yesterday_margin():
+                                logger.error("init_yesterday_hk_info failed")
+                                continue
+                            self.set_update_info(10)
                            
                         #if finished_step < 10:
                         #    if not self.init_today_stock_info():
@@ -384,6 +400,14 @@ class DataManager:
         obj_pool.kill()
         return True
 
+    def init_yesterday_margin(self):
+        self.margin_client.update()
+
+    def init_yesterday_hk_info(self):
+        for data in ((ct.SH_MARKET_SYMBOL, ct.HK_MARKET_SYMBOL), (ct.SZ_MARKET_SYMBOL, ct.HK_MARKET_SYMBOL)):
+            self.connect_client.set_market(data[0], data[1])
+            self.connect_client.update()
+
     def init_today_index_info(self):
         def _set_index_info(code_id):
             _obj = self.index_objs[code_id] if code_id in self.index_objs else CIndex(code_id)
@@ -455,7 +479,8 @@ class DataManager:
         
 if __name__ == '__main__':
     dm = DataManager()
-    dm.run1()
+    dm.init_yesterday_hk_info()
+    dm.init_yesterday_margin()
     #cdate = '2018-09-25'
     #dm.init_today_stock_info(cdate)
     #dm.init_today_industry_info()

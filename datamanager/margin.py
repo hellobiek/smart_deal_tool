@@ -14,7 +14,7 @@ from datamanager.hk_crawl import MCrawl
 class Margin(object):
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.logger       = getLogger(__name__)
-        self.crawler      = get_tushare_client(fpath = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/tushare.json")
+        self.crawler      = get_tushare_client()
         self.dbname       = self.get_dbname()
         self.redis        = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
         self.mysql_client = CMySQL(dbinfo, self.dbname, iredis = self.redis)
@@ -82,12 +82,11 @@ class Margin(object):
         return self.mysql_client.get(sql)
 
     def update(self):
-        #end_date   = datetime.now().strftime('%Y-%m-%d')
-        #start_date = get_day_nday_ago(end_date, num = 9, dformat = "%Y-%m-%d")
-        start_date = '2010-11-01'
-        end_date   = '2018-10-30'
+        end_date   = datetime.now().strftime('%Y-%m-%d')
+        start_date = get_day_nday_ago(end_date, num = 9, dformat = "%Y-%m-%d")
         date_array = get_dates_array(start_date, end_date)
         for mdate in date_array:
+            if mdate == end_date: continue
             if CCalendar.is_trading_day(mdate, redis = self.redis):
                 res = self.set_data(mdate)
                 if not res:

@@ -16,7 +16,7 @@ class MSelenium:
         options.add_argument('--headless')
         options.add_argument('--disable-gpu')
         options.add_argument('--disable-infobars')
-        self.driver = webdriver.Chrome("/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/bin/chromedriver", chrome_options = options)
+        self.driver = webdriver.Chrome("/bin/chromedriver", chrome_options = options)
 
     def smart_call(self, func, except_result, *keys, **args):
         for i in range(MSelenium.RETRY_TIME):
