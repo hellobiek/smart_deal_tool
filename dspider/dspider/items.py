@@ -37,14 +37,13 @@ class InvestorSituationItem(DspiderItem):
     final_non_natural_person = scrapy.Field()
     unit                     = scrapy.Field()
     def convert(self):
-        dc = dict(self)
-        #定义要做数据类型转换的k值，把str转换成float
         res = {}
-        ks = ['new_investor','final_investor','new_natural_person','new_non_natural_person','final_natural_person','final_non_natural_person']
+        dc  = dict(self)
+        ks  = ['new_investor','final_investor','new_natural_person','new_non_natural_person','final_natural_person','final_non_natural_person']
         if '万' in dc['unit']:
             for k in ks:
-                res[k]=float(dc[k].replace(',','')) *10000
-            res['push_date']=dc['push_date']
+                res[k] = float(dc[k].replace(',','')) *10000
+            res['push_date'] = dc['push_date']
         return res
 
 class IndexCollectorItem(DspiderItem):
@@ -60,7 +59,7 @@ class IndexCollectorItem(DspiderItem):
     circulation_market_value = scrapy.Field()
     def convert(self):
         data = dict(self)
-        res = {}
+        res  = {}
         for k in data:
             if k not in ['push_date','index_name']:
                 res[k] = float(data[k]) if len(data[k]) != 0 else 0
@@ -69,17 +68,17 @@ class IndexCollectorItem(DspiderItem):
         return res
 
 class IndexStatisticItem(DspiderItem):
-    push_date = scrapy.Field()
+    push_date  = scrapy.Field()
     index_name = scrapy.Field()
-    spe = scrapy.Field()
-    dpe = scrapy.Field()
-    pb  = scrapy.Field()
-    dp  = scrapy.Field()
-    lyspe = scrapy.Field()
-    lydpe = scrapy.Field()
-    lypb = scrapy.Field()
+    spe        = scrapy.Field()
+    dpe        = scrapy.Field()
+    pb         = scrapy.Field()
+    dp         = scrapy.Field()
+    lyspe      = scrapy.Field()
+    lydpe      = scrapy.Field()
+    lypb       = scrapy.Field()
     def convert(self):
-        data=dict(self)
+        data = dict(self)
         return data
 
 class FoundationBriefItem(DspiderItem):
@@ -92,6 +91,5 @@ class FoundationBriefItem(DspiderItem):
     found_exchange        = scrapy.Field()
     def convert(self):
         data = dict(self)
-        if data['found_birth'] == '':
-            data['found_birth'] = '1000-01-01'
+        if data['found_birth'] == '': data['found_birth'] = '1000-01-01'
         return data

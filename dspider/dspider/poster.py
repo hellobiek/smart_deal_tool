@@ -1,50 +1,47 @@
-import requests
-import datetime
+#coding=utf-8
+from twisted.enterprise import adbapi
 class Poster(object):
-    server_url="http://www.financedatas.com/component/"
-    api=""
-    def __init__(self,item):
-        self._item=item
+    def __init__(self, item):
+        self.item = item.convert()
+        #dbparms = dict(
+        #    host        = 'localhost',
+        #    db          = 'stack_db',
+        #    user        = 'root',
+        #    passwd      = 'root',
+        #    charset     = 'utf8',
+        #    cursorclass = pymysql.cursors.DictCursor, # 指定 curosr 类型
+        #    use_unicode = True,
+        #)
+        #self.dbpool = adbapi.ConnectionPool("pymysql", **dbparms)
 
-    @property
-    def http_api(self):
-        return self.server_url+self.api
-
+    # 使用twisted将mysql插入变成异步执行
     def post(self):
-        response=requests.post(self.http_api,data=self._item.convert())
-        print('-'*64)
-        print(self._item.convert())
-        print(response.text)
-        print('-'*64)
+        # 指定操作方法和操作的数据
+        query = self.dbpool.runInteraction(self.do_insert, self.item)
+        # 指定异常处理方法
+        query.addErrback(self.handle_error, self.item, spider) #处理异常
+
+    def handle_error(self, failure, self.item, spider):
+        #处理异步插入的异常
+        print (failure)
+
+    def do_insert(self, cursor, item):
+        #执行具体的插入
+        #根据不同的item 构建不同的sql语句并插入到mysql中
+        insert_sql, params = item.get_insert_sql()
+        cursor.execute(insert_sql, params)
 
 class ShiborItemPoster(Poster):
-    #server_url="http://127.0.0.1:8000/component/"
-    api="market/add/shiborrate/"
-
-class InvestorSituationItemPoster(Poster):
-    #server_url="http://127.0.0.1:8000/component/"
-    api="market/add/investorsituation/"
+    pass
 
 class IndexCollectorItemPoster(Poster):
-    api="market/add/update/stockindex/"
-    def post(self):
-        data=self._item.convert()
-        if datetime.datetime.now().hour >=17:
-            response=requests.post(self.http_api,data=data)
-            print('-'*64)
-            print(response)
-            print('-'*64)
-            pass
-            #上传数据到服务器
-        else:
-            #还没有收盘，数据不上传
-            print('-'*64)
-            print(data)
-            print('-'*64)
-            
+    pass
+
 class IndexStatisticItemPoster(Poster):
-    api="market/add/update/stockindex/"
+    pass
 
 class FoundationBriefItemPoster(Poster):
-    #server_url="http://127.0.0.1:8000/component/"
-    api="market/add/update/foundationbrief/"
+    pass
+
+class InvestorSituationItemPoster(Poster):
+    pass

@@ -18,6 +18,6 @@ class InvestorsituationspiderSpider(scrapy.Spider):
     def parse(self, response):
         investor_situation_item = items.InvestorSituationItem()
         for k in investor_count_to_path:
-            investor_situation_item[k]=response.xpath(investor_count_to_path[k]).extract_first().strip()
-        investor_situation_item['push_date']=utils.datetime_to_str()
-        return investor_situation_item
+            investor_situation_item[k]       = response.xpath(investor_count_to_path[k]).extract_first().strip()
+        investor_situation_item['push_date'] = utils.datetime_to_str()
+        yield investor_situation_item
