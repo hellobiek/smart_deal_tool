@@ -41,9 +41,9 @@ import statsmodels.api as sm
 import statsmodels.tsa.stattools as ts
 logger = getLogger(__name__)
 
-def get_chinese_font():
-    #return FontProperties(fname='/conf/fonts/PingFang.ttc')
-    return FontProperties(fname='/Volumes/data/quant/stock/conf/fonts/PingFang.ttc')
+def get_chinese_font(fpath = '/conf/fonts/PingFang.ttc'):
+    #fpath = /Volumes/data/quant/stock/conf/fonts/PingFang.ttc
+    return FontProperties(fname = fpath)
 
 class CReivew:
     def __init__(self, dbinfo):

@@ -59,6 +59,7 @@
     - 可转债的战法
     - ETF机器的策略研究
 ##TODO
+    - 需要将长城证券的broker修改为富途的broker的类型。
     - gearmand同步中需要增加更新时同步，删除时同步的功能。
     - calander和delisted都直接使用redis。
     - calander完全没有必要每次都从远端读，一个月读一次写入redis即可。

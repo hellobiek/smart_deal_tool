@@ -364,7 +364,7 @@ class CStock():
 
     def set_all_data(self, quantity_change_info, price_change_info, index_info):
         #fpath = "/Volumes/data/quant/stock/data/tdx/history/days/%s%s.csv"
-        df, _ = self.read(fpath = "/Volumes/data/quant/stock/data/tdx/history/days/%s%s.csv")
+        df, _ = self.read(fpath = "/data/tdx/history/days/%s%s.csv")
         if df.empty:
             logger.error("read empty file for:%s" % self.code)
             return False
@@ -410,7 +410,7 @@ class CStock():
         if cdate is None or self.is_need_reright(cdate, quantity_change_info, price_change_info):
             return self.set_all_data(quantity_change_info, price_change_info, index_info)
         else:
-            today_df, pre_date = self.read(cdate = cdate, fpath = "/Volumes/data/quant/stock/data/tdx/history/days/%s%s.csv")
+            today_df, pre_date = self.read(cdate = cdate, fpath = "/data/tdx/history/days/%s%s.csv")
             if pre_date is None:
                 return self.set_all_data(quantity_change_info, price_change_info, index_info)
             else:
