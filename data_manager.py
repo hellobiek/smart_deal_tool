@@ -324,6 +324,7 @@ class DataManager:
     def init_today_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, sh_index_info, sz_index_info, code_id):
             _obj = CStock(code_id)
+            logger.info("%s begin set distribution" % code_id)
             if get_market_name(code_id) == 'sh':
                 return (code_id, True) if _obj.set_k_data(bonus_info, sh_index_info, _date) else (code_id, False) 
             else:
@@ -331,10 +332,13 @@ class DataManager:
 
         obj_pool = Pool(500)
         df = self.stock_info_client.get()
-        _date = datetime.now().strftime('%Y-%m-%d') if cdate is not None else cdate
+        _date = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
+
         #get shanghai index info
         sh_index_info = CIndex('000001').get_k_data(_date)
         sz_index_info = CIndex('399001').get_k_data(_date)
+        if sh_index_info.empty or sz_index_info.empty: return False 
+
         #get stock bonus info
         bonus_info  = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
         #failed_list = df.code.tolist()
@@ -346,7 +350,8 @@ class DataManager:
             is_failed = False
             logger.info("init_today_stock_info:%s" % len(failed_list))
             for result in obj_pool.imap_unordered(cfunc, failed_list):
-                if True == result[1]: 
+                if True == result[1]:
+                    logger.info("%s set distribution code succeed" % result[1])
                     failed_list.remove(result[0])
                 else:
                     is_failed = True
@@ -358,6 +363,7 @@ class DataManager:
                 time.sleep(10)
         obj_pool.join(timeout = 10)
         obj_pool.kill()
+        logger.info("all init execs succeed.")
         return True
 
     def init_today_limit_info(self):
@@ -401,7 +407,7 @@ class DataManager:
         def _set_index_info(code_id):
             _obj = self.index_objs[code_id] if code_id in self.index_objs else CIndex(code_id)
             return (code_id, _obj.set_k_data())
-        obj_pool = Pool(50)
+        obj_pool = Pool(10)
         failed_list = list(ct.TDX_INDEX_DICT.keys())
         failed_count = 0
         while len(failed_list) > 0:
@@ -468,9 +474,8 @@ class DataManager:
         
 if __name__ == '__main__':
     dm = DataManager()
-    #cdate = '2018-09-25'
-    cdate = None
-    dm.init_today_stock_info()
+    cdate = '2018-11-05'
+    dm.init_today_stock_info(cdate)
     #dm.init_yesterday_hk_info()
     #dm.init_yesterday_margin()
     #dm.init_today_industry_info()

@@ -82,6 +82,11 @@ class CStock():
             if info_index == len(info) - 1:
                 data.at[start_index:, 'outstanding'] = cur_outstanding
                 data.at[start_index:, 'totals'] = cur_totals
+
+        data['totals']      = data['totals'].astype(int)
+        data['totals']      = data['totals'] * 10000
+        data['outstanding'] = data['outstanding'].astype(int)
+        data['outstanding'] = data['outstanding'] * 10000
         return data
     
     def qfq(self, data, info):
@@ -214,16 +219,18 @@ class CStock():
     def read(self, cdate = None, fpath = "/data/tdx/history/days/%s%s.csv"):
         prestr = self.get_pre_str()
         filename = fpath % (prestr, self.code)
-        if not os.path.exists(filename): return pd.DataFrame()
+        if not os.path.exists(filename): return pd.DataFrame(), None
         df = pd.read_csv(filename, sep = ',')
         df = df[['date', 'open', 'high', 'close', 'low', 'amount', 'volume']]
         df = df.loc[df.volume != 0]
         df = df.sort_values(by = 'date', ascending= True)
         df = df.reset_index(drop = True)
         if cdate is not None:
-            preday_index = df.loc[df.date == transfer_date_string_to_int(cdate)].index.values[0] - 1
+            index_list = df.loc[df.date == transfer_date_string_to_int(cdate)].index.values
+            if len(index_list) == 0: return pd.DataFrame(), None
+            preday_index = index_list[0] - 1
             if preday_index < 0:
-                return df, None
+                return pd.DataFrame(), None
             else:
                 pre_day = df.loc[preday_index, 'date']
                 return df.loc[df.date == transfer_date_string_to_int(cdate)], transfer_int_to_date_string(pre_day)
@@ -262,20 +269,32 @@ class CStock():
         df['preclose'] = df['adj'] * df['preclose']
         df['volume'] = df['volume'].astype(int)
         df['aprice'] = df['adj'] * df['amount'] / df['volume']
-        df['totals'] = df['totals'].astype(int)
-        df['totals'] = df['totals'] * 10000
-        df['outstanding'] = df['outstanding'].astype(int)
-        df['outstanding'] = df['outstanding'] * 10000
         df['pchange'] = 100 * (df['close'] - df['preclose']) / df['preclose']
         df['turnover'] = 100 * df['volume'] / df['outstanding']
         return df
 
     def is_need_reright(self, cdate, quantity_change_info, price_change_info):
-        q_index = quantity_change_info.date.index[-1]
-        p_index = price_change_info.date.index[-1]
-        latest_date = max(quantity_change_info.date[q_index], price_change_info.date[p_index])
         now_date = transfer_date_string_to_int(cdate)
-        return now_date < latest_date
+
+        q_date = None
+        if len(quantity_change_info) > 0:
+            q_index = quantity_change_info.date.index[-1]
+            q_date  = quantity_change_info.date[q_index]
+            
+        p_date = None
+        if len(price_change_info) > 0:
+            p_index = price_change_info.date.index[-1]
+            p_date = price_change_info.date[p_index]
+        
+        if q_date is None and p_date is not None:
+            latest_date = p_date
+        elif q_date is not None and p_date is None:
+            latest_date = q_date
+        elif q_date is not None and p_date is not None:
+            latest_date = max(p_date, q_date)
+        else:
+            raise Exception("quantity_change_info and price_change_info is both empty")
+        return now_date == latest_date
 
     def pro_nei_chip(self, df, dist_data, mdate = None):
         if mdate is None:
@@ -338,21 +357,27 @@ class CStock():
             return False
 
         preday_df = self.get_k_data(date = pre_date)
+        if preday_df is None:
+            logger.error("%s get pre date data failed." % self.code)
+            return False
 
         df['adj']         = 1.0
         df['preclose']    = preday_df['close'][0]
         df['totals']      = preday_df['totals'][0] 
-        df['outstanding'] = preday_df['outstanding'][0]
+        df['outstanding'] = preday_df['outstanding'][0] 
 
         #transfer data to split-adjusted share prices
         df = self.transfer2adjusted(df)
+
         df = self.relative_index_strength(df, index_df, cdate)
 
         #set chip distribution
-        write_chip_flag = self.set_chip_distribution(df, zdate = cdate)
+        dist_df = df.append(preday_df, sort = False)
+        dist_df = dist_df.sort_values(by = 'date', ascending = True)
+        write_chip_flag = self.set_chip_distribution(dist_df, zdate = cdate)
 
         if write_chip_flag:
-            logger.info("set distribution")
+            logger.info("get new chip distribution")
             data = self.get_chip_distribution(cdate)
             logger.info("uprice mac compute success")
             df = self.mac(df, data, 0)
@@ -364,7 +389,7 @@ class CStock():
 
     def set_all_data(self, quantity_change_info, price_change_info, index_info):
         #fpath = "/Volumes/data/quant/stock/data/tdx/history/days/%s%s.csv"
-        df, _ = self.read(fpath = "/data/tdx/history/days/%s%s.csv")
+        df, _ = self.read()
         if df.empty:
             logger.error("read empty file for:%s" % self.code)
             return False
@@ -410,11 +435,14 @@ class CStock():
         if cdate is None or self.is_need_reright(cdate, quantity_change_info, price_change_info):
             return self.set_all_data(quantity_change_info, price_change_info, index_info)
         else:
-            today_df, pre_date = self.read(cdate = cdate, fpath = "/data/tdx/history/days/%s%s.csv")
-            if pre_date is None:
-                return self.set_all_data(quantity_change_info, price_change_info, index_info)
+            today_df, pre_date = self.read(cdate)
+            if today_df.empty:
+                return True
             else:
-                return self.set_today_data(today_df, index_info, pre_date, cdate)
+                if pre_date is None:
+                    return self.set_all_data(quantity_change_info, price_change_info, index_info)
+                else:
+                    return self.set_today_data(today_df, index_info, pre_date, cdate)
 
     def get_chip_distribution(self, mdate = None):
         df = pd.DataFrame()
@@ -466,6 +494,12 @@ class CStock():
             return res_flag
         else:
             chip_table = self.get_chip_distribution_table(zdate)
+            if not self.is_table_exists(chip_table):
+                if not self.create_chip_table(chip_table):
+                    logger.error("create chip table:%s failed" % chip_table)
+                    return False
+                self.redis.sadd(self.dbname, chip_table)
+
             if self.is_date_exists(chip_table, zdate): 
                 logger.debug("existed chip for code:%s, date:%s" % (self.code, zdate))
                 return True
