@@ -193,9 +193,6 @@ class DataManager:
                             self.set_update_info(1)
 
                         if finished_step < 2:
-                            if not self.delisted_info_client.init(False): 
-                                logger.error("delisted_info init failed")
-                                continue
                             self.set_update_info(2)
 
                         if finished_step < 3:
@@ -273,7 +270,7 @@ class DataManager:
                         #if finished_step < 15:
                         #    self.cviewer.update()
                         #    self.set_update_info(15)
-                        #logger.info("updating succeed")
+                        logger.info("updating succeed")
             except Exception as e:
                 logger.error(e)
             time.sleep(sleep_time)
@@ -305,7 +302,6 @@ class DataManager:
         #failed_list = df.code.tolist()
         failed_list = ct.ALL_CODE_LIST
         failed_count = 0
-        logger.info("enter init_base_float_profit")
         while len(failed_list) > 0:
             is_failed = False
             logger.info("init_base_float_profit:%s" % len(failed_list))
@@ -322,13 +318,11 @@ class DataManager:
                 time.sleep(10)
         obj_pool.join(timeout = 10)
         obj_pool.kill()
-        logger.info("succeed init_base_float_profit")
         return True
 
     def init_today_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, sh_index_info, sz_index_info, code_id):
             _obj = CStock(code_id)
-            logger.info("%s begin set distribution" % code_id)
             if get_market_name(code_id) == 'sh':
                 return (code_id, True) if _obj.set_k_data(bonus_info, sh_index_info, _date) else (code_id, False) 
             else:
@@ -352,7 +346,6 @@ class DataManager:
         logger.info("enter init_today_stock_info")
         while len(failed_list) > 0:
             is_failed = False
-            logger.info("init_today_stock_info:%s" % len(failed_list))
             for result in obj_pool.imap_unordered(cfunc, failed_list):
                 if True == result[1]:
                     logger.info("%s set distribution code succeed" % result[1])
@@ -478,8 +471,8 @@ class DataManager:
         
 if __name__ == '__main__':
     dm = DataManager()
-    cdate = '2018-11-05'
-    #dm.init_today_stock_info(cdate)
+    cdate = '2018-11-06'
+    dm.init_today_stock_info(cdate)
     #dm.rindex_stock_data_client.set_data(cdate)
     #dm.init_base_float_profit()
     #dm.init_yesterday_hk_info()

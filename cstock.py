@@ -357,6 +357,8 @@ class CStock():
             return False
 
         preday_df = self.get_k_data(date = pre_date)
+        preday_df = preday_df.drop_duplicates()
+
         if preday_df is None:
             logger.error("%s get pre date data failed." % self.code)
             return False
@@ -374,21 +376,20 @@ class CStock():
         #set chip distribution
         dist_df = df.append(preday_df, sort = False)
         dist_df = dist_df.sort_values(by = 'date', ascending = True)
-        write_chip_flag = self.set_chip_distribution(dist_df, zdate = cdate)
+
+        dist_data = self.compute_distribution(dist_df, cdate)
+        if dist_data.empty:
+            return False
+
+        write_chip_flag = self.set_chip_distribution(dist_data, zdate = cdate)
 
         if write_chip_flag:
-            logger.info("get new chip distribution")
-            data = self.get_chip_distribution(cdate)
-            logger.info("uprice mac compute success")
-            df = self.mac(df, data, 0)
-            logger.info("compute profit chips percent and neighboring chips percent")
-            df = self.pro_nei_chip(df, data, cdate)
-            logger.info("set k data for one data")
+            df = self.mac(df, dist_data, 0)
+            df = self.pro_nei_chip(df, dist_data, cdate)
             write_kdata_flag = self.mysql_client.set(df, 'day', method = ct.APPEND)
         return write_chip_flag and write_kdata_flag
 
     def set_all_data(self, quantity_change_info, price_change_info, index_info):
-        #fpath = "/Volumes/data/quant/stock/data/tdx/history/days/%s%s.csv"
         df, _ = self.read()
         if df.empty:
             logger.error("read empty file for:%s" % self.code)
@@ -401,20 +402,18 @@ class CStock():
         #transfer data to split-adjusted share prices
         df = self.transfer2adjusted(df)
 
-        logger.info("strength relative index")
+        #compute strength relative index
         df = self.relative_index_strength(df, index_info)
 
         #set chip distribution
-        logger.info("set chip distribution")
-        write_chip_flag = self.set_chip_distribution(df)
+        dist_data = self.compute_distribution(df)
+        if dist_data.empty:
+            return False
+
+        write_chip_flag = self.set_chip_distribution(dist_data)
         if write_chip_flag:
-            logger.info("set distribution")
-            data = self.get_chip_distribution()
-            logger.info("uprice mac compute success")
-            df = self.mac(df, data, 0)
-            logger.info("compute profit chips percent and neighboring chips percent")
-            df = self.pro_nei_chip(df, data)
-            logger.info("set k data for all data")
+            df = self.mac(df, dist_data, 0)
+            df = self.pro_nei_chip(df, dist_data)
             write_kdata_flag = self.mysql_client.set(df, 'day', method = ct.REPLACE)
         return write_chip_flag and write_kdata_flag
 
@@ -463,17 +462,45 @@ class CStock():
             df = df.reset_index(drop = True)
         return df
 
-    def set_chip_distribution(self, data, zdate = None):
+    def compute_distribution(self, data, zdate = None):
         data = data[['date', 'open', 'aprice', 'outstanding', 'volume', 'amount']]
         if zdate is None:
             df = self.chip_client.compute_distribution(data)
-            logger.info("compute distribution success")
+        else:
+            mdate_list = data.date.tolist()
+            pre_date = mdate_list[0]
+            now_date = mdate_list[1]
+            if now_date != zdate:
+                logger.error("data new date %s is not equal to now date %s" % (now_date, zdate))
+                return pd.DataFrame()
+
+            pre_date_dist = self.get_chip_distribution(pre_date)
+            if pre_date_dist.empty:
+                logger.error("pre data for %s dist %s is empty" % (self.code, pre_date))
+                return pd.DataFrame()
+
+            pre_date_dist = pre_date_dist.sort_values(by = 'pos', ascending= True)
+            pos = data.loc[data.date == zdate].index[0]
+            volume = data.loc[data.date == zdate, 'volume'].tolist()[0]
+            aprice = data.loc[data.date == zdate, 'aprice'].tolist()[0]
+            outstanding = data.loc[data.date == zdate, 'outstanding'].tolist()[0]
+            pre_outstanding = data.loc[data.date == pre_date, 'outstanding'].tolist()[0]
+
+            df = self.chip_client.adjust_volume(pre_date_dist, pos, volume, aprice, pre_outstanding, outstanding)
+            df.date = zdate
+            df.outstanding = outstanding
+            df = df.append(pd.DataFrame([[pos, now_date, now_date, aprice, volume, outstanding]], columns = ct.CHIP_COLUMNS))
+            df = df[df.volume != 0]
+            df = df.reset_index(drop = True)
+        return df
+
+    def set_chip_distribution(self, df, zdate = None):
+        if zdate is None:
             time2Market = self.get('timeToMarket')
-            start_year = int(time2Market / 10000)
-            end_year = int(datetime.now().strftime('%Y'))
-            year_list = get_years_between(start_year, end_year)
-            logger.info("get_years_between success")
-            res_flag = True
+            start_year  = int(time2Market / 10000)
+            end_year    = int(datetime.now().strftime('%Y'))
+            year_list   = get_years_between(start_year, end_year)
+            res_flag    = True
             for myear in year_list:
                 chip_table = self.get_chip_distribution_table(myear)
                 if not self.is_table_exists(chip_table):
@@ -483,14 +510,12 @@ class CStock():
                     self.redis.sadd(self.dbname, chip_table)
                 tmp_df = df.loc[df.date.str.startswith(myear)]
                 tmp_df = tmp_df.reset_index(drop = True)
-                logger.info("%s set distribution df for %s" % (self.code, chip_table))
                 if not self.mysql_client.set(tmp_df, chip_table, method = ct.REPLACE):
                     logger.error("%s set data for %s failed" % (self.code, myear))
                     res_flag = False
                 else:
                     for cdate in tmp_df.date:
                         self.redis.sadd(chip_table, cdate)
-                logger.info("%s set distribution success for %s" % (self.code, myear))
             return res_flag
         else:
             chip_table = self.get_chip_distribution_table(zdate)
@@ -504,40 +529,13 @@ class CStock():
                 logger.debug("existed chip for code:%s, date:%s" % (self.code, zdate))
                 return True
 
-            mdate_list = data.date.tolist()
-            pre_date = mdate_list[0]
-            now_date = mdate_list[1]
-            if now_date != zdate:
-                logger.error("data new date %s is not equal to now date %s" % (now_date, zdate))
-                return False
-
-            pre_date_dist = self.get_chip_distribution(pre_date)
-
-            if pre_date_dist.empty:
-                logger.error("pre data for %s dist %s is empty" % (self.code, pre_date))
-                return False
-            pre_date_dist = pre_date_dist.sort_values(by = 'pos', ascending= True)
-
-            pos = data.loc[data.date == zdate].index[0]
-            volume = data.loc[data.date == zdate, 'volume'].tolist()[0]
-            aprice = data.loc[data.date == zdate, 'aprice'].tolist()[0]
-            outstanding = data.loc[data.date == zdate, 'outstanding'].tolist()[0]
-            pre_outstanding = data.loc[data.date == pre_date, 'outstanding'].tolist()[0]
-
-            tmp_df = self.chip_client.adjust_volume(pre_date_dist, pos, volume, aprice, pre_outstanding, outstanding)
-            tmp_df.date = zdate
-            tmp_df.outstanding = outstanding
-            tmp_df = tmp_df.append(pd.DataFrame([[pos, now_date, now_date, aprice, volume, outstanding]], columns = ct.CHIP_COLUMNS))
-            tmp_df = tmp_df[tmp_df.volume != 0]
-            tmp_df = tmp_df.reset_index(drop = True)
-
             if not self.is_table_exists(chip_table):
                 if not self.create_chip_table(chip_table):
                     logger.error("create chip table failed")
                     return False
                 self.redis.sadd(self.dbname, chip_table)
 
-            if self.mysql_client.set(tmp_df, chip_table): 
+            if self.mysql_client.set(df, chip_table): 
                 self.redis.sadd(chip_table, zdate)
                 logger.debug("finish record chip:%s. table:%s" % (self.code, chip_table))
                 return True
