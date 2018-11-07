@@ -250,28 +250,30 @@ class DataManager:
                             if not self.init_yesterday_margin():
                                 logger.error("init_yesterday_margin failed")
                                 continue
-                            self.set_update_info(10)
+                            self.set_update_info(11)
                            
                         if finished_step < 12:
                             if not self.init_today_stock_info():
                                 logger.error("init_today_stock_info set failed")
                                 continue
-                            self.set_update_info(10)
+                            self.set_update_info(12)
 
-                        #if finished_step < 12:
-                        #    if not self.rindex_stock_data_client.set_data():
-                        #        logger.error("rindex_stock_data set failed")
-                        #        continue
+                        if finished_step < 13:
+                            if not self.init_base_float_profit():
+                                logger.error("init base float profit for all stock")
+                                continue
+                            self.set_update_info(13)
 
-                        #if finished_step < 13:
-                        #    if not self.init_base_float_profit():
-                        #        logger.error("init base float profit for all stock")
-                        #        continue
+                        if finished_step < 14:
+                            if not self.rindex_stock_data_client.set_data():
+                                logger.error("rindex_stock_data set failed")
+                                continue
+                            self.set_update_info(14)
 
-                        #if finished_step < 11:
+                        #if finished_step < 15:
                         #    self.cviewer.update()
-                        #    self.set_update_info(11)
-                        logger.info("updating succeed")
+                        #    self.set_update_info(15)
+                        #logger.info("updating succeed")
             except Exception as e:
                 logger.error(e)
             time.sleep(sleep_time)
@@ -299,8 +301,9 @@ class DataManager:
             return (code_id, True) if _obj.set_base_floating_profit() else (code_id, False)
 
         obj_pool = Pool(500)
-        df = self.stock_info_client.get()
-        failed_list = df.code.tolist()
+        #df = self.stock_info_client.get()
+        #failed_list = df.code.tolist()
+        failed_list = ct.ALL_CODE_LIST
         failed_count = 0
         logger.info("enter init_base_float_profit")
         while len(failed_list) > 0:
@@ -319,6 +322,7 @@ class DataManager:
                 time.sleep(10)
         obj_pool.join(timeout = 10)
         obj_pool.kill()
+        logger.info("succeed init_base_float_profit")
         return True
 
     def init_today_stock_info(self, cdate = None):
@@ -331,7 +335,6 @@ class DataManager:
                 return (code_id, True) if _obj.set_k_data(bonus_info, sz_index_info, _date) else (code_id, False)
 
         obj_pool = Pool(500)
-        df = self.stock_info_client.get()
         _date = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
 
         #get shanghai index info
@@ -342,7 +345,8 @@ class DataManager:
         #get stock bonus info
         bonus_info  = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
         #failed_list = df.code.tolist()
-        failed_list = ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400', '601606', '300104', '300188', '002079', '002119', '002129', '002156', '002185', '002218', '002449', '002638', '002654', '002724', '002745', '002815', '002913', '300046', '300053', '300077', '300080', '300102', '300111', '300118', '300223', '300232', '300236', '300241', '300269', '300296', '300301', '300303', '300317', '300323', '300327', '300373', '300389', '300582', '300613', '300623', '300625', '300632', '300671', '300672', '300708', '600151', '600171', '600206', '600360', '600460', '600171', '600206', '600360', '600460', '600537', '600584', '600667', '600703', '601012', '603005', '603501', '603986', '300749']
+        #df = self.stock_info_client.get()
+        failed_list = ct.ALL_CODE_LIST
         cfunc = partial(_set_stock_info, _date, bonus_info, sh_index_info, sz_index_info)
         failed_count = 0
         logger.info("enter init_today_stock_info")
@@ -475,7 +479,9 @@ class DataManager:
 if __name__ == '__main__':
     dm = DataManager()
     cdate = '2018-11-05'
-    dm.init_today_stock_info(cdate)
+    #dm.init_today_stock_info(cdate)
+    #dm.rindex_stock_data_client.set_data(cdate)
+    #dm.init_base_float_profit()
     #dm.init_yesterday_hk_info()
     #dm.init_yesterday_margin()
     #dm.init_today_industry_info()

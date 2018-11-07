@@ -46,20 +46,24 @@ class RIndexStock:
     def create_table(self, table):
         sql = 'create table if not exists %s(date varchar(10) not null,\
                                              code varchar(10) not null,\
-                                             name varchar(10),\
-                                             changepercent float,\
-                                             trade float,\
                                              open float,\
                                              high float,\
+                                             close float,\
+                                             preclose float,\
                                              low float,\
-                                             settlement float,\
                                              volume float,\
-                                             turnoverratio float,\
                                              amount float,\
-                                             per float,\
-                                             pb float,\
-                                             mktcap float,\
-                                             nmc float,\
+                                             outstanding float,\
+                                             totals float,\
+                                             adj float,\
+                                             aprice float,\
+                                             pchange float,\
+                                             turnover float,\
+                                             sai float,\
+                                             sri float,\
+                                             uprice float,\
+                                             ppercent float,\
+                                             npercent float,\
                                              PRIMARY KEY (date, code))' % table
         return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
 
@@ -106,9 +110,11 @@ class RIndexStock:
         good_list = list()
         obj_pool = Pool(500)
         all_df = pd.DataFrame()
-        stock_info = CStockInfo.get()
-        failed_list = stock_info.code.tolist()
+        #stock_info = CStockInfo.get()
+        #failed_list = stock_info.code.tolist()
+        failed_list = ct.ALL_CODE_LIST
         cfunc = partial(self.get_stock_data, cdate)
+        logger.info("enter generate_all_data")
         while len(failed_list) > 0:
             logger.info("restart failed ip len(%s)" % len(failed_list))
             for code_data in obj_pool.imap_unordered(cfunc, failed_list):
@@ -117,14 +123,15 @@ class RIndexStock:
                     tem_df['code'] = code_data[0]
                     all_df = all_df.append(tem_df)
                     failed_list.remove(code_data[0])
+        logger.info("succeed generate_all_data")
         obj_pool.join(timeout = 5)
         obj_pool.kill()
         self.mysql_client.changedb(self.get_dbname())
         all_df = all_df.reset_index(drop = True)
         return all_df
 
-    def set_data(self):
-        cdate = datetime.now().strftime('%Y-%m-%d')
+    def set_data(self, cdate = None):
+        if cdate is None: cdate = datetime.now().strftime('%Y-%m-%d')
         table_name = self.get_table_name(cdate)
         if not self.is_table_exists(table_name):
             if not self.create_table(table_name):
@@ -135,6 +142,8 @@ class RIndexStock:
             logger.debug("existed table:%s, date:%s" % (table_name, cdate))
             return False
         df = self.generate_all_data(cdate)
+        df = df.drop_duplicates()
+        df = df.reset_index(drop = True)
         self.redis.set(ct.TODAY_ALL_STOCK, _pickle.dumps(df, 2))
         if self.mysql_client.set(df, table_name):
             self.redis.sadd(table_name, cdate)
