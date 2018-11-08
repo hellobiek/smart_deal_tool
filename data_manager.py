@@ -22,7 +22,8 @@ from index_info import IndexInfo
 from industry_info import IndustryInfo
 from cstock_info import CStockInfo
 from combination import Combination
-from datamanager.margin import Margin
+from datamanager.margin  import Margin
+from datamanager.emotion import Emotion
 from datamanager.hgt import StockConnect
 from combination_info import CombinationInfo
 from futuquant.common.constant import SubType
@@ -60,6 +61,7 @@ class DataManager:
         self.ticker_handler = TickerHandler()
         self.connect_client = StockConnect(market_from = ct.SH_MARKET_SYMBOL, market_to = ct.HK_MARKET_SYMBOL, dbinfo = dbinfo, redis_host = redis_host)
         self.margin_client = Margin(dbinfo = dbinfo, redis_host = redis_host) 
+        self.emotion_client = Emotion(dbinfo = dbinfo, redis_host = redis_host) 
 
     def is_collecting_time(self, now_time = None):
         if now_time is None: now_time = datetime.now()
@@ -267,9 +269,15 @@ class DataManager:
                                 continue
                             self.set_update_info(14)
 
-                        #if finished_step < 15:
+                        if finished_step < 15:
+                            if not self.emotion_client.set_score():
+                                logger.error("emotion set failed")
+                                continue
+                            self.set_update_info(15)
+
+                        #if finished_step < 16:
                         #    self.cviewer.update()
-                        #    self.set_update_info(15)
+                        #    self.set_update_info(16)
                         logger.info("updating succeed")
             except Exception as e:
                 logger.error(e)

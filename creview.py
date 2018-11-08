@@ -4,33 +4,24 @@ import time
 import json
 import _pickle
 import datetime
-from datetime import datetime, date
-import traceback
+import matplotlib
 import const as ct
 import numpy as np
 import pandas as pd
-import tushare as ts
-import matplotlib
-matplotlib.use('Agg')
-from matplotlib import style
 import matplotlib.pyplot as plt
-import matplotlib.lines as mlines
 import matplotlib.dates as mdates
-import matplotlib.ticker as ticker
 import matplotlib.animation as animation
-from matplotlib.font_manager import FontProperties
-from cmysql import CMySQL
 from cdoc import CDoc
-from cindex import CIndex
-from climit import CLimit
-from industry_info import IndustryInfo
-import ccalendar
-from common import create_redis_obj, is_trading_time, is_afternoon
 from log import getLogger
-logger = getLogger(__name__)
-
-def get_chinese_font():
-    return FontProperties(fname='/conf/fonts/PingFang.ttc')
+from climit import CLimit
+from cindex import CIndex
+from cmysql import CMySQL
+from matplotlib import style
+from ccalendar import CCalendar
+from datetime import datetime, date
+from industry_info import IndustryInfo
+from common import create_redis_obj, get_chinese_font
+matplotlib.use('Agg')
 
 class CReivew:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
@@ -39,16 +30,9 @@ class CReivew:
         self.doc = CDoc(self.sdir)
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
         self.mysql_client = CMySQL(self.dbinfo, iredis = self.redis)
-        self.cal_client = ccalendar.CCalendar(without_init = True)
+        self.cal_client = CCalendar(without_init = True)
         self.animating = False
-        self.emotion_table = ct.EMOTION_TABLE
-        if not self.create_emotion(): raise Exception("create emotion table failed")
-
-    def create_emotion(self):
-        if self.emotion_table not in self.mysql_client.get_all_tables():
-            sql = 'create table if not exists %s(date varchar(10) not null, score float, PRIMARY KEY (date))' % self.emotion_table 
-            if not self.mysql_client.create(sql, self.emotion_table): return False
-        return True
+        self.logger = getLogger(__name__)
 
     def get_stock_data(self):
         df_byte = self.redis.get(ct.TODAY_ALL_STOCK)
@@ -110,23 +94,6 @@ class CReivew:
 
     def get_limitup_data(self, date):
         return CLimit(self.dbinfo).get_data(date)
-
-    def gen_market_emotion_score(self, stock_info, limit_info):
-        limit_up_list = limit_info[(limit_info.pchange > 0) & (limit_info.prange != 0)].reset_index(drop = True).code.tolist()
-        limit_down_list = limit_info[limit_info.pchange < 0].reset_index(drop = True).code.tolist()
-        limit_up_list.extend(limit_down_list)
-        total = 0
-        for _index, pchange in stock_info.changepercent.iteritems():
-            code = str(stock_info.loc[_index, 'code']).zfill(6)
-            if code in limit_up_list: 
-                total += 2 * pchange
-            else:
-                total += pchange
-        aver = total / len(stock_info)
-        data = {'date':["%s" % datetime.now().strftime('%Y-%m-%d')], 'score':[aver]}
-        df = pd.DataFrame.from_dict(data)
-        if not self.mysql_client.set(df, self.emotion_table):
-            raise Exception("set data to emotion failed")
 
     def static_plot(self, dir_name, stock_info, limit_info):
         colors = ['b', 'r', 'y', 'g', 'm']
@@ -191,7 +158,7 @@ class CReivew:
         dir_name = os.path.join(self.sdir, "%s-StockReView" % _date)
         try:
             if not os.path.exists(dir_name):
-                logger.info("create daily info")
+                self.logger.info("create daily info")
                 #stock analysis
                 stock_info = self.get_stock_data()
                 #get volume > 0 stock list
@@ -200,7 +167,7 @@ class CReivew:
                 #industry analysis
                 industry_info = self.get_industry_data(_date)
                 if industry_info.empty:
-                    logger.error("get %s industry info failed" % _date)
+                    self.logger.error("get %s industry info failed" % _date)
                     return
                 #index and total analysis
                 index_info = self.get_index_data(_date)
@@ -210,17 +177,15 @@ class CReivew:
                 # make dir for new data
                 os.makedirs(dir_name, exist_ok = True)
                 #emotion analysis
-                self.gen_market_emotion_score(stock_info, limit_info)
                 self.emotion_plot(dir_name)
                 #static analysis
                 self.static_plot(dir_name, stock_info, limit_info)
-                #static analysis
                 #gen review file
                 self.doc.generate(stock_info, industry_info, index_info)
                 #gen review animation
                 self.gen_animation()
         except Exception as e:
-            logger.error(e)
+            self.logger.error(e)
 
     def gen_animation(self, sfile = None):
         style.use('fivethirtyeight')
