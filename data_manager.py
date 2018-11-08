@@ -280,6 +280,7 @@ class DataManager:
                         #    self.set_update_info(16)
                         logger.info("updating succeed")
             except Exception as e:
+                traceback.print_exc()
                 logger.error(e)
             time.sleep(sleep_time)
 
@@ -489,12 +490,11 @@ class DataManager:
  
 if __name__ == '__main__':
     dm = DataManager()
-    cdate = '2018-11-06'
+    dm.init_today_stock_info(cdate)
     dm.init_yesterday_hk_info()
     dm.init_yesterday_margin()
-    dm.init_today_stock_info(cdate)
     dm.init_base_float_profit()
-    dm.rindex_stock_data_client.set_data(cdate)
+    dm.rindex_stock_data_client.set_data(cdate = '2018-11-07')
     #dm.init_today_industry_info()
     #dm.init_today_index_info()
     #dm.init_today_limit_info()

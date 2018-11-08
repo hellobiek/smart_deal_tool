@@ -8,6 +8,7 @@ import matplotlib
 import const as ct
 import numpy as np
 import pandas as pd
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.animation as animation
@@ -21,7 +22,6 @@ from ccalendar import CCalendar
 from datetime import datetime, date
 from industry_info import IndustryInfo
 from common import create_redis_obj, get_chinese_font
-matplotlib.use('Agg')
 
 class CReivew:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):

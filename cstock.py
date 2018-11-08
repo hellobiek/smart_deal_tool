@@ -358,6 +358,10 @@ class CStock():
             logger.error("%s get pre date data failed." % self.code)
             return False
 
+        if preday_df.empty:
+            logger.error("%s get pre date data empty." % self.code)
+            return False
+
         df['adj']         = 1.0
         df['preclose']    = preday_df['close'][0]
         df['totals']      = preday_df['totals'][0] 
@@ -461,6 +465,7 @@ class CStock():
 
     def compute_distribution(self, data, zdate = None):
         data = data[['date', 'open', 'aprice', 'outstanding', 'volume', 'amount']]
+        data = data.drop_duplicates()
         if zdate is None:
             df = self.chip_client.compute_distribution(data)
         else:
@@ -468,7 +473,7 @@ class CStock():
             pre_date = mdate_list[0]
             now_date = mdate_list[1]
             if now_date != zdate:
-                logger.error("data new date %s is not equal to now date %s" % (now_date, zdate))
+                logger.error("%s data new date %s is not equal to now date %s" % (self.code, now_date, zdate))
                 return pd.DataFrame()
 
             pre_date_dist = self.get_chip_distribution(pre_date)
