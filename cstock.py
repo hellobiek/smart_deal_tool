@@ -199,6 +199,9 @@ class CStock():
         cdates = cdate.split('-')
         return "tick_%s_%s_%s" % (self.code, cdates[0], cdates[1])
 
+    def get_stock_day_table(self):
+        return "day_%s" % self.code
+
     def create_chip_table(self, table):
         sql = 'create table if not exists %s(pos int not null, sdate varchar(10) not null, date varchar(10) not null, price decimal(8,2) not null, volume int not null, outstanding int not null, PRIMARY KEY (pos, sdate, date, price, volume, outstanding))' % table
         return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
@@ -351,7 +354,15 @@ class CStock():
             df['sri'] = 100 * (s_pchange - i_pchange)
         return df 
 
+    def exec_sql(self):
+        sql = 'delete from day where date = "2018-11-05"'
+        return self.mysql_client.exec_sql(sql)
+
     def set_today_data(self, df, index_df, pre_date, cdate):
+        day_table = self.get_stock_day_table()
+        if self.is_date_exists(day_table, cdate): 
+            return True
+
         if df.empty:
             logger.error("read empty file for:%s" % self.code)
             return False
@@ -379,6 +390,7 @@ class CStock():
 
         dist_data = self.compute_distribution(dist_df, cdate)
         if dist_data.empty:
+            logger.error("%s chip distribution compute failed." % self.code)
             return False
 
         write_chip_flag = self.set_chip_distribution(dist_data, zdate = cdate)
@@ -386,7 +398,8 @@ class CStock():
         if write_chip_flag:
             df = self.mac(df, dist_data, 0)
             df = self.pro_nei_chip(df, dist_data, cdate)
-            write_kdata_flag = self.mysql_client.set(df, 'day', method = ct.APPEND)
+            write_kdata_flag = self.mysql_client.set(df, 'day')
+            if write_kdata_flag: self.redis.sadd(day_table, cdate)
         return write_chip_flag and write_kdata_flag
 
     def set_all_data(self, quantity_change_info, price_change_info, index_info):
