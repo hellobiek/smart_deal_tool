@@ -35,7 +35,7 @@ from log import getLogger
 from ticks import download, unzip
 from datetime import datetime
 from subscriber import Subscriber, StockQuoteHandler, TickerHandler
-from common import is_trading_time,delta_days,create_redis_obj,add_prifix,add_index_prefix
+from common import is_trading_time,delta_days,create_redis_obj,add_prifix,add_index_prefix,kill_process
 pd.options.mode.chained_assignment = None #default='warn'
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -294,6 +294,7 @@ class DataManager:
 
     def init_base_float_profit(self):
         def _set_base_float_profit(code_id):
+            logger.info("%s enter base float profit" % code_id)
             _obj = CStock(code_id, should_create_mysqldb = False)
             return (code_id, True) if _obj.set_base_floating_profit() else (code_id, False)
 
@@ -302,9 +303,9 @@ class DataManager:
         #failed_list = df.code.tolist()
         failed_list = ct.ALL_CODE_LIST
         failed_count = 0
+        logger.info("enter init_base_float_profit")
         while len(failed_list) > 0:
             is_failed = False
-            logger.info("init_base_float_profit:%s" % len(failed_list))
             for result in obj_pool.imap_unordered(_set_base_float_profit, failed_list):
                 if True == result[1]: 
                     failed_list.remove(result[0])
@@ -318,6 +319,7 @@ class DataManager:
                 time.sleep(10)
         obj_pool.join(timeout = 10)
         obj_pool.kill()
+        logger.info("leave init_base_float_profit")
         return True
 
     def init_today_stock_info(self, cdate = None):
@@ -397,6 +399,11 @@ class DataManager:
         for data in ((ct.SH_MARKET_SYMBOL, ct.HK_MARKET_SYMBOL), (ct.SZ_MARKET_SYMBOL, ct.HK_MARKET_SYMBOL)):
             self.connect_client.set_market(data[0], data[1])
             self.connect_client.update()
+            self.connect_client.close()
+            self.connect_client.quit()
+        kill_process("zygote")
+        kill_process("defunct")
+        kill_process("show-component-extension-options")
 
     def init_today_index_info(self):
         def _set_index_info(code_id):
@@ -470,11 +477,11 @@ class DataManager:
 if __name__ == '__main__':
     dm = DataManager()
     cdate = '2018-11-05'
-    dm.init_today_stock_info(cdate)
-    #dm.rindex_stock_data_client.set_data(cdate)
+    #dm.init_today_stock_info(cdate)
     #dm.init_base_float_profit()
-    #dm.init_yesterday_hk_info()
-    #dm.init_yesterday_margin()
+    #dm.rindex_stock_data_client.set_data(cdate)
+    dm.init_yesterday_hk_info()
+    dm.init_yesterday_margin()
     #dm.init_today_industry_info()
     #dm.init_today_index_info()
     #dm.init_today_limit_info()

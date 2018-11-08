@@ -1,7 +1,9 @@
 # coding=utf-8
+import os
 import sys
 import json
 import time
+import signal
 import redis
 import datetime
 import const as ct
@@ -183,3 +185,9 @@ def transfer_date_string_to_int(cdate):
 
 def transfer_int_to_date_string(cdate):
     return time.strftime('%Y-%m-%d', time.strptime(str(cdate), "%Y%m%d"))
+
+def kill_process(pstring):
+    for line in os.popen("ps ax | grep " + pstring + " | grep -v grep"):
+        fields = line.split()
+        pid = fields[0]
+        os.kill(int(pid), signal.SIGKILL)

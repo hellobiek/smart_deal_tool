@@ -16,7 +16,16 @@ class MSelenium:
         options.add_argument('--headless')
         options.add_argument('--disable-gpu')
         options.add_argument('--disable-infobars')
-        self.driver = webdriver.Chrome("/bin/chromedriver", chrome_options = options)
+        self.driver = webdriver.Chrome("/usr/local/bin/chromedriver", chrome_options = options)
+
+    def refresh(self):
+        self.driver.refresh()
+
+    def quit(self):
+        self.driver.quit()
+
+    def close(self):
+        self.driver.close()
 
     def smart_call(self, func, except_result, *keys, **args):
         for i in range(MSelenium.RETRY_TIME):
@@ -118,10 +127,16 @@ class MCrawl:
         else:
             return code
 
+    def quit(self):
+        self.crawer.quit()
+
+    def close(self):
+        self.crawer.close()
+
     def crawl(self, req_date = None):
         result = self.crawer.process(req_date)
         if result is None:
-            self.driver.refresh()
+            self.crawer.refresh()
             return 1, pd.DataFrame()
         soup      = BeautifulSoup(result, "html.parser")
         real_date = soup.select("h2.ccass-heading")[0].span.text.strip().split(":")[1].strip()

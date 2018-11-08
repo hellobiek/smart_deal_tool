@@ -20,7 +20,6 @@ class StockConnect(object):
         self.mysql_client = None
         self.dbinfo       = dbinfo
         self.redis        = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
-        if not self.set_market(market_from, market_to): raise Exception("init stock connect database failed")
 
     def set_market(self, market_from, market_to):
         self.market_from  = market_from
@@ -30,6 +29,12 @@ class StockConnect(object):
         self.crawler      = MCrawl(market_from)
         self.mysql_client = CMySQL(self.dbinfo, self.dbname, iredis = self.redis)
         return False if not self.mysql_client.create_db(self.dbname) else True
+
+    def quit(self):
+        self.crawler.quit()
+
+    def close(self):
+        self.crawler.close()
 
     @staticmethod
     def get_dbname(mfrom, mto):
