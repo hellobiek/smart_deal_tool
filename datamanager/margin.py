@@ -85,14 +85,13 @@ class Margin(object):
         end_date   = datetime.now().strftime('%Y-%m-%d')
         start_date = get_day_nday_ago(end_date, num = 9, dformat = "%Y-%m-%d")
         date_array = get_dates_array(start_date, end_date)
+        succeed = True
         for mdate in date_array:
             if mdate == end_date: continue
             if CCalendar.is_trading_day(mdate, redis = self.redis):
                 res = self.set_data(mdate)
-                if not res:
-                    self.logger.error("%s get data failed" % mdate)
-                else:
-                    self.logger.info("%s get data success" % mdate)
+                if not res: succeed = False
+        return succeed
 
     def is_table_exists(self, table_name):
         if self.redis.exists(self.dbname):

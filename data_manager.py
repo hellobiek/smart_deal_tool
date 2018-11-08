@@ -393,17 +393,22 @@ class DataManager:
         return True
 
     def init_yesterday_margin(self):
-        self.margin_client.update()
+        return self.margin_client.update()
 
     def init_yesterday_hk_info(self):
+        succeed = True
         for data in ((ct.SH_MARKET_SYMBOL, ct.HK_MARKET_SYMBOL), (ct.SZ_MARKET_SYMBOL, ct.HK_MARKET_SYMBOL)):
-            self.connect_client.set_market(data[0], data[1])
-            self.connect_client.update()
+            if not self.connect_client.set_market(data[0], data[1]):
+                logger.error("connect_client for %s failed" % data)
+                return False
+            if not self.connect_client.update():
+                succeed = False
             self.connect_client.close()
             self.connect_client.quit()
         kill_process("zygote")
         kill_process("defunct")
         kill_process("show-component-extension-options")
+        return succeed
 
     def init_today_index_info(self):
         def _set_index_info(code_id):
@@ -476,12 +481,12 @@ class DataManager:
  
 if __name__ == '__main__':
     dm = DataManager()
-    cdate = '2018-11-05'
-    #dm.init_today_stock_info(cdate)
-    #dm.init_base_float_profit()
-    #dm.rindex_stock_data_client.set_data(cdate)
+    cdate = '2018-11-06'
     dm.init_yesterday_hk_info()
     dm.init_yesterday_margin()
+    dm.init_today_stock_info(cdate)
+    dm.init_base_float_profit()
+    dm.rindex_stock_data_client.set_data(cdate)
     #dm.init_today_industry_info()
     #dm.init_today_index_info()
     #dm.init_today_limit_info()

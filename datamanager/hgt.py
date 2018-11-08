@@ -95,14 +95,13 @@ class StockConnect(object):
     def update(self):
         end_date   = datetime.now().strftime('%Y-%m-%d')
         start_date = get_day_nday_ago(end_date, num = 9, dformat = "%Y-%m-%d")
+        succeed = True
         for mdate in get_dates_array(start_date, end_date):
             if mdate == end_date or mdate in self.balcklist: continue
             if CCalendar.is_trading_day(mdate, redis = self.redis):
-                res = self.set_data(mdate)
-                if not res:
-                    logger.error("%s get data failed" % mdate)
-                else:
-                    logger.info("%s get data success" % mdate)
+                if not self.set_data(mdate):
+                    succeed = False
+        return succeed
 
     def is_table_exists(self, table_name):
         if self.redis.exists(self.dbname):

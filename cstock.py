@@ -276,28 +276,12 @@ class CStock():
         df['turnover'] = 100 * df['volume'] / df['outstanding']
         return df
 
-    def is_need_reright(self, cdate, quantity_change_info, price_change_info):
+    def is_need_reright(self, cdate, price_change_info):
+        if len(price_change_info) == 0: return False
         now_date = transfer_date_string_to_int(cdate)
-
-        q_date = None
-        if len(quantity_change_info) > 0:
-            q_index = quantity_change_info.date.index[-1]
-            q_date  = quantity_change_info.date[q_index]
-            
-        p_date = None
-        if len(price_change_info) > 0:
-            p_index = price_change_info.date.index[-1]
-            p_date = price_change_info.date[p_index]
-        
-        if q_date is None and p_date is not None:
-            latest_date = p_date
-        elif q_date is not None and p_date is None:
-            latest_date = q_date
-        elif q_date is not None and p_date is not None:
-            latest_date = max(p_date, q_date)
-        else:
-            raise Exception("quantity_change_info and price_change_info is both empty")
-        return now_date == latest_date
+        p_index = price_change_info.date.index[-1]
+        p_date = price_change_info.date[p_index]
+        return now_date == p_date
 
     def pro_nei_chip(self, df, dist_data, mdate = None):
         if mdate is None:
@@ -444,7 +428,7 @@ class CStock():
     def set_k_data(self, bonus_info, index_info, cdate = None):
         if not self.has_on_market(datetime.now().strftime('%Y-%m-%d')): return True
         quantity_change_info, price_change_info = self.collect_right_info(bonus_info)
-        if cdate is None or self.is_need_reright(cdate, quantity_change_info, price_change_info):
+        if cdate is None or self.is_need_reright(cdate, price_change_info):
             return self.set_all_data(quantity_change_info, price_change_info, index_info)
         else:
             today_df, pre_date = self.read(cdate)

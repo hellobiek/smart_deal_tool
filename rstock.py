@@ -140,7 +140,7 @@ class RIndexStock:
             self.redis.sadd(self.dbname, table_name)
         if self.is_date_exists(table_name, cdate): 
             logger.debug("existed table:%s, date:%s" % (table_name, cdate))
-            return False
+            return True
         df = self.generate_all_data(cdate)
         df = df.drop_duplicates()
         df = df.reset_index(drop = True)
