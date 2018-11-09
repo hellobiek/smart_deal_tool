@@ -15,7 +15,7 @@ import time
 import datetime
 from datetime import datetime, timedelta
 from log import getLogger
-from common import get_market_name, get_day_nday_ago, get_dates_array
+from common import get_security_exchange_name, get_day_nday_ago, get_dates_array
 from models import TickTradeDetail, TickDetailModel
 logger = getLogger(__name__)
 pd.options.mode.chained_assignment = None #default='warn'
@@ -208,7 +208,7 @@ def parse_tick_item(data, code):
 def read_tick(filename, code_id):
     if not os.path.exists(filename): return pd.DataFrame()
     with open(filename, 'rb') as fobj:
-        market_id = ct.MARKET_SH if 'sh' == get_market_name(code_id) else ct.MARKET_SZ
+        market_id = ct.MARKET_SH if 'sh' == get_security_exchange_name(code_id) else ct.MARKET_SZ
         stockCount = struct.unpack('<h', fobj.read(2))[0]
         for idx in range(stockCount):
             (market, code, _, date, t_size, pre_close) = struct.unpack("B6s1siif", fobj.read(20))

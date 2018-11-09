@@ -10,6 +10,7 @@ import const as ct
 import numpy as np
 import pandas as pd
 import tushare as ts
+from log import getLogger
 from crack_bmp import crack_bmp
 from datetime import datetime,timedelta
 
@@ -110,7 +111,18 @@ def df_delta(pos_df, neg_df, subset_list, keep = False):
     pos_df = pos_df.append(neg_df)
     return pos_df.drop_duplicates(subset=subset_list, keep=False)
 
-def get_market_name(stock_code):
+def get_market_name(code):
+    if code.startswith("6"):
+        return ct.SHZB
+    elif code.startswith("000") or code.startswith("001"):
+        return ct.SZZB
+    elif code.startswith("002"):
+        return ct.ZXBZ
+    elif code.startswith("300"):
+        return ct.SCYB
+    return None
+
+def get_security_exchange_name(stock_code):
     if (stock_code.startswith("6") or stock_code.startswith("500") or stock_code.startswith("550") or stock_code.startswith("510") or stock_code.startswith("8")):
         return "sh"
     elif (stock_code.startswith("00") or stock_code.startswith("30") or stock_code.startswith("150") or stock_code.startswith("159")):
@@ -119,13 +131,13 @@ def get_market_name(stock_code):
         return "none"
 
 def add_prifix(stock_code):
-    if get_market_name(stock_code) == "sh":
+    if get_security_exchange_name(stock_code) == "sh":
         return "SH." + stock_code
     else:
         return "SZ." + stock_code
 
 def add_suffix(stock_code):
-    if get_market_name(stock_code) == "sh":
+    if get_security_exchange_name(stock_code) == "sh":
         return stock_code + ".SH"
     else:
         return stock_code + ".SZ"

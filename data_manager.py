@@ -15,7 +15,6 @@ from functools import partial
 from creview import CReivew
 from cgreent import CGreenlet
 from rstock import RIndexStock
-from common import get_market_name
 from ccalendar import CCalendar
 from animation import CAnimation
 from index_info import IndexInfo
@@ -55,13 +54,13 @@ class DataManager:
         self.industry_info_client = IndustryInfo(dbinfo, redis_host)
         self.limit_client = CLimit(dbinfo, redis_host)
         self.animation_client = CAnimation(dbinfo, redis_host)
-        self.cviewer = CReivew(dbinfo, redis_host)
         self.subscriber = Subscriber()
         self.quote_handler  = StockQuoteHandler()
         self.ticker_handler = TickerHandler()
         self.connect_client = StockConnect(market_from = ct.SH_MARKET_SYMBOL, market_to = ct.HK_MARKET_SYMBOL, dbinfo = dbinfo, redis_host = redis_host)
         self.margin_client = Margin(dbinfo = dbinfo, redis_host = redis_host) 
         self.emotion_client = Emotion(dbinfo = dbinfo, redis_host = redis_host) 
+        self.cviewer = CReivew(dbinfo, redis_host)
 
     def is_collecting_time(self, now_time = None):
         if now_time is None: now_time = datetime.now()
@@ -184,6 +183,7 @@ class DataManager:
     def update(self, sleep_time):
         while True:
             try:
+                cdate = datetime.now().strftime('%Y-%m-%d')
                 if self.cal_client.is_trading_day(): 
                     if self.is_collecting_time():
                         finished_step = self.get_update_info()
@@ -252,8 +252,8 @@ class DataManager:
                             self.set_update_info(11)
                            
                         if finished_step < 12:
-                            if not self.init_today_stock_info():
-                                logger.error("init_today_stock_info set failed")
+                            if not self.init_stock_info(cdate):
+                                logger.error("init_stock_info set failed")
                                 continue
                             self.set_update_info(12)
 
@@ -331,30 +331,26 @@ class DataManager:
         logger.info("leave init_base_float_profit")
         return True
 
-    def init_today_stock_info(self, cdate = None):
-        def _set_stock_info(_date, bonus_info, sh_index_info, sz_index_info, code_id):
+    def init_stock_info(self, cdate = None):
+        def _set_stock_info(_date, bonus_info, index_info, code_id):
             logger.info("%s set stock info" % code_id)
             _obj = CStock(code_id)
-            index_info = sh_index_info if get_market_name(code_id) == 'sh' else sz_index_info
             return (code_id, True) if _obj.set_k_data(bonus_info, index_info, _date) else (code_id, False) 
 
-        obj_pool = Pool(500)
-        _date = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
-
-        #get shanghai index info
-        sh_index_info  = CIndex('000001').get_k_data(_date)
-        sz_index_info  = CIndex('399001').get_k_data(_date)
-        cyb_index_info = CIndex('399006').get_k_data(_date)
-        if sh_index_info.empty or sz_index_info.empty: return False 
+        index_info  = CIndex('000001').get_k_data(cdate)
+        if index_info.empty: return False 
 
         #get stock bonus info
         bonus_info  = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
+
         #failed_list = df.code.tolist()
         #df = self.stock_info_client.get()
         failed_list = ct.ALL_CODE_LIST
-        cfunc = partial(_set_stock_info, _date, bonus_info, sh_index_info, sz_index_info)
+
         failed_count = 0
-        logger.info("enter init_today_stock_info")
+        cfunc = partial(_set_stock_info, cdate, bonus_info, sh_index_info, sz_index_info, cyb_index_info)
+        logger.info("enter init_stock_info")
+        obj_pool = Pool(500)
         while len(failed_list) > 0:
             is_failed = False
             for result in obj_pool.imap_unordered(cfunc, failed_list):
@@ -367,10 +363,10 @@ class DataManager:
                 if failed_count > 10: 
                     logger.info("%s stock info init failed" % failed_list)
                     return False
-                time.sleep(10)
+                time.sleep(5)
         obj_pool.join(timeout = 10)
         obj_pool.kill()
-        logger.info("all init execs succeed.")
+        logger.info("leave init_stock_info")
         return True
 
     def init_today_limit_info(self):
@@ -491,7 +487,7 @@ class DataManager:
  
 if __name__ == '__main__':
     dm = DataManager()
-    dm.init_today_stock_info(cdate = None)
+    dm.init_stock_info(cdate = None)
     #dm.init_yesterday_hk_info()
     #dm.init_yesterday_margin()
     #dm.init_base_float_profit()
@@ -517,7 +513,7 @@ if __name__ == '__main__':
     ##for code in ['000001']:
     #for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400', '601606', '300104', '300188', '002079', '002119', '002129', '002156', '002185', '002218', '002449', '002638', '002654', '002724', '002745', '002815', '002913', '300046', '300053', '300077', '300080', '300102', '300111', '300118', '300223', '300232', '300236', '300241', '300269', '300296', '300301', '300303', '300317', '300323', '300327', '300373', '300389', '300582', '300613', '300623', '300625', '300632', '300671', '300672', '300708', '600151', '600171', '600206', '600360', '600460', '600171', '600206', '600360', '600460', '600537', '600584', '600667', '600703', '601012', '603005', '603501', '603986', '300749']:
     #    cs = CStock(code, redis_host = '127.0.0.1')
-    #    market = get_market_name(code)
+    #    market = get_security_exchange_name(code)
     #    index_info = sh_index_info if  market == 'sh' else sz_index_info
     #    logger.info("compute %s" % code)
     #    cs.set_k_data(bonus_info, index_info)

@@ -43,14 +43,15 @@ const.LONG_SLEEP_TIME = 10800
 const.SLEEP_INTERVAL = 30
 ##########stock type##########
 const.MARKET_ALL = "MARKET_ALL"
-const.SZZS = "sh"
-const.SZ50 = "sz50"
-const.HS300 = "hs300"
-const.SZCZ = "sz"
-const.CYBZ = "cyb"
-const.ZZ500 = "zz500"
+const.SHZB  = "上海主版"
+const.SCYB  = "深圳创业板"
+const.ZXBZ  = "深圳中小板"
+const.SZZB  = "深圳主板"
+const.SZ50  = "上证50"
+const.HS300 = "沪深300"
+const.ZZ500 = "中证500"
 const.SUB_NEW_STOCK = "SUB_NEW_STOCK" 
-const.MARKET_ELSE = "MARKET_ELSE"
+const.MARKET_ELSE   = "MARKET_ELSE"
 ##########order type##########
 const.SUBMITTED = 0
 const.ONGOING = 1
@@ -72,6 +73,7 @@ const.INDEX_DICT = {'000001':'上证指数',
                     '399905':'中证500',
                     '399673':'创业板50',
                     '399001':'深证成指',
+                    '399005':'中小板指',
                     '399006':'创业板指'}
 const.TDX_INDEX_DICT = {'880011':'Ａ主总值',
                         '880012':'Ａ主流通',

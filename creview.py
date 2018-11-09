@@ -22,7 +22,6 @@ from ccalendar import CCalendar
 from datetime import datetime, date
 from industry_info import IndustryInfo
 from common import create_redis_obj, get_chinese_font
-
 class CReivew:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.dbinfo = dbinfo
@@ -159,6 +158,9 @@ class CReivew:
         try:
             if not os.path.exists(dir_name):
                 self.logger.info("create daily info")
+                #capital alalysis
+
+
                 #stock analysis
                 stock_info = self.get_stock_data()
                 #get volume > 0 stock list
@@ -180,6 +182,7 @@ class CReivew:
                 self.emotion_plot(dir_name)
                 #static analysis
                 self.static_plot(dir_name, stock_info, limit_info)
+
                 #gen review file
                 self.doc.generate(stock_info, industry_info, index_info)
                 #gen review animation

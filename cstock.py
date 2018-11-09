@@ -44,15 +44,6 @@ class CStock():
     def get_redis_name(code):
         return "realtime_%s" % code
 
-    def compute_index_contribution(self, df, index_df):
-        import pdb
-        pdb.set_trace()
-
-        index_df = index_df.loc[index_df.date.isin(df.date.tolist())]
-        index_df.index = df.loc[df.date.isin(index_df.date.tolist())].index
-        df['ic'] = df.pchange * df.totals
-        return df 
-
     def adjust_share(self, data, info):
         data['outstanding'] = 0
         data['totals'] = 0
@@ -381,8 +372,6 @@ class CStock():
 
         df = self.relative_index_strength(df, index_df, cdate)
 
-        df = self.compute_index_contribution(df, index_df)
-
         #set chip distribution
         dist_df = df.append(preday_df, sort = False)
         dist_df = dist_df.sort_values(by = 'date', ascending = True)
@@ -417,8 +406,6 @@ class CStock():
         #compute strength relative index
         df = self.relative_index_strength(df, index_info)
 
-        df = self.compute_index_contribution(df, index_info)
-
         #set chip distribution
         dist_data = self.compute_distribution(df)
         if dist_data.empty:
@@ -443,6 +430,9 @@ class CStock():
         return self.mysql_client.set(df, 'base_profit', method = ct.REPLACE)
 
     def set_k_data(self, bonus_info, index_info, cdate = None):
+        import pdb
+        pdb.set_trace()
+
         if not self.has_on_market(datetime.now().strftime('%Y-%m-%d')): return True
         quantity_change_info, price_change_info = self.collect_right_info(bonus_info)
         if cdate is None or self.is_need_reright(cdate, price_change_info):

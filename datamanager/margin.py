@@ -124,7 +124,3 @@ class Margin(object):
             time.sleep(1)
             return True
         return False
-
-if __name__ == '__main__':
-    sc = Margin(redis_host = '127.0.0.1')
-    sc.update()
