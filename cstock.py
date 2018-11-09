@@ -430,9 +430,6 @@ class CStock():
         return self.mysql_client.set(df, 'base_profit', method = ct.REPLACE)
 
     def set_k_data(self, bonus_info, index_info, cdate = None):
-        import pdb
-        pdb.set_trace()
-
         if not self.has_on_market(datetime.now().strftime('%Y-%m-%d')): return True
         quantity_change_info, price_change_info = self.collect_right_info(bonus_info)
         if cdate is None or self.is_need_reright(cdate, price_change_info):

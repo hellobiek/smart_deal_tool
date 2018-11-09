@@ -348,7 +348,7 @@ class DataManager:
         failed_list = ct.ALL_CODE_LIST
 
         failed_count = 0
-        cfunc = partial(_set_stock_info, cdate, bonus_info, sh_index_info, sz_index_info, cyb_index_info)
+        cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
         logger.info("enter init_stock_info")
         obj_pool = Pool(500)
         while len(failed_list) > 0:

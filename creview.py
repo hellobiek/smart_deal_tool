@@ -158,10 +158,65 @@ class CReivew:
         try:
             if not os.path.exists(dir_name):
                 self.logger.info("create daily info")
-                #capital alalysis
-
-
+                #index alalysis
+                    #capital alalysis
+                        #流动市值与总成交额
+                            #流动市值分析
+                            #总成交额
+                        #成交额构成分析
+                            #融资融券资金
+                            #沪港通资金
+                            #涨停板资金
+                            #基金仓位资金
+                            #股票回购
+                            #大宗交易
+                        #成交额板块分析
+                            #成交额板块排行
+                            #成交额增量板块排行
+                            #成交额减量板块排行
+                            #涨幅排行
+                            #跌幅排行
+                        #指数点数贡献分析
+                            #按照个股排序
+                            #按照板块排序
+                    #marauder map
+                        #板块和个股的活点地图
+                    #emotion alalysis
+                        #大盘的情绪分析
+                        #抄底模式盈亏
+                        #杀跌模式盈亏
+                        #追涨模式盈亏
+                        #杀多模式盈亏
+                #plate alalysis
+                    #capital alalysis
+                        #沪港通
+                        #融资融券
+                        #基金
+                        #回购
+                        #大宗
+                    #technical analysis
+                        #所有股票的活点地图状态
                 #stock analysis
+                    #capital alalysis
+                        #沪港通
+                        #融资融券
+                        #基金
+                        #回购
+                        #大宗交易
+                    #technical analysis
+                        #chip alalysis
+                            #逆势大盘
+                            #90:3
+                            #逆势飘红
+                            #牛长熊短
+                            #线上横盘
+                            #博弈K线无量长阳
+                            #基础浮动盈利
+                #model
+                    #model training
+                    #model evaluation 
+                    #model backtesting
+                    #model trading
                 stock_info = self.get_stock_data()
                 #get volume > 0 stock list
                 stock_info = stock_info[stock_info.volume > 0]
@@ -182,7 +237,6 @@ class CReivew:
                 self.emotion_plot(dir_name)
                 #static analysis
                 self.static_plot(dir_name, stock_info, limit_info)
-
                 #gen review file
                 self.doc.generate(stock_info, industry_info, index_info)
                 #gen review animation

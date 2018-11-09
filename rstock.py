@@ -142,6 +142,9 @@ class RIndexStock:
             logger.debug("existed table:%s, date:%s" % (table_name, cdate))
             return True
         df = self.generate_all_data(cdate)
+        if df.empty:
+            import pdb
+            pdb.set_trace()
         df = df.drop_duplicates()
         df = df.reset_index(drop = True)
         self.redis.set(ct.TODAY_ALL_STOCK, _pickle.dumps(df, 2))
