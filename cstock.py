@@ -44,6 +44,15 @@ class CStock():
     def get_redis_name(code):
         return "realtime_%s" % code
 
+    def compute_index_contribution(self, df, index_df):
+        import pdb
+        pdb.set_trace()
+
+        index_df = index_df.loc[index_df.date.isin(df.date.tolist())]
+        index_df.index = df.loc[df.date.isin(index_df.date.tolist())].index
+        df['ic'] = df.pchange * df.totals
+        return df 
+
     def adjust_share(self, data, info):
         data['outstanding'] = 0
         data['totals'] = 0
@@ -138,7 +147,7 @@ class CStock():
         for _, table_name in self.data_type_dict.items():
             if table_name not in self.mysql_client.get_all_tables():
                 if table_name == 'day':
-                    sql = 'create table if not exists %s(date varchar(10) not null, open float, high float, close float, low float, volume float, amount float, outstanding float, totals float, adj float, PRIMARY KEY(date))' % table_name 
+                    sql = 'create table if not exists %s(date varchar(10) not null, open float, high float, close float, low float, volume float, amount float, outstanding float, totals float, adj float, ic float, PRIMARY KEY(date))' % table_name 
                 elif table_name == 'base_profit':
                     sql = 'create table if not exists %s(date varchar(10) not null, profit float, pday int, PRIMARY KEY(date))' % table_name 
                 if not self.mysql_client.create(sql, table_name): return False
@@ -328,7 +337,7 @@ class CStock():
             s_pchange = (df['close'] - df['preclose']) / df['preclose']
             i_pchange = (index_df['close'] - index_df['preclose']) / index_df['preclose']
             df['sri'] = 100 * (s_pchange - i_pchange)
-            df.at[(s_pchange < 0) & (s_pchange > 0), 'sai'] = df.loc[(s_pchange < 0) & (s_pchange > 0), 'sri']
+            df.at[(i_pchange < 0) & (s_pchange > 0), 'sai'] = df.loc[(i_pchange < 0) & (s_pchange > 0), 'sri']
         else:
             s_pchange = (df.loc[df.date == cdate, 'close'] - df.loc[df.date == cdate, 'preclose']) / df.loc[df.date == cdate, 'preclose']
             s_pchange = s_pchange.values[0]
@@ -372,6 +381,8 @@ class CStock():
 
         df = self.relative_index_strength(df, index_df, cdate)
 
+        df = self.compute_index_contribution(df, index_df)
+
         #set chip distribution
         dist_df = df.append(preday_df, sort = False)
         dist_df = dist_df.sort_values(by = 'date', ascending = True)
@@ -405,6 +416,8 @@ class CStock():
 
         #compute strength relative index
         df = self.relative_index_strength(df, index_info)
+
+        df = self.compute_index_contribution(df, index_info)
 
         #set chip distribution
         dist_data = self.compute_distribution(df)

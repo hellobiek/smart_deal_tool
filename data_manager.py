@@ -342,8 +342,9 @@ class DataManager:
         _date = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
 
         #get shanghai index info
-        sh_index_info = CIndex('000001').get_k_data(_date)
-        sz_index_info = CIndex('399001').get_k_data(_date)
+        sh_index_info  = CIndex('000001').get_k_data(_date)
+        sz_index_info  = CIndex('399001').get_k_data(_date)
+        cyb_index_info = CIndex('399006').get_k_data(_date)
         if sh_index_info.empty or sz_index_info.empty: return False 
 
         #get stock bonus info
@@ -490,11 +491,11 @@ class DataManager:
  
 if __name__ == '__main__':
     dm = DataManager()
-    dm.init_today_stock_info(cdate)
-    dm.init_yesterday_hk_info()
-    dm.init_yesterday_margin()
-    dm.init_base_float_profit()
-    dm.rindex_stock_data_client.set_data(cdate = '2018-11-07')
+    dm.init_today_stock_info(cdate = None)
+    #dm.init_yesterday_hk_info()
+    #dm.init_yesterday_margin()
+    #dm.init_base_float_profit()
+    #dm.rindex_stock_data_client.set_data(cdate = '2018-11-07')
     #dm.init_today_industry_info()
     #dm.init_today_index_info()
     #dm.init_today_limit_info()

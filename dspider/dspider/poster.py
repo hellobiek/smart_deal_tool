@@ -22,18 +22,6 @@ class Poster(object):
         insert_sql, params = item.get_insert_sql()
         cursor.execute(insert_sql, params)
 
-class ShiborItemPoster(Poster):
-    pass
-
-class IndexCollectorItemPoster(Poster):
-    pass
-
-class IndexStatisticItemPoster(Poster):
-    pass
-
-class FoundationBriefItemPoster(Poster):
-    pass
-
 class InvestorSituationItemPoster(Poster):
     def __init__(self, item):
         Poster.__init__(self, item)
@@ -47,3 +35,15 @@ class InvestorSituationItemPoster(Poster):
             use_unicode = True,
         )
         self.dbpool = adbapi.ConnectionPool("pymysql", **dbparms)
+
+class ShiborItemPoster(Poster):
+    pass
+
+class IndexCollectorItemPoster(Poster):
+    pass
+
+class IndexStatisticItemPoster(Poster):
+    pass
+
+class FoundationBriefItemPoster(Poster):
+    pass
