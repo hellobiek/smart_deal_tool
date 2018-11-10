@@ -13,6 +13,7 @@ import tushare as ts
 from log import getLogger
 from crack_bmp import crack_bmp
 from datetime import datetime,timedelta
+logger = getLogger(__name__)
 
 def trace_func(*dargs, **dkargs):
     def wrapper(func):
@@ -203,3 +204,11 @@ def kill_process(pstring):
         fields = line.split()
         pid = fields[0]
         os.kill(int(pid), signal.SIGKILL)
+
+def smart_get(func, fargs, *args, **kwargs):
+    for i in range(3):
+        try:
+            return func(fargs, *args, **kwargs)
+        except:
+            time.sleep(2 * (i + 1))
+    return None

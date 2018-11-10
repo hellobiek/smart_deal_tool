@@ -487,7 +487,8 @@ class DataManager:
  
 if __name__ == '__main__':
     dm = DataManager()
-    dm.init_stock_info(cdate = None)
+    dm.cviewer.update()
+    #dm.init_stock_info(cdate = None)
     #dm.init_yesterday_hk_info()
     #dm.init_yesterday_margin()
     #dm.init_base_float_profit()

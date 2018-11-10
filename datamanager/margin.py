@@ -5,11 +5,12 @@ sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import time
 import _pickle
 import const as ct
+import pandas as pd
 from log import getLogger
 from cmysql import CMySQL
 from datetime import datetime
 from ccalendar import CCalendar
-from common import get_day_nday_ago, create_redis_obj, get_dates_array, get_tushare_client, transfer_date_string_to_int
+from common import get_day_nday_ago, create_redis_obj, get_dates_array, get_tushare_client, transfer_date_string_to_int, smart_get
 from datamanager.hk_crawl import MCrawl 
 class Margin(object):
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
@@ -30,6 +31,7 @@ class Margin(object):
 
     def is_date_exists(self, table_name, cdate):
         if self.redis.exists(table_name):
+            self.redis.srem(table_name, str(cdate))
             return cdate in set(str(tdate, encoding = "utf8") for tdate in self.redis.smembers(table_name))
         return False
 
@@ -62,7 +64,7 @@ class Margin(object):
         for key in data_dict:
             table_list = sorted(data_dict[key], reverse=False)
             if len(table_list) == 1:
-                df = self.get_k_data(table_list[0])
+                df = self.get_data(table_list[0])
                 if df is not None: all_df = all_df.append(df)
             else:
                 start_date = table_list[0]
@@ -76,21 +78,26 @@ class Margin(object):
         sql = "select * from %s where date between \"%s\" and \"%s\"" % (self.get_table_name(start_date), start_date, end_date)
         return self.mysql_client.get(sql)
 
-    def get_k_data(self, cdate):
-        cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
+    def get_data(self, cdate = datetime.now().strftime('%Y-%m-%d')):
         sql = "select * from %s where date=\"%s\"" % (self.get_table_name(cdate), cdate)
         return self.mysql_client.get(sql)
 
     def update(self):
-        end_date   = datetime.now().strftime('%Y-%m-%d')
-        start_date = get_day_nday_ago(end_date, num = 9, dformat = "%Y-%m-%d")
+        #end_date   = datetime.now().strftime('%Y-%m-%d')
+        #start_date = get_day_nday_ago(end_date, num = 9, dformat = "%Y-%m-%d")
+        start_date = '2010-11-01'
+        end_date   = '2016-01-29'
         date_array = get_dates_array(start_date, end_date)
         succeed = True
         for mdate in date_array:
             if mdate == end_date: continue
             if CCalendar.is_trading_day(mdate, redis = self.redis):
                 res = self.set_data(mdate)
-                if not res: succeed = False
+                if not res:
+                    self.logger.error("%s set failed" % mdate)
+                    succeed = False
+                else:
+                    self.logger.info("%s set success" % mdate)
         return succeed
 
     def is_table_exists(self, table_name):
@@ -105,22 +112,36 @@ class Margin(object):
                 self.logger.error("create tick table failed")
                 return False
             self.redis.sadd(self.dbname, table_name)
-        if self.is_date_exists(table_name, cdate): 
+
+        if self.is_date_exists(table_name, cdate):
             self.logger.debug("existed table:%s, date:%s" % (table_name, cdate))
             return True
 
-        total_df = self.crawler.margin(trade_date = transfer_date_string_to_int(cdate))
+        total_df = smart_get(self.crawler.margin, trade_date=transfer_date_string_to_int(cdate))
+        if total_df is None:
+            self.logger.error("crawel margin for %s failed" % cdate)
+            return False
+
         total_df = total_df.rename(columns = {"trade_date": "date", "exchange_id": "code"})
         total_df['rqyl']  = 0
-        total_df['rqchl'] = 0 
-        detail_df = self.crawler.margin_detail(trade_date = transfer_date_string_to_int(cdate))
+        total_df['rqchl'] = 0
+
+        detail_df = smart_get(self.crawler.margin_detail, trade_date=transfer_date_string_to_int(cdate))
+        if detail_df is None:
+            self.logger.error("crawel detail margin for %s failed" % cdate)
+            return False
+
         detail_df = detail_df.rename(columns = {"trade_date": "date", "ts_code": "code"})
 
         total_df = total_df.append(detail_df, sort = False)
+        total_df['date'] = pd.to_datetime(total_df.date).dt.strftime("%Y-%m-%d")
         total_df = total_df.reset_index(drop = True)
-
         if self.mysql_client.set(total_df, table_name):
             self.redis.sadd(table_name, cdate)
             time.sleep(1)
             return True
         return False
+
+if __name__ == '__main__':
+    ma = Margin()
+    ma.update()

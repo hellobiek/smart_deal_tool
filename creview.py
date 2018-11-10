@@ -21,17 +21,19 @@ from matplotlib import style
 from ccalendar import CCalendar
 from datetime import datetime, date
 from industry_info import IndustryInfo
+from datamanager.margin  import Margin
 from common import create_redis_obj, get_chinese_font
 class CReivew:
+    SSE  = 'SSE'
+    SZSE = 'SZSE'
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
-        self.dbinfo = dbinfo
-        self.sdir = '/data/docs/blog/hellobiek.github.io/source/_posts'
-        self.doc = CDoc(self.sdir)
-        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
-        self.mysql_client = CMySQL(self.dbinfo, iredis = self.redis)
-        self.cal_client = CCalendar(without_init = True)
-        self.animating = False
-        self.logger = getLogger(__name__)
+        self.dbinfo        = dbinfo
+        self.sdir          = '/data/docs/blog/hellobiek.github.io/source/_posts'
+        self.doc           = CDoc(self.sdir)
+        self.redis         = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
+        self.mysql_client  = CMySQL(dbinfo, iredis = self.redis)
+        self.margin_client = Margin(dbinfo = dbinfo, redis_host = redis_host) 
+        self.logger        = getLogger(__name__)
 
     def get_stock_data(self):
         df_byte = self.redis.get(ct.TODAY_ALL_STOCK)
@@ -148,19 +150,37 @@ class CReivew:
             self.mysql_client.changedb(CIndex.get_dbname(code))
             data = self.mysql_client.get("select * from day where date=\"%s\";" % _date)
             data['name'] = name
+            data['code'] = code
             df = df.append(data)
         self.mysql_client.changedb()
         return df
 
+    def get_rzrq_info(self, cdate):
+        return self.margin_client.get_data(cdate)
+
     def update(self):
         _date = datetime.now().strftime('%Y-%m-%d')
+        _date = '2018-11-08'
         dir_name = os.path.join(self.sdir, "%s-StockReView" % _date)
         try:
             if not os.path.exists(dir_name):
                 self.logger.info("create daily info")
+
+                #index and total analysis
+                index_info = self.get_index_data(_date)
+                index_info = index_info.reset_index(drop = True)
+
+                rzrq_info  = self.get_rzrq_info(_date)
+
+                sh_rzrq_info = rzrq_info.loc[rzrq_info.code == 'SSE']
+                sz_rzrq_info = rzrq_info.loc[rzrq_info.code == 'SZSE']
+
+                import pdb
+                pdb.set_trace()
+
                 #index alalysis
                     #capital alalysis
-                        #流动市值与总成交额
+                        #流动市值与总成交额(todo not do now)
                             #流动市值分析
                             #总成交额
                         #成交额构成分析
@@ -195,7 +215,11 @@ class CReivew:
                         #回购
                         #大宗
                     #technical analysis
-                        #所有股票的活点地图状态
+                        #板块所有股票的活点地图状态
+                            #潜龙状态数量
+                            #见龙状态数量
+                            #飞龙状态数量
+                            #亢龙状态数量
                 #stock analysis
                     #capital alalysis
                         #沪港通
@@ -226,9 +250,6 @@ class CReivew:
                 if industry_info.empty:
                     self.logger.error("get %s industry info failed" % _date)
                     return
-                #index and total analysis
-                index_info = self.get_index_data(_date)
-                index_info = index_info.reset_index(drop = True)
                 #limit up and down analysis
                 limit_info = self.get_limitup_data(_date)
                 # make dir for new data
