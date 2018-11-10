@@ -96,8 +96,7 @@ class RIndexStock:
         sql = "select * from %s where date between \"%s\" and \"%s\"" % (self.get_table_name(start_date), start_date, end_date)
         return self.mysql_client.get(sql)
 
-    def get_data(self, cdate):
-        cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
+    def get_data(self, cdate = datetime.now().strftime('%Y-%m-%d')):
         sql = "select * from %s where date=\"%s\"" % (self.get_table_name(cdate), cdate)
         return self.mysql_client.get(sql)
 

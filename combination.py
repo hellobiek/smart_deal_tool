@@ -59,6 +59,16 @@ class Combination:
         df = df.set_index('time')
         return df
 
+    def is_table_exists(self, table_name):
+        if self.redis.exists(self.dbname):
+            return table_name in set(str(table, encoding = "utf8") for table in self.redis.smembers(self.dbname))
+        return False
+
+    def is_date_exists(self, table_name, cdate):
+        if self.redis.exists(table_name):
+            return cdate in set(str(tdate, encoding = "utf8") for tdate in self.redis.smembers(table_name))
+        return False
+
     def run(self):
         _new_data = self.compute()
         if not _new_data.empty:

@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import tushare as ts
 from log import getLogger
+from random import randint
 from crack_bmp import crack_bmp
 from datetime import datetime,timedelta
 logger = getLogger(__name__)
@@ -212,3 +213,8 @@ def smart_get(func, fargs, *args, **kwargs):
         except:
             time.sleep(2 * (i + 1))
     return None
+
+def _random(n = 16):
+    start = 10**(n-1)
+    end = (10**n)-1
+    return str(randint(start, end) / (end + 1))

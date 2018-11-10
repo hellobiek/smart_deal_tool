@@ -32,8 +32,8 @@ import const as ct
 import numpy as np
 import pandas as pd
 from log import getLogger
-from ticks import download, unzip
 from datetime import datetime
+from ticks import download, unzip
 from subscriber import Subscriber, StockQuoteHandler, TickerHandler
 from common import is_trading_time,delta_days,create_redis_obj,add_prifix,add_index_prefix,kill_process
 pd.options.mode.chained_assignment = None #default='warn'
@@ -419,7 +419,7 @@ class DataManager:
     def init_today_index_info(self):
         def _set_index_info(code_id):
             _obj = self.index_objs[code_id] if code_id in self.index_objs else CIndex(code_id)
-            return (code_id, _obj.set_k_data())
+            return (code_id, _obj.set_k_data() and _obj.set_components_data())
         obj_pool = Pool(10)
         failed_list = list(ct.TDX_INDEX_DICT.keys())
         failed_count = 0

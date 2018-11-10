@@ -22,18 +22,24 @@ from ccalendar import CCalendar
 from datetime import datetime, date
 from industry_info import IndustryInfo
 from datamanager.margin  import Margin
-from common import create_redis_obj, get_chinese_font
+from common import create_redis_obj, get_chinese_font, get_tushare_client
 class CReivew:
     SSE  = 'SSE'
     SZSE = 'SZSE'
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
-        self.dbinfo        = dbinfo
-        self.sdir          = '/data/docs/blog/hellobiek.github.io/source/_posts'
-        self.doc           = CDoc(self.sdir)
-        self.redis         = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
-        self.mysql_client  = CMySQL(dbinfo, iredis = self.redis)
-        self.margin_client = Margin(dbinfo = dbinfo, redis_host = redis_host) 
-        self.logger        = getLogger(__name__)
+        self.dbinfo         = dbinfo
+        self.sdir           = '/data/docs/blog/hellobiek.github.io/source/_posts'
+        self.doc            = CDoc(self.sdir)
+        self.redis          = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
+        self.mysql_client   = CMySQL(dbinfo, iredis = self.redis)
+        self.tu_client      = get_tushare_client()
+        self.margin_client  = Margin(dbinfo = dbinfo, redis_host = redis_host) 
+        self.logger         = getLogger(__name__)
+
+    def get_market_info(self):
+        import pdb
+        pdb.set_trace()
+        df = self.tu_client.index_basic(market = 'SSE')
 
     def get_stock_data(self):
         df_byte = self.redis.get(ct.TODAY_ALL_STOCK)
@@ -169,6 +175,8 @@ class CReivew:
                 #index and total analysis
                 index_info = self.get_index_data(_date)
                 index_info = index_info.reset_index(drop = True)
+
+                self.get_market_info()
 
                 rzrq_info  = self.get_rzrq_info(_date)
 
