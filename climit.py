@@ -13,10 +13,10 @@ from log import getLogger
 from cmysql import CMySQL
 from common import create_redis_obj 
 from datetime import datetime
-logger = getLogger(__name__)
 class CLimit:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.table = self.get_tbname()
+        self.logger = getLogger(__name__)
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
         self.mysql_client = CMySQL(dbinfo, iredis = self.redis)
         self.header = {"Host": "home.flashdata2.jrj.com.cn",
@@ -49,13 +49,13 @@ class CLimit:
 
     def get_url(self, dtype, date):
         if ct.LIMIT_UP == dtype:
-            return ct.URL_PRIFIX + "zt/%s" % date + ct.URL_MID + str(int(round(time.time() * 1000)))
+            return ct.LIMIT_URL_PRIFIX + "zt/%s" % date + ct.LIMIT_URL_MID + str(int(round(time.time() * 1000)))
         elif ct.LIMIT_DOWN == dtype:
-            return ct.URL_PRIFIX + "dt/%s" % date + ct.URL_MID + str(int(round(time.time() * 1000)))
+            return ct.LIMIT_URL_PRIFIX + "dt/%s" % date + ct.LIMIT_URL_MID + str(int(round(time.time() * 1000)))
         elif ct.LIMIT_UP_INTENSITY == dtype:
-            return ct.URL_PRIFIX + "ztForce/%s" % date + ct.URL_MID + str(int(round(time.time() * 1000)))
+            return ct.LIMIT_URL_PRIFIX + "ztForce/%s" % date + ct.LIMIT_URL_MID + str(int(round(time.time() * 1000)))
         else:
-            return ct.URL_PRIFIX + "dtForce/%s" % date + ct.URL_MID + str(int(round(time.time() * 1000)))
+            return ct.LIMIT_URL_PRIFIX + "dtForce/%s" % date + ct.LIMIT_URL_MID + str(int(round(time.time() * 1000)))
 
     def get_data_from_url(self, date, dtype, retry = 5):
         response = requests.get(self.get_url(dtype, date), headers=self.header)
@@ -66,7 +66,7 @@ class CLimit:
                 if content and len(md_check) > 0: 
                     return content
             except Exception as e:
-                logger.info(e)
+                self.logger.error(e)
 
     def convert_to_json(self, content):
         if 0 == len(content): return None
@@ -76,7 +76,7 @@ class CLimit:
             try:
                 return json.loads(result[0])
             except Exception as e:
-                logger.info(e)
+                self.logger.info(e)
 
     def gen_df(self, dtype, date):
         table = ct.LIMIT_UP if dtype == "UP" else ct.LIMIT_DOWN

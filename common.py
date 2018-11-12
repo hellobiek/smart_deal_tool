@@ -1,10 +1,12 @@
 # coding=utf-8
 import os
+import re
 import sys
 import json
 import time
-import signal
 import redis
+import signal
+import random
 import datetime
 import const as ct
 import numpy as np
@@ -206,15 +208,23 @@ def kill_process(pstring):
         pid = fields[0]
         os.kill(int(pid), signal.SIGKILL)
 
-def smart_get(func, fargs, *args, **kwargs):
+def smart_get(func, *args, **kwargs):
     for i in range(3):
         try:
-            return func(fargs, *args, **kwargs)
+            return func(*args, **kwargs)
         except:
             time.sleep(2 * (i + 1))
     return None
 
-def _random(n = 16):
-    start = 10**(n-1)
-    end = (10**n)-1
-    return str(randint(start, end) / (end + 1))
+def int_random(n = 16):
+    return ''.join(str(random.choice(range(1, 9))) for _ in range(n))
+
+def float_random(n = 16):
+    x = int_random(n)
+    return '0.%s' % x
+
+def loads_jsonp(_jsonp):
+    try:
+        return json.loads(re.match(".*?({.*}).*", _jsonp, re.S).group(1))
+    except:
+        return None

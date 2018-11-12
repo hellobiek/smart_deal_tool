@@ -18,9 +18,9 @@ class CHalted:
     @trace_func(log = logger)
     def __init__(self, dbinfo, table):
         self.table = table
-        self.trigger = ct.SYNC_HALTED_2_REDIS
-        self.mysql_client = CMySQL(dbinfo)
         self.redis = create_redis_obj()
+        self.mysql_client = CMySQL(dbinfo)
+        self.trigger = ct.SYNC_HALTED_2_REDIS
         if not self.create(): raise Exception("create chalted table failed")
         if not self.init(True): raise Exception("init chalted table failed")
         if not self.register(): raise Exception("create chalted trigger failed")

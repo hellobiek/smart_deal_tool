@@ -1,39 +1,33 @@
 #coding=utf-8
 import os
-import gc
 import time
 import json
-import _pickle
 import datetime
-import tushare as ts
-from cmysql import CMySQL
+import traceback
+import const as ct
+import numpy as np
+import pandas as pd
+from log import getLogger
 from cstock import CStock
 from cindex import CIndex
 from climit import CLimit 
 from gevent.pool import Pool
 from functools import partial
 from creview import CReivew
-from cgreent import CGreenlet
+from datetime import datetime
 from rstock import RIndexStock
 from ccalendar import CCalendar
 from animation import CAnimation
 from index_info import IndexInfo
-from industry_info import IndustryInfo
+from ticks import download, unzip
 from cstock_info import CStockInfo
 from combination import Combination
 from datamanager.margin  import Margin
+from industry_info import IndustryInfo
 from datamanager.emotion import Emotion
 from datamanager.hgt import StockConnect
 from combination_info import CombinationInfo
 from futuquant.common.constant import SubType
-import chalted
-import traceback
-import const as ct
-import numpy as np
-import pandas as pd
-from log import getLogger
-from datetime import datetime
-from ticks import download, unzip
 from subscriber import Subscriber, StockQuoteHandler, TickerHandler
 from common import is_trading_time,delta_days,create_redis_obj,add_prifix,add_index_prefix,kill_process
 pd.options.mode.chained_assignment = None #default='warn'
@@ -62,8 +56,7 @@ class DataManager:
         self.emotion_client = Emotion(dbinfo = dbinfo, redis_host = redis_host) 
         self.cviewer = CReivew(dbinfo, redis_host)
 
-    def is_collecting_time(self, now_time = None):
-        if now_time is None: now_time = datetime.now()
+    def is_collecting_time(self, now_time = datetime.now()):
         _date = now_time.strftime('%Y-%m-%d')
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
         aft_open_hour,aft_open_minute,aft_open_second = (19,00,00)
@@ -72,8 +65,7 @@ class DataManager:
         aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
         return aft_open_time < now_time < aft_close_time
 
-    def is_morning_time(self, now_time = None):
-        if now_time is None: now_time = datetime.now()
+    def is_morning_time(self, now_time = datetime.now()):
         _date = now_time.strftime('%Y-%m-%d')
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
         mor_open_hour,mor_open_minute,mor_open_second = (0,0,0)

@@ -28,17 +28,15 @@ class CReivew:
     SZSE = 'SZSE'
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.dbinfo         = dbinfo
+        self.logger         = getLogger(__name__)
+        self.tu_client      = get_tushare_client()
         self.sdir           = '/data/docs/blog/hellobiek.github.io/source/_posts'
         self.doc            = CDoc(self.sdir)
         self.redis          = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
         self.mysql_client   = CMySQL(dbinfo, iredis = self.redis)
-        self.tu_client      = get_tushare_client()
         self.margin_client  = Margin(dbinfo = dbinfo, redis_host = redis_host) 
-        self.logger         = getLogger(__name__)
 
     def get_market_info(self):
-        import pdb
-        pdb.set_trace()
         df = self.tu_client.index_basic(market = 'SSE')
 
     def get_stock_data(self):

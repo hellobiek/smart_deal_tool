@@ -6,7 +6,7 @@ from log import getLogger
 from datetime import datetime
 from ccalendar import CCalendar
 from combination import Combination
-from common import _random, get_market 
+from common import float_random, get_market 
 logger = getLogger(__name__)
 class CIndex(Combination):
     ZZ_URL_HEAD        = 'http://www.csindex.com.cn/uploads/file/autofile/cons/%scons.xls'
@@ -17,10 +17,10 @@ class CIndex(Combination):
         '000016': (ZZ_URL_HEAD % '000016', [0, 4, 5], ['date', 'code', 'name']),
         '000300': (ZZ_URL_WEIGHT_HEAD % '000300', [0, 4, 5, 8], ['date', 'code', 'name', 'weight']),
         '000905': (ZZ_URL_WEIGHT_HEAD % '000905', [0, 4, 5, 8], ['date', 'code', 'name', 'weight']),
-        '399001': (SZ_URL_HEAD % ('399001', _random()), [0,1,5], ['code', 'name', 'weight']),
-        '399005': (SZ_URL_HEAD % ('399005', _random()), [0,1,5], ['code', 'name', 'weight']),
-        '399006': (SZ_URL_HEAD % ('399006', _random()), [0,1,5], ['code', 'name', 'weight']),
-        '399673': (SZ_URL_HEAD % ('399673', _random()), [0,1,5], ['code', 'name', 'weight'])
+        '399001': (SZ_URL_HEAD % ('399001', float_random()), [0,1,5], ['code', 'name', 'weight']),
+        '399005': (SZ_URL_HEAD % ('399005', float_random()), [0,1,5], ['code', 'name', 'weight']),
+        '399006': (SZ_URL_HEAD % ('399006', float_random()), [0,1,5], ['code', 'name', 'weight']),
+        '399673': (SZ_URL_HEAD % ('399673', float_random()), [0,1,5], ['code', 'name', 'weight'])
     }
 
     def __init__(self, code, dbinfo = ct.DB_INFO, redis_host = None):
@@ -133,7 +133,7 @@ class CIndex(Combination):
 
 if __name__ == '__main__':
     for code in ["000001", "000300", "000016", "000905", "399673", "399001", "399005", "399006"]:
-        av = CIndex(code)
-        res = av.set_components_data()
+        av   = CIndex(code)
+        res  = av.set_components_data()
         data = av.get_components_data()
         print("code:%s, length:%s" % (code, len(data)))

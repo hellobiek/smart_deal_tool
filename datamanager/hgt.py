@@ -4,13 +4,12 @@ from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import _pickle
 import const as ct
-from log import getLogger
 from cmysql import CMySQL
+from log import getLogger
 from datetime import datetime
 from ccalendar import CCalendar
+from datamanager.hk_crawl import MCrawl
 from common import get_day_nday_ago, create_redis_obj, get_dates_array
-from datamanager.hk_crawl import MCrawl 
-logger = getLogger(__name__)
 class StockConnect(object):
     def __init__(self, market_from = ct.SH_MARKET_SYMBOL, market_to = ct.HK_MARKET_SYMBOL, dbinfo = ct.DB_INFO, redis_host = None):
         self.market_from  = market_from
@@ -19,6 +18,7 @@ class StockConnect(object):
         self.crawler      = None
         self.mysql_client = None
         self.dbinfo       = dbinfo
+        self.logger       = getLogger(__name__)
         self.redis        = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
 
     def set_market(self, market_from, market_to):
@@ -87,8 +87,7 @@ class StockConnect(object):
         sql = "select * from %s where date between \"%s\" and \"%s\"" % (self.get_table_name(start_date), start_date, end_date)
         return self.mysql_client.get(sql)
 
-    def get_k_data(self, cdate):
-        cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
+    def get_k_data(self, cdate = datetime.now().strftime('%Y-%m-%d')):
         sql = "select * from %s where date=\"%s\"" % (self.get_table_name(cdate), cdate)
         return self.mysql_client.get(sql)
 
@@ -112,11 +111,11 @@ class StockConnect(object):
         table_name = self.get_table_name(cdate)
         if not self.is_table_exists(table_name):
             if not self.create_table(table_name):
-                logger.error("create tick table failed")
+                self.logger.error("create tick table failed")
                 return False
             self.redis.sadd(self.dbname, table_name)
         if self.is_date_exists(table_name, cdate): 
-            logger.debug("existed table:%s, date:%s" % (table_name, cdate))
+            self.logger.debug("existed table:%s, date:%s" % (table_name, cdate))
             return True
         ret, df = self.crawler.crawl(cdate)
         if ret != 0: return False
