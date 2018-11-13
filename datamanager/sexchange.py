@@ -121,9 +121,7 @@ class StockExchange(object):
                     turnover         = 0 if json_obj['exchangeRate'] == '' else float(json_obj['exchangeRate'])
                     outstanding      = 0 if turnover == 0 else volume / (100 * turnover)
                     totals           = outstanding
-                    data = {'name': name,\
-                            'date': cdate,\
-                            'amount': amount,\
+                    data = {'amount': amount,\
                             'number': number,\
                             'negotiable_value': negotiable_value,\
                             'market_value': market_value,\
@@ -133,7 +131,10 @@ class StockExchange(object):
                             'volume': volume,\
                             'transactions': transactions,\
                             'turnover': turnover}
-                    datas.append(data)
+                    if any(data.values()):
+                        data['name'] = name
+                        data['date'] = cdate
+                        datas.append(data)
             df = pd.DataFrame.from_dict(datas)
         else:
             datas = list()
@@ -181,11 +182,11 @@ class StockExchange(object):
                     'turnover': turnover
                 }
                 datas.append(data)
-
             df = pd.DataFrame.from_dict(datas)
-            df.at[df.name == "深圳市场", 'amount']       = df.amount.sum() - df.loc[df.name == "深圳市场", 'amount']
-            df.at[df.name == "深圳市场", 'volume']       = df.volume.sum() - df.loc[df.name == "深圳市场", 'volume']
-            df.at[df.name == "深圳市场", 'transactions'] = df.transactions.sum() - df.loc[df.name == "深圳市场", 'transactions']
+            if not df.empty:
+                df.at[df.name == "深圳市场", 'amount']       = df.amount.sum() - df.loc[df.name == "深圳市场", 'amount']
+                df.at[df.name == "深圳市场", 'volume']       = df.volume.sum() - df.loc[df.name == "深圳市场", 'volume']
+                df.at[df.name == "深圳市场", 'transactions'] = df.transactions.sum() - df.loc[df.name == "深圳市场", 'transactions']
         return df
 
     def set_k_data(self, cdate = datetime.now().strftime('%Y-%m-%d')):
@@ -211,10 +212,8 @@ class StockExchange(object):
         return False
 
     def update(self):
-        #end_date   = datetime.now().strftime('%Y-%m-%d')
-        #start_date = get_day_nday_ago(end_date, num = 9, dformat = "%Y-%m-%d")
-        start_date = '1999-12-29'
-        end_date   = '2009-09-30'
+        end_date   = datetime.now().strftime('%Y-%m-%d')
+        start_date = get_day_nday_ago(end_date, num = 9, dformat = "%Y-%m-%d")
         succeed = True
         for mdate in get_dates_array(start_date, end_date):
             if mdate in self.balcklist: continue
