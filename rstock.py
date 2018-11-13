@@ -101,8 +101,8 @@ class RIndexStock:
         return self.mysql_client.get(sql)
 
     def get_stock_data(self, date, code):
-        sql = "select * from day where date=\"%s\"" % date
         self.mysql_client.changedb(CStock.get_dbname(code))
+        sql = "select * from day where date=\"%s\"" % date
         return (code, self.mysql_client.get(sql))
 
     def generate_all_data(self, cdate):
@@ -129,8 +129,7 @@ class RIndexStock:
         all_df = all_df.reset_index(drop = True)
         return all_df
 
-    def set_data(self, cdate = None):
-        if cdate is None: cdate = datetime.now().strftime('%Y-%m-%d')
+    def set_data(self, cdate = datetime.now().strftime('%Y-%m-%d')):
         table_name = self.get_table_name(cdate)
         if not self.is_table_exists(table_name):
             if not self.create_table(table_name):
@@ -141,9 +140,6 @@ class RIndexStock:
             logger.debug("existed table:%s, date:%s" % (table_name, cdate))
             return True
         df = self.generate_all_data(cdate)
-        if df.empty:
-            import pdb
-            pdb.set_trace()
         df = df.drop_duplicates()
         df = df.reset_index(drop = True)
         self.redis.set(ct.TODAY_ALL_STOCK, _pickle.dumps(df, 2))

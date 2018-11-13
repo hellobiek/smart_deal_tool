@@ -25,6 +25,7 @@ from datamanager.margin  import Margin
 from industry_info import IndustryInfo
 from datamanager.emotion import Emotion
 from datamanager.hgt import StockConnect
+from datamanager.sexchange import StockExchange
 from combination_info import CombinationInfo
 from futuquant.common.constant import SubType
 from subscriber import Subscriber, StockQuoteHandler, TickerHandler
@@ -52,7 +53,9 @@ class DataManager:
         self.ticker_handler = TickerHandler()
         self.connect_client = StockConnect(market_from = ct.SH_MARKET_SYMBOL, market_to = ct.HK_MARKET_SYMBOL, dbinfo = dbinfo, redis_host = redis_host)
         self.margin_client = Margin(dbinfo = dbinfo, redis_host = redis_host) 
-        self.emotion_client = Emotion(dbinfo = dbinfo, redis_host = redis_host) 
+        self.emotion_client = Emotion(dbinfo = dbinfo, redis_host = redis_host)
+        self.sh_exchange_client = StockExchange(ct.SH_MARKET_SYMBOL)
+        self.sz_exchange_client = StockExchange(ct.SZ_MARKET_SYMBOL)
 
     def is_collecting_time(self, now_time = datetime.now()):
         _date = now_time.strftime('%Y-%m-%d')
@@ -155,16 +158,14 @@ class DataManager:
                 logger.error(e)
             time.sleep(sleep_time)
 
-    def set_update_info(self, step_length, filename = ct.STEPFILE):
+    def set_update_info(self, step_length, _date, filename = ct.STEPFILE):
         step_info = dict()
-        _date = datetime.now().strftime('%Y-%m-%d')
         step_info[_date] = step_length
         with open(filename, 'w') as f:
             json.dump(step_info, f)
 
-    def get_update_info(self, filename = ct.STEPFILE):
+    def get_update_info(self, _date, filename = ct.STEPFILE):
         step_info = dict()
-        _date = datetime.now().strftime('%Y-%m-%d')
         if os.path.exists(filename):
             with open(filename, 'r') as f:
                 step_info = json.load(f)
@@ -176,94 +177,112 @@ class DataManager:
                 cdate = datetime.now().strftime('%Y-%m-%d')
                 if self.cal_client.is_trading_day(): 
                     if self.is_collecting_time():
-                        finished_step = self.get_update_info()
+                        finished_step = self.get_update_info(cdate)
                         logger.info("enter updating.%s" % finished_step)
                         if finished_step < 1:
                             if not self.cal_client.init(False):
                                 logger.error("cal_client init failed")
                                 continue
-                            self.set_update_info(1)
+                            self.set_update_info(1, cdate)
 
                         if finished_step < 2:
-                            self.set_update_info(2)
+                            self.set_update_info(2, cdate)
 
                         if finished_step < 3:
                             if not self.stock_info_client.init():
                                 logger.error("stock_info init failed")
                                 continue
-                            self.set_update_info(3)
+                            self.set_update_info(3, cdate)
 
                         if finished_step < 4:
                             if not self.comb_info_client.init():
                                 logger.error("comb_info init failed")
                                 continue
-                            self.set_update_info(4)
+                            self.set_update_info(4, cdate)
 
                         if finished_step < 5:
                             if not self.industry_info_client.init():
                                 logger.error("industry_info init failed")
                                 continue
-                            self.set_update_info(5)
+                            self.set_update_info(5, cdate)
 
                         if finished_step < 6:
                             if not self.download_and_extract():
                                 logger.error("download_and_extract failed")
                                 continue
-                            self.set_update_info(6)
+                            self.set_update_info(6, cdate)
 
                         if finished_step < 7:
-                            if not self.init_today_index_info():
-                                logger.error("init_today_index_info failed")
+                            if not self.init_today_tdx_index_info():
+                                logger.error("init_today_tdx_index_info failed")
                                 continue
-                            self.set_update_info(7)
+                            self.set_update_info(7, cdate)
 
                         if finished_step < 8:
                             if not self.init_today_industry_info():
                                 logger.error("init_today_industry_info failed")
                                 continue
-                            self.set_update_info(8)
+                            self.set_update_info(8, cdate)
 
                         if finished_step < 9:
-                            if not self.init_today_limit_info():
+                            if not self.init_today_limit_info(cdate):
                                 logger.error("init_today_limit_info failed")
                                 continue
-                            self.set_update_info(9)
+                            self.set_update_info(9, cdate)
 
                         if finished_step < 10:
                             if not self.init_yesterday_hk_info():
                                 logger.error("init_yesterday_hk_info failed")
                                 continue
-                            self.set_update_info(10)
+                            self.set_update_info(10, cdate)
 
                         if finished_step < 11:
                             if not self.init_yesterday_margin():
                                 logger.error("init_yesterday_margin failed")
                                 continue
-                            self.set_update_info(11)
+                            self.set_update_info(11, cdate)
                            
                         if finished_step < 12:
                             if not self.init_stock_info(cdate):
                                 logger.error("init_stock_info set failed")
                                 continue
-                            self.set_update_info(12)
+                            self.set_update_info(12, cdate)
 
                         if finished_step < 13:
                             if not self.init_base_float_profit():
                                 logger.error("init base float profit for all stock")
                                 continue
-                            self.set_update_info(13)
+                            self.set_update_info(13, cdate)
 
                         if finished_step < 14:
-                            if not self.rindex_stock_data_client.set_data():
+                            if not self.rindex_stock_data_client.set_data(cdate):
                                 logger.error("rindex_stock_data set failed")
                                 continue
-                            self.set_update_info(14)
+                            self.set_update_info(14, cdate)
 
                         if finished_step < 15:
-                            if not self.emotion_client.set_score():
+                            if not self.emotion_client.set_score(cdate):
                                 logger.error("emotion set failed")
                                 continue
-                            self.set_update_info(15)
+                            self.set_update_info(15, cdate)
+
+                        if finished_step < 16:
+                            if not self.sh_exchange_client.update(cdate):
+                                logger.error("sh exchange update failed")
+                                continue
+                            self.set_update_info(16, cdate)
+
+                        if finished_step < 17:
+                            if not self.sz_exchange_client.update(cdate):
+                                logger.error("sz exchange update failed")
+                                continue
+                            self.set_update_info(17, cdate)
+
+                        if finished_step < 18: 
+                            if not self.init_today_index_info(cdate):
+                                logger.error("init today index info failed")
+                                continue
+                            self.set_update_info(18, cdate)
                         logger.info("updating succeed")
             except Exception as e:
                 traceback.print_exc()
@@ -355,8 +374,7 @@ class DataManager:
         logger.info("leave init_stock_info")
         return True
 
-    def init_today_limit_info(self):
-        _date = datetime.now().strftime('%Y-%m-%d')
+    def init_today_limit_info(self, _date):
         return self.limit_client.crawl_data(_date)
 
     def init_today_industry_info(self):
@@ -402,16 +420,41 @@ class DataManager:
         kill_process("show-component-extension-options")
         return succeed
 
-    def init_today_index_info(self):
+    def init_today_index_info(self, cdate = datetime.now().strftime('%Y-%m-%d')):
         def _set_index_info(code_id):
             _obj = self.index_objs[code_id] if code_id in self.index_objs else CIndex(code_id)
-            return (code_id, _obj.set_k_data() and _obj.set_components_data())
+            return (code_id, _obj.set_components_data(cdate))
+        obj_pool = Pool(10)
+        failed_list = list(ct.INDEX_DICT.keys())
+        failed_count = 0
+        while len(failed_list) > 0:
+            is_failed = False
+            logger.info("init_today_index_info:%s" % len(failed_list))
+            for result in obj_pool.imap_unordered(_set_index_info, failed_list):
+                if True == result[1]: 
+                    failed_list.remove(result[0])
+                else:
+                    is_failed = True
+            if is_failed: 
+                failed_count += 1
+                if failed_count > 10:
+                    logger.info("%s index init failed" % len(failed_list))
+                    return False
+                time.sleep(10)
+        obj_pool.join(timeout = 10)
+        obj_pool.kill()
+        return True
+
+    def init_today_tdx_index_info(self):
+        def _set_index_info(code_id):
+            _obj = self.index_objs[code_id] if code_id in self.index_objs else CIndex(code_id)
+            return (code_id, _obj.set_k_data())
         obj_pool = Pool(10)
         failed_list = list(ct.TDX_INDEX_DICT.keys())
         failed_count = 0
         while len(failed_list) > 0:
             is_failed = False
-            logger.info("init_today_index_info:%s" % len(failed_list))
+            logger.info("init_today_tdx_index_info:%s" % len(failed_list))
             for result in obj_pool.imap_unordered(_set_index_info, failed_list):
                 if True == result[1]: 
                     failed_list.remove(result[0])
@@ -479,7 +522,7 @@ if __name__ == '__main__':
     #dm.init_base_float_profit()
     #dm.rindex_stock_data_client.set_data(cdate = '2018-11-07')
     #dm.init_today_industry_info()
-    #dm.init_today_index_info()
+    #dm.init_today_tdx_index_info()
     #dm.init_today_limit_info()
     #dm.init_index_info()
     #print("init index_info success!")

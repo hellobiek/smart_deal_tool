@@ -3,12 +3,13 @@ import time
 import const as ct 
 import pandas as pd
 from log import getLogger
+from common import smart_get
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from base.base import traditional2simplified
 from selenium.webdriver.chrome.options import Options
 class MSelenium:
-    RETRY_TIME = 60
+    RETRY_TIME = 5
     def __init__(self, link, logger):
         self.link = link
         self.logger = logger
@@ -30,80 +31,65 @@ class MSelenium:
     def smart_call(self, func, except_result, *keys, **args):
         for i in range(MSelenium.RETRY_TIME):
             try:
-                if 0 == len(keys):
-                    if func() == except_result: return True
-                else:
-                    if func(keys[0]) == except_result: return True
+                if func(*keys, **args) == except_result: return True
             except:
-                self.logger.debug("%s call with %s failed" % (func.__name__, keys))
+                self.logger.debug("%s call with %s and %s failed" % (func.__name__, keys, args))
             time.sleep(3)
         return False
 
-    def smart_get(self, func, *keys, **args):
-        for i in range(MSelenium.RETRY_TIME):
-            try:
-                if 0 == len(keys):
-                    return func()
-                else:
-                    return func(keys[0])
-            except:
-                self.logger.debug("wait for find element")
-            time.sleep(3)
-        return None
-
     def process(self, req_date):
         [year, month, day] = req_date.split('-')
+        if not self.smart_call(self.driver.set_page_load_timeout, None, 30):
+            self.logger.error("set page load timeout failed.")
+            return None
+
         if not self.smart_call(self.driver.get, None, self.link):
-            self.logger.error("get source page failed.")
+            self.logger.error("%s get source page failed." % self.link)
             return None
 
-        if not self.smart_call(self.driver.set_page_load_timeout, None, 15):
-            self.logger.error("set page load timeout failde.")
-            return None
-
-        element = self.smart_get(self.driver.find_element_by_id, 'txtShareholdingDate')
+        element = smart_get(self.driver.find_element_by_id, 'txtShareholdingDate')
         if element is None:
-            self.logger.error("find txtShareholdingDate element by xpath failed.")
+            self.logger.error("%s find txtShareholdingDate element by xpath failed." % self.link)
             return None
 
         if not self.smart_call(element.click, None):
-            self.logger.error("get txtShareholdingDate element by xpath failed.")
+            self.logger.error("%s get txtShareholdingDate element by xpath failed." % self.link)
             return None
 
-        element = self.smart_get(self.driver.find_element_by_xpath, "//b[@class='year']//button[@data-value=%s]" % year)
+        element = smart_get(self.driver.find_element_by_xpath, "//b[@class='year']//button[@data-value=%s]" % year)
         if element is None:
-            self.logger.error("find year element by xpath failed.")
+            self.logger.error("%s find year element by xpath failed." % self.link)
             return None
 
         if not self.smart_call(element.click, None):
-            self.logger.error("get find year element by xpath failed.")
+            self.logger.error("%s get find year element by xpath failed." % self.link)
             return None
 
-        element = self.smart_get(self.driver.find_element_by_xpath, "//b[@class='month']//button[@data-value=%s]" % (int(month) - 1))
+        element = smart_get(self.driver.find_element_by_xpath, "//b[@class='month']//button[@data-value=%s]" % (int(month) - 1))
         if element is None:
-            self.logger.error("find month element by xpath failed.")
+            self.logger.error("%s find month element by xpath failed." % self.link)
             return None
 
         if not self.smart_call(element.click, None):
-            self.logger.error("get month element by xpath failed.")
+            self.logger.error("%s get month element by xpath failed." % self.link)
             return None
 
-        element = self.smart_get(self.driver.find_element_by_xpath, "//b[@class='day']//button[@data-value=%s]" % int(day))
+        element = smart_get(self.driver.find_element_by_xpath, "//b[@class='day']//button[@data-value=%s]" % int(day))
         if element is None:
-            self.logger.error("find day element by xpath failed.")
+            self.logger.error("%s find day element by xpath failed." % self.link)
             return None
 
         if not self.smart_call(element.click, None):
-            self.logger.error("get day element by xpath failed.")
+            self.logger.error("%s get day element by xpath failed." % self.link)
             return None
 
-        element = self.smart_get(self.driver.find_element_by_name, "btnSearch")
+        element = smart_get(self.driver.find_element_by_name, "btnSearch")
         if element is None:
-            self.logger.error("find search button by xpath failed.")
+            self.logger.error("%s find search button by xpath failed." % self.link)
             return None
 
         if not self.smart_call(element.click, None):
-            self.logger.error("get search button result by xpath failed.")
+            self.logger.error("%s search button result by xpath failed." % self.link)
             return None
         return self.driver.page_source
 
@@ -121,7 +107,7 @@ class MCrawl:
         elif code.startswith("70"):
             return code.replace("70", "000", 1)
         elif code.startswith("72"):
-            return code.replace("70", "002", 1)
+            return code.replace("72", "002", 1)
         elif code.startswith("77"):
             return code.replace("77", "300", 1)
         else:

@@ -52,8 +52,6 @@ class CStockInfo:
                                               profit float,\
                                               gpr float,\
                                               npr float,\
-                                              limitUpNum int,\
-                                              limitDownNum int,\
                                               holders int,\
                                               PRIMARY KEY (code))' % self.table
         return True if self.table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.table)
@@ -70,8 +68,6 @@ class CStockInfo:
         if len(failed_list) > 0:
             logger.error("%s create failed" % failed_list)
             return False
-        df['limitUpNum'] = 0
-        df['limitDownNum'] = 0
         self.redis.set(ct.STOCK_INFO, _pickle.dumps(df, 2))
         return True
 

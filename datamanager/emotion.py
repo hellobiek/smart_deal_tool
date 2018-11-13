@@ -31,10 +31,9 @@ class Emotion:
         df = _pickle.loads(df_byte)
         return df.loc[df.date == date]
 
-    def set_score(self):
-        date = datetime.now().strftime('%Y-%m-%d')
-        stock_info = self.get_stock_data(date)
-        limit_info = CLimit(self.dbinfo).get_data(date)
+    def set_score(self, cdate = datetime.now().strftime('%Y-%m-%d')):
+        stock_info = self.get_stock_data(cdate)
+        limit_info = CLimit(self.dbinfo).get_data(cdate)
         if stock_info.empty or limit_info.empty:
             self.logger.error("get info failed")
             return False

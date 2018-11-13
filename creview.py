@@ -59,15 +59,18 @@ class CReivew:
         df = df.reset_index(drop = True)
         return df
 
-    def market_plot(self, x, y, xlabel, ylabel, title, dir_name, filename):
+    def market_plot(self, x_dict, y_dict, xlabel, ylabel, title, dir_name, filename):
+        xlabel = x_dict.keys()[0]
+        x      = x_dict.values()
         fig = plt.figure()
+
         xn = range(len(x))
         plt.plot(xn, y)
         for xi, yi in zip(xn, y):
             plt.plot((xi,), (yi,), 'ro')
             plt.text(xi, yi, '%s' % yi)
         plt.scatter(xn, y, label=ylabel, color='k', s=25, marker="o")
-        plt.xticks(xn, x)
+        plt.xticks(xn, x, rotation = 90)
         plt.xlabel(xlabel, fontproperties = get_chinese_font())
         plt.ylabel(ylabel, fontproperties = get_chinese_font())
         plt.title(title,   fontproperties = get_chinese_font())
@@ -180,24 +183,31 @@ class CReivew:
         return self.margin_client.get_data(cdate)
 
     def update(self, cdate = datetime.now().strftime('%Y-%m-%d')):
-        start_date = get_day_nday_ago(cdate, 10, dformat = "%Y-%m-%d")
+        start_date = get_day_nday_ago(cdate, 30, dformat = "%Y-%m-%d")
         end_date   = cdate
         dir_name = os.path.join(self.sdir, "%s-StockReView" % cdate)
         self.logger.info("create daily info")
         try:
             if not os.path.exists(dir_name):
                 self.logger.info("market analysis")
+
                 sh_df = self.sh_market_client.get_k_data_in_range(start_date, end_date)
-                sh_df = sh_df.loc[sh_df.name == 'A股']
+                sh_df = sh_df.loc[sh_df.name == '上海市场']
+                sh_df = sh_df.round(2)
+                sh_df = sh_df.drop_duplicates()
                 sh_df = sh_df.reset_index(drop = True)
+                sh_df = sh_df.sort_values(by = 'date', ascending= True)
+                self.market_plot(sh_df.date.tolist(), sh_df.amount.tolist(), '日期', '成交额', '上海成交额变化图', '/code/figs', 'sh_market_amount')
 
-                import pdb
-                pdb.set_trace()
+                sz_df = self.sz_market_client.get_k_data_in_range(start_date, end_date)
+                sz_df = sz_df.loc[sz_df.name == '深圳市场']
+                sz_df = sz_df.round(2)
+                sz_df = sz_df.drop_duplicates()
+                sz_df = sz_df.reset_index(drop = True)
+                sz_df = sz_df.sort_values(by = 'date', ascending= True)
+                self.market_plot(sz_df.date.tolist(), sz_df.amount.tolist(), '日期', '成交额', '深圳成交额变化图', '/code/figs', 'sz_market_amount')
 
-                self.market_plot(sh_df.date.tolist(), sh_df.amount.tolist(), '日期', '成交额', '成交额变化图', '/code/figs', 'market_amount')
-
-                #sz_df = self.sz_market_client.get_k_data_in_range(start_date, end_date)
-                #sz_df = sz_df.loc[sz_df.name == 'A股']
+                self.market_plot(sz_df.date.tolist(), (sh_df.amount + sz_df.amount).round(2).values.tolist(), '日期', '成交额', 'A股整体成交额变化图', '/code/figs', 'zt_market_amount')
 
                 import pdb
                 pdb.set_trace()
@@ -206,8 +216,7 @@ class CReivew:
                 #price analysis
                 #plate analysis
                 #plate change analysis
-                #marauder map
-                    #板块和个股的活点地图
+                #marauder map, 板块和个股的活点地图
                 #index and total analysis
                 index_info = self.get_index_data(_date)
                 index_info = index_info.reset_index(drop = True)
@@ -345,4 +354,4 @@ class CReivew:
 
 if __name__ == '__main__':
     creview = CReivew(ct.DB_INFO)
-    data = creview.update('2018-11-09')
+    data = creview.update('2018-11-12')

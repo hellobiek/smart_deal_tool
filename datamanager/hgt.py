@@ -127,5 +127,6 @@ class StockConnect(object):
         return False
 
 if __name__ == '__main__':
-    sc = StockConnect(market_from = "SZ", market_to = "HK", redis_host = '127.0.0.1')
+    sc = StockConnect(market_from = "SZ", market_to = "HK")
+    sc.set_market(market_from = "SZ", market_to = "HK")
     sc.update()
