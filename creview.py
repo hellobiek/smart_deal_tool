@@ -1,12 +1,10 @@
 #-*- coding: utf-8 -*-
 import os
 import time
-import json
 import _pickle
 import datetime
 import matplotlib
 import const as ct
-import numpy as np
 import pandas as pd
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -21,20 +19,24 @@ from matplotlib import style
 from ccalendar import CCalendar
 from datetime import datetime, date
 from industry_info import IndustryInfo
-from datamanager.margin  import Margin
-from common import create_redis_obj, get_chinese_font, get_tushare_client
+from datamanager.margin import Margin
+from datamanager.sexchange import StockExchange
+from common import create_redis_obj, get_chinese_font, get_tushare_client, get_day_nday_ago
+
 class CReivew:
     SSE  = 'SSE'
     SZSE = 'SZSE'
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
-        self.dbinfo         = dbinfo
-        self.logger         = getLogger(__name__)
-        self.tu_client      = get_tushare_client()
-        self.sdir           = '/data/docs/blog/hellobiek.github.io/source/_posts'
-        self.doc            = CDoc(self.sdir)
-        self.redis          = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
-        self.mysql_client   = CMySQL(dbinfo, iredis = self.redis)
-        self.margin_client  = Margin(dbinfo = dbinfo, redis_host = redis_host) 
+        self.dbinfo             = dbinfo
+        self.logger             = getLogger(__name__)
+        self.tu_client          = get_tushare_client()
+        self.sdir               = '/data/docs/blog/hellobiek.github.io/source/_posts'
+        self.doc                = CDoc(self.sdir)
+        self.redis              = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
+        self.mysql_client       = CMySQL(dbinfo, iredis = self.redis)
+        self.margin_client      = Margin(dbinfo = dbinfo, redis_host = redis_host)
+        self.sh_market_client   = StockExchange(ct.SH_MARKET_SYMBOL)
+        self.sz_market_client   = StockExchange(ct.SZ_MARKET_SYMBOL)
 
     def get_market_info(self):
         df = self.tu_client.index_basic(market = 'SSE')
@@ -56,6 +58,21 @@ class CReivew:
         df = df.sort_values(by = 'amount', ascending= False)
         df = df.reset_index(drop = True)
         return df
+
+    def market_plot(self, x, y, xlabel, ylabel, title, dir_name, filename):
+        fig = plt.figure()
+        xn = range(len(x))
+        plt.plot(xn, y)
+        for xi, yi in zip(xn, y):
+            plt.plot((xi,), (yi,), 'ro')
+            plt.text(xi, yi, '%s' % yi)
+        plt.scatter(xn, y, label=ylabel, color='k', s=25, marker="o")
+        plt.xticks(xn, x)
+        plt.xlabel(xlabel, fontproperties = get_chinese_font())
+        plt.ylabel(ylabel, fontproperties = get_chinese_font())
+        plt.title(title,   fontproperties = get_chinese_font())
+        fig.autofmt_xdate()
+        plt.savefig('%s/%s.png' % (dir_name, filename), dpi=1000)
 
     def emotion_plot(self, dir_name):
         sql = "select * from %s" % self.emotion_table
@@ -162,14 +179,35 @@ class CReivew:
     def get_rzrq_info(self, cdate):
         return self.margin_client.get_data(cdate)
 
-    def update(self):
-        _date = datetime.now().strftime('%Y-%m-%d')
-        _date = '2018-11-08'
-        dir_name = os.path.join(self.sdir, "%s-StockReView" % _date)
+    def update(self, cdate = datetime.now().strftime('%Y-%m-%d')):
+        start_date = get_day_nday_ago(cdate, 10, dformat = "%Y-%m-%d")
+        end_date   = cdate
+        dir_name = os.path.join(self.sdir, "%s-StockReView" % cdate)
+        self.logger.info("create daily info")
         try:
             if not os.path.exists(dir_name):
-                self.logger.info("create daily info")
+                self.logger.info("market analysis")
+                sh_df = self.sh_market_client.get_k_data_in_range(start_date, end_date)
+                sh_df = sh_df.loc[sh_df.name == 'A股']
+                sh_df = sh_df.reset_index(drop = True)
 
+                import pdb
+                pdb.set_trace()
+
+                self.market_plot(sh_df.date.tolist(), sh_df.amount.tolist(), '日期', '成交额', '成交额变化图', '/code/figs', 'market_amount')
+
+                #sz_df = self.sz_market_client.get_k_data_in_range(start_date, end_date)
+                #sz_df = sz_df.loc[sz_df.name == 'A股']
+
+                import pdb
+                pdb.set_trace()
+
+                #capital analysis
+                #price analysis
+                #plate analysis
+                #plate change analysis
+                #marauder map
+                    #板块和个股的活点地图
                 #index and total analysis
                 index_info = self.get_index_data(_date)
                 index_info = index_info.reset_index(drop = True)
@@ -181,10 +219,7 @@ class CReivew:
                 sh_rzrq_info = rzrq_info.loc[rzrq_info.code == 'SSE']
                 sz_rzrq_info = rzrq_info.loc[rzrq_info.code == 'SZSE']
 
-                import pdb
-                pdb.set_trace()
-
-                #index alalysis
+                #index analysis
                     #capital alalysis
                         #流动市值与总成交额(todo not do now)
                             #流动市值分析
@@ -205,8 +240,7 @@ class CReivew:
                         #指数点数贡献分析
                             #按照个股排序
                             #按照板块排序
-                    #marauder map
-                        #板块和个股的活点地图
+                    #price analysis
                     #emotion alalysis
                         #大盘的情绪分析
                         #抄底模式盈亏
@@ -242,7 +276,7 @@ class CReivew:
                             #线上横盘
                             #博弈K线无量长阳
                             #基础浮动盈利
-                #model
+                #model running
                     #model training
                     #model evaluation 
                     #model backtesting
@@ -311,4 +345,4 @@ class CReivew:
 
 if __name__ == '__main__':
     creview = CReivew(ct.DB_INFO)
-    data = creview.update()
+    data = creview.update('2018-11-09')

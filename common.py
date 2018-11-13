@@ -176,6 +176,7 @@ def get_index_list():
     return alist
 
 def get_chinese_font(location = "IN"):
+    from matplotlib.font_manager import FontProperties
     fpath = '/Volumes/data/quant/stock/conf/fonts/PingFang.ttc' if location == "OUT" else '/conf/fonts/PingFang.ttc'
     return FontProperties(fname = fpath)
 

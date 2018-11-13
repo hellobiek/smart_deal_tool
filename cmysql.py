@@ -44,7 +44,7 @@ class CMySQL:
         if self.redis.exists(self.dbname):
             return set(str(table, encoding = "utf8") for table in self.redis.smembers(self.dbname))
         else:
-            all_tables = self._get('SHOW TABLES', 'Tables_in_%s' % self.dbname)
+            all_tables = self._get('SHOW TABLES', 'Tables_in_%s' % self.dbname.lower())
             for table in all_tables: self.redis.sadd(self.dbname, table)
             return all_tables
 

@@ -24,7 +24,7 @@ class StockExchange(object):
         self.header       = {"Host": "query.sse.com.cn",
                              "Referer": "http://www.sse.com.cn/market/stockdata/overview/day/",
                              "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36"}
-        self.mysql_client = CMySQL(self.dbinfo, iredis = self.redis)
+        self.mysql_client = CMySQL(self.dbinfo, dbname = self.dbname, iredis = self.redis)
         if not self.mysql_client.create_db(self.dbname):
             raise Exception("create %s failed" % self.dbname)
    
@@ -53,6 +53,10 @@ class StockExchange(object):
                                                  PRIMARY KEY (date, name))' % table 
             if not self.mysql_client.create(sql, table): return False
         return True
+
+    def get_k_data_in_range(self, start_date, end_date):
+        sql = "select * from %s where date between \"%s\" and \"%s\"" % (self.get_table_name(), start_date, end_date)
+        return self.mysql_client.get(sql)
 
     def get_k_data(self, cdate = datetime.now().strftime('%Y-%m-%d')):
         sql = "select * from %s where date=\"%s\"" % (self.get_table_name(), cdate)
@@ -137,10 +141,8 @@ class StockExchange(object):
                 url = self.get_url() % (tab, cdate, float_random(17))
                 df = smart_get(pd.read_excel, url, usecols = [0, 1])
                 if df is None: return pd.DataFrame()
-                if df.empty:
-                    import pdb
-                    pdb.set_trace()
-                    continue
+                if df.empty: continue
+                if len(df) == 1 and df.values[0][0] == '没有找到符合条件的数据！': continue
                 if name == "深圳市场":
                     amount           = 0
                     #amount           = float(df.loc[df['指标名称'] == '市场总成交金额（元）', '本日数值'].values[0].replace(',', '')) / 100000000
@@ -179,6 +181,7 @@ class StockExchange(object):
                     'turnover': turnover
                 }
                 datas.append(data)
+
             df = pd.DataFrame.from_dict(datas)
             df.at[df.name == "深圳市场", 'amount']       = df.amount.sum() - df.loc[df.name == "深圳市场", 'amount']
             df.at[df.name == "深圳市场", 'volume']       = df.volume.sum() - df.loc[df.name == "深圳市场", 'volume']
@@ -199,7 +202,7 @@ class StockExchange(object):
 
         df = self.get_data_from_url(cdate)
         if df.empty:
-            self.logger.debug("get data from url failed, date:%s" % (table_name, cdate))
+            self.logger.debug("get data from %s failed, date:%s" % (self.market, cdate))
             return False
 
         if self.mysql_client.set(df, table_name):
@@ -211,7 +214,7 @@ class StockExchange(object):
         #end_date   = datetime.now().strftime('%Y-%m-%d')
         #start_date = get_day_nday_ago(end_date, num = 9, dformat = "%Y-%m-%d")
         start_date = '1999-12-29'
-        end_date   = '2018-11-09'
+        end_date   = '2009-12-31'
         succeed = True
         for mdate in get_dates_array(start_date, end_date):
             if mdate in self.balcklist: continue

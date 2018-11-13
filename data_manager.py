@@ -13,7 +13,6 @@ from cindex import CIndex
 from climit import CLimit 
 from gevent.pool import Pool
 from functools import partial
-from creview import CReivew
 from datetime import datetime
 from rstock import RIndexStock
 from ccalendar import CCalendar
@@ -54,7 +53,6 @@ class DataManager:
         self.connect_client = StockConnect(market_from = ct.SH_MARKET_SYMBOL, market_to = ct.HK_MARKET_SYMBOL, dbinfo = dbinfo, redis_host = redis_host)
         self.margin_client = Margin(dbinfo = dbinfo, redis_host = redis_host) 
         self.emotion_client = Emotion(dbinfo = dbinfo, redis_host = redis_host) 
-        self.cviewer = CReivew(dbinfo, redis_host)
 
     def is_collecting_time(self, now_time = datetime.now()):
         _date = now_time.strftime('%Y-%m-%d')
@@ -266,10 +264,6 @@ class DataManager:
                                 logger.error("emotion set failed")
                                 continue
                             self.set_update_info(15)
-
-                        #if finished_step < 16:
-                        #    self.cviewer.update()
-                        #    self.set_update_info(16)
                         logger.info("updating succeed")
             except Exception as e:
                 traceback.print_exc()
@@ -479,7 +473,6 @@ class DataManager:
  
 if __name__ == '__main__':
     dm = DataManager()
-    dm.cviewer.update()
     #dm.init_stock_info(cdate = None)
     #dm.init_yesterday_hk_info()
     #dm.init_yesterday_margin()
