@@ -519,7 +519,7 @@ if __name__ == '__main__':
     #dm.init_stock_info(cdate = None)
     #dm.init_yesterday_hk_info()
     #dm.init_yesterday_margin()
-    #dm.init_base_float_profit()
+    print(dm.init_base_float_profit())
     #dm.rindex_stock_data_client.set_data(cdate = '2018-11-07')
     #dm.init_today_industry_info()
     #dm.init_today_tdx_index_info()

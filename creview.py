@@ -9,6 +9,7 @@ import pandas as pd
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import matplotlib.ticker as mticker
 import matplotlib.animation as animation
 from cdoc import CDoc
 from log import getLogger
@@ -18,9 +19,10 @@ from cmysql import CMySQL
 from matplotlib import style
 from ccalendar import CCalendar
 from datetime import datetime, date
-from industry_info import IndustryInfo
 from datamanager.margin import Margin
+from industry_info import IndustryInfo
 from datamanager.sexchange import StockExchange
+from visualization.marauder_map import MarauderMap 
 from common import create_redis_obj, get_chinese_font, get_tushare_client, get_day_nday_ago
 
 class CReivew:
@@ -38,6 +40,7 @@ class CReivew:
         self.margin_client      = Margin(dbinfo = dbinfo, redis_host = redis_host)
         self.sh_market_client   = StockExchange(ct.SH_MARKET_SYMBOL)
         self.sz_market_client   = StockExchange(ct.SZ_MARKET_SYMBOL)
+        self.mmap_clinet        = MarauderMap(ct.ALL_CODE_LIST)
 
     def get_market_info(self):
         df = self.tu_client.index_basic(market = self.SSE)
@@ -224,6 +227,44 @@ class CReivew:
         df = df.sort_values(by = 'date', ascending= True)
         return df
 
+    def get_index_df(self, code, start_date, end_date):
+        cindex_client = CIndex(code)
+        df = cindex_client.get_k_data_in_range(start_date, end_date)
+        df['time'] = df.index.tolist()
+        df = df[['time', 'open', 'high', 'low', 'close', 'volume', 'amount', 'date']]
+        return df
+
+    def scatter_plot(x_data, y_data, x_label="", y_label="", title="", color = "r", yscale_log=False):
+        # Create the plot object
+        _, ax = plt.subplots()
+        # Plot the data, set the size (s), color and transparency (alpha) of the points
+        ax.scatter(x_data, y_data, s = 10, color = color, alpha = 0.75)
+        if yscale_log == True:
+            ax.set_yscale('log')
+        # Label the axes and provide a title
+        ax.set_title(title)
+        ax.set_xlabel(x_label)
+        ax.set_ylabel(y_label)
+
+    def plot_ohlc(self, df, ylabel, flabel, dir_name, filename):
+        from mpl_finance import candlestick_ohlc
+        date_tickers = df.date.tolist()
+        def _format_date(x, pos = None):
+            if x < 0 or x > len(date_tickers) - 1: return ''
+            return date_tickers[int(x)]
+
+        fig, ax = plt.subplots(figsize = (16, 10))
+        fig.subplots_adjust(bottom = 0.2)
+        candlestick_ohlc(ax, df.values, width = 1.0, colorup = 'r', colordown = 'g')
+        ax.xaxis.set_major_locator(mticker.MultipleLocator(3))
+        ax.xaxis.set_major_formatter(mticker.FuncFormatter(_format_date))
+        ax.set_ylabel(ylabel, fontproperties = get_chinese_font())
+        ax.set_title(flabel, fontproperties = get_chinese_font())
+        ax.yaxis.label.set_color("k")
+        ax.grid(True, color = 'k', linestyle = '--')
+        fig.autofmt_xdate()
+        plt.savefig('%s/%s.png' % (dir_name, filename), dpi=1000)
+
     def update(self, cdate = datetime.now().strftime('%Y-%m-%d')):
         start_date = get_day_nday_ago(cdate, 30, dformat = "%Y-%m-%d")
         end_date   = cdate
@@ -238,6 +279,8 @@ class CReivew:
                 sh_rzrq_df = self.get_rzrq_info(ct.SH_MARKET_SYMBOL, start_date, end_date)
                 sz_rzrq_df = self.get_rzrq_info(ct.SZ_MARKET_SYMBOL, start_date, end_date)
 
+                av_df = self.get_index_df('880003', start_date, end_date)
+
                 x_dict = dict()
                 x_dict['日期'] = sh_df.date.tolist()
                 self.market_plot(sh_df, sz_df, x_dict, 'amount')
@@ -245,9 +288,9 @@ class CReivew:
                 self.market_plot(sh_df, sz_df, x_dict, 'number')
                 self.market_plot(sh_df, sz_df, x_dict, 'turnover')
                 self.market_plot(sh_rzrq_df, sz_rzrq_df, x_dict, 'rzrqye')
+                self.plot_ohlc(av_df, '平均股价', '平均股价走势图', '/code/figs', 'average_price')
 
-                import pdb
-                pdb.set_trace()
+                self.mmap_clinet.plot(cdate, '/code/figs', 'marauder_map')
 
                 #capital analysis
                 #price analysis
@@ -258,24 +301,11 @@ class CReivew:
                 index_info = self.get_index_data(_date)
                 index_info = index_info.reset_index(drop = True)
 
-                self.get_market_info()
-
-
-                sh_rzrq_info = rzrq_info.loc[rzrq_info.code == self.SSE]
-                sz_rzrq_info = rzrq_info.loc[rzrq_info.code == self.SZSE]
-
                 #index analysis
                     #capital alalysis
-                        #流动市值与总成交额(todo not do now)
+                        #流动市值与总成交额
                             #流动市值分析
                             #总成交额
-                        #成交额构成分析
-                            #融资融券资金
-                            #沪港通资金
-                            #涨停板资金
-                            #基金仓位资金
-                            #股票回购
-                            #大宗交易
                         #成交额板块分析
                             #成交额板块排行
                             #成交额增量板块排行
@@ -285,6 +315,13 @@ class CReivew:
                         #指数点数贡献分析
                             #按照个股排序
                             #按照板块排序
+                        #成交额构成分析(not do now)
+                            #融资融券资金
+                            #沪港通资金
+                            #涨停板资金
+                            #基金仓位资金
+                            #股票回购
+                            #大宗交易
                     #price analysis
                     #emotion alalysis
                         #大盘的情绪分析
