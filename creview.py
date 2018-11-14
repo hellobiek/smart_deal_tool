@@ -26,6 +26,7 @@ from common import create_redis_obj, get_chinese_font, get_tushare_client, get_d
 class CReivew:
     SSE  = 'SSE'
     SZSE = 'SZSE'
+    COLORS = ['#F5DEB3', '#A0522D', '#1E90FF', '#FFE4C4', '#00FFFF', '#DAA520', '#3CB371', '#808080', '#ADFF2F', '#4B0082']
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.dbinfo             = dbinfo
         self.logger             = getLogger(__name__)
@@ -39,7 +40,7 @@ class CReivew:
         self.sz_market_client   = StockExchange(ct.SZ_MARKET_SYMBOL)
 
     def get_market_info(self):
-        df = self.tu_client.index_basic(market = 'SSE')
+        df = self.tu_client.index_basic(market = self.SSE)
 
     def get_stock_data(self):
         df_byte = self.redis.get(ct.TODAY_ALL_STOCK)
@@ -59,21 +60,24 @@ class CReivew:
         df = df.reset_index(drop = True)
         return df
 
-    def market_plot(self, x_dict, y_dict, xlabel, ylabel, title, dir_name, filename):
-        xlabel = x_dict.keys()[0]
-        x      = x_dict.values()
+    def multi_plot(self, x_dict, y_dict, ylabel, title, dir_name, filename):
         fig = plt.figure()
-
-        xn = range(len(x))
-        plt.plot(xn, y)
-        for xi, yi in zip(xn, y):
-            plt.plot((xi,), (yi,), 'ro')
-            plt.text(xi, yi, '%s' % yi)
-        plt.scatter(xn, y, label=ylabel, color='k', s=25, marker="o")
+        xlabel = list(x_dict.keys())[0]
+        x      = list(x_dict.values())[0]
+        xn     = range(len(x))
         plt.xticks(xn, x, rotation = 90)
         plt.xlabel(xlabel, fontproperties = get_chinese_font())
         plt.ylabel(ylabel, fontproperties = get_chinese_font())
-        plt.title(title,   fontproperties = get_chinese_font())
+        i = 0
+        for ylabel, y in y_dict.items():
+            i += 1
+            plt.plot(xn, y, label = ylabel)
+            for xi, yi in zip(xn, y):
+                plt.plot((xi,), (yi,), 'ro')
+                plt.text(xi, yi, '%s' % yi, fontsize = 7, rotation = 60)
+            plt.scatter(xn, y, color = self.COLORS[i], s = 5, marker = "o")
+        plt.title(title,    fontproperties = get_chinese_font())
+        plt.legend(loc = 'upper right', prop = get_chinese_font())
         fig.autofmt_xdate()
         plt.savefig('%s/%s.png' % (dir_name, filename), dpi=1000)
 
@@ -97,7 +101,6 @@ class CReivew:
         plt.savefig('%s/emotion.png' % dir_name, dpi=1000)
 
     def industry_plot(self, dir_name, industry_info):
-        colors = ['#F5DEB3', '#A0522D', '#1E90FF', '#FFE4C4', '#00FFFF', '#DAA520', '#3CB371', '#808080', '#ADFF2F', '#4B0082']
         industry_info.amount = industry_info.amount / 10000000000
         total_amount = industry_info.amount.sum()
         amount_list = industry_info[0:10].amount.tolist()
@@ -106,7 +109,7 @@ class CReivew:
         base_line = 0 
         for i in range(len(amount_list)):
             label_name = "%s:%s" % (industry_info.loc[i]['name'], 100 * amount_list[i] / total_amount)
-            plt.bar(x, amount_list[i], width = 0.1, color = colors[i], bottom = base_line, align = 'center', label = label_name)
+            plt.bar(x, amount_list[i], width = 0.1, color = self.COLORS[i], bottom = base_line, align = 'center', label = label_name)
             base_line += amount_list[i]
         plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
         plt.gca().xaxis.set_major_locator(mdates.DayLocator())
@@ -121,7 +124,6 @@ class CReivew:
         return CLimit(self.dbinfo).get_data(date)
 
     def static_plot(self, dir_name, stock_info, limit_info):
-        colors = ['b', 'r', 'y', 'g', 'm']
         limit_up_list   = limit_info[(limit_info.pchange > 0) & (limit_info.prange != 0)].reset_index(drop = True).code.tolist()
         limit_down_list = limit_info[limit_info.pchange < 0].reset_index(drop = True).code.tolist()
         limit_list = limit_up_list + limit_down_list
@@ -148,7 +150,7 @@ class CReivew:
     
         fig = plt.figure()
         for i in range(len(num_list)):
-            plt.bar(i + 1, num_list[i], color = colors[i % len(colors)], width = 0.3)
+            plt.bar(i + 1, num_list[i], color = self.COLORS[i % len(self.COLORS)], width = 0.3)
             plt.text(i + 1, 15 + num_list[i], num_list[i], ha = 'center', font_properties = get_chinese_font())
     
         plt.xlabel('x轴', fontproperties = get_chinese_font())
@@ -179,8 +181,48 @@ class CReivew:
         self.mysql_client.changedb()
         return df
 
-    def get_rzrq_info(self, cdate):
-        return self.margin_client.get_data(cdate)
+    def get_market_data(self, market, start_date, end_date):
+        if market == ct.SH_MARKET_SYMBOL:
+            df = self.sh_market_client.get_k_data_in_range(start_date, end_date)
+            df = df.loc[df.name == '上海市场']
+        else:
+            df = self.sz_market_client.get_k_data_in_range(start_date, end_date)
+            df = df.loc[df.name == '深圳市场']
+        df                  = df.round(2)
+        df                  = df.drop_duplicates()
+        df                  = df.reset_index(drop = True)
+        df                  = df.sort_values(by = 'date', ascending= True)
+        df.negotiable_value = (df.negotiable_value / 2).astype(int)
+        return df
+
+    def market_plot(self, sh_df, sz_df, x_dict, ycolumn):
+        y_dict = dict()
+        y_dict['上海市场']  = sh_df[ycolumn].tolist()
+        y_dict['深圳市场']  = sz_df[ycolumn].tolist()
+        if ycolumn == 'turnover':
+            y_dict['整体市场']  = ((sh_df[ycolumn] + sz_df[ycolumn])/2).round(2).tolist()
+        else:
+            y_dict['整体市场']  = (sh_df[ycolumn] + sz_df[ycolumn]).round(2).tolist()
+        self.multi_plot(x_dict, y_dict, ycolumn, '%s trend' % ycolumn, '/code/figs', 'market_%s' % ycolumn)
+
+    def get_rzrq_info(self, market, start_date, end_date):
+        df = self.margin_client.get_k_data_in_range(start_date, end_date)
+        if market == ct.SH_MARKET_SYMBOL:
+            df = df.loc[df.code == 'SSE']
+            df['code'] = '上海市场'
+        else:
+            df = df.loc[df.code == 'SZSE']
+            df['code'] = '深圳市场'
+        df           = df.round(2)
+        df['rzye']   = df['rzye']/1e+8
+        df['rzmre']  = df['rzmre']/1e+8
+        df['rzche']  = df['rzche']/1e+8
+        df['rqye']   = df['rqye']/1e+8
+        df['rzrqye'] = df['rzrqye']/1e+8
+        df = df.drop_duplicates()
+        df = df.reset_index(drop = True)
+        df = df.sort_values(by = 'date', ascending= True)
+        return df
 
     def update(self, cdate = datetime.now().strftime('%Y-%m-%d')):
         start_date = get_day_nday_ago(cdate, 30, dformat = "%Y-%m-%d")
@@ -190,24 +232,19 @@ class CReivew:
         try:
             if not os.path.exists(dir_name):
                 self.logger.info("market analysis")
+                sh_df = self.get_market_data(ct.SH_MARKET_SYMBOL, start_date, end_date)
+                sz_df = self.get_market_data(ct.SZ_MARKET_SYMBOL, start_date, end_date)
 
-                sh_df = self.sh_market_client.get_k_data_in_range(start_date, end_date)
-                sh_df = sh_df.loc[sh_df.name == '上海市场']
-                sh_df = sh_df.round(2)
-                sh_df = sh_df.drop_duplicates()
-                sh_df = sh_df.reset_index(drop = True)
-                sh_df = sh_df.sort_values(by = 'date', ascending= True)
-                self.market_plot(sh_df.date.tolist(), sh_df.amount.tolist(), '日期', '成交额', '上海成交额变化图', '/code/figs', 'sh_market_amount')
+                sh_rzrq_df = self.get_rzrq_info(ct.SH_MARKET_SYMBOL, start_date, end_date)
+                sz_rzrq_df = self.get_rzrq_info(ct.SZ_MARKET_SYMBOL, start_date, end_date)
 
-                sz_df = self.sz_market_client.get_k_data_in_range(start_date, end_date)
-                sz_df = sz_df.loc[sz_df.name == '深圳市场']
-                sz_df = sz_df.round(2)
-                sz_df = sz_df.drop_duplicates()
-                sz_df = sz_df.reset_index(drop = True)
-                sz_df = sz_df.sort_values(by = 'date', ascending= True)
-                self.market_plot(sz_df.date.tolist(), sz_df.amount.tolist(), '日期', '成交额', '深圳成交额变化图', '/code/figs', 'sz_market_amount')
-
-                self.market_plot(sz_df.date.tolist(), (sh_df.amount + sz_df.amount).round(2).values.tolist(), '日期', '成交额', 'A股整体成交额变化图', '/code/figs', 'zt_market_amount')
+                x_dict = dict()
+                x_dict['日期'] = sh_df.date.tolist()
+                self.market_plot(sh_df, sz_df, x_dict, 'amount')
+                self.market_plot(sh_df, sz_df, x_dict, 'negotiable_value')
+                self.market_plot(sh_df, sz_df, x_dict, 'number')
+                self.market_plot(sh_df, sz_df, x_dict, 'turnover')
+                self.market_plot(sh_rzrq_df, sz_rzrq_df, x_dict, 'rzrqye')
 
                 import pdb
                 pdb.set_trace()
@@ -223,10 +260,9 @@ class CReivew:
 
                 self.get_market_info()
 
-                rzrq_info  = self.get_rzrq_info(_date)
 
-                sh_rzrq_info = rzrq_info.loc[rzrq_info.code == 'SSE']
-                sz_rzrq_info = rzrq_info.loc[rzrq_info.code == 'SZSE']
+                sh_rzrq_info = rzrq_info.loc[rzrq_info.code == self.SSE]
+                sz_rzrq_info = rzrq_info.loc[rzrq_info.code == self.SZSE]
 
                 #index analysis
                     #capital alalysis

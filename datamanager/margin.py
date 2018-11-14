@@ -5,12 +5,14 @@ sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import time
 import _pickle
 import const as ct
+import numpy as np
 import pandas as pd
 from log import getLogger
 from cmysql import CMySQL
 from datetime import datetime
 from ccalendar import CCalendar
-from common import get_day_nday_ago, create_redis_obj, get_dates_array, get_tushare_client, transfer_date_string_to_int, smart_get
+from collections import OrderedDict
+from common import get_day_nday_ago, create_redis_obj, get_dates_array, get_tushare_client, transfer_date_string_to_int, smart_get, delta_days
 from datamanager.hk_crawl import MCrawl 
 class Margin(object):
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
@@ -82,8 +84,7 @@ class Margin(object):
         sql = "select * from %s where date=\"%s\"" % (self.get_table_name(cdate), cdate)
         return self.mysql_client.get(sql)
 
-    def update(self):
-        end_date   = datetime.now().strftime('%Y-%m-%d')
+    def update(self, end_date = datetime.now().strftime('%Y-%m-%d')):
         start_date = get_day_nday_ago(end_date, num = 9, dformat = "%Y-%m-%d")
         date_array = get_dates_array(start_date, end_date)
         succeed = True
