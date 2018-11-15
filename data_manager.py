@@ -25,6 +25,7 @@ from datamanager.margin  import Margin
 from industry_info import IndustryInfo
 from datamanager.emotion import Emotion
 from datamanager.hgt import StockConnect
+from rindustry import RIndexIndustryInfo
 from datamanager.sexchange import StockExchange
 from combination_info import CombinationInfo
 from futuquant.common.constant import SubType
@@ -46,6 +47,7 @@ class DataManager:
         self.rindex_stock_data_client = RIndexStock(dbinfo, redis_host) 
         self.index_info_client = IndexInfo(dbinfo, redis_host)
         self.industry_info_client = IndustryInfo(dbinfo, redis_host)
+        self.rindustry_info_client = RIndexIndustryInfo(dbinfo, redis_host)
         self.limit_client = CLimit(dbinfo, redis_host)
         self.animation_client = CAnimation(dbinfo, redis_host)
         self.subscriber = Subscriber()
@@ -283,6 +285,12 @@ class DataManager:
                                 logger.error("init today index info failed")
                                 continue
                             self.set_update_info(18, cdate)
+
+                        if finished_step < 19: 
+                            if not self.rindustry_info_client.update(cdate):
+                                logger.error("init today rindustry info failed")
+                                continue
+                            self.set_update_info(19, cdate)
                         logger.info("updating succeed")
             except Exception as e:
                 traceback.print_exc()
@@ -315,7 +323,8 @@ class DataManager:
         obj_pool = Pool(500)
         #df = self.stock_info_client.get()
         #failed_list = df.code.tolist()
-        failed_list = ct.ALL_CODE_LIST
+        import copy
+        failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
         failed_count = 0
         logger.info("enter init_base_float_profit")
         while len(failed_list) > 0:
@@ -350,7 +359,8 @@ class DataManager:
 
         #failed_list = df.code.tolist()
         #df = self.stock_info_client.get()
-        failed_list = ct.ALL_CODE_LIST
+        import copy
+        failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
 
         failed_count = 0
         cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)

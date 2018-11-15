@@ -60,6 +60,8 @@ class CMySQL:
         res = False
         for i in range(ct.RETRY_TIMES):
             try:
+                import pdb
+                pdb.set_trace()
                 conn = self.engine.connect()
                 df = pd.read_sql(sql, conn)
                 res = True
@@ -210,3 +212,7 @@ class CMySQL:
             if 'conn' in dir(): conn.close()
         if res == True: self.redis.sadd(ALL_DATABASES, dbname)
         return res
+
+if __name__ == '__main__':
+    cmy = CMySQL(ct.DB_INFO)
+    print(cmy._get_all_databses())

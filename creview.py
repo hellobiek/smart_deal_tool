@@ -1,13 +1,18 @@
 #-*- coding: utf-8 -*-
+import gevent
+from gevent import monkey
+monkey.patch_all(thread = True)
+from gevent.pool import Pool
+
 import os
 import time
 import _pickle
 import datetime
 import matplotlib
 import const as ct
+import numpy as np
 import pandas as pd
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.ticker as mticker
 import matplotlib.animation as animation
@@ -17,10 +22,14 @@ from climit import CLimit
 from cindex import CIndex
 from cmysql import CMySQL
 from matplotlib import style
+from functools import partial
 from ccalendar import CCalendar
+import matplotlib.pyplot as plt
 from datetime import datetime, date
 from datamanager.margin import Margin
+from rindustry import RIndexIndustryInfo
 from industry_info import IndustryInfo
+from mpl_finance import candlestick_ohlc
 from datamanager.sexchange import StockExchange
 from visualization.marauder_map import MarauderMap 
 from common import create_redis_obj, get_chinese_font, get_tushare_client, get_day_nday_ago
@@ -50,39 +59,80 @@ class CReivew:
         if df_byte is None: return None
         return _pickle.loads(df_byte)
 
-    def get_industry_data(self, _date):
-        df = pd.DataFrame()
-        df_info = IndustryInfo.get()
-        for _, code in df_info.code.iteritems():
-            data = CIndex(code).get_k_data(date = _date)
-            df = df.append(data)
-            df = df.reset_index(drop = True)
-        if df.empty: return df
-        df['name'] = df_info['name']
-        df = df.sort_values(by = 'amount', ascending= False)
-        df = df.reset_index(drop = True)
-        return df
-
     def multi_plot(self, x_dict, y_dict, ylabel, title, dir_name, filename):
+        def _format_date(i, pos = None):
+            if i < 0 or i > len(x) - 1: return ''
+            return x[int(i)]
+
+        xlabel  = list(x_dict.keys())[0]
+        x       = list(x_dict.values())[0]
+        xn      = range(len(x))
+
         fig = plt.figure()
-        xlabel = list(x_dict.keys())[0]
-        x      = list(x_dict.values())[0]
-        xn     = range(len(x))
-        plt.xticks(xn, x, rotation = 90)
+        plt.title(title,   fontproperties = get_chinese_font())
         plt.xlabel(xlabel, fontproperties = get_chinese_font())
         plt.ylabel(ylabel, fontproperties = get_chinese_font())
+        plt.gca().xaxis.set_major_locator(mticker.MultipleLocator(10))
+        plt.gca().xaxis.set_major_formatter(mticker.FuncFormatter(_format_date))
         i = 0
         for ylabel, y in y_dict.items():
             i += 1
             plt.plot(xn, y, label = ylabel)
+            num = 0
             for xi, yi in zip(xn, y):
-                plt.plot((xi,), (yi,), 'ro')
-                plt.text(xi, yi, '%s' % yi, fontsize = 7, rotation = 60)
+                if num % 7 == 0 or num == len(x) - 1:
+                    plt.plot((xi,), (yi,), 'ro')
+                    plt.text(xi, yi, '%s' % yi, fontsize = 7, rotation = 60)
+                num += 1
             plt.scatter(xn, y, color = self.COLORS[i], s = 5, marker = "o")
-        plt.title(title,    fontproperties = get_chinese_font())
-        plt.legend(loc = 'upper right', prop = get_chinese_font())
+
         fig.autofmt_xdate()
+        plt.legend(prop = get_chinese_font())
         plt.savefig('%s/%s.png' % (dir_name, filename), dpi=1000)
+
+    def sget_industry_data(self, cdate):
+        ri = RIndexIndustryInfo()
+        data = ri.get_k_data(cdate)
+
+    def get_industry_data(self, cdate):
+        def _get_industry_info(cdate, code_id):
+            return (code_id, CIndex(code_id).get_k_data(cdate))
+
+        failed_count = 0
+        df = pd.DataFrame()
+        obj_pool = Pool(50)
+        industry_info = IndustryInfo.get()
+        failed_list = industry_info.code.tolist()
+        cfunc = partial(_get_industry_info, cdate)
+        while len(failed_list) > 0:
+            is_failed = False
+            self.logger.info("get industry data:%s" % len(failed_list))
+            for result in obj_pool.imap_unordered(cfunc, failed_list):
+                if result[1] is None:
+                    self.logger.error("%s data is none" % result[0])
+                    is_failed = True
+                    continue
+                if not result[1].empty: 
+                    tmp_data = result[1]
+                    tmp_data = tmp_data.rename(columns = {"date": "time"})
+                    tmp_data = tmp_data.drop_duplicates()
+                    tmp_data['code'] = result[0]
+                    df = df.append(tmp_data)
+                failed_list.remove(result[0])
+            if is_failed: 
+                failed_count += 1
+                if failed_count > 10:
+                    self.logger.info("%s industry get failed" % len(failed_list))
+                    return pd.DataFrame()
+                time.sleep(10)
+        obj_pool.join(timeout = 10)
+        obj_pool.kill()
+        if df.empty: return df
+        df = df.reset_index(drop = True)
+        df = df.sort_values(by = 'amount', ascending= False)
+        df['mpchange'] = df['mchange'] / df['amount']
+        df = pd.merge(df, industry_info, how='left', on=['code'])
+        return df
 
     def emotion_plot(self, dir_name):
         sql = "select * from %s" % self.emotion_table
@@ -247,7 +297,6 @@ class CReivew:
         ax.set_ylabel(y_label)
 
     def plot_ohlc(self, df, ylabel, flabel, dir_name, filename):
-        from mpl_finance import candlestick_ohlc
         date_tickers = df.date.tolist()
         def _format_date(x, pos = None):
             if x < 0 or x > len(date_tickers) - 1: return ''
@@ -265,32 +314,65 @@ class CReivew:
         fig.autofmt_xdate()
         plt.savefig('%s/%s.png' % (dir_name, filename), dpi=1000)
 
+    def plot_pie(self, df, column, title, dir_name, filename):
+        df = df[['name', 'code', column]]
+        df = df.sort_values(by = column, ascending= False)
+        total_amount = df[column].sum()
+        df = df.head(9)
+
+        df.at[len(df)] = ['其他', '999999', total_amount - df[column].sum()]
+        df = df.sort_values(by = column, ascending= False)
+
+        def xfunc(pct, allvals):
+            absolute = int(pct / 100. * np.sum(allvals))
+            return "{:.1f}%".format(pct)
+
+        data        = df[column].tolist()
+        fig, ax     = plt.subplots(figsize = (6, 3), subplot_kw = dict(aspect = "equal"))
+        ingredients = (df.name + ':' + df.code).tolist()
+
+        wedges, texts, autotexts = ax.pie(data, autopct = lambda pct: xfunc(pct, data), textprops = dict(color = "w"))
+
+        fig.autofmt_xdate()
+        ax.legend(wedges, ingredients, title = 'name',  loc="center left", bbox_to_anchor=(1, 0, 1, 1), prop = get_chinese_font())
+        plt.setp(autotexts, size = 6)
+        ax.set_title(title, fontproperties = get_chinese_font())
+        plt.savefig('%s/%s.png' % (dir_name, filename), dpi=1000)
+
     def update(self, cdate = datetime.now().strftime('%Y-%m-%d')):
-        start_date = get_day_nday_ago(cdate, 30, dformat = "%Y-%m-%d")
+        start_date = get_day_nday_ago(cdate, 100, dformat = "%Y-%m-%d")
         end_date   = cdate
         dir_name = os.path.join(self.sdir, "%s-StockReView" % cdate)
         self.logger.info("create daily info")
         try:
             if not os.path.exists(dir_name):
                 self.logger.info("market analysis")
-                sh_df = self.get_market_data(ct.SH_MARKET_SYMBOL, start_date, end_date)
-                sz_df = self.get_market_data(ct.SZ_MARKET_SYMBOL, start_date, end_date)
+                #sh_df = self.get_market_data(ct.SH_MARKET_SYMBOL, start_date, end_date)
+                #sz_df = self.get_market_data(ct.SZ_MARKET_SYMBOL, start_date, end_date)
+                #sh_rzrq_df = self.get_rzrq_info(ct.SH_MARKET_SYMBOL, start_date, end_date)
+                #sz_rzrq_df = self.get_rzrq_info(ct.SZ_MARKET_SYMBOL, start_date, end_date)
 
-                sh_rzrq_df = self.get_rzrq_info(ct.SH_MARKET_SYMBOL, start_date, end_date)
-                sz_rzrq_df = self.get_rzrq_info(ct.SZ_MARKET_SYMBOL, start_date, end_date)
+                #av_df = self.get_index_df('880003', start_date, end_date)
 
-                av_df = self.get_index_df('880003', start_date, end_date)
+                #x_dict = dict()
+                #x_dict['日期'] = sh_df.date.tolist()
+                #self.market_plot(sh_df, sz_df, x_dict, 'amount')
+                #self.market_plot(sh_df, sz_df, x_dict, 'negotiable_value')
+                #self.market_plot(sh_df, sz_df, x_dict, 'number')
+                #self.market_plot(sh_df, sz_df, x_dict, 'turnover')
+                #self.market_plot(sh_rzrq_df, sz_rzrq_df, x_dict, 'rzrqye')
+                #self.plot_ohlc(av_df, '平均股价', '平均股价走势图', '/code/figs', 'average_price')
+                #self.mmap_clinet.plot(cdate, '/code/figs', 'marauder_map')
 
-                x_dict = dict()
-                x_dict['日期'] = sh_df.date.tolist()
-                self.market_plot(sh_df, sz_df, x_dict, 'amount')
-                self.market_plot(sh_df, sz_df, x_dict, 'negotiable_value')
-                self.market_plot(sh_df, sz_df, x_dict, 'number')
-                self.market_plot(sh_df, sz_df, x_dict, 'turnover')
-                self.market_plot(sh_rzrq_df, sz_rzrq_df, x_dict, 'rzrqye')
-                self.plot_ohlc(av_df, '平均股价', '平均股价走势图', '/code/figs', 'average_price')
+                #成交额板块分析
+                industry_data = self.get_industry_data(cdate)
 
-                self.mmap_clinet.plot(cdate, '/code/figs', 'marauder_map')
+                self.plot_pie(industry_data, 'amount', '每日成交额行业分布', '/code/figs', 'industry amount distribution')
+                self.plot_pie(industry_data, 'mchange', '每日成交额增加行业分布', '/code/figs', 'industry mchange distribution')
+                self.plot_pie(industry_data, 'mpchange', '每日成交额增加百分比行业分布', '/code/figs', 'industry mchange percent distribution')
+
+                import sys
+                sys.exit(0)
 
                 #capital analysis
                 #price analysis
@@ -298,8 +380,6 @@ class CReivew:
                 #plate change analysis
                 #marauder map, 板块和个股的活点地图
                 #index and total analysis
-                index_info = self.get_index_data(_date)
-                index_info = index_info.reset_index(drop = True)
 
                 #index analysis
                     #capital alalysis

@@ -10,17 +10,17 @@ import const as ct
 import numpy as np
 import pandas as pd
 import tushare as ts
-from common import delta_days, create_redis_obj
+from common import delta_days, create_redis_obj, get_day_nday_ago, get_dates_array
 from log import getLogger
 from cindex import CIndex
 from ccalendar import CCalendar
 from collections import OrderedDict
 from industry_info import IndustryInfo
-logger = getLogger(__name__)
 class RIndexIndustryInfo:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
         self.dbname = self.get_dbname()
+        self.logger = getLogger(__name__)
         self.mysql_client = cmysql.CMySQL(dbinfo, self.dbname, iredis = self.redis)
         if not self.mysql_client.create_db(self.get_dbname()): raise Exception("init rindex stock database failed")
 
@@ -30,7 +30,7 @@ class RIndexIndustryInfo:
 
     def get_table_name(self, cdate):
         cdates = cdate.split('-')
-        return "rindex_day_%s_%s" % (cdates[0], (int(cdates[1])-1)//3 + 1)
+        return "rindustry_day_%s_%s" % (cdates[0], (int(cdates[1])-1)//3 + 1)
 
     def is_date_exists(self, table_name, cdate):
         if self.redis.exists(table_name):
@@ -106,7 +106,7 @@ class RIndexIndustryInfo:
         failed_list = today_industry_info.code.tolist()
         cfunc = partial(self.get_industry_data, cdate)
         while len(failed_list) > 0:
-            logger.debug("restart failed ip len(%s)" % len(failed_list))
+            self.logger.debug("restart failed ip len(%s)" % len(failed_list))
             for code_data in obj_pool.imap_unordered(cfunc, failed_list):
                 if code_data[1] is not None:
                     tem_df = code_data[1]
@@ -119,17 +119,16 @@ class RIndexIndustryInfo:
         all_df = all_df.reset_index(drop = True)
         return all_df
 
-    def set_data(self, cdate = '2018-10-18'):
-        cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
+    def set_data(self, cdate = datetime.now().strftime('%Y-%m-%d')):
         if not CCalendar.is_trading_day(cdate, redis = self.redis): return False
         table_name = self.get_table_name(cdate)
         if not self.is_table_exists(table_name):
             if not self.create_table(table_name):
-                logger.error("create tick table failed")
+                self.logger.error("create rindex table failed")
                 return False
             self.redis.sadd(self.dbname, table_name)
         if self.is_date_exists(table_name, cdate): 
-            logger.debug("existed table:%s, date:%s" % (table_name, cdate))
+            self.logger.debug("existed rindex table:%s, date:%s" % (table_name, cdate))
             return False
         df = self.generate_data(cdate)
         self.redis.set(ct.TODAY_ALL_INDUSTRY, _pickle.dumps(df, 2))
@@ -138,14 +137,17 @@ class RIndexIndustryInfo:
             return True
         return False
 
-if __name__ == '__main__':
-    start_date = '2016-03-11'
-    end_date = '2018-10-19'
-    ndays = delta_days(start_date, end_date)
-    date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(start_date, "%Y-%m-%d"))
-    data_times = pd.date_range(date_dmy_format, periods=ndays, freq='D')
-    date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
-    ris = RIndexIndustryInfo(ct.DB_INFO, redis_host = '127.0.0.1')
-    for cdate in date_only_array:
-        print(cdate)
-        ris.set_data(cdate)
+    def update(self, end_date = datetime.now().strftime('%Y-%m-%d')):
+        start_date = get_day_nday_ago(end_date, num = 9, dformat = "%Y-%m-%d")
+        date_array = get_dates_array(start_date, end_date)
+        succeed = True
+        for mdate in date_array:
+            if mdate == end_date: continue
+            if CCalendar.is_trading_day(mdate, redis = self.redis):
+                res = self.set_data(mdate)
+                if not res:
+                    self.logger.error("%s rindustry set failed" % mdate)
+                    succeed = False
+                else:
+                    self.logger.info("%s rindustry set success" % mdate)
+        return succeed

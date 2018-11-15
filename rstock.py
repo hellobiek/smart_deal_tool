@@ -111,7 +111,8 @@ class RIndexStock:
         all_df = pd.DataFrame()
         #stock_info = CStockInfo.get()
         #failed_list = stock_info.code.tolist()
-        failed_list = ct.ALL_CODE_LIST
+        import copy
+        failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
         cfunc = partial(self.get_stock_data, cdate)
         logger.info("enter generate_all_data")
         while len(failed_list) > 0:
