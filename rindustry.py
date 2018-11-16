@@ -105,7 +105,9 @@ class RIndexIndustryInfo:
         today_industry_info = IndustryInfo.get(self.redis)
         failed_list = today_industry_info.code.tolist()
         cfunc = partial(self.get_industry_data, cdate)
+        failed_count = 0
         while len(failed_list) > 0:
+            is_failed = False
             self.logger.debug("restart failed ip len(%s)" % len(failed_list))
             for code_data in obj_pool.imap_unordered(cfunc, failed_list):
                 if code_data[1] is not None:
@@ -113,9 +115,18 @@ class RIndexIndustryInfo:
                     tem_df['code'] = code_data[0]
                     all_df = all_df.append(tem_df)
                     failed_list.remove(code_data[0])
+                else:
+                    is_failed = True
+            if is_failed:
+                failed_count += 1
+                if failed_count > 10: 
+                    self.logger.info("%s rindustry init failed" % failed_list)
+                    return pd.DataFrame()
+                time.sleep(10)
         obj_pool.join(timeout = 5)
         obj_pool.kill()
         self.mysql_client.changedb(self.get_dbname())
+        if all_df.empty: return all_df
         all_df = all_df.reset_index(drop = True)
         return all_df
 
@@ -131,6 +142,7 @@ class RIndexIndustryInfo:
             self.logger.debug("existed rindex table:%s, date:%s" % (table_name, cdate))
             return False
         df = self.generate_data(cdate)
+        if df.empty: return False
         self.redis.set(ct.TODAY_ALL_INDUSTRY, _pickle.dumps(df, 2))
         if self.mysql_client.set(df, table_name, method = ct.APPEND):
             self.redis.sadd(table_name, cdate)
@@ -138,7 +150,7 @@ class RIndexIndustryInfo:
         return False
 
     def update(self, end_date = datetime.now().strftime('%Y-%m-%d')):
-        start_date = get_day_nday_ago(end_date, num = 9, dformat = "%Y-%m-%d")
+        start_date = get_day_nday_ago(end_date, num = 3650, dformat = "%Y-%m-%d")
         date_array = get_dates_array(start_date, end_date)
         succeed = True
         for mdate in date_array:

@@ -90,47 +90,14 @@ class CReivew:
         plt.legend(prop = get_chinese_font())
         plt.savefig('%s/%s.png' % (dir_name, filename), dpi=1000)
 
-    def sget_industry_data(self, cdate):
-        ri = RIndexIndustryInfo()
-        data = ri.get_k_data(cdate)
-
     def get_industry_data(self, cdate):
-        def _get_industry_info(cdate, code_id):
-            return (code_id, CIndex(code_id).get_k_data(cdate))
-
-        failed_count = 0
-        df = pd.DataFrame()
-        obj_pool = Pool(50)
-        industry_info = IndustryInfo.get()
-        failed_list = industry_info.code.tolist()
-        cfunc = partial(_get_industry_info, cdate)
-        while len(failed_list) > 0:
-            is_failed = False
-            self.logger.info("get industry data:%s" % len(failed_list))
-            for result in obj_pool.imap_unordered(cfunc, failed_list):
-                if result[1] is None:
-                    self.logger.error("%s data is none" % result[0])
-                    is_failed = True
-                    continue
-                if not result[1].empty: 
-                    tmp_data = result[1]
-                    tmp_data = tmp_data.rename(columns = {"date": "time"})
-                    tmp_data = tmp_data.drop_duplicates()
-                    tmp_data['code'] = result[0]
-                    df = df.append(tmp_data)
-                failed_list.remove(result[0])
-            if is_failed: 
-                failed_count += 1
-                if failed_count > 10:
-                    self.logger.info("%s industry get failed" % len(failed_list))
-                    return pd.DataFrame()
-                time.sleep(10)
-        obj_pool.join(timeout = 10)
-        obj_pool.kill()
+        ri = RIndexIndustryInfo()
+        df = ri.get_k_data(cdate)
         if df.empty: return df
         df = df.reset_index(drop = True)
         df = df.sort_values(by = 'amount', ascending= False)
-        df['mpchange'] = df['mchange'] / df['amount']
+        df['money_change'] = (df['amount'] - df['preamount'])/1e8
+        industry_info = IndustryInfo.get()
         df = pd.merge(df, industry_info, how='left', on=['code'])
         return df
 
@@ -314,30 +281,27 @@ class CReivew:
         fig.autofmt_xdate()
         plt.savefig('%s/%s.png' % (dir_name, filename), dpi=1000)
 
-    def plot_pie(self, df, column, title, dir_name, filename):
-        df = df[['name', 'code', column]]
-        df = df.sort_values(by = column, ascending= False)
-        total_amount = df[column].sum()
-        df = df.head(9)
-
-        df.at[len(df)] = ['其他', '999999', total_amount - df[column].sum()]
-        df = df.sort_values(by = column, ascending= False)
-
+    def plot_pie(self, df, column, title, xtuple, dir_name, filename, ctype = None):
         def xfunc(pct, allvals):
             absolute = int(pct / 100. * np.sum(allvals))
             return "{:.1f}%".format(pct)
+        df   = df[['name', 'code', column]]
+        data = df[column].tolist()
 
-        data        = df[column].tolist()
         fig, ax     = plt.subplots(figsize = (6, 3), subplot_kw = dict(aspect = "equal"))
         ingredients = (df.name + ':' + df.code).tolist()
-
-        wedges, texts, autotexts = ax.pie(data, autopct = lambda pct: xfunc(pct, data), textprops = dict(color = "w"))
-
         fig.autofmt_xdate()
-        ax.legend(wedges, ingredients, title = 'name',  loc="center left", bbox_to_anchor=(1, 0, 1, 1), prop = get_chinese_font())
-        plt.setp(autotexts, size = 6)
         ax.set_title(title, fontproperties = get_chinese_font())
-        plt.savefig('%s/%s.png' % (dir_name, filename), dpi=1000)
+        if ctype is not None:
+            wedges, texts, autotexts = ax.pie(data, labels = xtuple, autopct = lambda pct: xfunc(pct, data), textprops = dict(color = "w", fontproperties = get_chinese_font()))
+            ax.legend(wedges, ingredients, title = 'name', loc = "upper right", bbox_to_anchor=(1, 0, 1, 1), prop = get_chinese_font(), fontsize = 'x-small')
+            plt.setp(autotexts, size = 6)
+            plt.setp(texts, size = 6, color = 'b')
+        else:
+            wedges, texts = ax.pie(data, labels = xtuple, textprops = dict(color = "w", fontproperties = get_chinese_font()))
+            ax.legend(wedges, ingredients, title = 'name',  loc = "upper right", bbox_to_anchor=(1, 0, 1, 1), prop = get_chinese_font(), fontsize = 'x-small')
+            plt.setp(texts, size = 6, color = 'b')
+        plt.savefig('%s/%s.png' % (dir_name, filename), dpi = 1000)
 
     def update(self, cdate = datetime.now().strftime('%Y-%m-%d')):
         start_date = get_day_nday_ago(cdate, 100, dformat = "%Y-%m-%d")
@@ -367,9 +331,72 @@ class CReivew:
                 #成交额板块分析
                 industry_data = self.get_industry_data(cdate)
 
-                self.plot_pie(industry_data, 'amount', '每日成交额行业分布', '/code/figs', 'industry amount distribution')
-                self.plot_pie(industry_data, 'mchange', '每日成交额增加行业分布', '/code/figs', 'industry mchange distribution')
-                self.plot_pie(industry_data, 'mpchange', '每日成交额增加百分比行业分布', '/code/figs', 'industry mchange percent distribution')
+                #总成交额分析
+                total_amount = industry_data['amount'].sum()
+                df = industry_data.sort_values(by = 'amount', ascending= False)
+                df = df[['name', 'code', 'amount']]
+                df = df.head(min(9, len(df)))
+                df.at[len(df)] = ['其他', '999999', total_amount - df['amount'].sum()]
+                df['amount']   = df['amount'] / 1e8
+                xtuple = tuple((df['name'] + ':' + df['amount'].astype('str') + '亿').tolist())
+                self.plot_pie(df, 'amount', '每日成交额行业分布', xtuple, '/code/figs', 'industry amount distribution', ctype = 'func')
+
+                #总涨幅分析
+                df = industry_data[industry_data['pchange'] > 0]
+                if not df.empty:
+                    df = df[['name', 'code', 'pchange']]
+                    df = df.sort_values(by = 'pchange', ascending= False)
+                    df = df.head(min(10, len(df)))
+                    xtuple = tuple((df['name'] + ':' + df['pchange'].astype('str') + '亿').tolist())
+                    self.plot_pie(df, 'pchange', '每日涨幅行业分布', xtuple, '/code/figs', 'industry price increase distribution')
+
+                #金额增加额的行业分布
+                df = industry_data[industry_data['money_change'] > 0]
+                if not df.empty:
+                    df = df[['name', 'code', 'money_change']]
+                    df = df.sort_values(by = 'money_change', ascending= False)
+                    df = df.head(min(10, len(df)))
+                    xtuple = tuple((df['name'] + ':' + df['money_change'].astype('str') + '亿').tolist())
+                    self.plot_pie(df, 'money_change', '每日成交增加额行业分布', xtuple, '/code/figs', 'industry money increase distribution')
+
+                #金额增加百分比的行业分布
+                df = industry_data[industry_data['mchange'] > 0]
+                if not df.empty:
+                    df = df[['name', 'code', 'mchange']]
+                    df = df.sort_values(by = 'mchange', ascending= False)
+                    df = df.head(min(10, len(df)))
+                    xtuple = tuple((df['name'] + ':' + df['mchange'].astype('str') + '%').tolist())
+                    self.plot_pie(df, 'mchange', '每日成交增加比例行业分布', xtuple, '/code/figs', 'industry money increase percent distribution')
+
+                #总跌幅分析
+                df = industry_data[industry_data['pchange'] < 0]
+                if not df.empty:
+                    df = df[['name', 'code', 'pchange']]
+                    df = df.sort_values(by = 'pchange', ascending= True)
+                    df = df.head(min(10, len(df)))
+                    df['pchange'] = df['pchange'] * -1
+                    xtuple = tuple((df['name'] + '跌幅:' + df['pchange'].astype('str') + '亿').tolist())
+                    self.plot_pie(df, 'pchange', '每日涨幅行业分布', xtuple, '/code/figs', 'industry price decrease distribution')
+
+                #金额减少额的行业分布
+                df = industry_data[industry_data['money_change'] < 0]
+                if not df.empty:
+                    df = df[['name', 'code', 'money_change']]
+                    df = df.sort_values(by = 'money_change', ascending= True)
+                    df = df.head(min(10, len(df)))
+                    df['money_change'] = df['money_change'] * -1
+                    xtuple = tuple((df['name'] + ':减少' + df['money_change'].astype('str') + '亿').tolist())
+                    self.plot_pie(df, 'money_change', '每日成交减少额行业分布', xtuple, '/code/figs', 'industry money decrease distribution')
+
+                #金额减少百分比的行业分布
+                df = industry_data[industry_data['mchange'] < 0]
+                if not df.empty:
+                    df = df[['name', 'code', 'mchange']]
+                    df = df.sort_values(by = 'mchange', ascending= False)
+                    df = df.head(min(10, len(df)))
+                    df['mchange'] = df['mchange'] * -1
+                    xtuple = tuple((df['name'] + ':减少' + df['mchange'].astype('str') + '%').tolist())
+                    self.plot_pie(df, 'mchange', '每日成交减少百分比行业分布', xtuple, '/code/figs', 'industry money decrease percent distribution')
 
                 import sys
                 sys.exit(0)
@@ -447,11 +474,6 @@ class CReivew:
                 #get volume > 0 stock list
                 stock_info = stock_info[stock_info.volume > 0]
                 stock_info = stock_info.reset_index(drop = True)
-                #industry analysis
-                industry_info = self.get_industry_data(_date)
-                if industry_info.empty:
-                    self.logger.error("get %s industry info failed" % _date)
-                    return
                 #limit up and down analysis
                 limit_info = self.get_limitup_data(_date)
                 # make dir for new data

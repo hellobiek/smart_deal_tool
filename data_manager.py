@@ -175,6 +175,7 @@ class DataManager:
 
     def update(self, sleep_time):
         while True:
+            logger.info("enter daily update process. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             try:
                 cdate = datetime.now().strftime('%Y-%m-%d')
                 if self.cal_client.is_trading_day(): 
@@ -293,7 +294,6 @@ class DataManager:
                             self.set_update_info(19, cdate)
                         logger.info("updating succeed")
             except Exception as e:
-                traceback.print_exc()
                 logger.error(e)
             time.sleep(sleep_time)
 
@@ -326,7 +326,6 @@ class DataManager:
         import copy
         failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
         failed_count = 0
-        logger.info("enter init_base_float_profit")
         while len(failed_list) > 0:
             is_failed = False
             for result in obj_pool.imap_unordered(_set_base_float_profit, failed_list):
@@ -342,7 +341,6 @@ class DataManager:
                 time.sleep(10)
         obj_pool.join(timeout = 10)
         obj_pool.kill()
-        logger.info("leave init_base_float_profit")
         return True
 
     def init_stock_info(self, cdate = None):
@@ -526,10 +524,12 @@ class DataManager:
  
 if __name__ == '__main__':
     dm = DataManager()
+    cdate = datetime.now().strftime('%Y-%m-%d')
+    dm.rindustry_info_client.update(cdate)
     #dm.init_stock_info(cdate = None)
     #dm.init_yesterday_hk_info()
     #dm.init_yesterday_margin()
-    print(dm.init_base_float_profit())
+    #print(dm.init_base_float_profit())
     #dm.rindex_stock_data_client.set_data(cdate = '2018-11-07')
     #dm.init_today_industry_info()
     #dm.init_today_tdx_index_info()
