@@ -30,6 +30,7 @@ from datamanager.margin import Margin
 from rindustry import RIndexIndustryInfo
 from industry_info import IndustryInfo
 from mpl_finance import candlestick_ohlc
+from datamanager.emotion import Emotion
 from datamanager.sexchange import StockExchange
 from visualization.marauder_map import MarauderMap 
 from common import create_redis_obj, get_chinese_font, get_tushare_client, get_day_nday_ago
@@ -49,6 +50,7 @@ class CReivew:
         self.margin_client      = Margin(dbinfo = dbinfo, redis_host = redis_host)
         self.sh_market_client   = StockExchange(ct.SH_MARKET_SYMBOL)
         self.sz_market_client   = StockExchange(ct.SZ_MARKET_SYMBOL)
+        self.emotion_client     = Emotion()
         self.mmap_clinet        = MarauderMap(ct.ALL_CODE_LIST)
 
     def get_market_info(self):
@@ -101,9 +103,7 @@ class CReivew:
         df = pd.merge(df, industry_info, how='left', on=['code'])
         return df
 
-    def emotion_plot(self, dir_name):
-        sql = "select * from %s" % self.emotion_table
-        df = self.mysql_client.get(sql)
+    def emotion_plot(self, df, dir_name):
         fig = plt.figure()
         x = df.date.tolist()
         xn = range(len(x))
@@ -311,24 +311,24 @@ class CReivew:
         try:
             if not os.path.exists(dir_name):
                 self.logger.info("market analysis")
-                #sh_df = self.get_market_data(ct.SH_MARKET_SYMBOL, start_date, end_date)
-                #sz_df = self.get_market_data(ct.SZ_MARKET_SYMBOL, start_date, end_date)
-                #sh_rzrq_df = self.get_rzrq_info(ct.SH_MARKET_SYMBOL, start_date, end_date)
-                #sz_rzrq_df = self.get_rzrq_info(ct.SZ_MARKET_SYMBOL, start_date, end_date)
+                sh_df = self.get_market_data(ct.SH_MARKET_SYMBOL, start_date, end_date)
+                sz_df = self.get_market_data(ct.SZ_MARKET_SYMBOL, start_date, end_date)
+                sh_rzrq_df = self.get_rzrq_info(ct.SH_MARKET_SYMBOL, start_date, end_date)
+                sz_rzrq_df = self.get_rzrq_info(ct.SZ_MARKET_SYMBOL, start_date, end_date)
 
-                #av_df = self.get_index_df('880003', start_date, end_date)
+                av_df = self.get_index_df('880003', start_date, end_date)
 
-                #x_dict = dict()
-                #x_dict['日期'] = sh_df.date.tolist()
+                x_dict = dict()
+                x_dict['日期'] = sh_df.date.tolist()
                 #self.market_plot(sh_df, sz_df, x_dict, 'amount')
                 #self.market_plot(sh_df, sz_df, x_dict, 'negotiable_value')
                 #self.market_plot(sh_df, sz_df, x_dict, 'number')
-                #self.market_plot(sh_df, sz_df, x_dict, 'turnover')
-                #self.market_plot(sh_rzrq_df, sz_rzrq_df, x_dict, 'rzrqye')
-                #self.plot_ohlc(av_df, '平均股价', '平均股价走势图', '/code/figs', 'average_price')
-                #self.mmap_clinet.plot(cdate, '/code/figs', 'marauder_map')
+                self.market_plot(sh_df, sz_df, x_dict, 'turnover')
+                self.market_plot(sh_rzrq_df, sz_rzrq_df, x_dict, 'rzrqye')
+                self.plot_ohlc(av_df, '平均股价', '平均股价走势图', '/code/figs', 'average_price')
+                self.mmap_clinet.plot(cdate, '/code/figs', 'marauder_map')
 
-                #成交额板块分析
+                #板块分析
                 industry_data = self.get_industry_data(cdate)
 
                 #总成交额分析
@@ -347,7 +347,7 @@ class CReivew:
                     df = df[['name', 'code', 'pchange']]
                     df = df.sort_values(by = 'pchange', ascending= False)
                     df = df.head(min(10, len(df)))
-                    xtuple = tuple((df['name'] + ':' + df['pchange'].astype('str') + '亿').tolist())
+                    xtuple = tuple((df['name'] + ':' + df['pchange'].astype('str') + '%').tolist())
                     self.plot_pie(df, 'pchange', '每日涨幅行业分布', xtuple, '/code/figs', 'industry price increase distribution')
 
                 #金额增加额的行业分布
@@ -375,7 +375,7 @@ class CReivew:
                     df = df.sort_values(by = 'pchange', ascending= True)
                     df = df.head(min(10, len(df)))
                     df['pchange'] = df['pchange'] * -1
-                    xtuple = tuple((df['name'] + '跌幅:' + df['pchange'].astype('str') + '亿').tolist())
+                    xtuple = tuple((df['name'] + '跌幅:' + df['pchange'].astype('str') + '%').tolist())
                     self.plot_pie(df, 'pchange', '每日涨幅行业分布', xtuple, '/code/figs', 'industry price decrease distribution')
 
                 #金额减少额的行业分布
@@ -398,16 +398,23 @@ class CReivew:
                     xtuple = tuple((df['name'] + ':减少' + df['mchange'].astype('str') + '%').tolist())
                     self.plot_pie(df, 'mchange', '每日成交减少百分比行业分布', xtuple, '/code/figs', 'industry money decrease percent distribution')
 
+                #emotion analysis
+                df = self.emotion_client.get_score()
+                self.emotion_plot(df, dir_name = '/code/figs')
+
                 import sys
                 sys.exit(0)
+                limit_info = self.get_limitup_data(cdate)
 
                 #capital analysis
                 #price analysis
                 #plate analysis
                 #plate change analysis
                 #marauder map, 板块和个股的活点地图
-                #index and total analysis
-
+                    #潜龙状态
+                    #见龙状态
+                    #飞龙状态
+                    #亢龙状态
                 #index analysis
                     #capital alalysis
                         #流动市值与总成交额
@@ -419,9 +426,8 @@ class CReivew:
                             #成交额减量板块排行
                             #涨幅排行
                             #跌幅排行
-                        #指数点数贡献分析
+                        #指数点数贡献分析(not do now)
                             #按照个股排序
-                            #按照板块排序
                         #成交额构成分析(not do now)
                             #融资融券资金
                             #沪港通资金
@@ -429,28 +435,17 @@ class CReivew:
                             #基金仓位资金
                             #股票回购
                             #大宗交易
-                    #price analysis
                     #emotion alalysis
                         #大盘的情绪分析
-                        #抄底模式盈亏
-                        #杀跌模式盈亏
-                        #追涨模式盈亏
-                        #杀多模式盈亏
                 #plate alalysis
-                    #capital alalysis
+                    #capital alalysis(not do now)
                         #沪港通
                         #融资融券
                         #基金
                         #回购
                         #大宗
-                    #technical analysis
-                        #板块所有股票的活点地图状态
-                            #潜龙状态数量
-                            #见龙状态数量
-                            #飞龙状态数量
-                            #亢龙状态数量
                 #stock analysis
-                    #capital alalysis
+                    #capital alalysis(not do now)
                         #沪港通
                         #融资融券
                         #基金
@@ -464,7 +459,6 @@ class CReivew:
                             #牛长熊短
                             #线上横盘
                             #博弈K线无量长阳
-                            #基础浮动盈利
                 #model running
                     #model training
                     #model evaluation 
@@ -475,11 +469,8 @@ class CReivew:
                 stock_info = stock_info[stock_info.volume > 0]
                 stock_info = stock_info.reset_index(drop = True)
                 #limit up and down analysis
-                limit_info = self.get_limitup_data(_date)
                 # make dir for new data
                 os.makedirs(dir_name, exist_ok = True)
-                #emotion analysis
-                self.emotion_plot(dir_name)
                 #static analysis
                 self.static_plot(dir_name, stock_info, limit_info)
                 #gen review file
@@ -529,4 +520,4 @@ class CReivew:
 
 if __name__ == '__main__':
     creview = CReivew(ct.DB_INFO)
-    data = creview.update('2018-11-12')
+    data = creview.update('2018-11-14')

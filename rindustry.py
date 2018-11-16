@@ -154,7 +154,6 @@ class RIndexIndustryInfo:
         date_array = get_dates_array(start_date, end_date)
         succeed = True
         for mdate in date_array:
-            if mdate == end_date: continue
             if CCalendar.is_trading_day(mdate, redis = self.redis):
                 res = self.set_data(mdate)
                 if not res:

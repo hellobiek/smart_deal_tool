@@ -177,9 +177,11 @@ class DataManager:
         while True:
             logger.info("enter daily update process. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             try:
-                cdate = datetime.now().strftime('%Y-%m-%d')
                 if self.cal_client.is_trading_day(): 
+                    logger.info("is trading day. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                     if self.is_collecting_time():
+                        logger.info("is collecting time. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                        cdate = datetime.now().strftime('%Y-%m-%d')
                         finished_step = self.get_update_info(cdate)
                         logger.info("enter updating.%s" % finished_step)
                         if finished_step < 1:

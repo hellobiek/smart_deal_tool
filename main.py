@@ -12,7 +12,6 @@ from data_manager import DataManager
 log = getLogger(__name__)
 
 def main():
-    #time.sleep(60)
     threadList = []
     dm = DataManager(ct.DB_INFO)
     log.info("init succeed")
