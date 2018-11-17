@@ -143,7 +143,6 @@ class RIndexStock:
         df = self.generate_all_data(cdate)
         df = df.drop_duplicates()
         df = df.reset_index(drop = True)
-        self.redis.set(ct.TODAY_ALL_STOCK, _pickle.dumps(df, 2))
         if self.mysql_client.set(df, table_name):
             self.redis.sadd(table_name, cdate)
             return True

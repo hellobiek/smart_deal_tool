@@ -64,3 +64,57 @@
 ##TODO
     - 需要将长城证券的broker修改为富途的broker的类型。
     - gearmand同步中需要增加更新时同步，删除时同步的功能。
+    - 复盘应该包含的功能：
+        - capital alalysis
+            - marauder map, 板块和个股的活点地图
+                - 潜龙状态
+                - 见龙状态
+                - 飞龙状态
+                - 亢龙状态
+            - 流动市值与总成交额
+                - 流动市值分析
+                - 总成交额
+            - 成交额板块分析
+                - 成交额板块排行
+                - #成交额增量板块排行
+                - #成交额减量板块排行
+                - #涨幅排行
+                - #跌幅排行
+            - 指数点数贡献分析(not do now)
+                - 按照个股排序
+            - 成交额构成分析(not do now)
+                - 融资融券资金
+                - 沪港通资金
+                - 涨停板资金
+                - 基金仓位资金
+                - 股票回购
+                - 大宗交易
+            - emotion alalysis
+                - 大盘的情绪分析
+        - plate alalysis
+                - capital alalysis(not do now)
+                    - 沪港通
+                    - 融资融券
+                    - 基金
+                    - 回购
+                    - 大宗
+        - stock analysis
+                - capital alalysis(not do now)
+                    - 沪港通
+                    - 融资融券
+                    - 基金
+                    - 回购
+                    - 大宗交易
+                - technical analysis
+                    - chip alalysis
+                       #逆势大盘
+                       #90:3
+                       #逆势飘红
+                       #牛长熊短
+                       #线上横盘
+                       #博弈K线无量长阳
+        - model running
+            - model training
+            - model evaluation 
+            - model backtesting
+            - model trading

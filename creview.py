@@ -48,6 +48,7 @@ class CReivew:
         self.redis              = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
         self.mysql_client       = CMySQL(dbinfo, iredis = self.redis)
         self.margin_client      = Margin(dbinfo = dbinfo, redis_host = redis_host)
+        self.rstock_client      = 
         self.sh_market_client   = StockExchange(ct.SH_MARKET_SYMBOL)
         self.sz_market_client   = StockExchange(ct.SZ_MARKET_SYMBOL)
         self.emotion_client     = Emotion()
@@ -55,11 +56,6 @@ class CReivew:
 
     def get_market_info(self):
         df = self.tu_client.index_basic(market = self.SSE)
-
-    def get_stock_data(self):
-        df_byte = self.redis.get(ct.TODAY_ALL_STOCK)
-        if df_byte is None: return None
-        return _pickle.loads(df_byte)
 
     def multi_plot(self, x_dict, y_dict, ylabel, title, dir_name, filename):
         def _format_date(i, pos = None):
@@ -320,9 +316,9 @@ class CReivew:
 
                 x_dict = dict()
                 x_dict['日期'] = sh_df.date.tolist()
-                #self.market_plot(sh_df, sz_df, x_dict, 'amount')
-                #self.market_plot(sh_df, sz_df, x_dict, 'negotiable_value')
-                #self.market_plot(sh_df, sz_df, x_dict, 'number')
+                self.market_plot(sh_df, sz_df, x_dict, 'amount')
+                self.market_plot(sh_df, sz_df, x_dict, 'negotiable_value')
+                self.market_plot(sh_df, sz_df, x_dict, 'number')
                 self.market_plot(sh_df, sz_df, x_dict, 'turnover')
                 self.market_plot(sh_rzrq_df, sz_rzrq_df, x_dict, 'rzrqye')
                 self.plot_ohlc(av_df, '平均股价', '平均股价走势图', '/code/figs', 'average_price')
@@ -402,68 +398,12 @@ class CReivew:
                 df = self.emotion_client.get_score()
                 self.emotion_plot(df, dir_name = '/code/figs')
 
-                import sys
-                sys.exit(0)
+                #limit up and down info
                 limit_info = self.get_limitup_data(cdate)
 
-                #capital analysis
-                #price analysis
-                #plate analysis
-                #plate change analysis
-                #marauder map, 板块和个股的活点地图
-                    #潜龙状态
-                    #见龙状态
-                    #飞龙状态
-                    #亢龙状态
-                #index analysis
-                    #capital alalysis
-                        #流动市值与总成交额
-                            #流动市值分析
-                            #总成交额
-                        #成交额板块分析
-                            #成交额板块排行
-                            #成交额增量板块排行
-                            #成交额减量板块排行
-                            #涨幅排行
-                            #跌幅排行
-                        #指数点数贡献分析(not do now)
-                            #按照个股排序
-                        #成交额构成分析(not do now)
-                            #融资融券资金
-                            #沪港通资金
-                            #涨停板资金
-                            #基金仓位资金
-                            #股票回购
-                            #大宗交易
-                    #emotion alalysis
-                        #大盘的情绪分析
-                #plate alalysis
-                    #capital alalysis(not do now)
-                        #沪港通
-                        #融资融券
-                        #基金
-                        #回购
-                        #大宗
-                #stock analysis
-                    #capital alalysis(not do now)
-                        #沪港通
-                        #融资融券
-                        #基金
-                        #回购
-                        #大宗交易
-                    #technical analysis
-                        #chip alalysis
-                            #逆势大盘
-                            #90:3
-                            #逆势飘红
-                            #牛长熊短
-                            #线上横盘
-                            #博弈K线无量长阳
-                #model running
-                    #model training
-                    #model evaluation 
-                    #model backtesting
-                    #model trading
+                import sys
+                sys.exit(0)
+
                 stock_info = self.get_stock_data()
                 #get volume > 0 stock list
                 stock_info = stock_info[stock_info.volume > 0]

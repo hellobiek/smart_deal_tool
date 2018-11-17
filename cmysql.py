@@ -60,8 +60,6 @@ class CMySQL:
         res = False
         for i in range(ct.RETRY_TIMES):
             try:
-                import pdb
-                pdb.set_trace()
                 conn = self.engine.connect()
                 df = pd.read_sql(sql, conn)
                 res = True

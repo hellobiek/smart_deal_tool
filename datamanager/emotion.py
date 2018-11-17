@@ -16,6 +16,7 @@ class Emotion:
         self.emotion_table = ct.EMOTION_TABLE
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
         self.mysql_client = CMySQL(self.dbinfo, iredis = self.redis)
+        self.rstock_client = RIndexStock(dbinfo, redis_host)
         self.logger = getLogger(__name__)
         if not self.create(): raise Exception("create emotion table failed")
 
@@ -33,13 +34,14 @@ class Emotion:
         return self.mysql_client.get(sql)
 
     def get_stock_data(self, cdate):
+
         df_byte = self.redis.get(ct.TODAY_ALL_STOCK)
         if df_byte is None: return None
         df = _pickle.loads(df_byte)
         return df.loc[df.date == date]
 
     def set_score(self, cdate = datetime.now().strftime('%Y-%m-%d')):
-        stock_info = self.get_stock_data(cdate)
+        stock_info = self.rstock_client.get_data(cdate)
         limit_info = CLimit(self.dbinfo).get_data(cdate)
         if stock_info.empty or limit_info.empty:
             self.logger.error("get info failed")
