@@ -49,7 +49,18 @@ class CIndex(Combination):
         for _, table_name in self.data_type_dict.items():
             if table_name not in self.mysql_client.get_all_tables():
                 if table_name == 'day':
-                    sql = 'create table if not exists %s(date varchar(10), open float, high float, close float, preclose float, low float, volume float, amount float, preamount float, pchange float, mchange float, PRIMARY KEY(date))' % table_name
+                    sql = 'create table if not exists %s(date varchar(10),\
+                                                         open float,\
+                                                         high float,\
+                                                         close float,\
+                                                         preclose float,\
+                                                         low float,\
+                                                         volume float,\
+                                                         amount float,\
+                                                         preamount float,\
+                                                         pchange float,\
+                                                         mchange float,\
+                                                         PRIMARY KEY(date))' % table_name
                 if not self.mysql_client.create(sql, table_name): return False
         return True
 

@@ -28,7 +28,7 @@ class Combination:
 
     @staticmethod
     def get_redis_name(code):
-        return "realtime_%s" % code
+        return "realtime_i%s" % code
 
     def create_influx_db(self):
         return self.influx_client.create()

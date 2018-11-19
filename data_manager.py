@@ -30,7 +30,7 @@ from datamanager.sexchange import StockExchange
 from combination_info import CombinationInfo
 from futuquant.common.constant import SubType
 from subscriber import Subscriber, StockQuoteHandler, TickerHandler
-from common import is_trading_time,delta_days,create_redis_obj,add_prifix,add_index_prefix,kill_process
+from common import is_trading_time, delta_days, create_redis_obj, add_prifix, add_index_prefix, kill_process
 pd.options.mode.chained_assignment = None #default='warn'
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -364,7 +364,6 @@ class DataManager:
 
         failed_count = 0
         cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
-        logger.info("enter init_stock_info")
         obj_pool = Pool(500)
         while len(failed_list) > 0:
             is_failed = False
@@ -381,7 +380,6 @@ class DataManager:
                 time.sleep(5)
         obj_pool.join(timeout = 10)
         obj_pool.kill()
-        logger.info("leave init_stock_info")
         return True
 
     def init_today_limit_info(self, _date):
@@ -481,6 +479,7 @@ class DataManager:
         return True
 
     def init_all_stock_tick(self):
+        code_list = ct.ALL_CODE_LIST
         black_list = {'000031': ['2018-07-01', '2015-07-01'], '300748':['2018-03-30'], '002142':['2015-07-01'], '600161':['2015-01-05']}
         start_date = '2015-01-01'
         redis = create_redis_obj()
@@ -510,6 +509,16 @@ class DataManager:
         obj_pool.join(timeout = 120)
         obj_pool.kill()
 
+    def clear(self):
+        code_list = ct.ALL_CODE_LIST
+        redis = create_redis_obj()
+        all_keys = redis.keys()
+        for key in all_keys:
+            for code in code_list:
+                if code in str(key, encoding = "utf8") and CStock.get_redis_name(code) not in str(key, encoding = "utf8"):
+                    #redis.delete(key)
+                    print("code:%s, key:%s" % (code, str(key, encoding = "utf8")))
+
     def download_and_extract(self):
         try:
             download(ct.ZIP_DIR)
@@ -525,10 +534,11 @@ class DataManager:
             return False
  
 if __name__ == '__main__':
-    dm = DataManager()
     cdate = datetime.now().strftime('%Y-%m-%d')
-    dm.rindustry_info_client.update(cdate)
-    #dm.init_stock_info(cdate = None)
+    dm = DataManager()
+    dm.clear()
+    dm.init_stock_info()
+    #dm.rindustry_info_client.update(cdate)
     #dm.init_yesterday_hk_info()
     #dm.init_yesterday_margin()
     #print(dm.init_base_float_profit())

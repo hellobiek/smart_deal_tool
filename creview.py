@@ -23,6 +23,7 @@ from cindex import CIndex
 from cmysql import CMySQL
 from matplotlib import style
 from functools import partial
+from rstock import RIndexStock
 from ccalendar import CCalendar
 import matplotlib.pyplot as plt
 from datetime import datetime, date
@@ -33,6 +34,9 @@ from mpl_finance import candlestick_ohlc
 from datamanager.emotion import Emotion
 from datamanager.sexchange import StockExchange
 from visualization.marauder_map import MarauderMap 
+from algotrade.selecters.anti_market_up import AntiMarketUpSelecter
+from algotrade.selecters.stronger_than_market import StrongerThanMarketSelecter
+from algotrade.selecters.game_kline_bigraise_and_large_volume import GameKLineBigraiseLargeVolumeSelecter
 from common import create_redis_obj, get_chinese_font, get_tushare_client, get_day_nday_ago
 
 class CReivew:
@@ -48,7 +52,7 @@ class CReivew:
         self.redis              = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
         self.mysql_client       = CMySQL(dbinfo, iredis = self.redis)
         self.margin_client      = Margin(dbinfo = dbinfo, redis_host = redis_host)
-        self.rstock_client      = 
+        self.rstock_client      = RIndexStock(dbinfo = dbinfo, redis_host = redis_host) 
         self.sh_market_client   = StockExchange(ct.SH_MARKET_SYMBOL)
         self.sz_market_client   = StockExchange(ct.SZ_MARKET_SYMBOL)
         self.emotion_client     = Emotion()
@@ -99,7 +103,7 @@ class CReivew:
         df = pd.merge(df, industry_info, how='left', on=['code'])
         return df
 
-    def emotion_plot(self, df, dir_name):
+    def emotion_plot(self, df, dir_name, file_name):
         fig = plt.figure()
         x = df.date.tolist()
         xn = range(len(x))
@@ -114,7 +118,7 @@ class CReivew:
         plt.ylabel('分数', fontproperties = get_chinese_font())
         plt.title('股市情绪', fontproperties = get_chinese_font())
         fig.autofmt_xdate()
-        plt.savefig('%s/emotion.png' % dir_name, dpi=1000)
+        plt.savefig('%s/%s.png' % (dir_name, file_name), dpi=1000)
 
     def industry_plot(self, dir_name, industry_info):
         industry_info.amount = industry_info.amount / 10000000000
@@ -139,7 +143,7 @@ class CReivew:
     def get_limitup_data(self, date):
         return CLimit(self.dbinfo).get_data(date)
 
-    def static_plot(self, dir_name, stock_info, limit_info):
+    def static_plot(self, stock_info, limit_info,  dir_name, file_name):
         limit_up_list   = limit_info[(limit_info.pchange > 0) & (limit_info.prange != 0)].reset_index(drop = True).code.tolist()
         limit_down_list = limit_info[limit_info.pchange < 0].reset_index(drop = True).code.tolist()
         limit_list = limit_up_list + limit_down_list
@@ -152,14 +156,14 @@ class CReivew:
         for _index in range(c_length):
             pchange = changepercent_list[_index]
             if 0 == _index:
-                num_list.append(len(stock_info[(stock_info.changepercent > pchange) & (stock_info.loc[_index, 'code'] not in limit_list)]))
+                num_list.append(len(stock_info[(stock_info.pchange > pchange) & (stock_info.loc[_index, 'code'] not in limit_list)]))
                 name_list.append(">%s" % pchange)
             elif c_length - 1 == _index:
-                num_list.append(len(stock_info[(stock_info.changepercent < pchange) & (stock_info.loc[_index, 'code'] not in limit_list)]))
+                num_list.append(len(stock_info[(stock_info.pchange < pchange) & (stock_info.loc[_index, 'code'] not in limit_list)]))
                 name_list.append("<%s" % pchange)
             else:
                 p_max_change = changepercent_list[_index - 1]
-                num_list.append(len(stock_info[(stock_info.changepercent > pchange) & (stock_info.changepercent < p_max_change)]))
+                num_list.append(len(stock_info[(stock_info.pchange > pchange) & (stock_info.pchange < p_max_change)]))
                 name_list.append("%s-%s" % (pchange, p_max_change))
         num_list.append(len(limit_down_list))
         name_list.append("跌停")
@@ -174,7 +178,7 @@ class CReivew:
         plt.title('涨跌分布', fontproperties = get_chinese_font())
         plt.xticks(range(1, len(num_list) + 1), name_list, fontproperties = get_chinese_font())
         fig.autofmt_xdate()
-        plt.savefig('%s/static.png' % dir_name, dpi=1000)
+        plt.savefig('%s/%s.png' % (dir_name, file_name), dpi=1000)
 
     def is_collecting_time(self):
         now_time = datetime.now()
@@ -302,117 +306,127 @@ class CReivew:
     def update(self, cdate = datetime.now().strftime('%Y-%m-%d')):
         start_date = get_day_nday_ago(cdate, 100, dformat = "%Y-%m-%d")
         end_date   = cdate
-        dir_name = os.path.join(self.sdir, "%s-StockReView" % cdate)
-        self.logger.info("create daily info")
+        dir_name   = os.path.join(self.sdir, "%s-StockReView" % cdate)
         try:
+            self.logger.info("create daily info")
             if not os.path.exists(dir_name):
-                self.logger.info("market analysis")
-                sh_df = self.get_market_data(ct.SH_MARKET_SYMBOL, start_date, end_date)
-                sz_df = self.get_market_data(ct.SZ_MARKET_SYMBOL, start_date, end_date)
-                sh_rzrq_df = self.get_rzrq_info(ct.SH_MARKET_SYMBOL, start_date, end_date)
-                sz_rzrq_df = self.get_rzrq_info(ct.SZ_MARKET_SYMBOL, start_date, end_date)
+                #self.logger.info("market analysis")
+                #sh_df = self.get_market_data(ct.SH_MARKET_SYMBOL, start_date, end_date)
+                #sz_df = self.get_market_data(ct.SZ_MARKET_SYMBOL, start_date, end_date)
+                #sh_rzrq_df = self.get_rzrq_info(ct.SH_MARKET_SYMBOL, start_date, end_date)
+                #sz_rzrq_df = self.get_rzrq_info(ct.SZ_MARKET_SYMBOL, start_date, end_date)
 
+                #平均股价的数据
                 av_df = self.get_index_df('880003', start_date, end_date)
 
-                x_dict = dict()
-                x_dict['日期'] = sh_df.date.tolist()
-                self.market_plot(sh_df, sz_df, x_dict, 'amount')
-                self.market_plot(sh_df, sz_df, x_dict, 'negotiable_value')
-                self.market_plot(sh_df, sz_df, x_dict, 'number')
-                self.market_plot(sh_df, sz_df, x_dict, 'turnover')
-                self.market_plot(sh_rzrq_df, sz_rzrq_df, x_dict, 'rzrqye')
-                self.plot_ohlc(av_df, '平均股价', '平均股价走势图', '/code/figs', 'average_price')
-                self.mmap_clinet.plot(cdate, '/code/figs', 'marauder_map')
+                #x_dict = dict()
+                #x_dict['日期'] = sh_df.date.tolist()
+                #self.market_plot(sh_df, sz_df, x_dict, 'amount')
+                #self.market_plot(sh_df, sz_df, x_dict, 'negotiable_value')
+                #self.market_plot(sh_df, sz_df, x_dict, 'number')
+                #self.market_plot(sh_df, sz_df, x_dict, 'turnover')
+                #self.market_plot(sh_rzrq_df, sz_rzrq_df, x_dict, 'rzrqye')
+                #self.plot_ohlc(av_df, '平均股价', '平均股价走势图', '/code/figs', 'average_price')
+                #self.mmap_clinet.plot(cdate, '/code/figs', 'marauder_map')
 
-                #板块分析
-                industry_data = self.get_industry_data(cdate)
+                ##limit up and down info
+                #limit_info = self.get_limitup_data(cdate)
+                today_stock_info = self.rstock_client.get_data(cdate)
+                #get volume > 0 stock list
+                today_stock_info = today_stock_info[today_stock_info.volume > 0]
+                today_stock_info = today_stock_info.reset_index(drop = True)
+                ##static analysis
+                #self.static_plot(stock_info, limit_info, dir_name = '/code/figs', file_name = 'pchange static')
 
-                #总成交额分析
-                total_amount = industry_data['amount'].sum()
-                df = industry_data.sort_values(by = 'amount', ascending= False)
-                df = df[['name', 'code', 'amount']]
-                df = df.head(min(9, len(df)))
-                df.at[len(df)] = ['其他', '999999', total_amount - df['amount'].sum()]
-                df['amount']   = df['amount'] / 1e8
-                xtuple = tuple((df['name'] + ':' + df['amount'].astype('str') + '亿').tolist())
-                self.plot_pie(df, 'amount', '每日成交额行业分布', xtuple, '/code/figs', 'industry amount distribution', ctype = 'func')
+                ##板块分析
+                #industry_data = self.get_industry_data(cdate)
 
-                #总涨幅分析
-                df = industry_data[industry_data['pchange'] > 0]
-                if not df.empty:
-                    df = df[['name', 'code', 'pchange']]
-                    df = df.sort_values(by = 'pchange', ascending= False)
-                    df = df.head(min(10, len(df)))
-                    xtuple = tuple((df['name'] + ':' + df['pchange'].astype('str') + '%').tolist())
-                    self.plot_pie(df, 'pchange', '每日涨幅行业分布', xtuple, '/code/figs', 'industry price increase distribution')
+                ##总成交额分析
+                #total_amount = industry_data['amount'].sum()
+                #df = industry_data.sort_values(by = 'amount', ascending= False)
+                #df = df[['name', 'code', 'amount']]
+                #df = df.head(min(9, len(df)))
+                #df.at[len(df)] = ['其他', '999999', total_amount - df['amount'].sum()]
+                #df['amount']   = df['amount'] / 1e8
+                #xtuple = tuple((df['name'] + ':' + df['amount'].astype('str') + '亿').tolist())
+                #self.plot_pie(df, 'amount', '每日成交额行业分布', xtuple, '/code/figs', 'industry amount distribution', ctype = 'func')
 
-                #金额增加额的行业分布
-                df = industry_data[industry_data['money_change'] > 0]
-                if not df.empty:
-                    df = df[['name', 'code', 'money_change']]
-                    df = df.sort_values(by = 'money_change', ascending= False)
-                    df = df.head(min(10, len(df)))
-                    xtuple = tuple((df['name'] + ':' + df['money_change'].astype('str') + '亿').tolist())
-                    self.plot_pie(df, 'money_change', '每日成交增加额行业分布', xtuple, '/code/figs', 'industry money increase distribution')
+                ##总涨幅分析
+                #df = industry_data[industry_data['pchange'] > 0]
+                #if not df.empty:
+                #    df = df[['name', 'code', 'pchange']]
+                #    df = df.sort_values(by = 'pchange', ascending= False)
+                #    df = df.head(min(10, len(df)))
+                #    xtuple = tuple((df['name'] + ':' + df['pchange'].astype('str') + '%').tolist())
+                #    self.plot_pie(df, 'pchange', '每日涨幅行业分布', xtuple, '/code/figs', 'industry price increase distribution')
 
-                #金额增加百分比的行业分布
-                df = industry_data[industry_data['mchange'] > 0]
-                if not df.empty:
-                    df = df[['name', 'code', 'mchange']]
-                    df = df.sort_values(by = 'mchange', ascending= False)
-                    df = df.head(min(10, len(df)))
-                    xtuple = tuple((df['name'] + ':' + df['mchange'].astype('str') + '%').tolist())
-                    self.plot_pie(df, 'mchange', '每日成交增加比例行业分布', xtuple, '/code/figs', 'industry money increase percent distribution')
+                ##金额增加额的行业分布
+                #df = industry_data[industry_data['money_change'] > 0]
+                #if not df.empty:
+                #    df = df[['name', 'code', 'money_change']]
+                #    df = df.sort_values(by = 'money_change', ascending= False)
+                #    df = df.head(min(10, len(df)))
+                #    xtuple = tuple((df['name'] + ':' + df['money_change'].astype('str') + '亿').tolist())
+                #    self.plot_pie(df, 'money_change', '每日成交增加额行业分布', xtuple, '/code/figs', 'industry money increase distribution')
 
-                #总跌幅分析
-                df = industry_data[industry_data['pchange'] < 0]
-                if not df.empty:
-                    df = df[['name', 'code', 'pchange']]
-                    df = df.sort_values(by = 'pchange', ascending= True)
-                    df = df.head(min(10, len(df)))
-                    df['pchange'] = df['pchange'] * -1
-                    xtuple = tuple((df['name'] + '跌幅:' + df['pchange'].astype('str') + '%').tolist())
-                    self.plot_pie(df, 'pchange', '每日涨幅行业分布', xtuple, '/code/figs', 'industry price decrease distribution')
+                ##金额增加百分比的行业分布
+                #df = industry_data[industry_data['mchange'] > 0]
+                #if not df.empty:
+                #    df = df[['name', 'code', 'mchange']]
+                #    df = df.sort_values(by = 'mchange', ascending= False)
+                #    df = df.head(min(10, len(df)))
+                #    xtuple = tuple((df['name'] + ':' + df['mchange'].astype('str') + '%').tolist())
+                #    self.plot_pie(df, 'mchange', '每日成交增加比例行业分布', xtuple, '/code/figs', 'industry money increase percent distribution')
 
-                #金额减少额的行业分布
-                df = industry_data[industry_data['money_change'] < 0]
-                if not df.empty:
-                    df = df[['name', 'code', 'money_change']]
-                    df = df.sort_values(by = 'money_change', ascending= True)
-                    df = df.head(min(10, len(df)))
-                    df['money_change'] = df['money_change'] * -1
-                    xtuple = tuple((df['name'] + ':减少' + df['money_change'].astype('str') + '亿').tolist())
-                    self.plot_pie(df, 'money_change', '每日成交减少额行业分布', xtuple, '/code/figs', 'industry money decrease distribution')
+                ##总跌幅分析
+                #df = industry_data[industry_data['pchange'] < 0]
+                #if not df.empty:
+                #    df = df[['name', 'code', 'pchange']]
+                #    df = df.sort_values(by = 'pchange', ascending= True)
+                #    df = df.head(min(10, len(df)))
+                #    df['pchange'] = df['pchange'] * -1
+                #    xtuple = tuple((df['name'] + '跌幅:' + df['pchange'].astype('str') + '%').tolist())
+                #    self.plot_pie(df, 'pchange', '每日涨幅行业分布', xtuple, '/code/figs', 'industry price decrease distribution')
 
-                #金额减少百分比的行业分布
-                df = industry_data[industry_data['mchange'] < 0]
-                if not df.empty:
-                    df = df[['name', 'code', 'mchange']]
-                    df = df.sort_values(by = 'mchange', ascending= False)
-                    df = df.head(min(10, len(df)))
-                    df['mchange'] = df['mchange'] * -1
-                    xtuple = tuple((df['name'] + ':减少' + df['mchange'].astype('str') + '%').tolist())
-                    self.plot_pie(df, 'mchange', '每日成交减少百分比行业分布', xtuple, '/code/figs', 'industry money decrease percent distribution')
+                ##金额减少额的行业分布
+                #df = industry_data[industry_data['money_change'] < 0]
+                #if not df.empty:
+                #    df = df[['name', 'code', 'money_change']]
+                #    df = df.sort_values(by = 'money_change', ascending= True)
+                #    df = df.head(min(10, len(df)))
+                #    df['money_change'] = df['money_change'] * -1
+                #    xtuple = tuple((df['name'] + ':减少' + df['money_change'].astype('str') + '亿').tolist())
+                #    self.plot_pie(df, 'money_change', '每日成交减少额行业分布', xtuple, '/code/figs', 'industry money decrease distribution')
 
-                #emotion analysis
-                df = self.emotion_client.get_score()
-                self.emotion_plot(df, dir_name = '/code/figs')
+                ##金额减少百分比的行业分布
+                #df = industry_data[industry_data['mchange'] < 0]
+                #if not df.empty:
+                #    df = df[['name', 'code', 'mchange']]
+                #    df = df.sort_values(by = 'mchange', ascending= False)
+                #    df = df.head(min(10, len(df)))
+                #    df['mchange'] = df['mchange'] * -1
+                #    xtuple = tuple((df['name'] + ':减少' + df['mchange'].astype('str') + '%').tolist())
+                #    self.plot_pie(df, 'mchange', '每日成交减少百分比行业分布', xtuple, '/code/figs', 'industry money decrease percent distribution')
 
-                #limit up and down info
-                limit_info = self.get_limitup_data(cdate)
+                ##emotion analysis
+                #df = self.emotion_client.get_score()
+                #self.emotion_plot(df, dir_name = '/code/figs', file_name = 'emotion')
+
+                #all_stock_info = self.rstock_client.get_k_data_in_range(start_date, end_date)
+                #stm = StrongerThanMarketSelecter()
+                #stm_code_list = stm.choose(all_stock_info, av_df)
+
+                #amus = AntiMarketUpSelecter()
+                #amus_code_list = amus.choose(today_stock_info)
+
+                gkblvs = GameKLineBigraiseLargeVolumeSelecter()
+                gkblvs.choose(today_stock_info)
 
                 import sys
                 sys.exit(0)
 
-                stock_info = self.get_stock_data()
-                #get volume > 0 stock list
-                stock_info = stock_info[stock_info.volume > 0]
-                stock_info = stock_info.reset_index(drop = True)
-                #limit up and down analysis
                 # make dir for new data
                 os.makedirs(dir_name, exist_ok = True)
-                #static analysis
-                self.static_plot(dir_name, stock_info, limit_info)
                 #gen review file
                 self.doc.generate(stock_info, industry_info, index_info)
                 #gen review animation

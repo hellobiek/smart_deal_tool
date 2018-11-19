@@ -17,7 +17,6 @@ from cstock_info import CStockInfo
 from ccalendar import CCalendar
 from collections import OrderedDict
 logger = getLogger(__name__)
-
 class RIndexStock:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)

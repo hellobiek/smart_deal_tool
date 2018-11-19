@@ -35,7 +35,6 @@ class MarauderMap():
 
         failed_list  = copy.deepcopy(self.codes)
         cfunc = partial(_get_base_float_profit, cdate)
-        self.logger.info("enter get_base_float_profit")
         df = pd.DataFrame()
         while len(failed_list) > 0:
             is_failed = False
@@ -59,7 +58,6 @@ class MarauderMap():
                 time.sleep(10)
         obj_pool.join(timeout = 10)
         obj_pool.kill()
-        self.logger.info("leave get_base_float_profit")
         return df
 
     def plot(self, cdate, fdir, fname):

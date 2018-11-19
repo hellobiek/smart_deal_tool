@@ -4487,3 +4487,9 @@ const.SZ_MARKET_DICT = {
     "中小板":   "tab3",
     "创业板":   "tab4"
 }
+###################################################
+const.SELECTERS_DICT = {
+    "StrongerThanMarketSelecter" : "S000001",
+    "AntiMarketUpSelecter"       : "S000002",
+    "GameKLineBigraiseLargeVolumeSelecter"      : "S000003"
+}

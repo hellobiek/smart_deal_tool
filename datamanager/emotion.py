@@ -9,6 +9,7 @@ from climit import CLimit
 from cmysql import CMySQL
 from log import getLogger
 from datetime import datetime
+from rstock import RIndexStock
 from common import create_redis_obj
 class Emotion:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):

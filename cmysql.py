@@ -73,6 +73,38 @@ class CMySQL:
         log.error("get all info failed afer try %d times" % ct.RETRY_TIMES)
         return set()
 
+    def create_update_query(df, table, pri_keys):
+        query = ''
+        #columns = ', '.join([f'{col}' for col in DATABASE_COLUMNS])
+        #constraint = ', '.join([f'{col}' for col in pri_keys])
+        #placeholder = ', '.join([f'%({col})s' for col in DATABASE_COLUMNS])
+        #values = placeholder
+        #updates = ', '.join([f'{col} = EXCLUDED.{col}' for col in DATABASE_COLUMNS])
+        #query = f"""INSERT INTO {table} ({columns}) 
+        #            VALUES ({placeholder}) 
+        #            ON CONFLICT ({constraint}) 
+        #            DO UPDATE SET {updates};"""
+        #query.split()
+        #query = ' '.join(query.split())
+        return query
+
+    def update(self, df, table, pri_keys):
+        res = True
+        try:
+            conn = self.engine.connect()
+            cursor = conn.cursor()
+            insert_values = df.to_dict(orient='records')
+            for row in insert_values:
+                cursor.execute(create_update_query(df, table, pri_keys), row)
+                conn.commit()
+        except Exception as e:
+            if 'conn' in dir(): conn.rollback()
+            res = False
+        finally:
+            if 'curosr' in dir(): cursor.close()
+            if 'conn' in dir(): conn.close()
+        return res
+
     def set(self, data_frame, table, method = ct.APPEND):
         res = False
         for i in range(ct.RETRY_TIMES):
