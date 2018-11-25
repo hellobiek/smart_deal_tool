@@ -10,6 +10,4 @@ class GameKLineBigraiseLargeVolumeSelecter(Selecter):
         Selecter.__init__(self, code, dbinfo, redis_host)
 
     def choose(self, df):
-        import pdb
-        pdb.set_trace()
-        #return df.loc[stock_df.sai > 0].code.tolist()
+        return df.loc[stock_df.sai > 0].code.tolist()

@@ -33,8 +33,7 @@ class Margin(object):
 
     def is_date_exists(self, table_name, cdate):
         if self.redis.exists(table_name):
-            self.redis.srem(table_name, str(cdate))
-            return cdate in set(str(tdate, encoding = "utf8") for tdate in self.redis.smembers(table_name))
+            return cdate in set(tdate.decode() for tdate in self.redis.smembers(table_name))
         return False
 
     def create_table(self, table):
@@ -84,15 +83,15 @@ class Margin(object):
         sql = "select * from %s where date=\"%s\"" % (self.get_table_name(cdate), cdate)
         return self.mysql_client.get(sql)
 
-    def update(self, end_date = datetime.now().strftime('%Y-%m-%d')):
-        start_date = get_day_nday_ago(end_date, num = 9, dformat = "%Y-%m-%d")
+    def update(self, end_date = None):
+        if end_date is None: end_date = datetime.now().strftime('%Y-%m-%d')
+        start_date = get_day_nday_ago(end_date, num = 19, dformat = "%Y-%m-%d")
         date_array = get_dates_array(start_date, end_date)
         succeed = True
         for mdate in date_array:
-            if mdate == end_date: continue
             if CCalendar.is_trading_day(mdate, redis = self.redis):
-                res = self.set_data(mdate)
-                if not res:
+                if mdate == end_date: continue
+                if not self.set_data(mdate):
                     self.logger.error("%s set failed" % mdate)
                     succeed = False
                 else:
@@ -101,7 +100,7 @@ class Margin(object):
 
     def is_table_exists(self, table_name):
         if self.redis.exists(self.dbname):
-            return table_name in set(str(table, encoding = "utf8") for table in self.redis.smembers(self.dbname))
+            return table_name in set(table.decode() for table in self.redis.smembers(self.dbname))
         return False
 
     def set_data(self, cdate = datetime.now().strftime('%Y-%m-%d')):
@@ -136,9 +135,8 @@ class Margin(object):
         total_df['date'] = pd.to_datetime(total_df.date).dt.strftime("%Y-%m-%d")
         total_df = total_df.reset_index(drop = True)
         if self.mysql_client.set(total_df, table_name):
-            self.redis.sadd(table_name, cdate)
             time.sleep(1)
-            return True
+            return self.redis.sadd(table_name, cdate)
         return False
 
 if __name__ == '__main__':

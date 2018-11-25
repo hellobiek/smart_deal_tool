@@ -1,9 +1,9 @@
 # coding=utf-8
 import os
 import re
-import sys
 import json
 import time
+import copy
 import redis
 import signal
 import random
@@ -12,12 +12,9 @@ import const as ct
 import numpy as np
 import pandas as pd
 import tushare as ts
-from log import getLogger
-from random import randint
+from gevent.pool import Pool
 from crack_bmp import crack_bmp
-from datetime import datetime,timedelta
-logger = getLogger(__name__)
-
+from datetime import datetime, timedelta
 def trace_func(*dargs, **dkargs):
     def wrapper(func):
         def _wrapper(*args, **kargs):
@@ -107,8 +104,8 @@ def is_trading_time(now_time = None):
     return (mor_open_time < now_time < mor_close_time) or (aft_open_time < now_time < aft_close_time)
 
 def create_redis_obj(host = ct.REDIS_HOST, port = ct.REDIS_PORT, decode_responses = False):
-    pool = redis.ConnectionPool(host = host, port = port, decode_responses = decode_responses)
-    return redis.StrictRedis(connection_pool = pool)
+    mpool = redis.ConnectionPool(host = host, port = port, decode_responses = decode_responses)
+    return redis.StrictRedis(connection_pool = mpool)
 
 def df_delta(pos_df, neg_df, subset_list, keep = False):
     pos_df = pos_df.append(neg_df)
@@ -160,8 +157,8 @@ def get_market(code):
     else:
         return ct.MARKET_OTHER
 
-epoch = datetime.utcfromtimestamp(0)
 def unix_time_millis(dt):
+    epoch = datetime.utcfromtimestamp(0)
     return int((dt - epoch).total_seconds() * 1000)
 
 def add_index_prefix(code):
@@ -181,10 +178,10 @@ def get_chinese_font(location = "IN"):
     return FontProperties(fname = fpath)
 
 def df_empty(columns, dtypes, index = None):
-    assert len(columns)==len(dtypes)
-    df = pd.DataFrame(index=index)
+    assert len(columns) == len(dtypes)
+    df = pd.DataFrame(index = index)
     for c,d in zip(columns, dtypes):
-        df[c] = pd.Series(dtype=d)
+        df[c] = pd.Series(dtype = d)
     return df
 
 def get_real_trading_stocks(fpath = ct.USER_FILE):
@@ -229,3 +226,27 @@ def loads_jsonp(_jsonp):
         return json.loads(re.match(".*?({.*}).*", _jsonp, re.S).group(1))
     except:
         return None
+
+def concurrent_run(mfunc, todo_list, num = 10, max_retry_times = 10):
+    failed_count = 0
+    obj_pool = Pool(num)
+    failed_list = copy.deepcopy(todo_list)
+    while len(failed_list) > 0:
+        is_failed = False
+        for result in obj_pool.imap_unordered(mfunc, failed_list):
+            if True == result[1]: 
+                failed_list.remove(result[0])
+            else:
+                is_failed = True
+        if is_failed:
+            if failed_count > max_retry_times: return False
+            failed_count += 1
+            time.sleep(10)
+    obj_pool.join(timeout = 10)
+    obj_pool.kill()
+    return True
+
+def is_df_has_unexpected_data(df):
+    if not df[df.isin([np.nan, np.inf, -np.inf]).any(1)].empty:
+        return True
+    return False

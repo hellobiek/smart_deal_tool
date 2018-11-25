@@ -4,17 +4,16 @@ import _pickle
 import cmysql
 import const as ct
 import pandas as pd
-from cindex import CIndex
 from log import getLogger
+from cindex import CIndex
 from pandas import DataFrame
-from common import trace_func, create_redis_obj
+from common import create_redis_obj, concurrent_run
 logger = getLogger(__name__)
 class IndustryInfo:
     def __init__(self, dbinfo, redis_host = None):
         self.table = ct.INDUSTRY_INFO
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
         self.mysql_client = cmysql.CMySQL(dbinfo, iredis = self.redis)
-        self.mysql_dbs = self.mysql_client.get_all_databases()
         if not self.init(): raise Exception("init combination table failed")
 
     def init(self):
@@ -23,17 +22,22 @@ class IndustryInfo:
         new_self_defined_df['best'] = '0'
         new_df = new_df.append(new_self_defined_df)
         new_df = new_df.reset_index(drop = True)
-        failed_list = list()
-        for _, code_id in new_df['code'].iteritems():
-            dbname = CIndex.get_dbname(code_id)
-            if dbname not in self.mysql_dbs:
-                if not self.mysql_client.create_db(dbname): failed_list.append(code_id)
-        if len(failed_list) > 0 :
-            logger.error("%s create failed" % failed_list)
-            return False
         self.redis.set(ct.INDUSTRY_INFO, _pickle.dumps(new_df, 2))
         return True
-        
+
+    def create_obj(self, code):
+        try:
+            CIndex(code, should_create_influxdb = True, should_create_mysqldb = True)
+            return (code, True)
+        except Exception as e:
+            return (code, False)
+
+    def update(self):
+        if self.init():
+            df = self.get(redis = self.redis)
+            return concurrent_run(self.create_obj, df.code.tolist(), num = 100)
+        return False
+
     @staticmethod
     def get(redis = None):
         redis = create_redis_obj() if redis is None else redis

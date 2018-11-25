@@ -3,10 +3,8 @@ import cmysql
 import _pickle
 import const as ct
 import pandas as pd
-from log import getLogger
 from datetime import datetime
-from common import trace_func, create_redis_obj, df_delta
-logger = getLogger(__name__)
+from common import create_redis_obj, df_delta
 class CCalendar:
     def __init__(self, dbinfo = ct.DB_INFO, without_init = False, redis_host = None):
         self.table = ct.CALENDAR_TABLE
@@ -14,11 +12,7 @@ class CCalendar:
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
         self.mysql_client = cmysql.CMySQL(dbinfo, iredis = self.redis)
         if without_init == False:
-            if not self.create(): raise Exception("create calendar table failed")
-            if not self.init(True): raise Exception("calendar table init failed")
-            # here must be first init and second register, for init will delete table
-            # which will delete trigger
-            if not self.register(): raise Exception("create calendar trigger failed") 
+            if not self.init(): raise Exception("calendar table init failed")
   
     def create(self):
         sql = 'create table if not exists %s(calendarDate varchar(10) not null, isOpen int, PRIMARY KEY (calendarDate))' % self.table
@@ -28,17 +22,9 @@ class CCalendar:
         sql = "create trigger %s after insert on %s for each row set @set=gman_do_background('%s', json_object('calendarDate', NEW.calendarDate, 'isOpen', NEW.isOpen));" % (self.trigger, self.table, self.trigger)
         return True if self.trigger in self.mysql_client.get_all_triggers() else self.mysql_client.register(sql, self.trigger)
 
-    def init(self, status):
-        old_trading_day = self.get()
-        new_trading_day = pd.read_csv('/conf/calAll.csv')
-        if new_trading_day is None: return False
-        if new_trading_day.empty: return False
-        if not old_trading_day.empty:
-            new_trading_day = df_delta(new_trading_day, old_trading_day, ['calendarDate'])
-        if new_trading_day.empty: return True
-        res = self.mysql_client.set(new_trading_day, self.table)
-        if not res: return False
-        if status: return self.redis.set(ct.CALENDAR_INFO, _pickle.dumps(new_trading_day, 2))
+    def init(self):
+        df = pd.read_csv('/conf/calAll.csv')
+        return self.redis.set(ct.CALENDAR_INFO, _pickle.dumps(df, 2))
 
     @staticmethod
     def is_trading_day(_date = None, redis = None):

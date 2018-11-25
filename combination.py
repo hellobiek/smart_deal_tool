@@ -1,26 +1,21 @@
 #coding=utf-8
 import time
-import json
 import cmysql
 import _pickle
 import datetime
-from datetime import datetime
-from cinfluxdb import CInflux  
 import const as ct
 import pandas as pd
-from log import getLogger
 from cstock import CStock
-from common import create_redis_obj
-logger = getLogger(__name__)
-class Combination:
-    def __init__(self, code, dbinfo = ct.DB_INFO, redis_host = None):
+from datetime import datetime
+from cinfluxdb import CInflux
+from base.cobj import CMysqlObj
+class Combination(CMysqlObj):
+    def __init__(self, code, should_create_db = False, dbinfo = ct.DB_INFO, redis_host = None):
+        super(Combination, self).__init__(code, self.get_dbname(code), dbinfo, redis_host)
         self.code = code
-        self.dbname = self.get_dbname(code)
-        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
-        self.data_type_dict = {9:"day"}
         self.influx_client = CInflux(ct.IN_DB_INFO, self.dbname, iredis = self.redis)
-        self.mysql_client = cmysql.CMySQL(dbinfo, self.dbname, iredis = self.redis)
-        if not self.create(): raise Exception("%s create combination table failed" % code)
+        if should_create_db:
+            if not self.create(): raise Exception("%s create combination table failed" % code)
 
     @staticmethod
     def get_dbname(code):
@@ -28,7 +23,7 @@ class Combination:
 
     @staticmethod
     def get_redis_name(code):
-        return "realtime_i%s" % code
+        return "realtime_c%s" % code
 
     def create_influx_db(self):
         return self.influx_client.create()
@@ -61,13 +56,18 @@ class Combination:
 
     def is_table_exists(self, table_name):
         if self.redis.exists(self.dbname):
-            return table_name in set(str(table, encoding = "utf8") for table in self.redis.smembers(self.dbname))
+            return table_name in set(table.decode() for table in self.redis.smembers(self.dbname))
         return False
 
     def is_date_exists(self, table_name, cdate):
         if self.redis.exists(table_name):
-            return cdate in set(str(tdate, encoding = "utf8") for tdate in self.redis.smembers(table_name))
+            return cdate in set(tdate.decode() for tdate in self.redis.smembers(table_name))
         return False
+
+    def get_existed_keys_list(self, table_name):
+        if self.redis.exists(table_name):
+            return list(tdate.decode() for tdate in self.redis.smembers(table_name))
+        return list()
 
     def run(self):
         _new_data = self.compute()

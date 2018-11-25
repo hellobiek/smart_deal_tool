@@ -1,29 +1,15 @@
 # coding=utf-8
-import cmysql
-import const as ct
-from common import create_redis_obj
 from cindex import CIndex
-from log import getLogger
-logger = getLogger(__name__)
-
+from common import concurrent_run
+import const as ct
 class IndexInfo:
-    def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
-        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
-        self.mysql_client = cmysql.CMySQL(dbinfo, iredis = self.redis)
-        self.mysql_dbs = self.mysql_client.get_all_databases()
-        if not self.init(): raise Exception("init index info table failed")
+    def create_obj(self, code):
+        try:
+            CIndex(code, should_create_influxdb = True, should_create_mysqldb = True)
+            return (code, True)
+        except Exception as e:
+            print(e)
+            return (code, False)
 
-    def init(self):
-        failed_list = list()
-        for code in ct.TDX_INDEX_DICT:
-            dbname = CIndex.get_dbname(code)
-            if dbname not in self.mysql_dbs:
-                if not self.mysql_client.create_db(dbname):
-                    failed_list.append(code)
-        if len(failed_list) > 0 :
-            logger.error("%s create failed" % failed_list)
-            return False
-        return True
-
-if __name__ == '__main__':
-    ii = IndexInfo(ct.DB_INFO)
+    def update(self):
+        return concurrent_run(self.create_obj, list(ct.TDX_INDEX_DICT.keys()), num = 10)

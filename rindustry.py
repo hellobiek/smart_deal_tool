@@ -144,13 +144,13 @@ class RIndexIndustryInfo:
         df = self.generate_data(cdate)
         if df.empty: return False
         self.redis.set(ct.TODAY_ALL_INDUSTRY, _pickle.dumps(df, 2))
-        if self.mysql_client.set(df, table_name, method = ct.APPEND):
+        if self.mysql_client.set(df, table_name):
             self.redis.sadd(table_name, cdate)
             return True
         return False
 
-    def update(self, end_date = datetime.now().strftime('%Y-%m-%d')):
-        start_date = get_day_nday_ago(end_date, num = 3650, dformat = "%Y-%m-%d")
+    def update(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 10):
+        start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
         date_array = get_dates_array(start_date, end_date)
         succeed = True
         for mdate in date_array:

@@ -2,10 +2,8 @@
 import gevent
 from gevent import monkey
 monkey.patch_all(thread=True, subprocess = True)
-import time
 import const as ct
 from log import getLogger
-from creview import CReivew
 from ctrader import CTrader
 from cthread import CThread
 from data_manager import DataManager

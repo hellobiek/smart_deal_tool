@@ -1,31 +1,6 @@
 #-*- coding: utf-8 -*-
-import const as ct
 import numpy as np
 import pandas as pd
-#def movingaverage(x, N):
-#    return x.rolling(N).mean()
-#
-#def ExpMovingAverage(values, window):
-#    weights = np.exp(np.linspace(-1., 0., window))
-#    weights /= weights.sum()
-#    a =  np.convolve(values, weights, mode='full')[:len(values)]
-#    a[:window] = a[window]
-#    return a
-#
-#nema  = 9
-#nfast = 12
-#nslow = 26
-#emaslow, emafast, macd = computeMACD(k_data.close.values)
-#ema9 = ExpMovingAverage(macd, nema)
-#def computeMACD(x, slow=26, fast=12):
-#    """
-#    compute the MACD (Moving Average Convergence/Divergence) using a fast and slow exponential moving avg'
-#    return value is emaslow, emafast, macd which are len(x) arrays
-#    """
-#    emaslow = ExpMovingAverage(x, slow)
-#    emafast = ExpMovingAverage(x, fast)
-#    return emaslow, emafast, emafast - emaslow
-
 def MA(data, peried):
     return data.rolling(peried).mean()
 
@@ -125,4 +100,6 @@ def base_floating_profit(df, num, mdate = None):
                         df.at[e_index:, 'ppchange'] = ppchange
                         df.at[e_index:, 'pday'] = direction * (df.loc[e_index:].index - e_index + 1)
             df['profit'] = (np.log(df.close) - np.log(df.base)).abs() / np.log(df.ppchange)
-    return df[['date', 'profit', 'pday']]
+    import pdb
+    pdb.set_trace()
+    return df

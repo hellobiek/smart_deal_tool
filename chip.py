@@ -191,7 +191,7 @@ class Chip:
         df = df_empty(columns = ct.CHIP_COLUMNS, dtypes = mdtypes)
         tmp_df = df_empty(columns = ct.CHIP_COLUMNS, dtypes = mdtypes)
         for _index, cdate in data.date.iteritems():
-            #logger.info("index:%s" % _index)
+            logger.info("compute %s" % _index)
             volume = int(data.loc[_index, 'volume'])
             aprice = data.loc[_index, 'aprice']
             outstanding = data.loc[_index, 'outstanding']

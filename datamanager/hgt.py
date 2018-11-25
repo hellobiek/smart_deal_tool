@@ -91,13 +91,13 @@ class StockConnect(object):
         sql = "select * from %s where date=\"%s\"" % (self.get_table_name(cdate), cdate)
         return self.mysql_client.get(sql)
 
-    def update(self):
-        end_date   = datetime.now().strftime('%Y-%m-%d')
-        start_date = get_day_nday_ago(end_date, num = 9, dformat = "%Y-%m-%d")
+    def update(self, end_date = None):
+        if end_date is None: end_date = datetime.now().strftime('%Y-%m-%d')
+        start_date = get_day_nday_ago(end_date, num = 19, dformat = "%Y-%m-%d")
         succeed = True
         for mdate in get_dates_array(start_date, end_date):
-            if mdate == end_date or mdate in self.balcklist: continue
             if CCalendar.is_trading_day(mdate, redis = self.redis):
+                if mdate == end_date or mdate in self.balcklist: continue
                 if not self.set_data(mdate):
                     succeed = False
         return succeed
@@ -114,16 +114,17 @@ class StockConnect(object):
                 self.logger.error("create tick table failed")
                 return False
             self.redis.sadd(self.dbname, table_name)
+
         if self.is_date_exists(table_name, cdate): 
             self.logger.debug("existed table:%s, date:%s" % (table_name, cdate))
             return True
+
         ret, df = self.crawler.crawl(cdate)
         if ret != 0: return False
         df = df.reset_index(drop = True)
         df['date'] = cdate
         if self.mysql_client.set(df, table_name):
-            self.redis.sadd(table_name, cdate)
-            return True
+            return self.redis.sadd(table_name, cdate)
         return False
 
 if __name__ == '__main__':

@@ -3,38 +3,31 @@ import _pickle
 import cmysql
 import const as ct
 import pandas as pd
-from combination import Combination
 from log import getLogger
 from pandas import DataFrame
+from combination import Combination
 from pytdx.reader import CustomerBlockReader
-from common import trace_func, create_redis_obj
-
-logger = getLogger(__name__)
-
+from common import trace_func, create_redis_obj, concurrent_run
 # include index and concept in stock
 class CombinationInfo:
-    @trace_func(log = logger)
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.table = ct.COMBINATION_INFO_TABLE
+        self.logger = getLogger(__name__)
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
         self.mysql_client = cmysql.CMySQL(dbinfo, iredis = self.redis)
-        self.mysql_dbs = self.mysql_client.get_all_databases()
         if not self.init(): raise Exception("init combination table failed")
         #self.trigger = ct.SYNC_COMBINATION_2_REDIS
         #if not self.create(): raise Exception("create combination table failed")
         #if not self.register(): raise Exception("create combination trigger failed")
 
-    @trace_func(log = logger)
     def create(self):
         sql = 'create table if not exists %s(name varchar(50), code varchar(10), cType int, content varchar(20000), best varchar(1000), PRIMARY KEY (code))' % self.table
         return True if self.table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.table)
 
-    @trace_func(log = logger)
     def register(self):
         sql = "create trigger %s after insert on %s for each row set @set=gman_do_background('%s', json_object('name', NEW.name, 'code', NEW.code, 'cType', NEW.cType, 'content', NEW.content, 'best', NEW.best));" % (self.trigger, self.table, self.trigger)
         return True if self.trigger in self.mysql_client.get_all_triggers() else self.mysql_client.register(sql, self.trigger)
 
-    @trace_func(log = logger)
     def init(self):
         new_df = DataFrame()
         new_self_defined_df = self.read_self_defined()
@@ -42,18 +35,21 @@ class CombinationInfo:
         new_self_defined_df['best'] = '0'
         new_df = new_df.append(new_self_defined_df)
         new_df = new_df.reset_index(drop = True)
-        failed_list = list()
-        for _, code_id in new_df['code'].iteritems():
-            dbname = Combination.get_dbname(code_id)
-            if dbname not in self.mysql_dbs:
-                if not self.mysql_client.create_db(dbname): failed_list.append(code_id)
-        if len(failed_list) > 0 :
-            logger.error("%s create failed" % failed_list)
-            return False
-        self.redis.set(ct.COMBINATION_INFO, _pickle.dumps(new_df, 2))
-        return True
+        return self.redis.set(ct.COMBINATION_INFO, _pickle.dumps(new_df, 2))
 
-    @trace_func(log = logger)
+    def create_obj(self, code):
+        try:
+            Combination(code, should_create_db = True)
+            return (code, True)
+        except Exception as e:
+            return (code, False)
+
+    def update(self):
+        if self.init():
+            df = self.get(redis = self.redis)
+            return concurrent_run(self.create_obj, df.code.tolist(), num = 10)
+        return False
+
     def read_self_defined(self):
         df = CustomerBlockReader().get_df(ct.TONG_DA_XIN_SELF_PATH, 1)
         df = df[['block_type','blockname','code_list']]

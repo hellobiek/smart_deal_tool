@@ -63,6 +63,9 @@ class RIndexStock:
                                              uprice float,\
                                              ppercent float,\
                                              npercent float,\
+                                             base float,\
+                                             pday int,\
+                                             profit float,\
                                              PRIMARY KEY (date, code))' % table
         return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
 
@@ -100,9 +103,8 @@ class RIndexStock:
         return self.mysql_client.get(sql)
 
     def get_stock_data(self, date, code):
-        self.mysql_client.changedb(CStock.get_dbname(code))
-        sql = "select * from day where date=\"%s\"" % date
-        return (code, self.mysql_client.get(sql))
+        stock_obj = CStock(code, should_create_influxdb = False, should_create_mysqldb = False)
+        return (code, stock_obj.get_k_data(cdate))
 
     def generate_all_data(self, cdate):
         good_list = list()
@@ -113,7 +115,6 @@ class RIndexStock:
         import copy
         failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
         cfunc = partial(self.get_stock_data, cdate)
-        logger.info("enter generate_all_data")
         while len(failed_list) > 0:
             logger.info("restart failed ip len(%s)" % len(failed_list))
             for code_data in obj_pool.imap_unordered(cfunc, failed_list):
@@ -122,14 +123,27 @@ class RIndexStock:
                     tem_df['code'] = code_data[0]
                     all_df = all_df.append(tem_df)
                     failed_list.remove(code_data[0])
-        logger.info("succeed generate_all_data")
         obj_pool.join(timeout = 5)
         obj_pool.kill()
-        self.mysql_client.changedb(self.get_dbname())
+        all_df = all_df.drop_duplicates()
+        all_df = all_df.sort_values(by = 'date', ascending= True)
         all_df = all_df.reset_index(drop = True)
         return all_df
 
-    def set_data(self, cdate = datetime.now().strftime('%Y-%m-%d')):
+    def update(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 10):
+        start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
+        date_array = get_dates_array(start_date, end_date)
+        succeed    = True
+        for mdate in get_dates_array(start_date, end_date):
+            if CCalendar.is_trading_day(mdate, redis = self.redis):
+                if not self.set_day_data(mdate):
+                    self.logger.error("set %s data for rstock failed")
+                    succeed = False
+                else:
+                    self.logger.info("%s rindustry set success" % mdate)
+        return succeed
+
+    def set_day_data(self, cdate):
         table_name = self.get_table_name(cdate)
         if not self.is_table_exists(table_name):
             if not self.create_table(table_name):
@@ -140,8 +154,6 @@ class RIndexStock:
             logger.debug("existed table:%s, date:%s" % (table_name, cdate))
             return True
         df = self.generate_all_data(cdate)
-        df = df.drop_duplicates()
-        df = df.reset_index(drop = True)
         if self.mysql_client.set(df, table_name):
             self.redis.sadd(table_name, cdate)
             return True

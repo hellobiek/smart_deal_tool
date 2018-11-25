@@ -68,23 +68,17 @@ const.SQL = "select * from %s"
 const.RETRY_TIMES = 1
 const.START_DATE = '2014-01-01'
 const.INDEX_DICT = {'000001':'上证指数', 
-                    '000300':'沪深300',
                     '000016':'上证50',
+                    '000300':'沪深300',
                     '000905':'中证500',
                     '399673':'创业板50',
                     '399001':'深证成指',
                     '399005':'中小板指',
                     '399006':'创业板指'}
-const.TDX_INDEX_DICT = {'880011':'Ａ主总值',
-                        '880012':'Ａ主流通',
-                        '880003':'平均股价',
-                        '000001':'上证指数', 
-                        '000300':'沪深300',
-                        '000016':'上证50',
-                        '000905':'中证500',
-                        '399673':'创业板50',
-                        '399001':'深证成指',
-                        '399006':'创业板指'}
+const.TDX_SPECIAL_DICT = {'880011':'Ａ主总值',
+                          '880012':'Ａ主流通',
+                          '880003':'平均股价'}
+const.TDX_INDEX_DICT = {**const.INDEX_DICT, **const.TDX_SPECIAL_DICT}
 const.C_INDEX = 1
 const.C_SELFD = 2
 const.C_INDUSTRY = 3
@@ -126,7 +120,6 @@ const.CLOSE = 0
 const.REOPEN = 1
 #############################
 const.APPEND = 'append'
-const.REPLACE = 'replace'
 #############################
 const.SYNCSTOCK2REDIS = 'syncStock2Redis'
 const.STOCK_INFO = 'stockInfo'

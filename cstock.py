@@ -1,4 +1,7 @@
-#coding=utf-8
+# -*- coding: utf-8 -*-
+import sys
+from os.path import abspath, dirname
+sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import os
 import time
 import _pickle
@@ -7,34 +10,27 @@ import const as ct
 import pandas as pd
 import tushare as ts
 from chip import Chip
-from cmysql import CMySQL
 from log import getLogger
 from ticks import read_tick
 from cinfluxdb import CInflux
 from datetime import datetime
 from features import base_floating_profit
-from common import create_redis_obj, get_years_between, transfer_date_string_to_int, transfer_int_to_date_string
+from base.cobj import CMysqlObj
+from common import create_redis_obj, get_years_between, transfer_date_string_to_int, transfer_int_to_date_string, is_df_has_unexpected_data
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 logger = getLogger(__name__)
-
-class CStock():
-    def __init__(self, code, dbinfo = ct.DB_INFO, should_create_influxdb = False, should_create_mysqldb = True, redis_host = None):
-        self.code = code
-        self.dbname = self.get_dbname(code)
-        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
-        self.data_type_dict = {9:"day", 10:"base_profit"}
-        self.chip_client = Chip()
-        self.influx_client = CInflux(ct.IN_DB_INFO, dbname = self.dbname, iredis = self.redis)
-        self.mysql_client = CMySQL(dbinfo, dbname = self.dbname, iredis = self.redis)
+class CStock(CMysqlObj):
+    def __init__(self, code, dbinfo = ct.DB_INFO, should_create_influxdb = False, should_create_mysqldb = False, redis_host = None):
+        super(CStock, self).__init__(code, self.get_dbname(code), dbinfo, redis_host)
+        self.chip_client    = Chip()
+        self.influx_client  = CInflux(ct.IN_DB_INFO, dbname = self.dbname, iredis = self.redis)
         if not self.create(should_create_influxdb, should_create_mysqldb):
             raise Exception("create stock %s table failed" % self.code)
 
     def __del__(self):
-        self.redis = None
+        self.chip_client = None
         self.influx_client = None
-        self.mysql_client = None
-        self.data_type_dict = None
 
     @staticmethod
     def get_dbname(code):
@@ -87,7 +83,7 @@ class CStock():
         data['outstanding'] = data['outstanding'].astype(int)
         data['outstanding'] = data['outstanding'] * 10000
         return data
-    
+
     def qfq(self, data, info):
         data['adj'] = 1.0
         data['preclose'] = data['close'].shift(1)
@@ -107,16 +103,16 @@ class CStock():
 
     def has_on_market(self, cdate):
         time2Market = self.get('timeToMarket')
-        if str(time2Market) == '0': return False
+
+        if str(time2Market) == '0': 
+            return False
+
         t = time.strptime(str(time2Market), "%Y%m%d")
         y,m,d = t[0:3]
         time2Market = datetime(y,m,d)
+        return (datetime.strptime(cdate, "%Y-%m-%d") - time2Market).days > 0
 
-        t = time.strptime(cdate, "%Y-%m-%d")
-        y,m,d = t[0:3]
-        time4Date = datetime(y,m,d)
-        return True if (time4Date - time2Market).days > 0 else False
-
+    @property
     def is_subnew(self, time2Market = None, timeLimit = 365):
         if time2Market == '0': return False #for stock has not been in market
         if time2Market == None: time2Market = self.get('timeToMarket')
@@ -127,52 +123,40 @@ class CStock():
 
     def create(self, should_create_influxdb, should_create_mysqldb):
         influxdb_flag = self.create_influx_db() if should_create_influxdb else True
-        mysqldb_flag = self.create_mysql_table() if should_create_mysqldb else True
-        return influxdb_flag and mysqldb_flag
+        mysql_flag    = self.create_db(self.dbname) and self.create_mysql_table() if should_create_mysqldb else True
+        return influxdb_flag and mysql_flag
 
     def create_influx_db(self):
         return self.influx_client.create()
 
     def create_mysql_table(self):
-        for _, table_name in self.data_type_dict.items():
-            if table_name not in self.mysql_client.get_all_tables():
-                if table_name == 'day':
-                    sql = 'create table if not exists %s(date varchar(10) not null,\
-                                                         open float,\
-                                                         high float,\
-                                                         close float,\
-                                                         preclose float,\
-                                                         low float,\
-                                                         volume float,\
-                                                         amount float,\
-                                                         outstanding float,\
-                                                         totals float,\
-                                                         adj float,\
-                                                         aprice float,\
-                                                         pchange float,\
-                                                         turnover float,\
-                                                         sai float,\
-                                                         sri float,\
-                                                         uprice float,\
-                                                         ppercent float,\
-                                                         npercent float,\
-                                                         PRIMARY KEY(date))' % table_name 
-
-                elif table_name == 'base_profit':
-                    sql = 'create table if not exists %s(date varchar(10) not null, profit float, pday int, PRIMARY KEY(date))' % table_name 
-                if not self.mysql_client.create(sql, table_name): return False
+        table_name = self.get_day_table()
+        if table_name not in self.mysql_client.get_all_tables():
+            sql = 'create table if not exists %s(date varchar(10) not null,\
+                                                 open float,\
+                                                 high float,\
+                                                 close float,\
+                                                 preclose float,\
+                                                 low float,\
+                                                 volume float,\
+                                                 amount float,\
+                                                 outstanding float,\
+                                                 totals float,\
+                                                 adj float,\
+                                                 aprice float,\
+                                                 pchange float,\
+                                                 turnover float,\
+                                                 sai float,\
+                                                 sri float,\
+                                                 uprice float,\
+                                                 ppercent float,\
+                                                 npercent float,\
+                                                 base float,\
+                                                 pday int,\
+                                                 profit float,\
+                                                 PRIMARY KEY(date))' % table_name 
+            if not self.mysql_client.create(sql, table_name): return False
         return True
-
-    def create_ticket_table(self, table):
-        sql = 'create table if not exists %s(date varchar(10) not null,\
-                                             time varchar(8) not null,\
-                                             price float(5,2),\
-                                             cchange varchar(10) not null,\
-                                             volume int not null,\
-                                             amount int not null,\
-                                             ctype varchar(9) not null,\
-                                             PRIMARY KEY (date, time, cchange, volume, amount, ctype))' % table
-        return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
 
     def get(self, attribute):
         df_byte = self.redis.get(ct.STOCK_INFO)
@@ -219,34 +203,24 @@ class CStock():
 
     def get_chip_distribution_table(self, cdate):
         cdates = cdate.split('-')
-        return "chip_%s_%s" % (self.code, cdates[0])
+        return "chip_%s_%s" % (self.dbname, cdates[0])
 
     def get_redis_tick_table(self, cdate):
         cdates = cdate.split('-')
-        return "tick_%s_%s_%s" % (self.code, cdates[0], cdates[1])
+        return "tick_%s_%s_%s" % (self.dbname, cdates[0], cdates[1])
 
-    def get_stock_day_table(self):
-        return "day_%s" % self.code
+    def get_day_table(self):
+        return "%s_day" % self.dbname
 
     def create_chip_table(self, table):
         sql = 'create table if not exists %s(pos int not null,\
-                                            sdate varchar(10) not null,\
-                                            date varchar(10) not null,\
-                                            price decimal(8,2) not null,\
-                                            volume int not null,\
-                                            outstanding int not null,\
-                                            PRIMARY KEY (pos, sdate, date, price, volume, outstanding))' % table
+                                             sdate varchar(10) not null,\
+                                             date varchar(10) not null,\
+                                             price decimal(8,2) not null,\
+                                             volume int not null,\
+                                             outstanding int not null,\
+                                             PRIMARY KEY (pos, sdate, date, price, volume, outstanding))' % table
         return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
-
-    def is_table_exists(self, table_name):
-        if self.redis.exists(self.dbname):
-            return table_name in set(str(table, encoding = "utf8") for table in self.redis.smembers(self.dbname))
-        return False
-
-    def is_date_exists(self, tick_table, cdate):
-        if self.redis.exists(tick_table):
-            return cdate in set(str(tdate, encoding = "utf8") for tdate in self.redis.smembers(tick_table))
-        return False
 
     def get_pre_str(self):
         return "1" if self.get_market() == ct.MARKET_SH else "0"
@@ -257,7 +231,6 @@ class CStock():
         if not os.path.exists(filename): return pd.DataFrame(), None
         df = pd.read_csv(filename, sep = ',')
         df = df[['date', 'open', 'high', 'close', 'low', 'amount', 'volume']]
-        df = df.loc[df.volume != 0]
         df = df.sort_values(by = 'date', ascending= True)
         df = df.reset_index(drop = True)
         if cdate is not None:
@@ -297,7 +270,7 @@ class CStock():
         df = df[['date', 'open', 'high', 'close', 'preclose', 'low', 'volume', 'amount', 'outstanding', 'totals', 'adj']]
         df['date'] = df['date'].astype(str)
         df['date'] = pd.to_datetime(df.date).dt.strftime("%Y-%m-%d")
-        df['low'] = df['adj'] * df['low']
+        df['low']  = df['adj'] * df['low']
         df['open'] = df['adj'] * df['open']
         df['high'] = df['adj'] * df['high']
         df['close'] = df['adj'] * df['close']
@@ -316,6 +289,8 @@ class CStock():
         return now_date == p_date
 
     def pro_nei_chip(self, df, dist_data, preday_df = None, mdate = None):
+        import pdb
+        pdb.set_trace()
         if mdate is None:
             p_profit_vol_list = list()
             p_neighbor_vol_list = list()
@@ -331,6 +306,8 @@ class CStock():
                 p_neighbor_vol_list.append(n_val)
             df['ppercent'] = p_profit_vol_list
             df['npercent'] = p_neighbor_vol_list
+            import pdb
+            pdb.set_trace()
             df['gamekline'] = df['ppercent'] - df['ppercent'].shift(1)
             df.at[0, 'gamekline'] = df.loc[0, 'ppercent']
         else:
@@ -373,18 +350,15 @@ class CStock():
             df['sri'] = 100 * (s_pchange - i_pchange)
         return df 
 
-    def exec_sql(self):
-        sql = 'delete from day where date = "2018-11-05"'
-        return self.mysql_client.exec_sql(sql)
-
     def set_today_data(self, df, index_df, pre_date, cdate):
-        day_table = self.get_stock_day_table()
-        if self.is_date_exists(day_table, cdate): 
-            return True
-
         if df.empty:
             logger.error("read empty file for:%s" % self.code)
             return False
+
+        day_table = self.get_day_table()
+        if self.is_date_exists(day_table, cdate): 
+            logger.debug("existed data for code:%s, date:%s" % (self.code, zdate))
+            return True
 
         preday_df = self.get_k_data(date = pre_date)
         preday_df = preday_df.drop_duplicates()
@@ -411,6 +385,7 @@ class CStock():
         dist_df = df.append(preday_df, sort = False)
         dist_df = dist_df.sort_values(by = 'date', ascending = True)
 
+        logger.info("commpute %s distribution for date:%s." % (self.code, cdate))
         dist_data = self.compute_distribution(dist_df, cdate)
         if dist_data.empty:
             logger.error("%s chip distribution compute failed." % self.code)
@@ -421,9 +396,18 @@ class CStock():
         if write_chip_flag:
             df = self.mac(df, dist_data, 0)
             df = self.pro_nei_chip(df, dist_data, preday_df, cdate)
-            write_kdata_flag = self.mysql_client.set(df, 'day')
-            if write_kdata_flag: self.redis.sadd(day_table, cdate)
-        return write_chip_flag and write_kdata_flag
+
+            if is_df_has_unexpected_data(df):
+                logger.error("data for %s is not clean." % self.code)
+                return False
+
+            write_kdata_flag = self.mysql_client.set(df, self.get_day_table())
+            if write_kdata_flag: 
+                return self.redis.sadd(day_table, cdate)
+            else:
+                return False
+        else:
+            return False
 
     def set_all_data(self, quantity_change_info, price_change_info, index_info):
         df, _ = self.read()
@@ -442,27 +426,46 @@ class CStock():
         df = self.relative_index_strength(df, index_info)
 
         #set chip distribution
+        logger.info("commpute %s distribution." % self.code)
         dist_data = self.compute_distribution(df)
+        logger.info("commpute %s distribution done." % self.code)
         if dist_data.empty:
             return False
 
-        write_chip_flag = self.set_chip_distribution(dist_data)
-        if write_chip_flag:
-            df = self.mac(df, dist_data, 0)
-            df = self.pro_nei_chip(df, dist_data)
-            write_kdata_flag = self.mysql_client.update(df, 'day', pri_keys = ['date'])
-        return write_chip_flag and write_kdata_flag
+        logger.info("set %s distribution." % self.code)
+        if not self.set_chip_distribution(dist_data): return False
+
+        df = self.mac(df, dist_data, 0)
+        df = self.pro_nei_chip(df, dist_data)
+
+        day_table = self.get_day_table()
+        existed_date_list = self.get_existed_keys_list(day_table)
+        df = df[~df.date.isin(existed_date_list)]
+        if df.empty:
+            return True
+
+        if is_df_has_unexpected_data(df):
+            logger.error("data for %s is not clean." % self.code)
+            return False
+
+        logger.info("set %s data." % self.code)
+        if not self.mysql_client.set(df, day_table): return False
+        if 0 == self.redis.sadd(day_table, *set(df.date.tolist())):
+            logger.error("sadd %s %s for %s failed" % (self.code, day_table))
+            return False
+        return True
 
     def get_base_floating_profit(self, date = None):
-        return self.get_k_data(date, dtype = 10)
+        return self.get_k_data(date)
 
     def get_base_floating_profit_in_range(self, start_date, end_date):
-        return self.get_k_data_in_range(start_date, end_date, dtype = 10)
+        return self.get_k_data_in_range(start_date, end_date)
 
     def set_base_floating_profit(self):
         df = self.get_k_data()
         df = base_floating_profit(df, num = ct.PRE_DAYS_NUM)
-        return self.mysql_client.update(df, 'base_profit', pri_keys = ['date'])
+        df = df[['date', 'base', 'ppchange', 'pday', 'profit']]
+        return self.mysql_client.update(df, self.get_day_table(), columns = ['base', 'ppchange', 'pday', 'profit'], pri_keys = ['date'])
 
     def set_k_data(self, bonus_info, index_info, cdate = None):
         if not self.has_on_market(datetime.now().strftime('%Y-%m-%d')): return True
@@ -471,13 +474,11 @@ class CStock():
             return self.set_all_data(quantity_change_info, price_change_info, index_info)
         else:
             today_df, pre_date = self.read(cdate)
-            if today_df.empty:
-                return True
+            if today_df.empty: return False
+            if pre_date is None:
+                return self.set_all_data(quantity_change_info, price_change_info, index_info)
             else:
-                if pre_date is None:
-                    return self.set_all_data(quantity_change_info, price_change_info, index_info)
-                else:
-                    return self.set_today_data(today_df, index_info, pre_date, cdate)
+                return self.set_today_data(today_df, index_info, pre_date, cdate)
 
     def get_chip_distribution(self, mdate = None):
         df = pd.DataFrame()
@@ -539,43 +540,46 @@ class CStock():
             year_list   = get_years_between(start_year, end_year)
             res_flag    = True
             for myear in year_list:
+                #get chip table name
                 chip_table = self.get_chip_distribution_table(myear)
+                #make sure chip table existed
                 if not self.is_table_exists(chip_table):
                     if not self.create_chip_table(chip_table):
                         logger.error("create chip table:%s failed" % chip_table)
                         return False
-                    self.redis.sadd(self.dbname, chip_table)
+
+                #get new df
                 tmp_df = df.loc[df.date.str.startswith(myear)]
+                tmp_df = tmp_df.round(2) 
                 tmp_df = tmp_df.reset_index(drop = True)
-                if not self.mysql_client.update(tmp_df, chip_table, pri_keys = ['date', 'time', 'cchange', 'volume', 'amount', 'ctype']):
-                    logger.error("%s set data for %s failed" % (self.code, myear))
-                    res_flag = False
-                else:
-                    for cdate in tmp_df.date:
-                        self.redis.sadd(chip_table, cdate)
-            return res_flag
+                
+                import pdb
+                pdb.set_trace()
+
+                #update df to mysql
+                if self.mysql_client.upsert(tmp_df, chip_table, pri_keys = ['pos', 'sdate', 'date', 'price', 'volume', 'outstanding']):
+                    self.redis.sadd(chip_table, *set(tmp_df.date.tolist()))
+                    return False
+            return True
         else:
             chip_table = self.get_chip_distribution_table(zdate)
             if not self.is_table_exists(chip_table):
                 if not self.create_chip_table(chip_table):
                     logger.error("create chip table:%s failed" % chip_table)
                     return False
-                self.redis.sadd(self.dbname, chip_table)
 
             if self.is_date_exists(chip_table, zdate): 
                 logger.debug("existed chip for code:%s, date:%s" % (self.code, zdate))
                 return True
 
-            if not self.is_table_exists(chip_table):
-                if not self.create_chip_table(chip_table):
-                    logger.error("create chip table failed")
-                    return False
-                self.redis.sadd(self.dbname, chip_table)
+            if is_df_has_unexpected_data(df):
+                logger.error("data for %s is not clear" % self.code)
+                return False
 
             if self.mysql_client.set(df, chip_table): 
-                self.redis.sadd(chip_table, zdate)
-                logger.debug("finish record chip:%s. table:%s" % (self.code, chip_table))
-                return True
+                if self.redis.sadd(chip_table, zdate):
+                    logger.debug("finish record chip:%s. table:%s" % (self.code, chip_table))
+                    return True
             return False
         
     def set_ticket(self, cdate = None):
@@ -588,7 +592,9 @@ class CStock():
             if not self.create_ticket_table(tick_table):
                 logger.error("create tick table failed")
                 return False
-            self.redis.sadd(self.dbname, tick_table)
+            if not self.redis.sadd(self.dbname, tick_table):
+                logger.error("add tick table to redis failed")
+                return False
         if self.is_date_exists(tick_table, cdate): 
             logger.debug("existed code:%s, date:%s" % (self.code, cdate))
             return True
@@ -617,10 +623,15 @@ class CStock():
         df = self.merge_ticket(df)
         df['date'] = cdate
         logger.debug("write data code:%s, date:%s, table:%s" % (self.code, cdate, tick_table))
+
+        if is_df_has_unexpected_data(df):
+            logger.error("data for %s is not clear" % self.code)
+            return False
+
         if self.mysql_client.set(df, tick_table):
             logger.debug("finish record:%s. table:%s" % (self.code, tick_table))
-            self.redis.sadd(tick_table, cdate)
-            return True
+            if self.redis.sadd(tick_table, cdate):
+                return True
         return False
 
     def get_ticket(self, cdate):
@@ -630,23 +641,16 @@ class CStock():
             return
         sql = "select * from %s where date=\"%s\"" %(self.get_redis_tick_table(cdate), cdate)
         return self.mysql_client.get(sql)
-    
+   
     def get_k_data_in_range(self, start_date, end_date, dtype = 9):
-        table_name = self.data_type_dict[dtype]
+        table_name = self.get_day_table()
         sql = "select * from %s where date between \"%s\" and \"%s\"" %(table_name, start_date, end_date)
         return self.mysql_client.get(sql)
 
     def get_k_data(self, date = None, dtype = 9):
-        table_name = self.data_type_dict[dtype] 
+        table_name = self.get_day_table()
         if date is not None:
             sql = "select * from %s where date=\"%s\"" %(table_name, date)
         else:
             sql = "select * from %s" % table_name
         return self.mysql_client.get(sql)
-
-    def is_after_release(self, code_id, _date):
-        time2Market = self.get('timeToMarket')
-        t = time.strptime(str(time2Market), "%Y%m%d")
-        y,m,d = t[0:3]
-        time2Market = datetime(y,m,d)
-        return (datetime.strptime(_date, "%Y-%m-%d") - time2Market).days > 0

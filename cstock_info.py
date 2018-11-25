@@ -9,7 +9,7 @@ import const as ct
 import tushare as ts
 from cstock import CStock 
 from log import getLogger
-from common import trace_func, create_redis_obj
+from common import trace_func, create_redis_obj, concurrent_run
 logger = getLogger(__name__)
 
 class CStockInfo:
@@ -20,7 +20,8 @@ class CStockInfo:
         self.mysql_dbs = self.mysql_client.get_all_databases()
         #self.trigger = ct.SYNCSTOCK2REDIS
         #if not self.create(): raise Exception("create stock info table:%s failed" % self.table)
-        if not self.init(): raise Exception("init stock info table failed")
+        if not self.init():
+            raise Exception("init stock info table failed")
         #if not self.register(): raise Exception("create trigger info table:%s failed" % self.trigger)
 
     def register(self):
@@ -56,20 +57,24 @@ class CStockInfo:
                                               PRIMARY KEY (code))' % self.table
         return True if self.table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.table)
 
+    def create_stock_obj(self, code):
+        try:
+            CStock(code, should_create_influxdb = True, should_create_mysqldb = True)
+            return (code, True)
+        except Exception as e:
+            return (code, False)
+
     def init(self):
         df = ts.get_stock_basics()
         if df is None: return False 
         df = df.reset_index(drop = False)
-        failed_list = list()
-        for _, code_id in df['code'].iteritems():
-            dbname = CStock.get_dbname(code_id)
-            if dbname not in self.mysql_dbs:
-                if not self.mysql_client.create_db(dbname): failed_list.append(code_id)
-        if len(failed_list) > 0:
-            logger.error("%s create failed" % failed_list)
-            return False
-        self.redis.set(ct.STOCK_INFO, _pickle.dumps(df, 2))
-        return True
+        return self.redis.set(ct.STOCK_INFO, _pickle.dumps(df, 2))
+
+    def update(self):
+        if self.init():
+            df = self.get(redis = self.redis)
+            return concurrent_run(self.create_stock_obj, df.code.tolist(), num = 500)
+        return False 
 
     @staticmethod
     def get(code = None, column = None, redis = None):
