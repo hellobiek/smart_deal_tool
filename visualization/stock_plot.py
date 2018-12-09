@@ -19,6 +19,7 @@ class CPlot():
         self.index_code = index_code
         self.base_color = '#e6daa6'
         self.k_data, self.d_data, self.i_data, self.init_date = self.read_data()
+        self.date_tickers = self.k_data.time.values
         self.volumeMin = 0
         self.volumeMax = 0
         self.priceMin = 0
@@ -63,7 +64,6 @@ class CPlot():
             i_data = i_data.loc[i_data.date.isin(cdates)]
             with open('i_data.json', 'w') as f:
                 f.write(i_data.to_json(orient='records', lines=True))
-            sys.exit(0)
         else:
             with open('k_data.json', 'r') as f:
                 k_data = pd.read_json(f.read(), orient = 'records', lines = True)
@@ -72,21 +72,22 @@ class CPlot():
             with open('i_data.json', 'r') as f:
                 i_data = pd.read_json(f.read(), orient = 'records', lines = True)
 
-            k_data = k_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount', 'outstanding', 'totals', 'adj', 'aprice', 'uprice']]
-            k_data = k_data.rename(columns = {"date": "time"})
+        k_data = k_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount', 'outstanding', 'totals', 'adj', 'aprice', 'uprice']]
+        k_data = k_data.rename(columns = {"date": "time"})
+        init_date = k_data.time.tail(1).values[0]
+        k_data.time = k_data.time.dt.strftime('%Y-%m-%d')
+        #k_data.time = pd.to_datetime(k_data.time, format='%Y-%m-%d')
+        #k_data.time = mdates.date2num(k_data.time)
+        #k_data.time = k_data.time.astype(int)
 
-            init_date = k_data.time.tail(1).values[0]
-            k_data.time = pd.to_datetime(k_data.time, format='%Y-%m-%d')
-            k_data.time = mdates.date2num(k_data.time)
-            k_data.time = k_data.time.astype(int)
+        i_data = i_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount']]
+        i_data = i_data.rename(columns = {"date": "time"})
+        i_data.time = i_data.time.dt.strftime('%Y-%m-%d')
+        #i_data.time = pd.to_datetime(i_data.time, format='%Y-%m-%d')
+        #i_data.time = mdates.date2num(i_data.time)
+        #i_data.time = i_data.time.astype(int)
 
-            i_data = i_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount']]
-            i_data = i_data.rename(columns = {"date": "time"})
-            i_data.time = pd.to_datetime(i_data.time, format='%Y-%m-%d')
-            i_data.time = mdates.date2num(i_data.time)
-            i_data.time = i_data.time.astype(int)
-
-            return k_data, d_data, i_data, init_date
+        return k_data, d_data, i_data, init_date
 
     def on_key_press(self, event):
         if event.key in 'Rr':
@@ -129,8 +130,8 @@ class CPlot():
     def plot_volume(self, k_data):
         self.volumeMax = k_data.volume.values.max()
         self.volume_ax.set_ylim(self.volumeMin, self.volumeMax)
-        self.volume_ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-        self.volume_ax.xaxis.set_major_locator(mticker.MaxNLocator(20))
+        self.price_ax.xaxis.set_major_locator(mticker.MultipleLocator(250))
+        self.price_ax.xaxis.set_major_formatter(mticker.FuncFormatter(self.format_date))
         self.volume_ax.yaxis.label.set_color("k")
         self.volume_ax.set_ylabel("volumes")
         self.volume_ax.fill_between(k_data.time, self.volumeMin, k_data.volume, facecolor = 'b', alpha = 1)
@@ -138,26 +139,33 @@ class CPlot():
 
     def plot_index(self, i_data):
         from mpl_finance import candlestick_ohlc
+        i_data.time = i_data.index
         candlestick_ohlc(self.index_ax, i_data.values, width = 1.0, colorup = 'r', colordown = 'g')
-        self.index_ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-        self.index_ax.xaxis.set_major_locator(mticker.MaxNLocator(20))
+        self.price_ax.xaxis.set_major_locator(mticker.MultipleLocator(250))
+        self.price_ax.xaxis.set_major_formatter(mticker.FuncFormatter(self.format_date))
         self.index_ax.set_ylabel("Shanghai")
         self.index_ax.yaxis.label.set_color("k")
         self.index_ax.grid(True, color = 'k', linestyle = '--')
 
+    def format_date(self, x, pos = None):
+        if x < 0 or x > len(self.date_tickers) - 1: return ''
+        return self.date_tickers[int(x)]
+
     def plot_stock(self, k_data):
         from mpl_finance import candlestick_ohlc
+        k_data.time = k_data.index
         self.priceMax = k_data.high.values.max()
         self.dateMin  = k_data.time.values.min()
         self.dateMax  = k_data.time.values.max()
+
         candlestick_ohlc(self.price_ax, k_data.values, width = 1.0, colorup = 'r', colordown = 'g')
         self.price_ax.plot(k_data.time, k_data['uprice'], 'b',  label = "无穷成本均线", linewidth = 1)
-        self.price_ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-        self.price_ax.xaxis.set_major_locator(mticker.MaxNLocator(20))
-        self.price_ax.yaxis.label.set_color('k')
         self.price_ax.set_ylabel("prices")
+        self.price_ax.yaxis.label.set_color('k')
         self.price_ax.set_xlim(self.dateMin, self.dateMax)
         self.price_ax.set_ylim(self.priceMin, self.priceMax)
+        self.price_ax.xaxis.set_major_locator(mticker.MultipleLocator(250))
+        self.price_ax.xaxis.set_major_formatter(mticker.FuncFormatter(self.format_date))
         self.price_ax.grid(True, color = 'k', linestyle = '--')
  
     def plot_distribution(self, d_data, tdate):
