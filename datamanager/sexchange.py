@@ -211,8 +211,9 @@ class StockExchange(object):
             return True
         return False
 
-    def update(self, end_date = datetime.now().strftime('%Y-%m-%d')):
-        start_date = get_day_nday_ago(end_date, num = 9, dformat = "%Y-%m-%d")
+    def update(self, end_date = None, num = 10):
+        if end_date is None: end_date = datetime.now().strftime('%Y-%m-%d')
+        start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
         succeed = True
         for mdate in get_dates_array(start_date, end_date):
             if mdate in self.balcklist: continue

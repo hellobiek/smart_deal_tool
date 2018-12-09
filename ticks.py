@@ -257,10 +257,11 @@ def exists(path):
     r = requests.head(path)
     return r.status_code == requests.codes.ok
 
-def download(output_directory):
-    _date = get_day_nday_ago(datetime.now().strftime('%Y%m%d'), num = 50)
+def download(output_directory, cdate, num = 50):
+    cdate = time.strftime("%Y%m%d", time.strptime(cdate, "%Y-%m-%d"))
+    _date = get_day_nday_ago(cdate, num = num)
     start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(_date, "%Y%m%d"))
-    data_times = pd.date_range(start_date_dmy_format, periods=10, freq='D')
+    data_times = pd.date_range(start_date_dmy_format, periods = num, freq = 'D')
     date_only_array = np.vectorize(lambda s: s.strftime('%Y%m%d'))(data_times.to_pydatetime())
     date_only_array = date_only_array[::-1]
     for _date in date_only_array:
@@ -277,6 +278,8 @@ def download(output_directory):
             wget.download(url, out=output_directory)
         except Exception as e:
             logger.error(e)
+            return False
+    return True 
 
 def unzip(file_path, tic_dir):
     zip_file = zipfile.ZipFile(file_path)

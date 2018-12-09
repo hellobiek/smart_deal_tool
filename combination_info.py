@@ -7,7 +7,7 @@ from log import getLogger
 from pandas import DataFrame
 from combination import Combination
 from pytdx.reader import CustomerBlockReader
-from common import trace_func, create_redis_obj, concurrent_run
+from common import create_redis_obj, concurrent_run
 # include index and concept in stock
 class CombinationInfo:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
@@ -64,6 +64,17 @@ class CombinationInfo:
         df = _pickle.loads(df_byte)
         if index_type is None: return df
         return df[[df.cType == index_type]]
+
+    def get_concerned_list(self):
+        df = self.get()
+        if df is None: return list()
+        df = df.reset_index(drop = True)
+        res_list = list()
+        for index, _ in df['code'].iteritems():
+            objliststr = df.at[index, 'content']
+            objlist = objliststr.split(',')
+            res_list.extend(objlist)
+        return list(set(res_list))
 
 if __name__ == '__main__':
     cm = CombinationInfo(ct.DB_INFO)

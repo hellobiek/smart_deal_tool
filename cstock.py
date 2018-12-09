@@ -14,22 +14,22 @@ from log import getLogger
 from ticks import read_tick
 from cinfluxdb import CInflux
 from datetime import datetime
-from features import base_floating_profit
+from functools import partial
+from cpython.cchip import compute_distribution, compute_oneday_distribution
+from cpython.cstock import base_floating_profit
 from base.cobj import CMysqlObj
-from common import create_redis_obj, get_years_between, transfer_date_string_to_int, transfer_int_to_date_string, is_df_has_unexpected_data
+from common import create_redis_obj, get_years_between, transfer_date_string_to_int, transfer_int_to_date_string, is_df_has_unexpected_data, concurrent_run
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 logger = getLogger(__name__)
 class CStock(CMysqlObj):
     def __init__(self, code, dbinfo = ct.DB_INFO, should_create_influxdb = False, should_create_mysqldb = False, redis_host = None):
         super(CStock, self).__init__(code, self.get_dbname(code), dbinfo, redis_host)
-        self.chip_client    = Chip()
         self.influx_client  = CInflux(ct.IN_DB_INFO, dbname = self.dbname, iredis = self.redis)
         if not self.create(should_create_influxdb, should_create_mysqldb):
             raise Exception("create stock %s table failed" % self.code)
 
     def __del__(self):
-        self.chip_client = None
         self.influx_client = None
 
     @staticmethod
@@ -138,10 +138,10 @@ class CStock(CMysqlObj):
                                                  close float,\
                                                  preclose float,\
                                                  low float,\
-                                                 volume float,\
+                                                 volume bigint,\
                                                  amount float,\
-                                                 outstanding float,\
-                                                 totals float,\
+                                                 outstanding bigint,\
+                                                 totals bigint,\
                                                  adj float,\
                                                  aprice float,\
                                                  pchange float,\
@@ -152,8 +152,12 @@ class CStock(CMysqlObj):
                                                  ppercent float,\
                                                  npercent float,\
                                                  base float,\
+                                                 ibase bigint,\
+                                                 breakup int,\
+                                                 ibreakup bigint,\
                                                  pday int,\
                                                  profit float,\
+                                                 gamekline float,\
                                                  PRIMARY KEY(date))' % table_name 
             if not self.mysql_client.create(sql, table_name): return False
         return True
@@ -217,8 +221,8 @@ class CStock(CMysqlObj):
                                              sdate varchar(10) not null,\
                                              date varchar(10) not null,\
                                              price decimal(8,2) not null,\
-                                             volume int not null,\
-                                             outstanding int not null,\
+                                             volume bigint not null,\
+                                             outstanding bigint not null,\
                                              PRIMARY KEY (pos, sdate, date, price, volume, outstanding))' % table
         return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
 
@@ -229,10 +233,11 @@ class CStock(CMysqlObj):
         prestr = self.get_pre_str()
         filename = fpath % (prestr, self.code)
         if not os.path.exists(filename): return pd.DataFrame(), None
-        df = pd.read_csv(filename, sep = ',')
-        df = df[['date', 'open', 'high', 'close', 'low', 'amount', 'volume']]
+        dheaders = ['date', 'open', 'high', 'close', 'low', 'amount', 'volume']
+        df = pd.read_csv(filename, sep = ',', usecols = dheaders)
         df = df.sort_values(by = 'date', ascending= True)
         df = df.reset_index(drop = True)
+    
         if cdate is not None:
             index_list = df.loc[df.date == transfer_date_string_to_int(cdate)].index.values
             if len(index_list) == 0: return pd.DataFrame(), None
@@ -289,8 +294,6 @@ class CStock(CMysqlObj):
         return now_date == p_date
 
     def pro_nei_chip(self, df, dist_data, preday_df = None, mdate = None):
-        import pdb
-        pdb.set_trace()
         if mdate is None:
             p_profit_vol_list = list()
             p_neighbor_vol_list = list()
@@ -306,8 +309,6 @@ class CStock(CMysqlObj):
                 p_neighbor_vol_list.append(n_val)
             df['ppercent'] = p_profit_vol_list
             df['npercent'] = p_neighbor_vol_list
-            import pdb
-            pdb.set_trace()
             df['gamekline'] = df['ppercent'] - df['ppercent'].shift(1)
             df.at[0, 'gamekline'] = df.loc[0, 'ppercent']
         else:
@@ -317,7 +318,7 @@ class CStock(CMysqlObj):
             n_val = 100 * dist_data[(dist_data.price < p_close * 1.08) & (dist_data.price > p_close * 0.92)].volume.sum() / outstanding
             df['ppercent'] = p_val
             df['npercent'] = n_val
-            df['gamekline'] = df['ppercent'] - preday_df['ppercent']
+            df['gamekline'] = df['ppercent'].values[0] - preday_df['ppercent'].values[0]
         return df
 
     def mac(self, df, data, peried = 0):
@@ -333,6 +334,7 @@ class CStock(CMysqlObj):
 
     def relative_index_strength(self, df, index_df, cdate = None):
         index_df = index_df.loc[index_df.date.isin(df.date.tolist())]
+        if len(df) != len(index_df): return 
         index_df.index = df.loc[df.date.isin(index_df.date.tolist())].index
         if cdate is None:
             df['sai'] = 0
@@ -351,17 +353,14 @@ class CStock(CMysqlObj):
         return df 
 
     def set_today_data(self, df, index_df, pre_date, cdate):
-        if df.empty:
-            logger.error("read empty file for:%s" % self.code)
-            return False
-
         day_table = self.get_day_table()
         if self.is_date_exists(day_table, cdate): 
-            logger.debug("existed data for code:%s, date:%s" % (self.code, zdate))
+            logger.debug("existed data for code:%s, date:%s" % (self.code, cdate))
             return True
+       
+        index_df = index_df.loc[index_df.date == cdate]
 
         preday_df = self.get_k_data(date = pre_date)
-        preday_df = preday_df.drop_duplicates()
 
         if preday_df is None:
             logger.error("%s get pre date data failed." % self.code)
@@ -380,34 +379,28 @@ class CStock(CMysqlObj):
         df = self.transfer2adjusted(df)
 
         df = self.relative_index_strength(df, index_df, cdate)
+        if df is None:
+            logger.error("length of code %s is not equal to inedx." % self.code)
+            return False
 
         #set chip distribution
         dist_df = df.append(preday_df, sort = False)
         dist_df = dist_df.sort_values(by = 'date', ascending = True)
 
-        logger.info("commpute %s distribution for date:%s." % (self.code, cdate))
         dist_data = self.compute_distribution(dist_df, cdate)
         if dist_data.empty:
             logger.error("%s chip distribution compute failed." % self.code)
             return False
 
-        write_chip_flag = self.set_chip_distribution(dist_data, zdate = cdate)
-
-        if write_chip_flag:
+        if self.set_chip_distribution(dist_data, zdate = cdate):
             df = self.mac(df, dist_data, 0)
             df = self.pro_nei_chip(df, dist_data, preday_df, cdate)
-
             if is_df_has_unexpected_data(df):
                 logger.error("data for %s is not clean." % self.code)
                 return False
-
-            write_kdata_flag = self.mysql_client.set(df, self.get_day_table())
-            if write_kdata_flag: 
+            if self.mysql_client.set(df, self.get_day_table()):
                 return self.redis.sadd(day_table, cdate)
-            else:
-                return False
-        else:
-            return False
+        return False
 
     def set_all_data(self, quantity_change_info, price_change_info, index_info):
         df, _ = self.read()
@@ -424,36 +417,30 @@ class CStock(CMysqlObj):
 
         #compute strength relative index
         df = self.relative_index_strength(df, index_info)
-
+        if df is None:
+            logger.error("length of code %s is not equal to inedx." % self.code)
+            return False
+        
         #set chip distribution
-        logger.info("commpute %s distribution." % self.code)
         dist_data = self.compute_distribution(df)
-        logger.info("commpute %s distribution done." % self.code)
         if dist_data.empty:
             return False
 
-        logger.info("set %s distribution." % self.code)
-        if not self.set_chip_distribution(dist_data): return False
+        if not self.set_chip_distribution(dist_data):
+            return False
 
         df = self.mac(df, dist_data, 0)
         df = self.pro_nei_chip(df, dist_data)
-
-        day_table = self.get_day_table()
-        existed_date_list = self.get_existed_keys_list(day_table)
-        df = df[~df.date.isin(existed_date_list)]
-        if df.empty:
-            return True
 
         if is_df_has_unexpected_data(df):
             logger.error("data for %s is not clean." % self.code)
             return False
 
-        logger.info("set %s data." % self.code)
-        if not self.mysql_client.set(df, day_table): return False
-        if 0 == self.redis.sadd(day_table, *set(df.date.tolist())):
-            logger.error("sadd %s %s for %s failed" % (self.code, day_table))
-            return False
-        return True
+        day_table = self.get_day_table()
+        if self.mysql_client.delsert(df, day_table): 
+            self.redis.sadd(day_table, *set(df.date.tolist()))
+            return True
+        return False
 
     def get_base_floating_profit(self, date = None):
         return self.get_k_data(date)
@@ -464,8 +451,7 @@ class CStock(CMysqlObj):
     def set_base_floating_profit(self):
         df = self.get_k_data()
         df = base_floating_profit(df, num = ct.PRE_DAYS_NUM)
-        df = df[['date', 'base', 'ppchange', 'pday', 'profit']]
-        return self.mysql_client.update(df, self.get_day_table(), columns = ['base', 'ppchange', 'pday', 'profit'], pri_keys = ['date'])
+        return self.mysql_client.delsert(df, self.get_day_table())
 
     def set_k_data(self, bonus_info, index_info, cdate = None):
         if not self.has_on_market(datetime.now().strftime('%Y-%m-%d')): return True
@@ -501,13 +487,11 @@ class CStock(CMysqlObj):
 
     def compute_distribution(self, data, zdate = None):
         data = data[['date', 'open', 'aprice', 'outstanding', 'volume', 'amount']]
-        data = data.drop_duplicates()
         if zdate is None:
-            df = self.chip_client.compute_distribution(data)
+            df = compute_distribution(data)
         else:
             mdate_list = data.date.tolist()
-            pre_date = mdate_list[0]
-            now_date = mdate_list[1]
+            pre_date, now_date = mdate_list
             if now_date != zdate:
                 logger.error("%s data new date %s is not equal to now date %s" % (self.code, now_date, zdate))
                 return pd.DataFrame()
@@ -516,51 +500,43 @@ class CStock(CMysqlObj):
             if pre_date_dist.empty:
                 logger.error("pre data for %s dist %s is empty" % (self.code, pre_date))
                 return pd.DataFrame()
-
             pre_date_dist = pre_date_dist.sort_values(by = 'pos', ascending= True)
             pos = data.loc[data.date == zdate].index[0]
             volume = data.loc[data.date == zdate, 'volume'].tolist()[0]
             aprice = data.loc[data.date == zdate, 'aprice'].tolist()[0]
             outstanding = data.loc[data.date == zdate, 'outstanding'].tolist()[0]
             pre_outstanding = data.loc[data.date == pre_date, 'outstanding'].tolist()[0]
-
-            df = self.chip_client.adjust_volume(pre_date_dist, pos, volume, aprice, pre_outstanding, outstanding)
-            df.date = zdate
-            df.outstanding = outstanding
-            df = df.append(pd.DataFrame([[pos, now_date, now_date, aprice, volume, outstanding]], columns = ct.CHIP_COLUMNS))
-            df = df[df.volume != 0]
-            df = df.reset_index(drop = True)
+            df = compute_oneday_distribution(pre_date_dist, zdate, pos, volume, aprice, pre_outstanding, outstanding)
         return df
+
+    def set_chip_table(self, df, myear):
+        #get new df
+        tmp_df = df.loc[df.date.str.startswith(myear)]
+        tmp_df = tmp_df.round(2) 
+        tmp_df = tmp_df.reset_index(drop = True)
+        #get chip table name
+        chip_table = self.get_chip_distribution_table(myear)
+        if not self.is_table_exists(chip_table):
+            if not self.create_chip_table(chip_table):
+                logger.error("create chip table:%s failed" % chip_table)
+                return (myear, False)
+            if not self.mysql_client.set(tmp_df, chip_table):
+                return (myear, False)
+        else:
+            #update df to mysql
+            if not self.mysql_client.delsert(tmp_df, chip_table):
+                return (myear, False)
+        self.redis.sadd(chip_table, *set(tmp_df.date.tolist()))
+        return (myear, True)
 
     def set_chip_distribution(self, df, zdate = None):
         if zdate is None:
             time2Market = self.get('timeToMarket')
-            start_year  = int(time2Market / 10000)
-            end_year    = int(datetime.now().strftime('%Y'))
-            year_list   = get_years_between(start_year, end_year)
-            res_flag    = True
-            for myear in year_list:
-                #get chip table name
-                chip_table = self.get_chip_distribution_table(myear)
-                #make sure chip table existed
-                if not self.is_table_exists(chip_table):
-                    if not self.create_chip_table(chip_table):
-                        logger.error("create chip table:%s failed" % chip_table)
-                        return False
-
-                #get new df
-                tmp_df = df.loc[df.date.str.startswith(myear)]
-                tmp_df = tmp_df.round(2) 
-                tmp_df = tmp_df.reset_index(drop = True)
-                
-                import pdb
-                pdb.set_trace()
-
-                #update df to mysql
-                if self.mysql_client.upsert(tmp_df, chip_table, pri_keys = ['pos', 'sdate', 'date', 'price', 'volume', 'outstanding']):
-                    self.redis.sadd(chip_table, *set(tmp_df.date.tolist()))
-                    return False
-            return True
+            start_year = int(time2Market / 10000)
+            end_year = int(datetime.now().strftime('%Y'))
+            year_list = get_years_between(start_year, end_year)
+            cfunc = partial(self.set_chip_table, df)
+            return concurrent_run(cfunc, year_list, num = 20)
         else:
             chip_table = self.get_chip_distribution_table(zdate)
             if not self.is_table_exists(chip_table):
@@ -581,7 +557,7 @@ class CStock(CMysqlObj):
                     logger.debug("finish record chip:%s. table:%s" % (self.code, chip_table))
                     return True
             return False
-        
+     
     def set_ticket(self, cdate = None):
         cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
         if not self.has_on_market(cdate):
@@ -654,3 +630,15 @@ class CStock(CMysqlObj):
         else:
             sql = "select * from %s" % table_name
         return self.mysql_client.get(sql)
+
+if __name__ == '__main__':
+    cdate = None
+    cstock = CStock('601318')
+    from cindex import CIndex
+    from line_profiler import LineProfiler
+    lp = LineProfiler()
+    lp_wrapper = lp(cstock.set_k_data)
+    index_info = CIndex('000001').get_k_data(cdate)
+    bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
+    lp_wrapper(bonus_info, index_info)
+    lp.print_stats()

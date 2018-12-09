@@ -1,34 +1,8 @@
-#-*- coding: utf-8 -*-
+# cython: language_level=3
 import numpy as np
-import pandas as pd
-def MA(data, peried):
-    return data.rolling(peried).mean()
-
-def SMA(d, N):
-    last = np.nan
-    v = pd.Series(index=d.index)
-    for key in d.index:
-        x = d[key]
-        x1 = (x + (N - 1) * last) / N if last == last else x
-        last = x1
-        v[key] = x1
-        if x1 != x1: last = x
-    return v
-
-def KDJ(data, N1=9, N2=3, N3=3):
-    low  = data.low.rolling(N1).min()
-    high = data.high.rolling(N1).max()
-    rsv  = (data.close - low) / (high - low) * 100
-    k = SMA(rsv, N2)
-    d = SMA(k, N3)
-    j = k * 3 - d * 2
-    data['K'] = k
-    data['D'] = d
-    data['J'] = j
-    return data
-
-def get_effective_breakup_index(break_index_lists, num, df):
-    break_index = 0
+def get_effective_breakup_index(break_index_lists, long num, df):
+    cdef long break_index = 0, now_price = 0
+    cdef float pre_price = 0.0
     effective_breakup_index_list = list()
     while break_index < len(break_index_lists):
         pre_price = df.at[break_index_lists[break_index], 'uprice']
@@ -48,6 +22,12 @@ def get_effective_breakup_index(break_index_lists, num, df):
                 if len(df) - break_index_lists[break_index] > num:
                     effective_breakup_index_list.append(break_index_lists[break_index])
         break_index += 1
+    #ibase means inex of base(effective break up points)
+    df['ibase'] = 0
+    cdef long pre_base_index = 0
+    for _index, ibase in df.ibase.iteritems():
+        if _index != 0 and _index in effective_breakup_index_list: pre_base_index = _index
+        df.at[_index, 'ibase'] = pre_base_index
     return effective_breakup_index_list
 
 def get_breakup_data(df):
@@ -60,10 +40,18 @@ def get_breakup_data(df):
     df['breakup'] = 0
     df.at[(df.pre_pos <= 0) & (df.pos > 0), 'breakup'] = 1
     df.at[(df.pre_pos >= 0) & (df.pos < 0), 'breakup'] = -1
-    df = df.drop(['pos', 'pre_pos'],  axis=1)
-    return df
+    #ibreak up means index of break up
+    df['ibreakup'] = 0
+    cdef long pre_index = 0
+    for _index, breakup in df.breakup.iteritems():
+        if _index != 0 and breakup != 0: pre_index = _index
+        df.at[_index, 'ibreakup'] = pre_index
+    return df.drop(['pos', 'pre_pos'], axis=1)
 
-def base_floating_profit(df, num, mdate = None):
+def base_floating_profit(df, long num, mdate = None):
+    cdef int direction = 0
+    cdef float base, ppchange
+    cdef long s_index = 0, e_index = 0
     if mdate is None:
         df = get_breakup_data(df)
         break_index_lists = df.loc[df.breakup != 0].index.tolist()
@@ -74,7 +62,6 @@ def base_floating_profit(df, num, mdate = None):
         if len(effective_breakup_index_list) == 0:
             df['profit'] = (df.close - df.uprice) / df.uprice
         else:
-            s_index = 0
             for e_index in effective_breakup_index_list:
                 if s_index == e_index:
                     if len(effective_breakup_index_list) == 1:
@@ -100,4 +87,4 @@ def base_floating_profit(df, num, mdate = None):
                         df.at[e_index:, 'ppchange'] = ppchange
                         df.at[e_index:, 'pday'] = direction * (df.loc[e_index:].index - e_index + 1)
             df['profit'] = (np.log(df.close) - np.log(df.base)).abs() / np.log(df.ppchange)
-    return df
+    return df.drop(['ppchange'], axis=1)

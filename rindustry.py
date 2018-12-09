@@ -1,6 +1,5 @@
 #coding=utf-8
 import time
-import cmysql
 import _pickle
 import datetime
 from gevent.pool import Pool
@@ -9,19 +8,20 @@ from functools import partial
 import const as ct
 import numpy as np
 import pandas as pd
-import tushare as ts
 from common import delta_days, create_redis_obj, get_day_nday_ago, get_dates_array
 from log import getLogger
+from cmysql import CMySQL
 from cindex import CIndex
 from ccalendar import CCalendar
 from collections import OrderedDict
 from industry_info import IndustryInfo
+
 class RIndexIndustryInfo:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
         self.dbname = self.get_dbname()
         self.logger = getLogger(__name__)
-        self.mysql_client = cmysql.CMySQL(dbinfo, self.dbname, iredis = self.redis)
+        self.mysql_client = CMySQL(dbinfo, self.dbname, iredis = self.redis)
         if not self.mysql_client.create_db(self.get_dbname()): raise Exception("init rindex stock database failed")
 
     @staticmethod
@@ -34,7 +34,6 @@ class RIndexIndustryInfo:
 
     def is_date_exists(self, table_name, cdate):
         if self.redis.exists(table_name):
-            return False
             return cdate in set(str(tdate, encoding = "utf8") for tdate in self.redis.smembers(table_name))
         return False
 
@@ -51,7 +50,7 @@ class RIndexIndustryInfo:
                                              close float,\
                                              preclose float,\
                                              low float,\
-                                             volume float,\
+                                             volume bigint,\
                                              amount float,\
                                              preamount float,\
                                              pchange float,\
@@ -93,10 +92,8 @@ class RIndexIndustryInfo:
         sql = "select * from %s where date=\"%s\"" % (self.get_table_name(cdate), cdate)
         return self.mysql_client.get(sql)
 
-    def get_industry_data(self, date, code):
-        sql = "select * from day where date=\"%s\"" % date
-        self.mysql_client.changedb(CIndex.get_dbname(code))
-        return (code, self.mysql_client.get(sql))
+    def get_industry_data(self, cdate, code):
+        return (code, CIndex(code).get_k_data(cdate))
 
     def generate_data(self, cdate):
         good_list = list()
@@ -140,23 +137,22 @@ class RIndexIndustryInfo:
             self.redis.sadd(self.dbname, table_name)
         if self.is_date_exists(table_name, cdate): 
             self.logger.debug("existed rindex table:%s, date:%s" % (table_name, cdate))
-            return False
+            return True
         df = self.generate_data(cdate)
         if df.empty: return False
         self.redis.set(ct.TODAY_ALL_INDUSTRY, _pickle.dumps(df, 2))
         if self.mysql_client.set(df, table_name):
-            self.redis.sadd(table_name, cdate)
-            return True
+            return self.redis.sadd(table_name, cdate)
         return False
 
-    def update(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 10):
+    def update(self, end_date = None, num = 30):
+        if end_date is None: end_date = datetime.now().strftime('%Y-%m-%d')
         start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
         date_array = get_dates_array(start_date, end_date)
         succeed = True
         for mdate in date_array:
             if CCalendar.is_trading_day(mdate, redis = self.redis):
-                res = self.set_data(mdate)
-                if not res:
+                if not self.set_data(mdate):
                     self.logger.error("%s rindustry set failed" % mdate)
                     succeed = False
                 else:

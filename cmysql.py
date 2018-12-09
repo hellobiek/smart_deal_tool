@@ -110,7 +110,7 @@ class CMySQL:
         query       = ''
         cols        = ', '.join(['{}'.format(col) for col in columns])
         placeholder = ', '.join(['%({})s'.format(col) for col in columns])
-        updates     = ', '.join(['{}=%({})s'.format(col, col) for col in columns])
+        updates     = ', '.join(['{}=VALUES({})'.format(col, col) for col in columns])
         query       = "INSERT INTO {} ({}) VALUES ({}) ON DUPLICATE KEY UPDATE {};".format(table, cols, placeholder, updates)
         query.split()
         query       = ' '.join(query.split())
@@ -119,23 +119,23 @@ class CMySQL:
     def upsert(self, df, table, pri_keys = list()):
         #if data in mysql, udate to new value,
         #if not in mysql, just append to mysql
+        columns = df.columns.tolist()
+        insert_items = df.to_dict(orient = 'records')
+        sql = self.create_upsert_query(table, columns, pri_keys)
+        return self.executemany(sql, params = insert_items)
+
+    def delsert(self, df, table):
+        if self.exec_sql("truncate table %s;" % table):
+            return self.set(df, table)
+        return False
+   
+    def executemany(self, sql, params = None):
         res = True
         try:
-            columns = df.columns.tolist()
-            conn = db.connect(host=self.dbinfo['host'],user=self.dbinfo['user'],passwd=self.dbinfo['password'],db=self.dbname,charset=ct.UTF8,connect_timeout=3)
+            conn = db.connect(host = self.dbinfo['host'], user = self.dbinfo['user'], passwd = self.dbinfo['password'], db = self.dbname, charset = ct.UTF8, connect_timeout = 30)
             cur = conn.cursor()
-
-            import pdb
-            pdb.set_trace()
-
-            insert_values = df.to_dict(orient = 'records')
-            sql = self.create_upsert_query(table, columns, pri_keys)
-            cur.execute(sql, insert_values)
+            cur.executemany(sql, params)
             conn.commit()
-            #for row in insert_values:
-            #    sql = self.create_upsert_query(table, columns, pri_keys)
-            #    cur.execute(sql, row)
-            #    conn.commit()
         except Exception as e:
             self.logger.info(e)
             if 'conn' in dir(): conn.rollback()
@@ -144,23 +144,23 @@ class CMySQL:
             if 'curosr' in dir(): cursor.close()
             if 'conn' in dir(): conn.close()
         return res
-    
+
     def create_update_query(self, table):
         query       = ''
         cols        = ', '.join(['{}'.format(col) for col in columns])
         placeholder = ', '.join(['%({})s'.format(col) for col in columns])
         updates     = ', '.join(['{}=%({})s'.format(col, col) for col in columns])
-        query       = "DELETE FROM {} WHERE {} IN ({0});".format(table, cols, placeholder, updates)
+        query       = "UPDATE {} SET {} WHERE {} IN ({0});".format(table, cols, placeholder, updates)
         query.split()
         query       = ' '.join(query.split())
         return query
 
-    def update(self, df, table, pri_keys, duplicated_key_dict):
+    def update(self, df, table, columns, pri_keys):
         #first remove the duplicated values, then add the new value in df
+        update_items = df.to_dict(orient = 'records')
         query = self.create_update_query(table)
-        if self.exec_sql(query, duplicated_key_dict):
-            return self.set(df, table)
-        return False
+        pdb.set_trace()
+        return self.executemany(query, params = update_items)
 
     def set(self, data_frame, table):
         res = False
@@ -205,10 +205,7 @@ class CMySQL:
             try:
                 conn = db.connect(host=self.dbinfo['host'],user=self.dbinfo['user'],passwd=self.dbinfo['password'],db=self.dbname,charset=ct.UTF8,connect_timeout=3)
                 cur = conn.cursor()
-                if params == None:
-                    cur.execute(sql)
-                else:
-                    cur.execute(sql, params)
+                cur.execute(sql, params)
                 conn.commit()
                 hasSucceed = True
             except db.Warning as w:

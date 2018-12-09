@@ -1,6 +1,8 @@
 #coding=utf-8
 import os
 import sys
+from os.path import abspath, dirname
+sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import numpy as np
 import pandas as pd
 from cindex import CIndex
@@ -46,7 +48,7 @@ class CPlot():
 
     def read_data(self):
         if not os.path.exists('i_data.json'):
-            obj = CStock(self.code)
+            obj = CStock(self.code, redis_host = '127.0.0.1')
             k_data = obj.get_k_data()
             with open('k_data.json', 'w') as f:
                 f.write(k_data.to_json(orient='records', lines=True))
@@ -70,7 +72,7 @@ class CPlot():
             with open('i_data.json', 'r') as f:
                 i_data = pd.read_json(f.read(), orient = 'records', lines = True)
 
-            k_data = k_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount', 'outstanding', 'totals', 'adj', 'aprice', 'uprice', '60price']]
+            k_data = k_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount', 'outstanding', 'totals', 'adj', 'aprice', 'uprice']]
             k_data = k_data.rename(columns = {"date": "time"})
 
             init_date = k_data.time.tail(1).values[0]
@@ -149,7 +151,6 @@ class CPlot():
         self.dateMin  = k_data.time.values.min()
         self.dateMax  = k_data.time.values.max()
         candlestick_ohlc(self.price_ax, k_data.values, width = 1.0, colorup = 'r', colordown = 'g')
-        self.price_ax.plot(k_data.time, k_data['60price'], 'm', label = "60日成本均线", linewidth = 1)
         self.price_ax.plot(k_data.time, k_data['uprice'], 'b',  label = "无穷成本均线", linewidth = 1)
         self.price_ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
         self.price_ax.xaxis.set_major_locator(mticker.MaxNLocator(20))
@@ -183,5 +184,5 @@ class CPlot():
         plt.show()
 
 if __name__ == '__main__':
-    cp = CPlot('002153')
+    cp = CPlot('601318')
     cp.plot()

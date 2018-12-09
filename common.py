@@ -53,13 +53,15 @@ def get_years_between(start, end):
     year_format = time.strftime("%Y", time.strptime(str(start), "%Y"))
     data_times = pd.date_range(year_format, periods = num_of_years, freq='Y')
     year_only_array = np.vectorize(lambda s: s.strftime('%Y'))(data_times.to_pydatetime())
-    return year_only_array
+    return year_only_array.tolist()
 
-def get_dates_array(start_date, end_date, dformat = "%Y-%m-%d"):
+def get_dates_array(start_date, end_date, dformat = "%Y-%m-%d", asending = False):
     num_days = delta_days(start_date, end_date, dformat)
     start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(start_date, dformat))
     data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
     date_only_array = np.vectorize(lambda s: s.strftime(dformat))(data_times.to_pydatetime())
+    if asending:
+        return date_only_array
     date_only_array = date_only_array[::-1]
     return date_only_array
 
@@ -248,5 +250,7 @@ def concurrent_run(mfunc, todo_list, num = 10, max_retry_times = 10):
 
 def is_df_has_unexpected_data(df):
     if not df[df.isin([np.nan, np.inf, -np.inf]).any(1)].empty:
+        return True
+    if not df[pd.isnull(df).any(1)].empty:
         return True
     return False

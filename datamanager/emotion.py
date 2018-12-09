@@ -10,7 +10,8 @@ from cmysql import CMySQL
 from log import getLogger
 from datetime import datetime
 from rstock import RIndexStock
-from common import create_redis_obj
+from ccalendar import CCalendar
+from common import create_redis_obj, get_day_nday_ago, get_dates_array
 class Emotion:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.dbinfo = dbinfo
@@ -35,17 +36,30 @@ class Emotion:
         return self.mysql_client.get(sql)
 
     def get_stock_data(self, cdate):
-
         df_byte = self.redis.get(ct.TODAY_ALL_STOCK)
         if df_byte is None: return None
         df = _pickle.loads(df_byte)
         return df.loc[df.date == date]
 
+    def update(self, end_date = None, num = 9):
+        if end_date is None: end_date = datetime.now().strftime('%Y-%m-%d')
+        start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
+        succeed = True
+        for mdate in get_dates_array(start_date, end_date):
+            if CCalendar.is_trading_day(mdate, redis = self.redis):
+                if not self.set_score(mdate):
+                    succeed = False
+                    self.logger.info("set score for %s set failed" % mdate)
+                else:
+                    self.logger.info("set score for %s set succcess" % mdate)
+        return succeed
+
     def set_score(self, cdate = datetime.now().strftime('%Y-%m-%d')):
+        return True
         stock_info = self.rstock_client.get_data(cdate)
         limit_info = CLimit(self.dbinfo).get_data(cdate)
         if stock_info.empty or limit_info.empty:
-            self.logger.error("get info failed")
+            self.logger.error("info is empty failed")
             return False
 
         limit_up_list = limit_info[(limit_info.pchange > 0) & (limit_info.prange != 0)].reset_index(drop = True).code.tolist()

@@ -33,7 +33,7 @@ from rindustry import RIndexIndustryInfo
 from combination_info import CombinationInfo
 from futuquant.common.constant import SubType
 from subscriber import Subscriber, StockQuoteHandler, TickerHandler
-from common import is_trading_time, delta_days, create_redis_obj, add_prifix, add_index_prefix, kill_process, concurrent_run
+from common import is_trading_time, delta_days, create_redis_obj, add_prifix, add_index_prefix, kill_process, concurrent_run, get_day_nday_ago, get_dates_array
 pd.options.mode.chained_assignment = None #default='warn'
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -81,15 +81,11 @@ class DataManager:
         return mor_open_time < now_time < mor_close_time
 
     def collect_combination_runtime_data(self):
-        obj_pool = Pool(10)
-        for code_id in self.combination_objs:
-            try:
-                if obj_pool.full(): obj_pool.join()
-                obj_pool.spawn(self.combination_objs[code_id].run)
-            except Exception as e:
-                self.logger.info(e)
-        obj_pool.join()
-        obj_pool.kill()
+        def _combination_run(code_id):
+            self.combination_objs[code_id].run()
+            return (code_id, True)
+        todo_iplist = list(self.combination_objs.keys())
+        return concurrent_run(_combination_run, todo_iplist, num = 10)
 
     def collect_stock_runtime_data(self):
         if self.ticker_handler.empty(): return
@@ -103,7 +99,7 @@ class DataManager:
                 self.stock_objs[code_id].run(df.loc[df.code == code_str])
 
     def init_real_stock_info(self):
-        concerned_list = self.get_concerned_list()
+        concerned_list = self.comb_info_client.get_concerned_list()
         prefix_concerned_list = [add_prifix(code) for code in concerned_list]
         ret = self.subscriber.subscribe(prefix_concerned_list, SubType.TICKER, self.ticker_handler)
         if 0 == ret:
@@ -164,140 +160,143 @@ class DataManager:
                 self.logger.error(e)
             time.sleep(sleep_time)
 
-    def set_update_info(self, step_length, _date = None, filename = ct.STEPFILE):
+    def set_update_info(self, step_length, exec_date, cdate = None, filename = ct.STEPFILE):
         step_info = dict()
-        if _date is None: _date = 'none'
-        step_info[_date] = step_length
+        if cdate is None: cdate = 'none'
+        step_info[cdate] = dict()
+        step_info[cdate]['step'] = step_length
+        step_info[cdate]['date'] = exec_date
         with open(filename, 'w') as f:
             json.dump(step_info, f)
 
-    def get_update_info(self, _date = None, filename = ct.STEPFILE):
-        if _date is None: _date = 'none'
-        if not os.path.exists(filename): return 0
-        with open(filename, 'r') as f:
-            step_info = json.load(f)
-        return step_info[_date] if _date in step_info else 0
+    def get_update_info(self, cdate = None, filename = ct.STEPFILE):
+        if cdate is None:
+            cdate = 'none'
+            exec_date = datetime.now().strftime('%Y-%m-%d')
+        else:
+            exec_date = cdate
+        if not os.path.exists(filename): return (0, exec_date)
+        with open(filename, 'r') as f: step_info = json.load(f)
+        if cdate not in step_info: return (0, exec_date)
+        return (step_info[cdate]['step'], step_info[cdate]['date'])
 
     def bootstrap(self, cdate = None):
-        finished_step = self.get_update_info(cdate)
+        finished_step, exec_date = self.get_update_info(cdate)
         self.logger.info("enter updating.%s" % finished_step)
         if finished_step < 1:
             if not self.cal_client.init():
                 self.logger.error("cal_client init failed")
                 return False
-            self.set_update_info(1, cdate)
+            self.set_update_info(1, exec_date, cdate)
 
         if finished_step < 2:
             if not self.index_info_client.update():
                 self.logger.error("index_info init failed")
                 return False
-            self.set_update_info(2, cdate)
+            self.set_update_info(2, exec_date, cdate)
 
         if finished_step < 3:
             if not self.stock_info_client.update():
                 self.logger.error("stock_info init failed")
                 return False
-            self.set_update_info(3, cdate)
+            self.set_update_info(3, exec_date, cdate)
 
         if finished_step < 4:
             if not self.comb_info_client.update():
                 self.logger.error("comb_info init failed")
                 return False
-            self.set_update_info(4, cdate)
+            self.set_update_info(4, exec_date, cdate)
 
         if finished_step < 5:
             if not self.industry_info_client.update():
                 self.logger.error("industry_info init failed")
                 return False
-            self.set_update_info(5, cdate)
+            self.set_update_info(5, exec_date, cdate)
 
         if finished_step < 6:
-            if not self.download_and_extract():
+            if not self.download_and_extract(exec_date):
                 self.logger.error("download_and_extract failed")
                 return False
-            self.set_update_info(6, cdate)
+            self.set_update_info(6, exec_date, cdate)
 
         if finished_step < 7:
             if not self.init_tdx_index_info(cdate):
                 self.logger.error("init_tdx_index_info failed")
                 return False
-            self.set_update_info(7, cdate)
+            self.set_update_info(7, exec_date, cdate)
 
         if finished_step < 8:
+            if not self.sh_exchange_client.update(exec_date, num = 30):
+                self.logger.error("sh exchange update failed")
+                return False
+            self.set_update_info(8, exec_date, cdate)
+
+        if finished_step < 9:
+            if not self.sz_exchange_client.update(exec_date, num = 30):
+                self.logger.error("sz exchange update failed")
+                return False
+            self.set_update_info(9, exec_date, cdate)
+
+        if finished_step < 10:
+            if not self.init_index_components_info(exec_date):
+                self.logger.error("init index components info failed")
+                return False
+            self.set_update_info(10, exec_date, cdate)
+
+        if finished_step < 11:
             if not self.init_industry_info(cdate):
                 self.logger.error("init_industry_info failed")
                 return False
-            self.set_update_info(8, cdate)
+            self.set_update_info(11, exec_date, cdate)
 
-        if finished_step < 9:
-            if not self.init_limit_info(cdate):
+        if finished_step < 12: 
+            if not self.rindustry_info_client.update(exec_date):
+                self.logger.error("init %s rindustry info failed" % exec_date)
+                return False
+            self.set_update_info(12, exec_date, cdate)
+
+        if finished_step < 13:
+            if not self.limit_client.update(exec_date):
                 self.logger.error("init_limit_info failed")
                 return False
-            self.set_update_info(9, cdate)
+            self.set_update_info(13, exec_date, cdate)
 
-        if finished_step < 10:
-            if not self.init_yesterday_hk_info(cdate):
+        if finished_step < 14:
+            if not self.init_yesterday_hk_info(exec_date):
                 self.logger.error("init_yesterday_hk_info failed")
                 return False
-            self.set_update_info(10, cdate)
+            self.set_update_info(14, exec_date, cdate)
 
-        if finished_step < 11:
-            if not self.init_yesterday_margin(cdate):
+        if finished_step < 15:
+            if not self.init_yesterday_margin(exec_date):
                 self.logger.error("init_yesterday_margin failed")
                 return False
-            self.set_update_info(11, cdate)
+            self.set_update_info(15, exec_date, cdate)
 
-        if finished_step < 12:
+        if finished_step < 16:
             if not self.init_stock_info(cdate):
                 self.logger.error("init_stock_info set failed")
                 return False
-            self.set_update_info(12, cdate)
+            self.set_update_info(16, exec_date, cdate)
 
-        self.logger.info("updating succeed")
-        import sys
-        sys.exit(0)
-
-        if finished_step < 13:
+        if finished_step < 17:
             if not self.init_base_float_profit():
                 self.logger.error("init base float profit for all stock")
                 return False
-            self.set_update_info(13, cdate)
+            self.set_update_info(17, exec_date, cdate)
 
-        if finished_step < 14:
-            if not self.rindex_stock_data_client.set_k_data(cdate):
+        if finished_step < 18:
+            if not self.rindex_stock_data_client.update(exec_date, num = 250):
                 self.logger.error("rindex_stock_data set failed")
                 return False
-            self.set_update_info(14, cdate)
+            self.set_update_info(18, exec_date, cdate)
 
-        if finished_step < 15:
-            if not self.emotion_client.set_score(cdate):
+        if finished_step < 19:
+            if not self.emotion_client.update(exec_date, num = 2):
                 self.logger.error("emotion set failed")
                 return False
-            self.set_update_info(15, cdate)
+            self.set_update_info(19, exec_date, cdate)
 
-        if finished_step < 16:
-            if not self.sh_exchange_client.update(cdate):
-                self.logger.error("sh exchange update failed")
-                return False
-            self.set_update_info(16, cdate)
-    
-        if finished_step < 17:
-            if not self.sz_exchange_client.update(cdate):
-                self.logger.error("sz exchange update failed")
-                return False
-            self.set_update_info(17, cdate)
-
-        if finished_step < 18: 
-            if not self.init_today_index_components_info(cdate):
-                self.logger.error("init today index info failed")
-                return False
-            self.set_update_info(18, cdate)
-
-        if finished_step < 19: 
-            if not self.rindustry_info_client.update(cdate):
-                self.logger.error("init today rindustry info failed")
-                return False
-            self.set_update_info(19, cdate)
         self.logger.info("updating succeed")
         return True
         
@@ -315,17 +314,6 @@ class DataManager:
                 self.logger.error(e)
             time.sleep(sleep_time)
 
-    def get_concerned_list(self):
-        combination_info = self.comb_info_client.get()
-        if combination_info is None: return list()
-        combination_info = combination_info.reset_index(drop = True)
-        res_list = list()
-        for index, _ in combination_info['code'].iteritems():
-            objliststr = combination_info.loc[index]['content']
-            objlist = objliststr.split(',')
-            res_list.extend(objlist)
-        return list(set(res_list))
-
     def init_combination_info(self):
         trading_info = self.comb_info_client.get()
         for _, code_id in trading_info['code'].iteritems():
@@ -334,36 +322,42 @@ class DataManager:
 
     def init_base_float_profit(self):
         def _set_base_float_profit(code_id):
-            self.logger.info("%s enter base float profit" % code_id)
             _obj = CStock(code_id, should_create_mysqldb = False)
             return (code_id, True) if _obj.set_base_floating_profit() else (code_id, False)
-
         #df = self.stock_info_client.get()
         #failed_list = df.code.tolist()
         #failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
-
         failed_list = ['601318']
         return concurrent_run(_set_base_float_profit, failed_list, num = 500)
 
     def init_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, index_info, code_id):
-            self.logger.info("%s set stock info" % code_id)
             _obj = CStock(code_id)
             return (code_id, True) if _obj.set_k_data(bonus_info, index_info, _date) else (code_id, False) 
 
-        index_info  = CIndex('000001').get_k_data(cdate)
-        if index_info.empty: return False 
-
         #get stock bonus info
-        bonus_info  = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
+        bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',',
+                      dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
 
+        index_info = CIndex('000001').get_k_data()
+        if index_info is None or index_info.empty: return False
+    
         #failed_list = df.code.tolist()
         #df = self.stock_info_client.get()
         #failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
-
         failed_list = ['601318']
-        cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
-        return concurrent_run(cfunc, failed_list, num = 500)
+        if cdate is None:
+            cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
+            return concurrent_run(cfunc, failed_list, num = 500)
+        else:
+            succeed = True
+            start_date = get_day_nday_ago(cdate, num = 3, dformat = "%Y-%m-%d")
+            for mdate in get_dates_array(start_date, cdate, asending = True):
+                if self.cal_client.is_trading_day(mdate):
+                    cfunc = partial(_set_stock_info, mdate, bonus_info, index_info)
+                    if not concurrent_run(cfunc, failed_list, num = 500):
+                        succeed = False
+            return succeed
 
     def init_limit_info(self, cdate):
         return self.limit_client.update(cdate)
@@ -396,7 +390,8 @@ class DataManager:
         kill_process("show-component-extension-options")
         return succeed
 
-    def init_today_index_components_info(self, cdate = datetime.now().strftime('%Y-%m-%d')):
+    def init_index_components_info(self, cdate = None):
+        if cdate is None: cdate = datetime.now().strftime('%Y-%m-%d')
         def _set_index_info(code_id):
             _obj = self.index_objs[code_id] if code_id in self.index_objs else CIndex(code_id)
             return (code_id, _obj.set_components_data(cdate))
@@ -408,14 +403,14 @@ class DataManager:
                 _obj = self.index_objs[code_id] if code_id in self.index_objs else CIndex(code_id)
                 return (code_id, _obj.set_k_data(cdate))
             except Exception as e:
-                print(e)
+                self.logger.error(e)
                 return (code_id, False)
         cfunc = partial(_set_index_info, cdate)
         return concurrent_run(cfunc, list(ct.TDX_INDEX_DICT.keys()), num = 10)
 
-    def download_and_extract(self):
+    def download_and_extract(self, cdate):
         try:
-            download(ct.ZIP_DIR)
+            if not download(ct.ZIP_DIR, cdate): return False
             list_files = os.listdir(ct.ZIP_DIR)
             for filename in list_files:
                 if not filename.startswith('.'):
@@ -429,41 +424,12 @@ class DataManager:
  
 if __name__ == '__main__':
     #cdate = datetime.now().strftime('%Y-%m-%d')
-    cdate = '2018-11-19'
+    #cdate = '2018-11-19'
+
+    from cmysql import CMySQL 
+    mysql_client = CMySQL(dbinfo = ct.DB_INFO)
+    mysql_client.delete_db('s601318')
+    CStock('601318', should_create_influxdb = True, should_create_mysqldb = True)
+
     dm = DataManager()
     dm.bootstrap()
-    #dm.init_tdx_index_info(cdate)
-    #dm.clear()
-    #dm.init_stock_info()
-
-    #dm.rindustry_info_client.update(cdate)
-    #dm.init_yesterday_hk_info()
-    #dm.init_yesterday_margin()
-    #print(dm.init_base_float_profit())
-    #dm.rindex_stock_data_client.set_data(cdate = '2018-11-07')
-    #dm.init_industry_info()
-    #dm.init_tdx_index_info()
-    #dm.init_limit_info()
-    #dm.init_index_info()
-    #print("init index_info success!")
-    #dm.collect_index_runtime_data()
-    #print("collect index_runtime_data success!")
-    #dm.animation_client.collect()
-    #print("animation client collect success!")
-
-    #sh_index_obj = CIndex('000001', redis_host='127.0.0.1')
-    #sz_index_obj = CIndex('399001', redis_host='127.0.0.1')
-    #sh_index_obj.set_k_data(fpath = "/Volumes/data/quant/stock/data/tdx/history/days/%s")
-    #sz_index_obj.set_k_data(fpath = "/Volumes/data/quant/stock/data/tdx/history/days/%s")
-    #sh_index_info = sh_index_obj.get_k_data()
-    #sz_index_info = sz_index_obj.get_k_data()
-
-    #bonus_info = pd.read_csv("/Volumes/data/quant/stock/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    ##for code in ['000001']:
-    #for code in ['601318', '000001', '002460', '002321', '601288', '601668', '300146', '002153', '600519', '600111', '000400', '601606', '300104', '300188', '002079', '002119', '002129', '002156', '002185', '002218', '002449', '002638', '002654', '002724', '002745', '002815', '002913', '300046', '300053', '300077', '300080', '300102', '300111', '300118', '300223', '300232', '300236', '300241', '300269', '300296', '300301', '300303', '300317', '300323', '300327', '300373', '300389', '300582', '300613', '300623', '300625', '300632', '300671', '300672', '300708', '600151', '600171', '600206', '600360', '600460', '600171', '600206', '600360', '600460', '600537', '600584', '600667', '600703', '601012', '603005', '603501', '603986', '300749']:
-    #    cs = CStock(code, redis_host = '127.0.0.1')
-    #    market = get_security_exchange_name(code)
-    #    index_info = sh_index_info if  market == 'sh' else sz_index_info
-    #    self.logger.info("compute %s" % code)
-    #    cs.set_k_data(bonus_info, index_info)
-    #    cs.set_base_floating_profit()

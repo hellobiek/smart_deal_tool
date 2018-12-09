@@ -6,7 +6,7 @@ from log import getLogger
 from cinfluxdb import CInflux
 from datetime import datetime
 from base.cobj import CMysqlObj
-from common import float_random, transfer_date_string_to_int, is_df_has_unexpected_data
+from common import float_random, is_df_has_unexpected_data, smart_get
 logger = getLogger(__name__)
 class CIndex(CMysqlObj):
     ZZ_URL_HEAD        = 'http://www.csindex.com.cn/uploads/file/autofile/cons/%scons.xls'
@@ -71,7 +71,7 @@ class CIndex(CMysqlObj):
                                                  close float,\
                                                  preclose float,\
                                                  low float,\
-                                                 volume float,\
+                                                 volume bigint,\
                                                  amount float,\
                                                  preamount float,\
                                                  pchange float,\
@@ -127,7 +127,10 @@ class CIndex(CMysqlObj):
         url          = self.INDEX_URLS[self.code][0]
         columns      = self.INDEX_URLS[self.code][1]
         column_names = self.INDEX_URLS[self.code][2]
-        df           = pd.read_excel(url, usecols = columns)
+        df = smart_get(pd.read_excel, url, usecols = columns)
+        if df is None:
+            logger.error("data for %s is empty" % self.code)
+            return False
         df.columns   = column_names
         df.code      = df.code.astype('str').str.zfill(6)
         df['date']   = cdate
@@ -153,8 +156,8 @@ class CIndex(CMysqlObj):
     def read(self, fpath):
         prestr = "1" if self.get_market() == ct.MARKET_SH else "0"
         filename = "%s%s.csv" % (prestr, self.code)
-        df = pd.read_csv(fpath % filename, sep = ',')
-        df = df[['date', 'open', 'high', 'close', 'low', 'amount', 'volume']]
+        dheaders = ['date', 'open', 'high', 'close', 'low', 'amount', 'volume']
+        df = pd.read_csv(fpath % filename, sep = ',', usecols = dheaders)
         df['date'] = df['date'].astype(str)
         df['date'] = pd.to_datetime(df.date).dt.strftime("%Y-%m-%d")
         df = self.handle_unexpected_data(df)
@@ -209,7 +212,7 @@ class CIndex(CMysqlObj):
     def set_day_data(self, cdate, fpath):
         day_table = self.get_day_table()
         if self.is_date_exists(day_table, cdate): 
-            logger.debug("existed data for code:%s, date:%s" % (self.code, zdate))
+            logger.debug("existed data for code:%s, date:%s" % (self.code, cdate))
             return True
 
         df = self.read(fpath)
@@ -220,23 +223,23 @@ class CIndex(CMysqlObj):
             if len(df.loc[df.date == cdate]) == 0:
                 logger.error("no data:%s for %s" % (cdate, self.code))
                 return False
-            df.at[0, 'preclose']  = df.loc[0, 'open']
+            df.at[0, 'preclose']  = df.at[0, 'open']
             df.at[0, 'pchange']   = 100 * (df.at[0, 'close'] - df.at[0, 'preclose']) / df.at[0, 'preclose']
-            df.at[0, 'preamount'] = df.loc[0, 'amount']
+            df.at[0, 'preamount'] = df.at[0, 'amount']
             df.at[0, 'mchange']   = 0
         else:
-            index_list = df.loc[df.date == transfer_date_string_to_int(cdate)].index.values
+            index_list = df.loc[df.date == cdate].index.values
             if len(index_list) == 0: 
                 logger.error("no data:%s for %s" % (cdate, self.code))
                 return False
             preday_index = index_list[0] - 1
-            pre_day = df.loc[preday_index, 'date']
-            preday_df = self.get_k_data(date = pre_date)
-            df = df.loc[df.date == transfer_date_string_to_int(cdate)]
-            df['preclose'] = preday_df['close'][0]
+            preday_df = df.loc[preday_index]
+            df = df.loc[df.date == cdate]
+            df['preclose'] = preday_df['close']
             df['pchange'] = 100 * (df['close'] - df['preclose']) / df['preclose']
-            df['preamount'] = preday_df['preamount'][0]
+            df['preamount'] = preday_df['amount']
             df['mchange'] = 100 * (df['amount'] - df['preamount']) / df['preamount']
+
         df = df.reset_index(drop = True)
         day_table = self.get_day_table()
 
@@ -244,7 +247,7 @@ class CIndex(CMysqlObj):
             logger.error("data for %s is not clear" % self.code)
             return False
 
-        if self.mysql_client.set(df, table_name):
+        if self.mysql_client.set(df, day_table):
             if self.redis.sadd(day_table, cdate):
                 return True
         return False

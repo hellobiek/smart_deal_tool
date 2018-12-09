@@ -13,7 +13,6 @@ from cmysql import CMySQL
 from cstock_info import CStockInfo
 from common import trace_func, is_trading_time, create_redis_obj, df_delta
 logger = getLogger(__name__)
-
 class CHalted:
     @trace_func(log = logger)
     def __init__(self, dbinfo, table):

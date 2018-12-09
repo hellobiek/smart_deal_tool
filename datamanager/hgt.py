@@ -46,7 +46,7 @@ class StockConnect(object):
 
     def is_date_exists(self, table_name, cdate):
         if self.redis.exists(table_name):
-            return cdate in set(str(tdate, encoding = "utf8") for tdate in self.redis.smembers(table_name))
+            return cdate in set(str(tdate, encoding = ct.UTF8) for tdate in self.redis.smembers(table_name))
         return False
 
     def create_table(self, table):
@@ -91,9 +91,9 @@ class StockConnect(object):
         sql = "select * from %s where date=\"%s\"" % (self.get_table_name(cdate), cdate)
         return self.mysql_client.get(sql)
 
-    def update(self, end_date = None):
+    def update(self, end_date = None, num = 19):
         if end_date is None: end_date = datetime.now().strftime('%Y-%m-%d')
-        start_date = get_day_nday_ago(end_date, num = 19, dformat = "%Y-%m-%d")
+        start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
         succeed = True
         for mdate in get_dates_array(start_date, end_date):
             if CCalendar.is_trading_day(mdate, redis = self.redis):
@@ -104,7 +104,7 @@ class StockConnect(object):
 
     def is_table_exists(self, table_name):
         if self.redis.exists(self.dbname):
-            return table_name in set(str(table, encoding = "utf8") for table in self.redis.smembers(self.dbname))
+            return table_name in set(str(table, encoding = ct.UTF8) for table in self.redis.smembers(self.dbname))
         return False
 
     def set_data(self, cdate = datetime.now().strftime('%Y-%m-%d')):

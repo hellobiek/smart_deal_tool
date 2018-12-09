@@ -4,32 +4,19 @@ import pandas as pd
 from log import getLogger
 from common import df_empty, number_of_days
 logger = getLogger(__name__)
-
 class Chip:
-    def evenly_distributed_new_chips(self, df, pre_outstanding, outstanding):
-        if pre_outstanding != outstanding:
-            volume_sum = df['volume'].sum()
-            if pre_outstanding > outstanding:
-                volume_total = pre_outstanding - outstanding
-                df['volume'] = df['volume'] * ((volume_sum - volume_total) / volume_sum)
-                df['volume'] = df['volume'].astype(int)
-                actaul_sum = volume_sum - df['volume'].sum()
-                delta_sum = volume_total - actaul_sum
-                if delta_sum != 0:
-                    delta = 1 if delta_sum < 0 else -1
-                    index_list = df.nlargest(abs(delta_sum), 'volume').index.tolist()
-                    df.at[df.index.isin(index_list), 'volume'] = df.loc[df.index.isin(index_list), 'volume'] + delta
-            else:
-                volume_total = outstanding - pre_outstanding
-                df['volume'] = df['volume'] * ((volume_sum + volume_total) / volume_sum)
-                df['volume'] = df['volume'].astype(int)
-                actaul_sum = df['volume'].sum() - volume_sum
-                delta_sum = volume_total - actaul_sum
-                if delta_sum != 0:
-                    delta = -1 if delta_sum < 0 else 1
-                    index_list = df.nlargest(abs(delta_sum), 'volume').index.tolist()
-                    df.at[df.index.isin(index_list), 'volume'] = df.loc[df.index.isin(index_list), 'volume'] + delta
-        return df
+    def evenly_distributed_new_chip(self, volume_series, pre_outstanding, outstanding):
+        volume_series = volume_series * (outstanding / pre_outstanding)
+        volume_series = volume_series.astype(int)
+        delta_sum = outstanding - volume_series.sum()
+        if delta_sum != 0:
+            delta = 1 if pre_outstanding < outstanding else -1
+            index_list = volume_series.nlargest(delta_sum).index.tolist()
+            volume_series[index_list] = volume_series[index_list] + delta
+        if outstanding != volume_series.sum():
+            import pdb
+            pdb.set_trace()
+        return volume_series
 
     def average_distribute(self, df, volume_total):
         volume_sum = df['volume'].sum()
@@ -51,8 +38,8 @@ class Chip:
                 holding_time = now_pos - pos
                 expected_volume = max(1, int(total_volume * (holding_time / total_holding_time)))
                 if expected_volume > total_volume: expected_volume = total_volume
-                total_volume -= min(df.loc[_index, 'volume'], expected_volume)
-                df.at[_index, 'volume'] = max(0, df.loc[_index, 'volume'] - expected_volume)
+                total_volume -= min(df.at[_index, 'volume'], expected_volume)
+                df.at[_index, 'volume'] = max(0, df.at[_index, 'volume'] - expected_volume)
                 if 0 == total_volume: break
         return df
 
@@ -64,8 +51,8 @@ class Chip:
                 profit = now_price - price
                 expected_volume = max(1, int(total_volume * (profit / total_profit)))
                 if expected_volume > total_volume: expected_volume = total_volume
-                total_volume -= min(df.loc[_index, 'volume'], expected_volume)
-                df.at[_index, 'volume'] = max(0, df.loc[_index, 'volume'] - expected_volume)
+                total_volume -= min(df.at[_index, 'volume'], expected_volume)
+                df.at[_index, 'volume'] = max(0, df.at[_index, 'volume'] - expected_volume)
                 if 0 == total_volume: break
         return df
 
@@ -104,7 +91,7 @@ class Chip:
         u_total_volume = unprofit_df.volume.sum()
         u_volume = int(volume * (u_total_volume/total_volume))
         p_volume = volume - u_volume
-        # give p volume more priority
+        #give p volume more priority
         #if u_volume * 0.05 < total_volume - u_total_volume - p_volume:
         #    u_volume = int(0.95 * u_volume)
         #    p_volume = volume - u_volume
@@ -123,7 +110,8 @@ class Chip:
         return profit_df.volume.sum() if len(profit_df) > 0 else 0
 
     def adjust_volume(self, df, pos, volume, price, pre_outstanding, outstanding):
-        df = self.evenly_distributed_new_chips(df, pre_outstanding, outstanding)
+        if pre_outstanding != outstanding:
+            df['volume'] = self.evenly_distributed_new_chip(df['volume'], pre_outstanding, outstanding)
 
         #short chip data
         s_df = df[df.apply(lambda df: number_of_days(df['pos'], pos), axis=1) <= 60]
@@ -190,27 +178,59 @@ class Chip:
         mdtypes = ['int', 'str', 'str', 'float', 'int', 'int']
         df = df_empty(columns = ct.CHIP_COLUMNS, dtypes = mdtypes)
         tmp_df = df_empty(columns = ct.CHIP_COLUMNS, dtypes = mdtypes)
-        for _index, cdate in data.date.iteritems():
-            logger.info("compute %s" % _index)
-            volume = int(data.loc[_index, 'volume'])
-            aprice = data.loc[_index, 'aprice']
-            outstanding = data.loc[_index, 'outstanding']
+        for _index, row in data.iterrows():
+            #logger.info("compute %s" % _index)
+            cdate, volume, aprice, outstanding = row[['date', 'volume', 'aprice', 'outstanding']]
             if 0 == _index:
-                open_price = data.loc[_index, 'open'] 
-                tmp_df = tmp_df.append(pd.DataFrame([[_index, cdate, cdate, aprice, volume, outstanding]], columns = ct.CHIP_COLUMNS))
-                tmp_df = tmp_df.append(pd.DataFrame([[_index, cdate, cdate, open_price, outstanding - volume, outstanding]], columns = ct.CHIP_COLUMNS))
-                tmp_df = tmp_df.reset_index(drop = True)
+                open_price = data.at[_index, 'open']
+                list1 = [_index, cdate, cdate, aprice, volume, outstanding]
+                list2 = [_index, cdate, cdate, open_price, outstanding - volume, outstanding]
+                tmp_df = tmp_df.append(pd.DataFrame([list1, list2], columns = ct.CHIP_COLUMNS))
             else:
-                tmp_df = tmp_df.sort_values(by = 'pos', ascending= True)
+                tmp_df = tmp_df.sort_values(by = 'pos', ascending = True)
                 tmp_df = self.adjust_volume(tmp_df, _index, volume, aprice, pre_outstanding, outstanding)
                 tmp_df.date = cdate
                 tmp_df.outstanding = outstanding
                 tmp_df = tmp_df.append(pd.DataFrame([[_index, cdate, cdate, aprice, volume, outstanding]], columns = ct.CHIP_COLUMNS))
                 tmp_df = tmp_df[tmp_df.volume != 0]
-                tmp_df = tmp_df.reset_index(drop = True)
                 if tmp_df.volume.sum() != outstanding: raise Exception("tmp_df.volume.sum() is not equal to outstanding")
+            tmp_df = tmp_df.reset_index(drop = True)
             pre_outstanding = outstanding
             df = df.append(tmp_df)
             df = df[df.volume != 0]
             df = df.reset_index(drop = True)
         return df
+
+if __name__ == '__main__':
+    from cindex import CIndex
+    from cstock import CStock
+    cdate = None
+    cstock = CStock('601318')
+    index_info = CIndex('000001').get_k_data(cdate)
+    bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
+    quantity_change_info, price_change_info = cstock.collect_right_info(bonus_info)
+
+    df, _ = cstock.read()
+
+    #modify price and quanity for all split-adjusted share prices
+    df = cstock.adjust_share(df, quantity_change_info)
+    df = cstock.qfq(df, price_change_info)
+
+    #transfer data to split-adjusted share prices
+    df = cstock.transfer2adjusted(df)
+
+    #compute strength relative index
+    df = cstock.relative_index_strength(df, index_info)
+
+    chip_client = Chip()
+    chip_client.compute_distribution(df)
+
+    #import cProfile
+    #import re
+    #cProfile.run('re.compile("chip_client.compute_distribution(df)")')
+
+    from line_profiler import LineProfiler
+    lp = LineProfiler()
+    lp_wrapper = lp(chip_client.compute_distribution)
+    lp_wrapper(df)
+    lp.print_stats()

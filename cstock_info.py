@@ -9,7 +9,7 @@ import const as ct
 import tushare as ts
 from cstock import CStock 
 from log import getLogger
-from common import trace_func, create_redis_obj, concurrent_run
+from common import create_redis_obj, concurrent_run, smart_get
 logger = getLogger(__name__)
 
 class CStockInfo:
@@ -65,7 +65,7 @@ class CStockInfo:
             return (code, False)
 
     def init(self):
-        df = ts.get_stock_basics()
+        df = smart_get(ts.get_stock_basics)
         if df is None: return False 
         df = df.reset_index(drop = False)
         return self.redis.set(ct.STOCK_INFO, _pickle.dumps(df, 2))

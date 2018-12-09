@@ -1,6 +1,5 @@
 #coding=utf-8
 import time
-import cmysql
 import _pickle
 import datetime
 from gevent.pool import Pool
@@ -9,19 +8,19 @@ from functools import partial
 import const as ct
 import numpy as np
 import pandas as pd
-import tushare as ts
-from common import delta_days, create_redis_obj
+from common import delta_days, create_redis_obj, get_day_nday_ago, get_dates_array
 from log import getLogger
+from cmysql import CMySQL
 from cstock import CStock
 from cstock_info import CStockInfo
 from ccalendar import CCalendar
 from collections import OrderedDict
-logger = getLogger(__name__)
 class RIndexStock:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
         self.dbname = self.get_dbname()
-        self.mysql_client = cmysql.CMySQL(dbinfo, self.dbname, iredis = self.redis)
+        self.logger = getLogger(__name__)
+        self.mysql_client = CMySQL(dbinfo, self.dbname, iredis = self.redis)
         if not self.mysql_client.create_db(self.get_dbname()): raise Exception("init rindex stock database failed")
 
     @staticmethod
@@ -64,8 +63,12 @@ class RIndexStock:
                                              ppercent float,\
                                              npercent float,\
                                              base float,\
+                                             ibase bigint,\
+                                             breakup int,\
+                                             ibreakup bigint,\
                                              pday int,\
                                              profit float,\
+                                             gamekline float,\
                                              PRIMARY KEY (date, code))' % table
         return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
 
@@ -102,7 +105,7 @@ class RIndexStock:
         sql = "select * from %s where date=\"%s\"" % (self.get_table_name(cdate), cdate)
         return self.mysql_client.get(sql)
 
-    def get_stock_data(self, date, code):
+    def get_stock_data(self, cdate, code):
         stock_obj = CStock(code, should_create_influxdb = False, should_create_mysqldb = False)
         return (code, stock_obj.get_k_data(cdate))
 
@@ -112,11 +115,11 @@ class RIndexStock:
         all_df = pd.DataFrame()
         #stock_info = CStockInfo.get()
         #failed_list = stock_info.code.tolist()
-        import copy
-        failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
+        #import copy
+        #failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
+        failed_list = ['601318']
         cfunc = partial(self.get_stock_data, cdate)
         while len(failed_list) > 0:
-            logger.info("restart failed ip len(%s)" % len(failed_list))
             for code_data in obj_pool.imap_unordered(cfunc, failed_list):
                 if code_data[1] is not None:
                     tem_df = code_data[1]
@@ -130,28 +133,28 @@ class RIndexStock:
         all_df = all_df.reset_index(drop = True)
         return all_df
 
-    def update(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 10):
+    def update(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 19):
         start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
         date_array = get_dates_array(start_date, end_date)
-        succeed    = True
-        for mdate in get_dates_array(start_date, end_date):
+        succeed = True
+        for mdate in date_array:
             if CCalendar.is_trading_day(mdate, redis = self.redis):
                 if not self.set_day_data(mdate):
                     self.logger.error("set %s data for rstock failed")
                     succeed = False
                 else:
-                    self.logger.info("%s rindustry set success" % mdate)
+                    self.logger.info("%s rstock set success" % mdate)
         return succeed
 
     def set_day_data(self, cdate):
         table_name = self.get_table_name(cdate)
         if not self.is_table_exists(table_name):
             if not self.create_table(table_name):
-                logger.error("create tick table failed")
+                self.logger.error("create tick table failed")
                 return False
             self.redis.sadd(self.dbname, table_name)
         if self.is_date_exists(table_name, cdate): 
-            logger.debug("existed table:%s, date:%s" % (table_name, cdate))
+            self.logger.debug("existed table:%s, date:%s" % (table_name, cdate))
             return True
         df = self.generate_all_data(cdate)
         if self.mysql_client.set(df, table_name):
