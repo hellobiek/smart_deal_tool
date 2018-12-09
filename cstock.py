@@ -354,9 +354,9 @@ class CStock(CMysqlObj):
 
     def set_today_data(self, df, index_df, pre_date, cdate):
         day_table = self.get_day_table()
-        if self.is_date_exists(day_table, cdate): 
+        if self.is_date_exists(day_table, cdate):
             logger.debug("existed data for code:%s, date:%s" % (self.code, cdate))
-            return True
+            #return True
        
         index_df = index_df.loc[index_df.date == cdate]
 

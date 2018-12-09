@@ -308,8 +308,7 @@ class DataManager:
                     self.logger.info("is trading day. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                     if self.is_collecting_time():
                         self.logger.info("is collecting time. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                        cdate = datetime.now().strftime('%Y-%m-%d')
-                        self.bootstrap(cdate)
+                        self.bootstrap(cdate = datetime.now().strftime('%Y-%m-%d'))
             except Exception as e:
                 self.logger.error(e)
             time.sleep(sleep_time)
@@ -423,13 +422,9 @@ class DataManager:
             return False
  
 if __name__ == '__main__':
-    #cdate = datetime.now().strftime('%Y-%m-%d')
-    #cdate = '2018-11-19'
-
-    from cmysql import CMySQL 
-    mysql_client = CMySQL(dbinfo = ct.DB_INFO)
-    mysql_client.delete_db('s601318')
-    CStock('601318', should_create_influxdb = True, should_create_mysqldb = True)
-
+    #from cmysql import CMySQL 
+    #mysql_client = CMySQL(dbinfo = ct.DB_INFO)
+    #mysql_client.delete_db('s601318')
+    #CStock('601318', should_create_influxdb = True, should_create_mysqldb = True)
     dm = DataManager()
-    dm.bootstrap()
+    dm.bootstrap(cdate='2018-12-07')
