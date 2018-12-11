@@ -18,8 +18,10 @@ class CPlot():
         self.code = code
         self.index_code = index_code
         self.base_color = '#e6daa6'
-        self.k_data, self.d_data, self.i_data, self.init_date = self.read_data()
+        self.k_data, self.d_data, self.i_data = self.read_data()
         self.date_tickers = self.k_data.time.values
+        self.k_data.time = self.k_data.index
+        self.i_data.time = self.i_data.index
         self.volumeMin = 0
         self.volumeMax = 0
         self.priceMin = 0
@@ -74,7 +76,6 @@ class CPlot():
 
         k_data = k_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount', 'outstanding', 'totals', 'adj', 'aprice', 'uprice']]
         k_data = k_data.rename(columns = {"date": "time"})
-        init_date = k_data.time.tail(1).values[0]
         k_data.time = k_data.time.dt.strftime('%Y-%m-%d')
         #k_data.time = pd.to_datetime(k_data.time, format='%Y-%m-%d')
         #k_data.time = mdates.date2num(k_data.time)
@@ -87,7 +88,7 @@ class CPlot():
         #i_data.time = mdates.date2num(i_data.time)
         #i_data.time = i_data.time.astype(int)
 
-        return k_data, d_data, i_data, init_date
+        return k_data, d_data, i_data
 
     def on_key_press(self, event):
         if event.key in 'Rr':
@@ -98,13 +99,11 @@ class CPlot():
 
     def on_release(self, event):
         self.release = event.xdata
-        print("start_date:%s, end_date:%s" % (self.press, self.release))
         if self.press is not None and self.release is not None:
-            start_date = self.press
-            end_date = self.release
+            start_date = int(self.press)
+            end_date = int(self.release)
             if start_date == end_date:
-                tdate = mdates.num2date(start_date).strftime("%Y-%m-%d")
-                self.plot_distribution(self.d_data, tdate)
+                self.plot_distribution(self.d_data, start_date)
             else:
                 k_data = self.k_data.loc[(self.k_data.time >= start_date) & (self.k_data.time <= end_date)]
                 i_data = self.i_data.loc[(self.i_data.time >= start_date) & (self.i_data.time <= end_date)]
@@ -115,7 +114,7 @@ class CPlot():
                 self.fig.suptitle(self.code, color='k')
                 self.fig.autofmt_xdate()
         elif self.press is not None and self.release is None:
-            start_date = self.press
+            start_date = int(self.press)
             k_data = self.k_data.loc[self.k_data.time >= start_date]
             i_data = self.i_data.loc[self.i_data.time >= start_date]
             self.plot_stock(k_data)
@@ -139,7 +138,6 @@ class CPlot():
 
     def plot_index(self, i_data):
         from mpl_finance import candlestick_ohlc
-        i_data.time = i_data.index
         candlestick_ohlc(self.index_ax, i_data.values, width = 1.0, colorup = 'r', colordown = 'g')
         self.price_ax.xaxis.set_major_locator(mticker.MultipleLocator(250))
         self.price_ax.xaxis.set_major_formatter(mticker.FuncFormatter(self.format_date))
@@ -153,7 +151,6 @@ class CPlot():
 
     def plot_stock(self, k_data):
         from mpl_finance import candlestick_ohlc
-        k_data.time = k_data.index
         self.priceMax = k_data.high.values.max()
         self.dateMin  = k_data.time.values.min()
         self.dateMax  = k_data.time.values.max()
@@ -168,10 +165,11 @@ class CPlot():
         self.price_ax.xaxis.set_major_formatter(mticker.FuncFormatter(self.format_date))
         self.price_ax.grid(True, color = 'k', linestyle = '--')
  
-    def plot_distribution(self, d_data, tdate):
+    def plot_distribution(self, d_data, tindex):
         self.dist_ax.clear()
         self.dist_ax.xaxis.label.set_color("k")
         self.dist_ax.grid(True, color = 'k', linestyle = '--')
+        tdate = self.date_tickers[tindex]
         tmp_df = d_data.loc[d_data.date == tdate]
         if tmp_df.empty:
             self.dist_ax.set_xlabel("%s no data" % tdate)
@@ -186,7 +184,7 @@ class CPlot():
         self.plot_stock(self.k_data)
         self.plot_volume(self.k_data)
         self.plot_index(self.i_data)
-        self.plot_distribution(self.d_data, self.init_date)
+        self.plot_distribution(self.d_data, 0)
         self.fig.suptitle(self.code, color='k')
         self.fig.autofmt_xdate()
         plt.show()

@@ -633,12 +633,9 @@ class CStock(CMysqlObj):
 
 if __name__ == '__main__':
     cdate = None
-    cstock = CStock('601318')
     from cindex import CIndex
-    from line_profiler import LineProfiler
-    lp = LineProfiler()
-    lp_wrapper = lp(cstock.set_k_data)
     index_info = CIndex('000001').get_k_data(cdate)
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    lp_wrapper(bonus_info, index_info)
-    lp.print_stats()
+
+    cstock = CStock('601318')
+    print(cstock.set_k_data(bonus_info, index_info, cdate))
