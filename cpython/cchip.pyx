@@ -46,46 +46,6 @@ def divide_according_property(np.ndarray property_series, np.ndarray[long] volum
             if 0 == total_volume: break
     return volume_series
 
-def change_volume_for_short(np.ndarray mdata, long volume, float price, long pos):
-    profit_data = mdata[mdata['price'] < price]
-    unprofit_data = mdata[mdata['price'] >= price]
-    if profit_data.size == 0:
-        return average_distribute(unprofit_data['volume'], volume)
-
-    if unprofit_data.size == 0:
-        return divide_according_property(profit_data['price'], profit_data['volume'], volume, price)
-
-    cdef long total_volume = np.sum(mdata['volume'])
-    cdef long u_total_volume = np.sum(unprofit_data['volume'])
-
-    cdef long u_volume = long(volume * (u_total_volume/total_volume))
-    cdef long p_volume = volume - u_volume
-
-    profit_data['volume'] = divide_according_property(profit_data['price'], profit_data['volume'], p_volume, price)
-    unprofit_data['volume'] = average_distribute(unprofit_data['volume'], u_volume)
-
-    profit_data = np.concatenate((profit_data, unprofit_data), axis = 0)
-    return profit_data['volume']
-
-def change_volume_for_long(np.ndarray mdata, long volume, float price, long pos):
-    profit_data = mdata[mdata['price'] < price]
-    unprofit_data = mdata[mdata['price'] >= price]
-    if profit_data.size == 0:
-        return divide_according_property(unprofit_data['pos'], unprofit_data['volume'], volume, pos)
-
-    if unprofit_data.size == 0:
-        return average_distribute(profit_data['volume'], volume)
-
-    cdef long total_volume = np.sum(mdata['volume'])
-    cdef long u_total_volume = np.sum(unprofit_data['volume'])
-    cdef long u_volume = long(volume * (u_total_volume/total_volume))
-    cdef long p_volume = volume - u_volume
-
-    profit_data['volume'] = average_distribute(profit_data['volume'], p_volume)
-    unprofit_data['volume'] = divide_according_property(unprofit_data['pos'], unprofit_data['volume'], u_volume, pos)
-    profit_data = np.concatenate((profit_data, unprofit_data), axis = 0)
-    return profit_data['volume']
-
 def change_volume_for_long_unprofit(np.ndarray l_u_data, long volume, float price, long pos):
     return divide_according_property(l_u_data['pos'], l_u_data['volume'], volume, pos)
 
@@ -101,39 +61,6 @@ def change_volume_for_short_profit(np.ndarray s_p_data, long volume, float price
 def number_of_days(np.ndarray[long] pre_pos, long pos):
     return pos - pre_pos
 
-def adjust_volume1(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):
-    if pre_outstanding != outstanding:
-        mdata['volume'] = evenly_distributed_new_chip(mdata['volume'], pre_outstanding, outstanding)
-
-    #short chip data
-    s_data = mdata[np.apply_along_axis(number_of_days, 0, mdata['pos'], pos) <= 60]
-
-    #long chip data
-    l_data = mdata[np.apply_along_axis(number_of_days, 0, mdata['pos'], pos) > 60]
-
-    if l_data.size == 0:
-        return change_volume_for_short(s_data, volume, price, pos)
-
-    #short term volume
-    cdef long s_volume_total = np.sum(s_data['volume'])
-   
-    #long term volume
-    cdef long l_volume_total = np.sum(l_data['volume'])
-
-    #total volume
-    cdef long volume_total = s_volume_total + l_volume_total
-    cdef long s_volume = long(volume * (s_volume_total / volume_total))
-    cdef long l_volume = volume - s_volume
-
-    #change short volume rate
-    s_data['volume'] = change_volume_for_short(s_data, s_volume, price, pos)
-
-    #change long volume rate
-    l_data['volume'] = change_volume_for_long(l_data, l_volume, price, pos)
-
-    s_data = np.concatenate((s_data, l_data), axis = 0)
-    return s_data['volume']
-
 def divide_data(np.ndarray mdata, long pos, float price):
     #short chip data
     s_data = mdata[np.apply_along_axis(number_of_days, 0, mdata['pos'], pos) <= 60]
@@ -141,7 +68,6 @@ def divide_data(np.ndarray mdata, long pos, float price):
     s_p_data = s_data[s_data['price'] <= price]
     #short unprofit data
     s_u_data = s_data[s_data['price'] > price]
-
     #long chip data
     l_data = mdata[np.apply_along_axis(number_of_days, 0, mdata['pos'], pos) > 60]
     #long profit data
