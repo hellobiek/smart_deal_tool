@@ -154,9 +154,9 @@ class CPlot():
         self.priceMax = k_data.high.values.max()
         self.dateMin  = k_data.time.values.min()
         self.dateMax  = k_data.time.values.max()
-
         candlestick_ohlc(self.price_ax, k_data.values, width = 1.0, colorup = 'r', colordown = 'g')
-        self.price_ax.plot(k_data.time, k_data['uprice'], 'b',  label = "无穷成本均线", linewidth = 1)
+        #self.price_ax.plot(k_data.time, k_data['uprice'].rolling(20).mean(), 'b',  label = "无穷成本均线", linewidth = 1)
+        self.price_ax.plot(k_data.time, k_data['uprice'].rolling(20).mean(), 'b',  label = "无穷成本均线", linewidth = 1)
         self.price_ax.set_ylabel("prices")
         self.price_ax.yaxis.label.set_color('k')
         self.price_ax.set_xlim(self.dateMin, self.dateMax)

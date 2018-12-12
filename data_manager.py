@@ -425,6 +425,6 @@ if __name__ == '__main__':
     #from cmysql import CMySQL 
     #mysql_client = CMySQL(dbinfo = ct.DB_INFO)
     #mysql_client.delete_db('s601318')
-    #CStock('601318', should_create_influxdb = True, should_create_mysqldb = True)
-    dm = DataManager()
-    dm.bootstrap(cdate='2018-12-07')
+    CStock('601318', should_create_influxdb = True, should_create_mysqldb = True)
+    #dm = DataManager()
+    #dm.bootstrap(cdate='2018-12-07')

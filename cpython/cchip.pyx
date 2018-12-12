@@ -101,7 +101,7 @@ def change_volume_for_short_profit(np.ndarray s_p_data, long volume, float price
 def number_of_days(np.ndarray[long] pre_pos, long pos):
     return pos - pre_pos
 
-def adjust_volume(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):
+def adjust_volume1(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):
     if pre_outstanding != outstanding:
         mdata['volume'] = evenly_distributed_new_chip(mdata['volume'], pre_outstanding, outstanding)
 

@@ -1132,8 +1132,8 @@ typedef npy_clongdouble __pyx_t_5numpy_clongdouble_t;
  * cdef inline object PyArray_MultiIterNew1(a):
  */
 typedef npy_cdouble __pyx_t_5numpy_complex_t;
-struct __pyx_ctuple_9e79__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc;
-typedef struct __pyx_ctuple_9e79__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc __pyx_ctuple_9e79__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc;
+struct __pyx_ctuple_98ebf__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc;
+typedef struct __pyx_ctuple_98ebf__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc __pyx_ctuple_98ebf__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc;
 
 /* "cchip.pyx":295
  *             tmp_arrary['date'] = cdate
@@ -1142,7 +1142,7 @@ typedef struct __pyx_ctuple_9e79__long__and_char__ptr__and_char__ptr__and_float_
  *             t = np.array([tdata], dtype = DTYPE_LIST)
  *             tmp_arrary = np.concatenate((tmp_arrary, np.array(t)), axis=0)
  */
-struct __pyx_ctuple_9e79__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc {
+struct __pyx_ctuple_98ebf__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc {
   long f0;
   char *f1;
   char *f2;
@@ -1571,7 +1571,7 @@ typedef struct {
 static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value);
 
 /* ToPyCTupleUtility.proto */
-static PyObject* __pyx_convert__to_py___pyx_ctuple_9e79__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc(__pyx_ctuple_9e79__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc);
+static PyObject* __pyx_convert__to_py___pyx_ctuple_98ebf__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc(__pyx_ctuple_98ebf__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc);
 
 /* RealImag.proto */
 #if CYTHON_CCOMPLEX
@@ -1838,6 +1838,7 @@ static const char __pyx_k_adjust_volume[] = "adjust_volume";
 static const char __pyx_k_pre_date_dist[] = "pre_date_dist";
 static const char __pyx_k_unprofit_data[] = "unprofit_data";
 static const char __pyx_k_volume_series[] = "volume_series";
+static const char __pyx_k_adjust_volume1[] = "adjust_volume1";
 static const char __pyx_k_l_volume_total[] = "l_volume_total";
 static const char __pyx_k_number_of_days[] = "number_of_days";
 static const char __pyx_k_s_volume_total[] = "s_volume_total";
@@ -1887,6 +1888,7 @@ static PyObject *__pyx_n_u_S10;
 static PyObject *__pyx_kp_u_UTF_8;
 static PyObject *__pyx_n_s_ValueError;
 static PyObject *__pyx_n_s_adjust_volume;
+static PyObject *__pyx_n_s_adjust_volume1;
 static PyObject *__pyx_n_s_apply_along_axis;
 static PyObject *__pyx_n_s_aprice;
 static PyObject *__pyx_n_u_aprice;
@@ -2023,7 +2025,7 @@ static PyObject *__pyx_pf_5cchip_12change_volume_for_long_profit(CYTHON_UNUSED P
 static PyObject *__pyx_pf_5cchip_14change_volume_for_short_unprofit(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_s_u_data, long __pyx_v_volume, CYTHON_UNUSED float __pyx_v_price, long __pyx_v_pos); /* proto */
 static PyObject *__pyx_pf_5cchip_16change_volume_for_short_profit(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_s_p_data, long __pyx_v_volume, float __pyx_v_price, CYTHON_UNUSED long __pyx_v_pos); /* proto */
 static PyObject *__pyx_pf_5cchip_18number_of_days(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_pre_pos, long __pyx_v_pos); /* proto */
-static PyObject *__pyx_pf_5cchip_20adjust_volume(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_mdata, long __pyx_v_pos, long __pyx_v_volume, float __pyx_v_price, long __pyx_v_pre_outstanding, long __pyx_v_outstanding); /* proto */
+static PyObject *__pyx_pf_5cchip_20adjust_volume1(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_mdata, long __pyx_v_pos, long __pyx_v_volume, float __pyx_v_price, long __pyx_v_pre_outstanding, long __pyx_v_outstanding); /* proto */
 static PyObject *__pyx_pf_5cchip_22divide_data(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_mdata, long __pyx_v_pos, float __pyx_v_price); /* proto */
 static PyObject *__pyx_pf_5cchip_24adjust_volume(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_mdata, long __pyx_v_pos, long __pyx_v_volume, float __pyx_v_price, long __pyx_v_pre_outstanding, long __pyx_v_outstanding); /* proto */
 static PyObject *__pyx_pf_5cchip_26compute_oneday_distribution(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_pre_date_dist, PyObject *__pyx_v_cdate, PyObject *__pyx_v_pos, PyObject *__pyx_v_volume, PyObject *__pyx_v_aprice, PyObject *__pyx_v_pre_outstanding, PyObject *__pyx_v_outstanding); /* proto */
@@ -5961,7 +5963,7 @@ static PyObject *__pyx_pf_5cchip_18number_of_days(CYTHON_UNUSED PyObject *__pyx_
  * def number_of_days(np.ndarray[long] pre_pos, long pos):
  *     return pos - pre_pos             # <<<<<<<<<<<<<<
  * 
- * def adjust_volume(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):
+ * def adjust_volume1(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):
  */
   __Pyx_XDECREF(__pyx_r);
   __pyx_t_1 = __Pyx_PyInt_From_long(__pyx_v_pos); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 102, __pyx_L1_error)
@@ -6005,15 +6007,15 @@ static PyObject *__pyx_pf_5cchip_18number_of_days(CYTHON_UNUSED PyObject *__pyx_
 /* "cchip.pyx":104
  *     return pos - pre_pos
  * 
- * def adjust_volume(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):             # <<<<<<<<<<<<<<
+ * def adjust_volume1(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):             # <<<<<<<<<<<<<<
  *     if pre_outstanding != outstanding:
  *         mdata['volume'] = evenly_distributed_new_chip(mdata['volume'], pre_outstanding, outstanding)
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_5cchip_21adjust_volume(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyMethodDef __pyx_mdef_5cchip_21adjust_volume = {"adjust_volume", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_5cchip_21adjust_volume, METH_VARARGS|METH_KEYWORDS, 0};
-static PyObject *__pyx_pw_5cchip_21adjust_volume(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+static PyObject *__pyx_pw_5cchip_21adjust_volume1(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyMethodDef __pyx_mdef_5cchip_21adjust_volume1 = {"adjust_volume1", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_5cchip_21adjust_volume1, METH_VARARGS|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_5cchip_21adjust_volume1(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   PyArrayObject *__pyx_v_mdata = 0;
   long __pyx_v_pos;
   long __pyx_v_volume;
@@ -6022,7 +6024,7 @@ static PyObject *__pyx_pw_5cchip_21adjust_volume(PyObject *__pyx_self, PyObject 
   long __pyx_v_outstanding;
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("adjust_volume (wrapper)", 0);
+  __Pyx_RefNannySetupContext("adjust_volume1 (wrapper)", 0);
   {
     static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_mdata,&__pyx_n_s_pos,&__pyx_n_s_volume,&__pyx_n_s_price,&__pyx_n_s_pre_outstanding,&__pyx_n_s_outstanding,0};
     PyObject* values[6] = {0,0,0,0,0,0};
@@ -6054,35 +6056,35 @@ static PyObject *__pyx_pw_5cchip_21adjust_volume(PyObject *__pyx_self, PyObject 
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_pos)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("adjust_volume", 1, 6, 6, 1); __PYX_ERR(0, 104, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("adjust_volume1", 1, 6, 6, 1); __PYX_ERR(0, 104, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  2:
         if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_volume)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("adjust_volume", 1, 6, 6, 2); __PYX_ERR(0, 104, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("adjust_volume1", 1, 6, 6, 2); __PYX_ERR(0, 104, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  3:
         if (likely((values[3] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_price)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("adjust_volume", 1, 6, 6, 3); __PYX_ERR(0, 104, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("adjust_volume1", 1, 6, 6, 3); __PYX_ERR(0, 104, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  4:
         if (likely((values[4] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_pre_outstanding)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("adjust_volume", 1, 6, 6, 4); __PYX_ERR(0, 104, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("adjust_volume1", 1, 6, 6, 4); __PYX_ERR(0, 104, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  5:
         if (likely((values[5] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_outstanding)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("adjust_volume", 1, 6, 6, 5); __PYX_ERR(0, 104, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("adjust_volume1", 1, 6, 6, 5); __PYX_ERR(0, 104, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "adjust_volume") < 0)) __PYX_ERR(0, 104, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "adjust_volume1") < 0)) __PYX_ERR(0, 104, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 6) {
       goto __pyx_L5_argtuple_error;
@@ -6103,14 +6105,14 @@ static PyObject *__pyx_pw_5cchip_21adjust_volume(PyObject *__pyx_self, PyObject 
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("adjust_volume", 1, 6, 6, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 104, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("adjust_volume1", 1, 6, 6, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 104, __pyx_L3_error)
   __pyx_L3_error:;
-  __Pyx_AddTraceback("cchip.adjust_volume", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("cchip.adjust_volume1", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_mdata), __pyx_ptype_5numpy_ndarray, 1, "mdata", 0))) __PYX_ERR(0, 104, __pyx_L1_error)
-  __pyx_r = __pyx_pf_5cchip_20adjust_volume(__pyx_self, __pyx_v_mdata, __pyx_v_pos, __pyx_v_volume, __pyx_v_price, __pyx_v_pre_outstanding, __pyx_v_outstanding);
+  __pyx_r = __pyx_pf_5cchip_20adjust_volume1(__pyx_self, __pyx_v_mdata, __pyx_v_pos, __pyx_v_volume, __pyx_v_price, __pyx_v_pre_outstanding, __pyx_v_outstanding);
 
   /* function exit code */
   goto __pyx_L0;
@@ -6121,7 +6123,7 @@ static PyObject *__pyx_pw_5cchip_21adjust_volume(PyObject *__pyx_self, PyObject 
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_5cchip_20adjust_volume(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_mdata, long __pyx_v_pos, long __pyx_v_volume, float __pyx_v_price, long __pyx_v_pre_outstanding, long __pyx_v_outstanding) {
+static PyObject *__pyx_pf_5cchip_20adjust_volume1(CYTHON_UNUSED PyObject *__pyx_self, PyArrayObject *__pyx_v_mdata, long __pyx_v_pos, long __pyx_v_volume, float __pyx_v_price, long __pyx_v_pre_outstanding, long __pyx_v_outstanding) {
   PyObject *__pyx_v_s_data = NULL;
   PyObject *__pyx_v_l_data = NULL;
   long __pyx_v_s_volume_total;
@@ -6141,11 +6143,11 @@ static PyObject *__pyx_pf_5cchip_20adjust_volume(CYTHON_UNUSED PyObject *__pyx_s
   int __pyx_t_8;
   PyObject *__pyx_t_9 = NULL;
   long __pyx_t_10;
-  __Pyx_RefNannySetupContext("adjust_volume", 0);
+  __Pyx_RefNannySetupContext("adjust_volume1", 0);
 
   /* "cchip.pyx":105
  * 
- * def adjust_volume(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):
+ * def adjust_volume1(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):
  *     if pre_outstanding != outstanding:             # <<<<<<<<<<<<<<
  *         mdata['volume'] = evenly_distributed_new_chip(mdata['volume'], pre_outstanding, outstanding)
  * 
@@ -6154,7 +6156,7 @@ static PyObject *__pyx_pf_5cchip_20adjust_volume(CYTHON_UNUSED PyObject *__pyx_s
   if (__pyx_t_1) {
 
     /* "cchip.pyx":106
- * def adjust_volume(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):
+ * def adjust_volume1(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):
  *     if pre_outstanding != outstanding:
  *         mdata['volume'] = evenly_distributed_new_chip(mdata['volume'], pre_outstanding, outstanding)             # <<<<<<<<<<<<<<
  * 
@@ -6227,7 +6229,7 @@ static PyObject *__pyx_pf_5cchip_20adjust_volume(CYTHON_UNUSED PyObject *__pyx_s
 
     /* "cchip.pyx":105
  * 
- * def adjust_volume(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):
+ * def adjust_volume1(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):
  *     if pre_outstanding != outstanding:             # <<<<<<<<<<<<<<
  *         mdata['volume'] = evenly_distributed_new_chip(mdata['volume'], pre_outstanding, outstanding)
  * 
@@ -6811,7 +6813,7 @@ static PyObject *__pyx_pf_5cchip_20adjust_volume(CYTHON_UNUSED PyObject *__pyx_s
   /* "cchip.pyx":104
  *     return pos - pre_pos
  * 
- * def adjust_volume(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):             # <<<<<<<<<<<<<<
+ * def adjust_volume1(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):             # <<<<<<<<<<<<<<
  *     if pre_outstanding != outstanding:
  *         mdata['volume'] = evenly_distributed_new_chip(mdata['volume'], pre_outstanding, outstanding)
  */
@@ -6825,7 +6827,7 @@ static PyObject *__pyx_pf_5cchip_20adjust_volume(CYTHON_UNUSED PyObject *__pyx_s
   __Pyx_XDECREF(__pyx_t_6);
   __Pyx_XDECREF(__pyx_t_7);
   __Pyx_XDECREF(__pyx_t_9);
-  __Pyx_AddTraceback("cchip.adjust_volume", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("cchip.adjust_volume1", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XDECREF(__pyx_v_s_data);
@@ -12326,10 +12328,10 @@ static PyObject *__pyx_pf_5cchip_28compute_distribution(CYTHON_UNUSED PyObject *
   PyObject *__pyx_v_tmp_arrary = NULL;
   PyObject *__pyx_v_data_arrary = NULL;
   PyObject *__pyx_v_row = NULL;
-  __pyx_ctuple_9e79__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc __pyx_v_t1;
-  __pyx_ctuple_9e79__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc __pyx_v_t2;
+  __pyx_ctuple_98ebf__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc __pyx_v_t1;
+  __pyx_ctuple_98ebf__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc __pyx_v_t2;
   PyObject *__pyx_v_t = NULL;
-  __pyx_ctuple_9e79__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc __pyx_v_tdata;
+  __pyx_ctuple_98ebf__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc __pyx_v_tdata;
   PyObject *__pyx_v_df = NULL;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
@@ -12349,7 +12351,7 @@ static PyObject *__pyx_pf_5cchip_28compute_distribution(CYTHON_UNUSED PyObject *
   long __pyx_t_14;
   long __pyx_t_15;
   int __pyx_t_16;
-  __pyx_ctuple_9e79__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc __pyx_t_17;
+  __pyx_ctuple_98ebf__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc __pyx_t_17;
   PyObject *__pyx_t_18 = NULL;
   PyObject *__pyx_t_19 = NULL;
   int __pyx_t_20;
@@ -12704,9 +12706,9 @@ static PyObject *__pyx_pf_5cchip_28compute_distribution(CYTHON_UNUSED PyObject *
       __pyx_t_10 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_array); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 289, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_10);
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-      __pyx_t_1 = __pyx_convert__to_py___pyx_ctuple_9e79__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc(__pyx_v_t1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 289, __pyx_L1_error)
+      __pyx_t_1 = __pyx_convert__to_py___pyx_ctuple_98ebf__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc(__pyx_v_t1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 289, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
-      __pyx_t_9 = __pyx_convert__to_py___pyx_ctuple_9e79__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc(__pyx_v_t2); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 289, __pyx_L1_error)
+      __pyx_t_9 = __pyx_convert__to_py___pyx_ctuple_98ebf__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc(__pyx_v_t2); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 289, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_9);
       __pyx_t_8 = PyList_New(2); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 289, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_8);
@@ -12913,7 +12915,7 @@ static PyObject *__pyx_pf_5cchip_28compute_distribution(CYTHON_UNUSED PyObject *
       __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_array); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 296, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_8);
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-      __pyx_t_1 = __pyx_convert__to_py___pyx_ctuple_9e79__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc(__pyx_v_tdata); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 296, __pyx_L1_error)
+      __pyx_t_1 = __pyx_convert__to_py___pyx_ctuple_98ebf__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc(__pyx_v_tdata); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 296, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
       __pyx_t_21 = PyList_New(1); if (unlikely(!__pyx_t_21)) __PYX_ERR(0, 296, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_21);
@@ -15732,6 +15734,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_kp_u_UTF_8, __pyx_k_UTF_8, sizeof(__pyx_k_UTF_8), 0, 1, 0, 0},
   {&__pyx_n_s_ValueError, __pyx_k_ValueError, sizeof(__pyx_k_ValueError), 0, 0, 1, 1},
   {&__pyx_n_s_adjust_volume, __pyx_k_adjust_volume, sizeof(__pyx_k_adjust_volume), 0, 0, 1, 1},
+  {&__pyx_n_s_adjust_volume1, __pyx_k_adjust_volume1, sizeof(__pyx_k_adjust_volume1), 0, 0, 1, 1},
   {&__pyx_n_s_apply_along_axis, __pyx_k_apply_along_axis, sizeof(__pyx_k_apply_along_axis), 0, 0, 1, 1},
   {&__pyx_n_s_aprice, __pyx_k_aprice, sizeof(__pyx_k_aprice), 0, 0, 1, 1},
   {&__pyx_n_u_aprice, __pyx_k_aprice, sizeof(__pyx_k_aprice), 0, 1, 0, 1},
@@ -16160,14 +16163,14 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "cchip.pyx":104
  *     return pos - pre_pos
  * 
- * def adjust_volume(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):             # <<<<<<<<<<<<<<
+ * def adjust_volume1(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):             # <<<<<<<<<<<<<<
  *     if pre_outstanding != outstanding:
  *         mdata['volume'] = evenly_distributed_new_chip(mdata['volume'], pre_outstanding, outstanding)
  */
   __pyx_tuple__37 = PyTuple_Pack(13, __pyx_n_s_mdata, __pyx_n_s_pos, __pyx_n_s_volume, __pyx_n_s_price, __pyx_n_s_pre_outstanding, __pyx_n_s_outstanding, __pyx_n_s_s_data, __pyx_n_s_l_data, __pyx_n_s_s_volume_total, __pyx_n_s_l_volume_total, __pyx_n_s_volume_total, __pyx_n_s_s_volume, __pyx_n_s_l_volume); if (unlikely(!__pyx_tuple__37)) __PYX_ERR(0, 104, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__37);
   __Pyx_GIVEREF(__pyx_tuple__37);
-  __pyx_codeobj__38 = (PyObject*)__Pyx_PyCode_New(6, 0, 13, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__37, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_cchip_pyx, __pyx_n_s_adjust_volume, 104, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__38)) __PYX_ERR(0, 104, __pyx_L1_error)
+  __pyx_codeobj__38 = (PyObject*)__Pyx_PyCode_New(6, 0, 13, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__37, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_cchip_pyx, __pyx_n_s_adjust_volume1, 104, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__38)) __PYX_ERR(0, 104, __pyx_L1_error)
 
   /* "cchip.pyx":137
  *     return s_data['volume']
@@ -16743,13 +16746,13 @@ if (!__Pyx_RefNanny) {
   /* "cchip.pyx":104
  *     return pos - pre_pos
  * 
- * def adjust_volume(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):             # <<<<<<<<<<<<<<
+ * def adjust_volume1(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):             # <<<<<<<<<<<<<<
  *     if pre_outstanding != outstanding:
  *         mdata['volume'] = evenly_distributed_new_chip(mdata['volume'], pre_outstanding, outstanding)
  */
-  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_5cchip_21adjust_volume, NULL, __pyx_n_s_cchip); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 104, __pyx_L1_error)
+  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_5cchip_21adjust_volume1, NULL, __pyx_n_s_cchip); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 104, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_adjust_volume, __pyx_t_2) < 0) __PYX_ERR(0, 104, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_adjust_volume1, __pyx_t_2) < 0) __PYX_ERR(0, 104, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
   /* "cchip.pyx":137
@@ -19272,7 +19275,7 @@ static void __Pyx_ReleaseBuffer(Py_buffer *view) {
 }
 
 /* ToPyCTupleUtility */
-  static PyObject* __pyx_convert__to_py___pyx_ctuple_9e79__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc(__pyx_ctuple_9e79__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc value) {
+  static PyObject* __pyx_convert__to_py___pyx_ctuple_98ebf__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc(__pyx_ctuple_98ebf__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc value) {
     PyObject* item = NULL;
     PyObject* result = PyTuple_New(6);
     if (!result) goto bad;

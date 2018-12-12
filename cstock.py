@@ -388,6 +388,7 @@ class CStock(CMysqlObj):
         dist_df = dist_df.sort_values(by = 'date', ascending = True)
 
         dist_data = self.compute_distribution(dist_df, cdate)
+
         if dist_data.empty:
             logger.error("%s chip distribution compute failed." % self.code)
             return False
