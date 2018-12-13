@@ -53,6 +53,7 @@ class CPlot():
         if not os.path.exists('i_data.json'):
             obj = CStock(self.code, redis_host = '127.0.0.1')
             k_data = obj.get_k_data()
+            k_data.date = pd.to_datetime(k_data.date).dt.strftime('%Y-%m-%d')
             with open('k_data.json', 'w') as f:
                 f.write(k_data.to_json(orient='records', lines=True))
 
@@ -61,29 +62,32 @@ class CPlot():
                 f.write(d_data.to_json(orient='records', lines=True))
 
             iobj = CIndex(self.index_code)
+
             i_data = iobj.get_k_data()
             cdates = k_data.date.tolist()
             i_data = i_data.loc[i_data.date.isin(cdates)]
+            i_data = i_data.reset_index(drop = True)
+            #i_data.date = pd.to_datetime(i_data.date).dt.strftime('%Y-%m-%d')
             with open('i_data.json', 'w') as f:
                 f.write(i_data.to_json(orient='records', lines=True))
         else:
             with open('k_data.json', 'r') as f:
                 k_data = pd.read_json(f.read(), orient = 'records', lines = True)
+                k_data.date = k_data.date.dt.strftime('%Y-%m-%d')
             with open('d_data.json', 'r') as f:
                 d_data = pd.read_json(f.read(), orient = 'records', lines = True)
             with open('i_data.json', 'r') as f:
                 i_data = pd.read_json(f.read(), orient = 'records', lines = True)
+                i_data.date = i_data.date.dt.strftime('%Y-%m-%d')
 
         k_data = k_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount', 'outstanding', 'totals', 'adj', 'aprice', 'uprice']]
         k_data = k_data.rename(columns = {"date": "time"})
-        k_data.time = k_data.time.dt.strftime('%Y-%m-%d')
         #k_data.time = pd.to_datetime(k_data.time, format='%Y-%m-%d')
         #k_data.time = mdates.date2num(k_data.time)
         #k_data.time = k_data.time.astype(int)
 
         i_data = i_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount']]
         i_data = i_data.rename(columns = {"date": "time"})
-        i_data.time = i_data.time.dt.strftime('%Y-%m-%d')
         #i_data.time = pd.to_datetime(i_data.time, format='%Y-%m-%d')
         #i_data.time = mdates.date2num(i_data.time)
         #i_data.time = i_data.time.astype(int)
@@ -155,7 +159,7 @@ class CPlot():
         self.dateMin  = k_data.time.values.min()
         self.dateMax  = k_data.time.values.max()
         candlestick_ohlc(self.price_ax, k_data.values, width = 1.0, colorup = 'r', colordown = 'g')
-        self.price_ax.plot(k_data.time, k_data['uprice'].rolling(20).mean(), 'b',  label = "无穷成本均线", linewidth = 1)
+        self.price_ax.plot(k_data.time, k_data['uprice'], 'b',  label = "无穷成本均线", linewidth = 1)
         self.price_ax.set_ylabel("prices")
         self.price_ax.yaxis.label.set_color('k')
         self.price_ax.set_xlim(self.dateMin, self.dateMax)
