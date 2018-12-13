@@ -9,7 +9,6 @@ import datetime
 import const as ct
 import pandas as pd
 import tushare as ts
-from chip import Chip
 from log import getLogger
 from ticks import read_tick
 from cinfluxdb import CInflux
