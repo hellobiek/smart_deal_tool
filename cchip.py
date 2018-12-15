@@ -190,8 +190,6 @@ def compute_distribution(data):
             #print(tmp_arrary)
             #print(pre_outstanding - np.sum(tmp_arrary['volume']))
             #print("KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK02")
-            #import pdb
-            #pdb.set_trace()
             tmp_arrary = adjust_volume(tmp_arrary, _index, volume, aprice, pre_outstanding, outstanding)
             tmp_arrary['date'] = cdate
             tmp_arrary['outstanding'] = outstanding

@@ -83,8 +83,6 @@ class CMySQL:
 
     def update_cols(self, df, table, columns, pri_cols):
         #only update entire columns
-        import pdb
-        pdb.set_trace()
         res = True
         try:
             conn = db.connect(host=self.dbinfo['host'],user=self.dbinfo['user'],passwd=self.dbinfo['password'],db=self.dbname,charset=ct.UTF8,connect_timeout=3)
@@ -159,7 +157,6 @@ class CMySQL:
         #first remove the duplicated values, then add the new value in df
         update_items = df.to_dict(orient = 'records')
         query = self.create_update_query(table)
-        pdb.set_trace()
         return self.executemany(query, params = update_items)
 
     def set(self, data_frame, table):

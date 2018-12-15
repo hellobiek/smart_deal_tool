@@ -244,7 +244,7 @@ class CStock(CMysqlObj):
             if preday_index < 0:
                 return pd.DataFrame(), None
             else:
-                pre_day = df.loc[preday_index, 'date']
+                pre_day = df.at[preday_index, 'date']
                 return df.loc[df.date == transfer_date_string_to_int(cdate)], transfer_int_to_date_string(pre_day)
         return df, None
 
@@ -632,10 +632,13 @@ class CStock(CMysqlObj):
         return self.mysql_client.get(sql)
 
 if __name__ == '__main__':
-    cdate = None
+    #cdate = None
+    cdate = '2018-12-10'
     from cindex import CIndex
     index_info = CIndex('000001').get_k_data(cdate)
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
 
     cstock = CStock('601318')
-    print(cstock.set_k_data(bonus_info, index_info, cdate))
+    logger.info("start compute")
+    cstock.set_k_data(bonus_info, index_info, cdate)
+    logger.info("end compute")

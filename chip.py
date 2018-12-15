@@ -13,9 +13,6 @@ class Chip:
             delta = 1 if pre_outstanding < outstanding else -1
             index_list = volume_series.nlargest(delta_sum).index.tolist()
             volume_series[index_list] = volume_series[index_list] + delta
-        if outstanding != volume_series.sum():
-            import pdb
-            pdb.set_trace()
         return volume_series
 
     def average_distribute(self, df, volume_total):
