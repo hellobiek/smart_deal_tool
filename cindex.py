@@ -242,7 +242,6 @@ class CIndex(CMysqlObj):
 
         df = df.reset_index(drop = True)
         day_table = self.get_day_table()
-
         if is_df_has_unexpected_data(df):
             logger.error("data for %s is not clear" % self.code)
             return False

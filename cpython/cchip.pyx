@@ -175,6 +175,9 @@ def compute_oneday_distribution(pre_date_dist, cdate, pos, volume, aprice, pre_o
     np_pre_data = np.concatenate((np_pre_data, np.array(t)), axis=0)
     df = DataFrame(data = np_pre_data, columns = CHIP_COLUMNS)
     df = df[df.volume != 0]
+    df.date = df.date.str.decode('utf-8')
+    df.sdate = df.sdate.str.decode('utf-8')
+    df.price = df.price.astype(float)
     return df.reset_index(drop = True)
 
 def compute_distribution(data):

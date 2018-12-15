@@ -355,7 +355,7 @@ class CStock(CMysqlObj):
         day_table = self.get_day_table()
         if self.is_date_exists(day_table, cdate):
             logger.debug("existed data for code:%s, date:%s" % (self.code, cdate))
-            #return True
+            return True
        
         index_df = index_df.loc[index_df.date == cdate]
 
@@ -552,6 +552,7 @@ class CStock(CMysqlObj):
                 logger.error("data for %s is not clear" % self.code)
                 return False
 
+            df = df.round(2)
             if self.mysql_client.set(df, chip_table): 
                 if self.redis.sadd(chip_table, zdate):
                     logger.debug("finish record chip:%s. table:%s" % (self.code, chip_table))

@@ -8,7 +8,6 @@ class IndexInfo:
             CIndex(code, should_create_influxdb = True, should_create_mysqldb = True)
             return (code, True)
         except Exception as e:
-            print(e)
             return (code, False)
 
     def update(self):
