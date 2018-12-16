@@ -14,6 +14,7 @@ from ticks import read_tick
 from cinfluxdb import CInflux
 from datetime import datetime
 from functools import partial
+#from cchip import compute_distribution, compute_oneday_distribution
 from cpython.cchip import compute_distribution, compute_oneday_distribution
 from cpython.cstock import base_floating_profit
 from base.cobj import CMysqlObj
@@ -234,6 +235,7 @@ class CStock(CMysqlObj):
         if not os.path.exists(filename): return pd.DataFrame(), None
         dheaders = ['date', 'open', 'high', 'close', 'low', 'amount', 'volume']
         df = pd.read_csv(filename, sep = ',', usecols = dheaders)
+        df = df[df['volume'] > 0]
         df = df.sort_values(by = 'date', ascending= True)
         df = df.reset_index(drop = True)
     
@@ -333,7 +335,7 @@ class CStock(CMysqlObj):
 
     def relative_index_strength(self, df, index_df, cdate = None):
         index_df = index_df.loc[index_df.date.isin(df.date.tolist())]
-        if len(df) != len(index_df): return 
+        if len(df) != len(index_df): logger.debug("length of code %s is not equal to index." % self.code)
         index_df.index = df.loc[df.date.isin(index_df.date.tolist())].index
         if cdate is None:
             df['sai'] = 0
@@ -341,6 +343,7 @@ class CStock(CMysqlObj):
             s_pchange = (df['close'] - df['preclose']) / df['preclose']
             i_pchange = (index_df['close'] - index_df['preclose']) / index_df['preclose']
             df['sri'] = 100 * (s_pchange - i_pchange)
+            df['sri'] = df['sri'].fillna(0)
             df.at[(i_pchange < 0) & (s_pchange > 0), 'sai'] = df.loc[(i_pchange < 0) & (s_pchange > 0), 'sri']
         else:
             s_pchange = (df.loc[df.date == cdate, 'close'] - df.loc[df.date == cdate, 'preclose']) / df.loc[df.date == cdate, 'preclose']
@@ -379,7 +382,6 @@ class CStock(CMysqlObj):
 
         df = self.relative_index_strength(df, index_df, cdate)
         if df is None:
-            logger.error("length of code %s is not equal to inedx." % self.code)
             return False
 
         #set chip distribution
@@ -387,7 +389,6 @@ class CStock(CMysqlObj):
         dist_df = dist_df.sort_values(by = 'date', ascending = True)
 
         dist_data = self.compute_distribution(dist_df, cdate)
-
         if dist_data.empty:
             logger.error("%s chip distribution compute failed." % self.code)
             return False
@@ -418,14 +419,16 @@ class CStock(CMysqlObj):
         #compute strength relative index
         df = self.relative_index_strength(df, index_info)
         if df is None:
-            logger.error("length of code %s is not equal to inedx." % self.code)
+            logger.error("length of code %s is not equal to index." % self.code)
             return False
         
         #set chip distribution
+        logger.info("compute %s distribution" % self.code)
         dist_data = self.compute_distribution(df)
         if dist_data.empty:
             return False
 
+        logger.info("store %s distribution" % self.code)
         if not self.set_chip_distribution(dist_data):
             return False
 
@@ -457,7 +460,10 @@ class CStock(CMysqlObj):
         if not self.has_on_market(datetime.now().strftime('%Y-%m-%d')): return True
         quantity_change_info, price_change_info = self.collect_right_info(bonus_info)
         if cdate is None or self.is_need_reright(cdate, price_change_info):
-            return self.set_all_data(quantity_change_info, price_change_info, index_info)
+            logger.info("start compute %s" % self.code)
+            res = self.set_all_data(quantity_change_info, price_change_info, index_info)
+            logger.info("end compute %s" % self.code)
+            return res
         else:
             today_df, pre_date = self.read(cdate)
             if today_df.empty: return False
