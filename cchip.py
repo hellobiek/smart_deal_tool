@@ -7,7 +7,6 @@ DTYPE_LIST = [('pos', 'i8'), ('sdate', 'S10'), ('date', 'S10'), ('price', 'f4'),
 
 def evenly_distributed_new_chip(volume_series, pre_outstanding, outstanding):
     volume_series = (outstanding * (volume_series / pre_outstanding)).astype(int)
-    delta = 0
     real_total_volume = np.sum(volume_series)
     delta_sum = outstanding - real_total_volume
     while abs(delta_sum) > volume_series.size:
@@ -30,18 +29,6 @@ def divide_according_property(property_series, volume_series, total_volume, now_
             volume_series[index] = max(0, volume_series[index] - expected_volume)
             if 0 == total_volume: break
     return volume_series
-
-def change_volume_for_long_unprofit(l_u_data, volume, price, pos):
-    return divide_according_property(l_u_data['pos'], l_u_data['volume'], volume, pos)
-
-def change_volume_for_long_profit(l_p_data, volume, price, pos):
-    return divide_according_property(l_p_data['price'], l_p_data['volume'], volume, price)
-
-def change_volume_for_short_unprofit(s_u_data, volume, pos):
-    return divide_according_property(s_u_data['pos'], s_u_data['volume'], volume, pos)
-
-def change_volume_for_short_profit(s_p_data, volume, price):
-    return divide_according_property(s_p_data['price'], s_p_data['volume'], volume, price)
 
 def number_of_days(pre_pos, pos):
     return pos - pre_pos
@@ -74,85 +61,90 @@ def adjust_volume(mdata, pos, volume, price, pre_outstanding, outstanding):
     l_p_volume_total = np.sum(l_p_data['volume'])
     l_u_volume_total = np.sum(l_u_data['volume'])
 
+    s_p_volume = 0 #long(volume * (s_p_volume_total / volume_total))
+    s_u_volume = 0 #long(volume * (s_u_volume_total / volume_total))
+    l_p_volume = 0 #long(volume * (l_p_volume_total / volume_total)) 
+    l_u_volume = 0 #volume - s_p_volume - s_u_volume - l_p_volume
+
     if s_p_data.size > 0 and s_u_data.size == 0 and l_p_data.size == 0 and l_u_data.size == 0:
-        mdata['volume'] = change_volume_for_short_profit(mdata, volume, price)
+        mdata['volume'] = divide_according_property(mdata['price'], mdata['volume'], volume, price)
     elif s_p_data.size == 0 and s_u_data.size > 0 and l_p_data.size == 0 and l_u_data.size == 0:
-        mdata['volume'] = change_volume_for_short_unprofit(mdata, volume, pos)
+        mdata['volume'] = divide_according_property(mdata['pos'], mdata['volume'], volume, pos)
     elif s_p_data.size == 0 and s_u_data.size == 0 and l_p_data.size > 0 and l_u_data.size == 0:
-        mdata['volume'] = change_volume_for_long_profit(mdata, volume, price, pos)
+        mdata['volume'] = divide_according_property(mdata['price'], mdata['volume'], volume, price)
     elif s_p_data.size == 0 and s_u_data.size == 0 and l_p_data.size == 0 and l_u_data.size > 0:
-        mdata['volume'] = change_volume_for_long_unprofit(mdata, volume, price, pos)
+        mdata['volume'] = divide_according_property(mdata['pos'], mdata['volume'], volume, pos)
     elif s_p_data.size > 0 and s_u_data.size > 0 and l_p_data.size == 0 and l_u_data.size == 0:
         s_p_volume = int(volume * (s_p_volume_total / volume_total))
         s_u_volume = volume - s_p_volume
-        s_p_data['volume'] = change_volume_for_short_profit(s_p_data, s_p_volume, price)
-        s_u_data['volume'] = change_volume_for_short_unprofit(s_u_data, s_u_volume, pos)
+        s_p_data['volume'] = divide_according_property(s_p_data['price'], s_p_data['volume'], s_p_volume, price)
+        s_u_data['volume'] = divide_according_property(s_u_data['pos'], s_u_data['volume'], s_u_volume, pos)
         mdata = np.concatenate((s_p_data, s_u_data), axis = 0)
     elif s_p_data.size > 0 and s_u_data.size == 0 and l_p_data.size > 0 and l_u_data.size == 0:
         s_p_volume = int(volume * (s_p_volume_total / volume_total))
         l_p_volume = volume - s_p_volume
-        s_p_data['volume'] = change_volume_for_short_profit(s_p_data, s_p_volume, price)
-        l_p_data['volume'] = change_volume_for_long_profit(l_p_data, l_p_volume, price, pos)
+        s_p_data['volume'] = divide_according_property(s_p_data['price'], s_p_data['volume'], s_p_volume, price)
+        l_p_data['volume'] = divide_according_property(l_p_data['price'], l_p_data['volume'], l_p_volume, price)
         mdata = np.concatenate((s_p_data, l_p_data), axis = 0)
     elif s_p_data.size > 0 and s_u_data.size == 0 and l_p_data.size == 0 and l_u_data.size > 0:
         s_p_volume = int(volume * (s_p_volume_total / volume_total))
         l_u_volume = volume - s_p_volume
-        s_p_data['volume'] = change_volume_for_short_profit(s_p_data, s_p_volume, price)
-        l_u_data['volume'] = change_volume_for_long_unprofit(l_u_data, l_u_volume, price, pos)
+        s_p_data['volume'] = divide_according_property(s_p_data['price'], s_p_data['volume'], s_p_volume, price)
+        l_u_data['volume'] = divide_according_property(l_u_data['pos'], l_u_data['volume'], l_u_volume, pos)
         mdata = np.concatenate((s_p_data, l_u_data), axis = 0)
     elif s_p_data.size == 0 and s_u_data.size > 0 and l_p_data.size == 0 and l_u_data.size > 0:
         s_u_volume = int(volume * (s_u_volume_total / volume_total))
         l_u_volume = volume - s_u_volume
-        s_u_data['volume'] = change_volume_for_short_unprofit(s_u_data, s_u_volume, pos)
-        l_u_data['volume'] = change_volume_for_long_unprofit(l_u_data, l_u_volume, price, pos)
+        s_u_data['volume'] = divide_according_property(s_u_data['pos'], s_u_data['volume'], s_u_volume, pos)
+        l_u_data['volume'] = divide_according_property(l_u_data['pos'], l_u_data['volume'], l_u_volume, pos)
         mdata = np.concatenate((s_u_data, l_u_data), axis = 0)
     elif s_p_data.size == 0 and s_u_data.size > 0 and l_p_data.size > 0 and l_u_data.size == 0:
         s_u_volume = int(volume * (s_u_volume_total / volume_total))
         l_p_volume = volume - s_u_volume
-        s_u_data['volume'] = change_volume_for_short_unprofit(s_u_data, s_u_volume, pos)
-        l_p_data['volume'] = change_volume_for_long_profit(l_p_data, l_p_volume, price, pos)
+        s_u_data['volume'] = divide_according_property(s_u_data['pos'], s_u_data['volume'], s_u_volume, pos)
+        l_p_data['volume'] = divide_according_property(l_p_data['price'], l_p_data['volume'], l_p_volume, price)
         mdata = np.concatenate((s_u_data, l_p_data), axis = 0)
     elif s_p_data.size == 0 and s_u_data.size > 0 and l_p_data.size > 0 and l_u_data.size > 0:
         s_u_volume = int(volume * (s_u_volume_total / volume_total))
         l_p_volume = int(volume * (l_p_volume_total / volume_total))
         l_u_volume = volume - s_u_volume - l_p_volume
-        s_u_data['volume'] = change_volume_for_short_unprofit(s_u_data, s_u_volume, pos)
-        l_p_data['volume'] = change_volume_for_long_profit(l_p_data, l_p_volume, price, pos)
-        l_u_data['volume'] = change_volume_for_long_unprofit(l_u_data, l_u_volume, price, pos)
+        s_u_data['volume'] = divide_according_property(s_u_data['pos'], s_u_data['volume'], s_u_volume, pos)
+        l_p_data['volume'] = divide_according_property(l_p_data['price'], l_p_data['volume'], l_p_volume, price)
+        l_u_data['volume'] = divide_according_property(l_u_data['pos'], l_u_data['volume'], l_u_volume, pos)
         mdata = np.concatenate((s_u_data, l_p_data, l_u_data), axis = 0)
     elif s_p_data.size > 0 and s_u_data.size == 0 and l_p_data.size > 0 and l_u_data.size > 0:
         s_p_volume = int(volume * (s_p_volume_total / volume_total))
         l_p_volume = int(volume * (l_p_volume_total / volume_total))
         l_u_volume = volume - s_p_volume - l_p_volume
-        s_p_data['volume'] = change_volume_for_short_profit(s_p_data, s_p_volume, price)
-        l_p_data['volume'] = change_volume_for_long_profit(l_p_data, l_p_volume, price, pos)
-        l_u_data['volume'] = change_volume_for_long_unprofit(l_u_data, l_u_volume, price, pos)
+        s_p_data['volume'] = divide_according_property(s_p_data['price'], s_p_data['volume'], s_p_volume, price)
+        l_p_data['volume'] = divide_according_property(l_p_data['price'], l_p_data['volume'], l_p_volume, price)
+        l_u_data['volume'] = divide_according_property(l_u_data['pos'], l_u_data['volume'], l_u_volume, pos)
         mdata = np.concatenate((s_p_data, l_p_data, l_u_data), axis = 0)
     elif s_p_data.size > 0 and s_u_data.size > 0 and l_p_data.size == 0 and l_u_data.size > 0:
         s_p_volume = int(volume * (s_p_volume_total / volume_total))
         s_u_volume = int(volume * (s_u_volume_total / volume_total))
         l_u_volume = volume - s_p_volume - s_u_volume
-        s_p_data['volume'] = change_volume_for_short_profit(s_p_data, s_p_volume, price)
-        s_u_data['volume'] = change_volume_for_short_unprofit(s_u_data, s_u_volume, pos)
-        l_u_data['volume'] = change_volume_for_long_unprofit(l_u_data, l_u_volume, price, pos)
+        s_p_data['volume'] = divide_according_property(s_p_data['price'], s_p_data['volume'], s_p_volume, price)
+        s_u_data['volume'] = divide_according_property(s_u_data['pos'], s_u_data['volume'], s_u_volume, pos)
+        l_u_data['volume'] = divide_according_property(l_u_data['pos'], l_u_data['volume'], l_u_volume, pos)
         mdata = np.concatenate((s_p_data, s_u_data, l_u_data), axis = 0)
     elif s_p_data.size > 0 and s_u_data.size > 0 and l_p_data.size > 0 and l_u_data.size == 0:
         s_p_volume = int(volume * (s_p_volume_total / volume_total))
         s_u_volume = int(volume * (s_u_volume_total / volume_total))
         l_p_volume = volume - s_p_volume - s_u_volume
-        s_p_data['volume'] = change_volume_for_short_profit(s_p_data, s_p_volume, price)
-        s_u_data['volume'] = change_volume_for_short_unprofit(s_u_data, s_u_volume, pos)
-        l_p_data['volume'] = change_volume_for_long_profit(l_p_data, l_p_volume, price, pos)
+        s_p_data['volume'] = divide_according_property(s_p_data['price'], s_p_data['volume'], s_p_volume, price)
+        s_u_data['volume'] = divide_according_property(s_u_data['pos'], s_u_data['volume'], s_u_volume, pos)
+        l_p_data['volume'] = divide_according_property(l_p_data['price'], l_p_data['volume'], l_p_volume, price)
         mdata = np.concatenate((s_p_data, s_u_data, l_p_data), axis = 0)
     else:#s_p_data.size > 0 and s_u_data.size > 0 and l_p_data.size > 0 and l_u_data.size > 0
         s_p_volume = int(volume * (s_p_volume_total / volume_total))
         s_u_volume = int(volume * (s_u_volume_total / volume_total))
         l_p_volume = int(volume * (l_p_volume_total / volume_total))
         l_u_volume = volume - s_p_volume - s_u_volume - l_p_volume
-        s_p_data['volume'] = change_volume_for_short_profit(s_p_data, s_p_volume, price)
-        s_u_data['volume'] = change_volume_for_short_unprofit(s_u_data, s_u_volume, pos)
-        l_p_data['volume'] = change_volume_for_long_profit(l_p_data, l_p_volume, price, pos)
-        l_u_data['volume'] = change_volume_for_long_unprofit(l_u_data, l_u_volume, price, pos)
+        s_p_data['volume'] = divide_according_property(s_p_data['price'], s_p_data['volume'], s_p_volume, price)
+        s_u_data['volume'] = divide_according_property(s_u_data['pos'], s_u_data['volume'], s_u_volume, pos)
+        l_p_data['volume'] = divide_according_property(l_p_data['price'], l_p_data['volume'], l_p_volume, price)
+        l_u_data['volume'] = divide_according_property(l_u_data['pos'], l_u_data['volume'], l_u_volume, pos)
         mdata = np.concatenate((s_p_data, s_u_data, l_p_data, l_u_data), axis = 0)
     return mdata
 
@@ -166,7 +158,10 @@ def compute_oneday_distribution(pre_date_dist, cdate, pos, volume, aprice, pre_o
     t = np.array([tdata], dtype = DTYPE_LIST)
     np_pre_data = np.concatenate((np_pre_data, np.array(t)), axis=0)
     df = DataFrame(data = np_pre_data, columns = CHIP_COLUMNS)
-    df = df[df.volume > 0]
+    df = df[df.volume != 0]
+    df.date = df.date.str.decode('utf-8')
+    df.sdate = df.sdate.str.decode('utf-8')
+    df.price = df.price.astype(float)
     return df.reset_index(drop = True)
 
 def compute_distribution(data):
@@ -184,12 +179,6 @@ def compute_distribution(data):
             t = np.array([t1, t2], dtype = DTYPE_LIST)
             tmp_arrary = t.copy()
         else:
-            #print("KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK01")
-            #print(_index)
-            #print(volume)
-            #print(tmp_arrary)
-            #print(pre_outstanding - np.sum(tmp_arrary['volume']))
-            #print("KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK02")
             print(_index)
             tmp_arrary = adjust_volume(tmp_arrary, _index, volume, aprice, pre_outstanding, outstanding)
             tmp_arrary['date'] = cdate

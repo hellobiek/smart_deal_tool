@@ -238,7 +238,6 @@ class CStock(CMysqlObj):
         df = df[df['volume'] > 0]
         df = df.sort_values(by = 'date', ascending= True)
         df = df.reset_index(drop = True)
-    
         if cdate is not None:
             index_list = df.loc[df.date == transfer_date_string_to_int(cdate)].index.values
             if len(index_list) == 0: return pd.DataFrame(), None
