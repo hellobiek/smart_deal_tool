@@ -5,6 +5,7 @@ monkey.patch_all(thread=True, subprocess = True)
 import os
 import time
 import json
+import copy
 import datetime
 import traceback
 import const as ct
@@ -168,6 +169,7 @@ class DataManager:
         step_info[cdate]['date'] = exec_date
         with open(filename, 'w') as f:
             json.dump(step_info, f)
+        self.logger.info("finish step :%s" %  step_length)
 
     def get_update_info(self, cdate = None, filename = ct.STEPFILE):
         if cdate is None:
@@ -325,8 +327,7 @@ class DataManager:
             return (code_id, True) if _obj.set_base_floating_profit() else (code_id, False)
         #df = self.stock_info_client.get()
         #failed_list = df.code.tolist()
-        #failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
-        failed_list = ['601318']
+        failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
         return concurrent_run(_set_base_float_profit, failed_list, num = 500)
 
     def init_stock_info(self, cdate = None):
@@ -341,10 +342,9 @@ class DataManager:
         index_info = CIndex('000001').get_k_data()
         if index_info is None or index_info.empty: return False
     
-        #failed_list = df.code.tolist()
         #df = self.stock_info_client.get()
-        #failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
-        failed_list = ['601318']
+        #failed_list = df.code.tolist()
+        failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
         if cdate is None:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
             return concurrent_run(cfunc, failed_list, num = 500)
@@ -426,5 +426,8 @@ if __name__ == '__main__':
     #mysql_client = CMySQL(dbinfo = ct.DB_INFO)
     #mysql_client.delete_db('s601318')
     #CStock('601318', should_create_influxdb = True, should_create_mysqldb = True)
+    #dm.bootstrap(cdate='2018-12-11')
     dm = DataManager()
-    dm.bootstrap(cdate='2018-12-10')
+    dm.logger.info("start compute!")
+    dm.bootstrap()
+    dm.logger.info("end compute!")

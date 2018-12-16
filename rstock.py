@@ -115,9 +115,8 @@ class RIndexStock:
         all_df = pd.DataFrame()
         #stock_info = CStockInfo.get()
         #failed_list = stock_info.code.tolist()
-        #import copy
-        #failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
-        failed_list = ['601318']
+        import copy
+        failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
         cfunc = partial(self.get_stock_data, cdate)
         while len(failed_list) > 0:
             for code_data in obj_pool.imap_unordered(cfunc, failed_list):
