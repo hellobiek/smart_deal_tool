@@ -347,7 +347,7 @@ class DataManager:
         failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
         if cdate is None:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
-            return concurrent_run(cfunc, failed_list, num = 500)
+            return concurrent_run(cfunc, failed_list, num = 5)
         else:
             succeed = True
             start_date = get_day_nday_ago(cdate, num = 3, dformat = "%Y-%m-%d")
@@ -422,12 +422,12 @@ class DataManager:
             return False
  
 if __name__ == '__main__':
-    #from cmysql import CMySQL 
+    #from cmysql import CMySQL
     #mysql_client = CMySQL(dbinfo = ct.DB_INFO)
-    #mysql_client.delete_db('s601318')
-    #CStock('601318', should_create_influxdb = True, should_create_mysqldb = True)
-    #dm.bootstrap(cdate='2018-12-11')
+    #code_list = copy.deepcopy(ct.ALL_CODE_LIST)
+    #for code in code_list: mysql_client.delete_db('s%s' % code)
     dm = DataManager()
     dm.logger.info("start compute!")
     dm.bootstrap()
+    #dm.bootstrap(cdate='2018-12-11')
     dm.logger.info("end compute!")

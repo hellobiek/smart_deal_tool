@@ -1,4 +1,4 @@
-# cython: language_level=3, boundscheck=False, wraparound=False, nonecheck=False, infer_types=True
+# cython: language_level=3, boundscheck=False, nonecheck=False, infer_types=True
 import numpy as np
 cimport numpy as np
 from pandas import DataFrame
@@ -11,8 +11,8 @@ def evenly_distributed_new_chip(np.ndarray[long] volume_series, long pre_outstan
     cdef long delta = 0
     cdef long real_total_volume = np.sum(volume_series)
     cdef long delta_sum = outstanding - real_total_volume
-    while abs(delta_sum) > volume_series.size:
-        volume_series += long(delta_sum / volume_series.size)
+    while abs(delta_sum) > len(volume_series):
+        volume_series += long(delta_sum / len(volume_series))
         delta_sum = outstanding - np.sum(volume_series)
         if delta_sum == 0: return volume_series
     delta = 1 if delta_sum > 0 else -1
@@ -22,7 +22,7 @@ def evenly_distributed_new_chip(np.ndarray[long] volume_series, long pre_outstan
 def divide_according_property(np.ndarray property_series, np.ndarray[long] volume_series, long total_volume, now_property):
     cdef long tmp_volume = 0
     cdef float holding_property = 0
-    cdef float total_property = now_property * volume_series.size - np.sum(property_series)
+    cdef float total_property = now_property * len(volume_series) - np.sum(property_series)
     while total_volume != 0:
         tmp_volume = total_volume
         for (index, ), pro in np.ndenumerate(property_series):
@@ -38,6 +38,7 @@ def number_of_days(np.ndarray[long] pre_pos, long pos):
     return pos - pre_pos
 
 def divide_data(np.ndarray mdata, long pos, float price):
+    cdef np.ndarray s_data, s_p_data, s_u_data, l_data, l_p_data, l_u_data
     #short chip data
     s_data = mdata[np.apply_along_axis(number_of_days, 0, mdata['pos'], pos) <= 60]
     #short profit data
@@ -53,10 +54,10 @@ def divide_data(np.ndarray mdata, long pos, float price):
     return s_p_data, s_u_data, l_p_data, l_u_data
 
 def divide_volume(long volume, long volume_total, long s_p_volume_total, long s_u_volume_total, long l_p_volume_total, long l_u_volume_total):
-    cdef long s_p_volume = 0 #long(volume * (s_p_volume_total / volume_total))
-    cdef long s_u_volume = 0 #long(volume * (s_u_volume_total / volume_total))
-    cdef long l_p_volume = 0 #long(volume * (l_p_volume_total / volume_total)) 
-    cdef long l_u_volume = 0 #volume - s_p_volume - s_u_volume - l_p_volume
+    cdef long s_p_volume = 0
+    cdef long s_u_volume = 0
+    cdef long l_p_volume = 0
+    cdef long l_u_volume = 0
     if s_p_volume_total == max(s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total):
         s_u_volume = long(volume * (s_u_volume_total / volume_total))
         l_p_volume = long(volume * (l_p_volume_total / volume_total))
@@ -83,10 +84,7 @@ def adjust_volume(np.ndarray mdata, long pos, long volume, float price, long pre
     if pre_outstanding != outstanding:
         mdata['volume'] = evenly_distributed_new_chip(mdata['volume'], pre_outstanding, outstanding)
 
-    cdef np.ndarray s_p_data
-    cdef np.ndarray s_u_data
-    cdef np.ndarray l_p_data
-    cdef np.ndarray l_u_data
+    cdef np.ndarray s_p_data, s_u_data, l_p_data, l_u_data
     s_p_data, s_u_data, l_p_data, l_u_data = divide_data(mdata, pos, price)
 
     #total volume
@@ -96,36 +94,27 @@ def adjust_volume(np.ndarray mdata, long pos, long volume, float price, long pre
     cdef long l_p_volume_total = np.sum(l_p_data['volume'])
     cdef long l_u_volume_total = np.sum(l_u_data['volume'])
 
-    cdef long s_p_volume = 0
-    cdef long s_u_volume = 0
-    cdef long l_p_volume = 0
-    cdef long l_u_volume = 0
+    cdef long s_p_volume = 0, s_u_volume = 0, l_p_volume = 0, l_u_volume = 0
     s_p_volume, s_u_volume, l_p_volume, l_u_volume = divide_volume(volume, volume_total, s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total)
 
     if s_p_volume > 0: s_p_data['volume'] = divide_according_property(s_p_data['price'], s_p_data['volume'], s_p_volume, price)
-
     if s_u_volume > 0: s_u_data['volume'] = divide_according_property(s_u_data['pos'], s_u_data['volume'], s_u_volume, pos)
-
     if l_p_volume > 0: l_p_data['volume'] = divide_according_property(l_p_data['price'], l_p_data['volume'], l_p_volume, price)
-
     if l_u_volume > 0: l_u_data['volume'] = divide_according_property(l_u_data['pos'], l_u_data['volume'], l_u_volume, pos)
-
     return np.concatenate((s_p_data, s_u_data, l_p_data, l_u_data), axis = 0)
 
-def compute_oneday_distribution(pre_date_dist, cdate, pos, volume, aprice, pre_outstanding, outstanding):
-    np_pre_data = pre_date_dist.to_records(index = False)
+def compute_oneday_distribution(pre_date_dist, char *cdate, long pos, long volume, float aprice, long pre_outstanding, long outstanding):
+    cdef np.ndarray np_pre_data = pre_date_dist.to_records(index = False)
     np_pre_data = np_pre_data.astype(DTYPE_LIST)
     np_pre_data = adjust_volume(np_pre_data, pos, volume, aprice, pre_outstanding, outstanding)
     np_pre_data['date'] = cdate
     np_pre_data['outstanding'] = outstanding
-    tdata = (pos, cdate, cdate, aprice, volume, outstanding)
-    t = np.array([tdata], dtype = DTYPE_LIST)
-    np_pre_data = np.concatenate((np_pre_data, np.array(t)), axis=0)
+    np_pre_data = np.concatenate((np_pre_data, np.array([(pos, cdate, cdate, aprice, volume, outstanding)], dtype = DTYPE_LIST)), axis=0)
     df = DataFrame(data = np_pre_data, columns = CHIP_COLUMNS)
     df = df[df.volume != 0]
     df.date = df.date.str.decode('utf-8')
     df.sdate = df.sdate.str.decode('utf-8')
-    df.price = df.price.astype(float)
+    df.price = df.price.astype(float).round(2)
     return df.reset_index(drop = True)
 
 def compute_distribution(data):
@@ -134,7 +123,7 @@ def compute_distribution(data):
     cdef long pos, volume, _index, outstanding, pre_outstanding = 0
     data = data[['date', 'volume', 'aprice', 'outstanding']]
     data.date = data.date.str.encode("UTF-8")
-    np_data = data.values
+    cdef np.ndarray np_data = data.values
     tmp_arrary = np.zeros((2, 6), dtype = DTYPE_LIST)
     data_arrary = np.zeros((2, 6), dtype = DTYPE_LIST)
     for _index, row in enumerate(np_data):
@@ -157,5 +146,5 @@ def compute_distribution(data):
     df = DataFrame(data = data_arrary, columns = CHIP_COLUMNS)
     df.date = df.date.str.decode('utf-8')
     df.sdate = df.sdate.str.decode('utf-8')
-    df.price = df.price.astype(float)
+    df.price = df.price.astype(float).round(2)
     return df

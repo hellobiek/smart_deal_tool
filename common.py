@@ -241,7 +241,10 @@ def concurrent_run(mfunc, todo_list, num = 10, max_retry_times = 10):
             else:
                 is_failed = True
         if is_failed:
-            if failed_count > max_retry_times: return False
+            if failed_count > max_retry_times:
+                obj_pool.join(timeout = 10)
+                obj_pool.kill()
+                return False
             failed_count += 1
             time.sleep(10)
     obj_pool.join(timeout = 10)

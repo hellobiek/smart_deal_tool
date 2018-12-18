@@ -452,17 +452,20 @@ class CStock(CMysqlObj):
 
     def set_base_floating_profit(self):
         df = self.get_k_data()
-        df = base_floating_profit(df, num = ct.PRE_DAYS_NUM)
+        df['base'] = 0.0
+        df['ibase'] = 0
+        df['breakup'] = 0
+        df['ibreakup'] = 0
+        df['pday'] = 0
+        df['profit'] = 0.0
+        df = base_floating_profit(df)
         return self.mysql_client.delsert(df, self.get_day_table())
 
     def set_k_data(self, bonus_info, index_info, cdate = None):
         if not self.has_on_market(datetime.now().strftime('%Y-%m-%d')): return True
         quantity_change_info, price_change_info = self.collect_right_info(bonus_info)
         if cdate is None or self.is_need_reright(cdate, price_change_info):
-            logger.info("start compute %s" % self.code)
-            res = self.set_all_data(quantity_change_info, price_change_info, index_info)
-            logger.info("end compute %s" % self.code)
-            return res
+            return self.set_all_data(quantity_change_info, price_change_info, index_info)
         else:
             today_df, pre_date = self.read(cdate)
             if today_df.empty: return False
@@ -517,7 +520,6 @@ class CStock(CMysqlObj):
     def set_chip_table(self, df, myear):
         #get new df
         tmp_df = df.loc[df.date.str.startswith(myear)]
-        tmp_df = tmp_df.round(2) 
         tmp_df = tmp_df.reset_index(drop = True)
         #get chip table name
         chip_table = self.get_chip_distribution_table(myear)
@@ -557,7 +559,6 @@ class CStock(CMysqlObj):
                 logger.error("data for %s is not clear" % self.code)
                 return False
 
-            df = df.round(2)
             if self.mysql_client.set(df, chip_table): 
                 if self.redis.sadd(chip_table, zdate):
                     logger.debug("finish record chip:%s. table:%s" % (self.code, chip_table))
