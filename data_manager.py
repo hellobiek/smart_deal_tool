@@ -1,7 +1,4 @@
 #coding=utf-8
-import gevent
-from gevent import monkey
-monkey.patch_all(thread=True, subprocess = True)
 import os
 import time
 import json
@@ -274,7 +271,7 @@ class DataManager:
                 self.logger.error("init_yesterday_margin failed")
                 return False
             self.set_update_info(15, exec_date, cdate)
-
+       
         if finished_step < 16:
             if not self.init_stock_info(cdate):
                 self.logger.error("init_stock_info set failed")

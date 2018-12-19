@@ -3,7 +3,6 @@ import gevent
 from gevent import monkey
 monkey.patch_all(thread = True)
 from gevent.pool import Pool
-
 import os
 import time
 import _pickle
@@ -13,6 +12,7 @@ import const as ct
 import numpy as np
 import pandas as pd
 matplotlib.use('Agg')
+from matplotlib import style
 import matplotlib.dates as mdates
 import matplotlib.ticker as mticker
 import matplotlib.animation as animation
@@ -21,7 +21,6 @@ from log import getLogger
 from climit import CLimit
 from cindex import CIndex
 from cmysql import CMySQL
-from matplotlib import style
 from functools import partial
 from rstock import RIndexStock
 from ccalendar import CCalendar
@@ -36,6 +35,7 @@ from datamanager.sexchange import StockExchange
 from visualization.marauder_map import MarauderMap 
 from algotrade.selecters.anti_market_up import AntiMarketUpSelecter
 from algotrade.selecters.stronger_than_market import StrongerThanMarketSelecter
+from algotrade.selecters.less_volume_in_high_profit import LessVolumeHighProfitSelecter
 from algotrade.selecters.game_kline_bigraise_and_large_volume import GameKLineBigraiseLargeVolumeSelecter
 from common import create_redis_obj, get_chinese_font, get_tushare_client, get_day_nday_ago
 
@@ -57,9 +57,6 @@ class CReivew:
         self.sz_market_client   = StockExchange(ct.SZ_MARKET_SYMBOL)
         self.emotion_client     = Emotion()
         self.mmap_clinet        = MarauderMap(ct.ALL_CODE_LIST)
-
-    def get_market_info(self):
-        df = self.tu_client.index_basic(market = self.SSE)
 
     def multi_plot(self, x_dict, y_dict, ylabel, title, dir_name, filename):
         def _format_date(i, pos = None):
@@ -147,27 +144,27 @@ class CReivew:
         limit_up_list   = limit_info[(limit_info.pchange > 0) & (limit_info.prange != 0)].reset_index(drop = True).code.tolist()
         limit_down_list = limit_info[limit_info.pchange < 0].reset_index(drop = True).code.tolist()
         limit_list = limit_up_list + limit_down_list
+        stock_info = stock_info[~stock_info.code.isin(limit_list)]
         changepercent_list = [9, 7, 5, 3, 1, 0, -1, -3, -5, -7, -9]
         num_list = list()
         name_list = list()
         num_list.append(len(limit_up_list))
         name_list.append("涨停")
         c_length = len(changepercent_list)
-        for _index in range(c_length):
-            pchange = changepercent_list[_index]
-            if 0 == _index:
-                num_list.append(len(stock_info[(stock_info.pchange > pchange) & (stock_info.loc[_index, 'code'] not in limit_list)]))
+        for index in range(c_length):
+            pchange = changepercent_list[index]
+            if 0 == index:
+                num_list.append(len(stock_info[stock_info.pchange > pchange]))
                 name_list.append(">%s" % pchange)
-            elif c_length - 1 == _index:
-                num_list.append(len(stock_info[(stock_info.pchange < pchange) & (stock_info.loc[_index, 'code'] not in limit_list)]))
+            elif c_length - 1 == index:
+                num_list.append(len(stock_info[stock_info.pchange < pchange]))
                 name_list.append("<%s" % pchange)
             else:
-                p_max_change = changepercent_list[_index - 1]
+                p_max_change = changepercent_list[index - 1]
                 num_list.append(len(stock_info[(stock_info.pchange > pchange) & (stock_info.pchange < p_max_change)]))
                 name_list.append("%s-%s" % (pchange, p_max_change))
         num_list.append(len(limit_down_list))
         name_list.append("跌停")
-    
         fig = plt.figure()
         for i in range(len(num_list)):
             plt.bar(i + 1, num_list[i], color = self.COLORS[i % len(self.COLORS)], width = 0.3)
@@ -179,16 +176,6 @@ class CReivew:
         plt.xticks(range(1, len(num_list) + 1), name_list, fontproperties = get_chinese_font())
         fig.autofmt_xdate()
         plt.savefig('%s/%s.png' % (dir_name, file_name), dpi=1000)
-
-    def is_collecting_time(self):
-        now_time = datetime.now()
-        _date = now_time.strftime('%Y-%m-%d')
-        y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
-        mor_open_hour,mor_open_minute,mor_open_second = (21,0,0)
-        mor_open_time = datetime(y,m,d,mor_open_hour,mor_open_minute,mor_open_second)
-        mor_close_hour,mor_close_minute,mor_close_second = (23,59,59)
-        mor_close_time = datetime(y,m,d,mor_close_hour,mor_close_minute,mor_close_second)
-        return mor_open_time < now_time < mor_close_time
 
     def get_index_data(self, _date):
         df = pd.DataFrame()
@@ -310,12 +297,11 @@ class CReivew:
         try:
             self.logger.info("create daily info")
             if not os.path.exists(dir_name):
-                #self.logger.info("market analysis")
-                #sh_df = self.get_market_data(ct.SH_MARKET_SYMBOL, start_date, end_date)
-                #sz_df = self.get_market_data(ct.SZ_MARKET_SYMBOL, start_date, end_date)
-                #sh_rzrq_df = self.get_rzrq_info(ct.SH_MARKET_SYMBOL, start_date, end_date)
-                #sz_rzrq_df = self.get_rzrq_info(ct.SZ_MARKET_SYMBOL, start_date, end_date)
-
+                self.logger.info("market analysis")
+                sh_df = self.get_market_data(ct.SH_MARKET_SYMBOL, start_date, end_date)
+                sz_df = self.get_market_data(ct.SZ_MARKET_SYMBOL, start_date, end_date)
+                sh_rzrq_df = self.get_rzrq_info(ct.SH_MARKET_SYMBOL, start_date, end_date)
+                sz_rzrq_df = self.get_rzrq_info(ct.SZ_MARKET_SYMBOL, start_date, end_date)
                 #平均股价的数据
                 av_df = self.get_index_df('880003', start_date, end_date)
 
@@ -332,11 +318,11 @@ class CReivew:
                 ##limit up and down info
                 #limit_info = self.get_limitup_data(cdate)
                 today_stock_info = self.rstock_client.get_data(cdate)
-                #get volume > 0 stock list
+                ##get volume > 0 stock list
                 today_stock_info = today_stock_info[today_stock_info.volume > 0]
                 today_stock_info = today_stock_info.reset_index(drop = True)
                 ##static analysis
-                #self.static_plot(stock_info, limit_info, dir_name = '/code/figs', file_name = 'pchange static')
+                #self.static_plot(today_stock_info, limit_info, dir_name = '/code/figs', file_name = 'pchange static')
 
                 ##板块分析
                 #industry_data = self.get_industry_data(cdate)
@@ -411,26 +397,26 @@ class CReivew:
                 ##emotion analysis
                 #df = self.emotion_client.get_score()
                 #self.emotion_plot(df, dir_name = '/code/figs', file_name = 'emotion')
+                
+                all_stock_info = self.rstock_client.get_k_data_in_range(start_date, end_date)
+                stm = StrongerThanMarketSelecter()
+                stm_code_list = stm.choose(all_stock_info, av_df)
 
-                #all_stock_info = self.rstock_client.get_k_data_in_range(start_date, end_date)
-                #stm = StrongerThanMarketSelecter()
-                #stm_code_list = stm.choose(all_stock_info, av_df)
-
-                #amus = AntiMarketUpSelecter()
-                #amus_code_list = amus.choose(today_stock_info)
+                amus = AntiMarketUpSelecter()
+                amus_code_list = amus.choose(today_stock_info)
 
                 gkblvs = GameKLineBigraiseLargeVolumeSelecter()
-                gkblvs.choose(today_stock_info)
+                gkblvs_code_list = gkblvs.choose(today_stock_info)
 
-                import sys
-                sys.exit(0)
+                lvhps = LessVolumeHighProfitSelecter()
+                #lvhps_code_list = lvhps.choose(today_stock_info)
 
-                # make dir for new data
-                os.makedirs(dir_name, exist_ok = True)
+                ##make dir for new data
+                #os.makedirs(dir_name, exist_ok = True)
                 #gen review file
-                self.doc.generate(stock_info, industry_info, index_info)
-                #gen review animation
-                self.gen_animation()
+                #self.doc.generate(today_stock_info, industry_info, index_info)
+                ##gen review animation
+                #self.gen_animation()
         except Exception as e:
             self.logger.error(e)
 
@@ -474,4 +460,4 @@ class CReivew:
 
 if __name__ == '__main__':
     creview = CReivew(ct.DB_INFO)
-    data = creview.update('2018-11-14')
+    data = creview.update('2018-12-13')
