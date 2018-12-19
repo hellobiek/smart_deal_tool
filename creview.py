@@ -35,7 +35,7 @@ from datamanager.sexchange import StockExchange
 from visualization.marauder_map import MarauderMap 
 from algotrade.selecters.anti_market_up import AntiMarketUpSelecter
 from algotrade.selecters.stronger_than_market import StrongerThanMarketSelecter
-from algotrade.selecters.less_volume_in_high_profit import LessVolumeHighProfitSelecter
+from algotrade.selecters.less_volume_in_high_profit import LowVolumeHighProfitSelecter
 from algotrade.selecters.game_kline_bigraise_and_large_volume import GameKLineBigraiseLargeVolumeSelecter
 from common import create_redis_obj, get_chinese_font, get_tushare_client, get_day_nday_ago
 
@@ -405,12 +405,12 @@ class CReivew:
                 amus = AntiMarketUpSelecter()
                 amus_code_list = amus.choose(today_stock_info)
 
+                lvhps = LowVolumeHighProfitSelecter()
+                lvhps_code_list = lvhps.choose(today_stock_info)
+
                 gkblvs = GameKLineBigraiseLargeVolumeSelecter()
                 gkblvs_code_list = gkblvs.choose(today_stock_info)
-
-                lvhps = LessVolumeHighProfitSelecter()
-                #lvhps_code_list = lvhps.choose(today_stock_info)
-
+                
                 ##make dir for new data
                 #os.makedirs(dir_name, exist_ok = True)
                 #gen review file
