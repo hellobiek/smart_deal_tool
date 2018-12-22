@@ -153,7 +153,7 @@ class CLimit:
 
     def update(self, end_date = None):
         if end_date is None: end_date = datetime.now().strftime('%Y-%m-%d')
-        start_date = get_day_nday_ago(end_date, num = 19, dformat = "%Y-%m-%d")
+        start_date = get_day_nday_ago(end_date, num = 205, dformat = "%Y-%m-%d")
         date_array = get_dates_array(start_date, end_date)
         succeed = True
         for mdate in date_array:
@@ -162,6 +162,4 @@ class CLimit:
                 if not self.crawl_data(mdate):
                     self.logger.error("%s set failed" % mdate)
                     succeed = False
-                else:
-                    self.logger.info("%s set success" % mdate)
         return succeed

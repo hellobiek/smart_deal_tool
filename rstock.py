@@ -141,8 +141,6 @@ class RIndexStock:
                 if not self.set_day_data(mdate):
                     self.logger.error("set %s data for rstock failed")
                     succeed = False
-                else:
-                    self.logger.info("%s rstock set success" % mdate)
         return succeed
 
     def set_day_data(self, cdate):

@@ -12,11 +12,11 @@ from sqlalchemy import create_engine
 filterwarnings('error', category = db.Warning)
 ALL_DATABASES = 'all_databases'
 ALL_TRIGGERS = 'all_triggers'
+logger = getLogger(__name__)
 class CMySQL:
     def __init__(self, dbinfo, dbname = 'stock', iredis = None):
         self.dbinfo = dbinfo
         self.dbname = dbname
-        self.logger = getLogger(__name__)
         self.redis  = create_redis_obj() if iredis is None else iredis
         self.engine = create_engine("mysql://%s:%s@%s/%s?charset=utf8" % (self.dbinfo['user'], self.dbinfo['password'], self.dbinfo['host'], self.dbname), pool_size=0 , max_overflow=-1, pool_recycle=20, pool_timeout=5, connect_args={'connect_timeout': 4})
 
@@ -60,13 +60,13 @@ class CMySQL:
                 df = pd.read_sql(sql, conn)
                 res = True
             except sqlalchemy.exc.OperationalError as e:
-                self.logger.info(e)
+                logger.info(e)
             except Exception as e:
-                self.logger.debug(e)
+                logger.debug(e)
             finally: 
                 if 'conn' in dir(): conn.close()
             if True == res:return set(df[key].tolist()) if not df.empty else set()
-        self.logger.error("get all info failed afer try %d times" % ct.RETRY_TIMES)
+        logger.error("get all info failed afer try %d times" % ct.RETRY_TIMES)
         return set()
 
     def create_update_cols_query(self, table, mdict, kdict):
@@ -96,7 +96,7 @@ class CMySQL:
             cur.execute(sql, row)
             conn.commit()
         except Exception as e:
-            self.logger.info(e)
+            logger.info(e)
             if 'conn' in dir(): conn.rollback()
             res = False
         finally:
@@ -135,7 +135,7 @@ class CMySQL:
             cur.executemany(sql, params)
             conn.commit()
         except Exception as e:
-            self.logger.info(e)
+            logger.info(e)
             if 'conn' in dir(): conn.rollback()
             res = False
         finally:
@@ -167,16 +167,16 @@ class CMySQL:
                 data_frame.to_sql(table, conn, if_exists = ct.APPEND, index=False)
                 res = True
             except sqlalchemy.exc.OperationalError as e:
-                self.logger.debug(e)
+                logger.debug(e)
             except sqlalchemy.exc.ProgrammingError as e:
-                self.logger.debug(e)
+                logger.debug(e)
             except sqlalchemy.exc.IntegrityError as e:
-                self.logger.debug("duplicated item:%s" % e)
+                logger.debug("duplicated item:%s" % e)
                 res = True
             finally:
                 if 'conn' in dir(): conn.close()
             if True == res: return True
-        self.logger.error("write to db:%s, table:%s failed afer try %d times" % (self.dbname, table, ct.RETRY_TIMES))
+        logger.error("write to db:%s, table:%s failed afer try %d times" % (self.dbname, table, ct.RETRY_TIMES))
         return res 
 
     def get(self, sql):
@@ -187,13 +187,13 @@ class CMySQL:
                 data = pd.read_sql_query(sql, conn)
                 res = True
             except sqlalchemy.exc.OperationalError as e:
-                self.logger.debug(e)
+                logger.debug(e)
                 if 'conn' in dir(): conn.close()
             except Exception as e:
-                self.logger.error(e)
+                logger.error(e)
                 if 'conn' in dir(): conn.close()
             if True == res: return data
-        self.logger.error("%s get %s failed afer try %d times" % (self.dbname, sql, ct.RETRY_TIMES))
+        logger.error("%s get %s failed afer try %d times" % (self.dbname, sql, ct.RETRY_TIMES))
         return None
 
     def exec_sql(self, sql, params = None):
@@ -207,18 +207,18 @@ class CMySQL:
                 hasSucceed = True
             except db.Warning as w:
                 if 'conn' in dir(): conn.rollback()
-                self.logger.debug("warning:%s" % str(w))
+                logger.debug("warning:%s" % str(w))
                 hasSucceed = True
             except db.Error as e:
                 if 'conn' in dir(): conn.rollback()
-                self.logger.debug("error:%s" % str(e))
+                logger.debug("error:%s" % str(e))
             finally:
                 if 'cur' in dir(): cur.close()
                 if 'conn' in dir(): conn.close()
             if hasSucceed: return True
             if ct.RETRY_TIMES > 1: 
                 time.sleep(ct.SHORT_SLEEP_TIME)
-        self.logger.error("%s failed" % sql)
+        logger.error("%s failed" % sql)
         return False
 
     def register(self, sql, register):

@@ -285,13 +285,13 @@ class DataManager:
             self.set_update_info(17, exec_date, cdate)
 
         if finished_step < 18:
-            if not self.rindex_stock_data_client.update(exec_date, num = 10):
+            if not self.rindex_stock_data_client.update(exec_date, num = 200):
                 self.logger.error("rindex_stock_data set failed")
                 return False
             self.set_update_info(18, exec_date, cdate)
 
         if finished_step < 19:
-            if not self.emotion_client.update(exec_date, num = 10):
+            if not self.emotion_client.update(exec_date, num = 200):
                 self.logger.error("emotion set failed")
                 return False
             self.set_update_info(19, exec_date, cdate)
@@ -354,9 +354,6 @@ class DataManager:
                     if not concurrent_run(cfunc, failed_list, num = 500):
                         succeed = False
             return succeed
-
-    def init_limit_info(self, cdate):
-        return self.limit_client.update(cdate)
 
     def init_industry_info(self, cdate):
         def _set_industry_info(cdate, code_id):
@@ -421,6 +418,8 @@ class DataManager:
 if __name__ == '__main__':
     #from cmysql import CMySQL
     #mysql_client = CMySQL(dbinfo = ct.DB_INFO)
+    #mysql_client.delete(ct.LIMIT_TABLE)
+    #mysql_client.delete_db(ct.RINDEX_STOCK_INFO_DB)
     #code_list = copy.deepcopy(ct.ALL_CODE_LIST)
     #for code in code_list: mysql_client.delete_db('s%s' % code)
     dm = DataManager()

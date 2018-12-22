@@ -4,11 +4,11 @@ from common import create_redis_obj
 from influxdb import DataFrameClient
 from influxdb.exceptions import InfluxDBServerError
 ALL_IN_DATABASES = 'all_in_databases'
+logger = getLogger(__name__)
 class CInflux:
     def __init__(self, dbinfo, dbname, iredis = create_redis_obj()):
         self.redis  = iredis
         self.dbname = dbname
-        self.logger = getLogger(__name__)
         self.df_client = DataFrameClient(dbinfo['host'], dbinfo['port'], dbinfo['user'], dbinfo['password'], self.dbname)
 
     def __del__(self):
@@ -40,7 +40,7 @@ class CInflux:
             self.df_client.write_points(df, dbname, protocol='json')
             return True
         except InfluxDBServerError as e:
-            self.logger.error(e)
+            logger.error(e)
             return False
     
     def create(self, dbname = None):

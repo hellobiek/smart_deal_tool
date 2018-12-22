@@ -50,12 +50,9 @@ class Emotion:
                 if not self.set_score(mdate):
                     succeed = False
                     self.logger.info("set score for %s set failed" % mdate)
-                else:
-                    self.logger.info("set score for %s set succcess" % mdate)
         return succeed
 
     def set_score(self, cdate = datetime.now().strftime('%Y-%m-%d')):
-        return True
         stock_info = self.rstock_client.get_data(cdate)
         limit_info = CLimit(self.dbinfo).get_data(cdate)
         if stock_info.empty or limit_info.empty:
@@ -75,7 +72,7 @@ class Emotion:
                 total += pchange
 
         aver = total / len(stock_info)
-        data = {'date':["%s" % datetime.now().strftime('%Y-%m-%d')], 'score':[aver]}
+        data = {'date':[cdate], 'score':[aver]}
 
         df = pd.DataFrame.from_dict(data)
         return self.mysql_client.set(df, self.emotion_table)
