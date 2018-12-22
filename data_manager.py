@@ -267,7 +267,7 @@ class DataManager:
             self.set_update_info(14, exec_date, cdate)
 
         if finished_step < 15:
-            if not self.init_yesterday_margin(exec_date):
+            if not self.margin_client.update(exec_date):
                 self.logger.error("init_yesterday_margin failed")
                 return False
             self.set_update_info(15, exec_date, cdate)
@@ -289,12 +289,6 @@ class DataManager:
                 self.logger.error("rindex_stock_data set failed")
                 return False
             self.set_update_info(18, exec_date, cdate)
-
-        if finished_step < 19:
-            if not self.emotion_client.update(exec_date, num = 200):
-                self.logger.error("emotion set failed")
-                return False
-            self.set_update_info(19, exec_date, cdate)
 
         self.logger.info("updating succeed")
         return True
@@ -360,10 +354,16 @@ class DataManager:
             return (code_id, CIndex(code_id).set_k_data(cdate))
         df = self.industry_info_client.get()
         cfunc = partial(_set_industry_info, cdate)
-        return concurrent_run(cfunc, df.code.tolist(), num = 100)
-
-    def init_yesterday_margin(self, cdate):
-        return self.margin_client.update(cdate)
+        if cdate is None:
+            return concurrent_run(cfunc, failed_list, num = 5)
+        else:
+            succeed = True
+            start_date = get_day_nday_ago(cdate, num = 30, dformat = "%Y-%m-%d")
+            for mdate in get_dates_array(start_date, cdate, asending = True):
+                if self.cal_client.is_trading_day(mdate):
+                    if not concurrent_run(cfunc, failed_list, num = 5):
+                        succeed = False
+            return succeed
 
     def init_yesterday_hk_info(self, cdate):
         succeed = True
@@ -406,7 +406,7 @@ class DataManager:
             start_date = get_day_nday_ago(cdate, num = 30, dformat = "%Y-%m-%d")
             for mdate in get_dates_array(start_date, cdate, asending = True):
                 if self.cal_client.is_trading_day(mdate):
-                    if not concurrent_run(cfunc, failed_list, num = 500):
+                    if not concurrent_run(cfunc, failed_list, num = 5):
                         succeed = False
             return succeed
 
