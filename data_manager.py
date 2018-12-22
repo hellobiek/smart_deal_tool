@@ -347,7 +347,7 @@ class DataManager:
             return concurrent_run(cfunc, failed_list, num = 5)
         else:
             succeed = True
-            start_date = get_day_nday_ago(cdate, num = 3, dformat = "%Y-%m-%d")
+            start_date = get_day_nday_ago(cdate, num = 30, dformat = "%Y-%m-%d")
             for mdate in get_dates_array(start_date, cdate, asending = True):
                 if self.cal_client.is_trading_day(mdate):
                     cfunc = partial(_set_stock_info, mdate, bonus_info, index_info)
@@ -399,7 +399,16 @@ class DataManager:
                 self.logger.error(e)
                 return (code_id, False)
         cfunc = partial(_set_index_info, cdate)
-        return concurrent_run(cfunc, list(ct.TDX_INDEX_DICT.keys()), num = 10)
+        if cdate is None:
+            return concurrent_run(cfunc, failed_list, num = 5)
+        else:
+            succeed = True
+            start_date = get_day_nday_ago(cdate, num = 30, dformat = "%Y-%m-%d")
+            for mdate in get_dates_array(start_date, cdate, asending = True):
+                if self.cal_client.is_trading_day(mdate):
+                    if not concurrent_run(cfunc, failed_list, num = 500):
+                        succeed = False
+            return succeed
 
     def download_and_extract(self, cdate):
         try:
@@ -424,6 +433,6 @@ if __name__ == '__main__':
     #for code in code_list: mysql_client.delete_db('s%s' % code)
     dm = DataManager()
     dm.logger.info("start compute!")
-    dm.bootstrap()
-    #dm.bootstrap(cdate='2018-12-11')
+    #dm.bootstrap()
+    dm.bootstrap(cdate='2018-12-21')
     dm.logger.info("end compute!")
