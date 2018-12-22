@@ -285,13 +285,13 @@ class DataManager:
             self.set_update_info(17, exec_date, cdate)
 
         if finished_step < 18:
-            if not self.rindex_stock_data_client.update(exec_date, num = 250):
+            if not self.rindex_stock_data_client.update(exec_date, num = 10):
                 self.logger.error("rindex_stock_data set failed")
                 return False
             self.set_update_info(18, exec_date, cdate)
 
         if finished_step < 19:
-            if not self.emotion_client.update(exec_date, num = 2):
+            if not self.emotion_client.update(exec_date, num = 10):
                 self.logger.error("emotion set failed")
                 return False
             self.set_update_info(19, exec_date, cdate)
