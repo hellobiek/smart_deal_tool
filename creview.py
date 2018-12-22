@@ -108,7 +108,6 @@ class CReivew:
         start_date = get_day_nday_ago(cdate, 100, dformat = "%Y-%m-%d")
         end_date   = cdate
         try:
-            self.logger.info("create daily info.")
             #market info
             sh_df = self.get_market_data(ct.SH_MARKET_SYMBOL, start_date, end_date)
             sz_df = self.get_market_data(ct.SZ_MARKET_SYMBOL, start_date, end_date)
@@ -126,12 +125,10 @@ class CReivew:
             index_info = self.get_index_data(end_date)
             #industry analysis
             industry_info = self.get_industry_data(cdate)
-            #emotion analysis
-            emotion_info = self.emotion_client.get_score()
             #all stock info 
             all_stock_info = self.rstock_client.get_k_data_in_range(start_date, end_date)
             #gen review file and make dir for new data
-            self.doc.generate(cdate, sh_df, sz_df, sh_rzrq_df, sz_rzrq_df, av_df, limit_info, stock_info, industry_info, index_info, emotion_info, all_stock_info)
+            self.doc.generate(cdate, sh_df, sz_df, sh_rzrq_df, sz_rzrq_df, av_df, limit_info, stock_info, industry_info, index_info, all_stock_info)
             ##gen review animation
             #self.gen_animation()
         except Exception as e:

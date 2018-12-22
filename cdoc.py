@@ -137,20 +137,20 @@ class CDoc:
         def xfunc(pct, allvals):
             absolute = int(pct / 100. * np.sum(allvals))
             return "{:.1f}%".format(pct)
-        df   = df[['name', 'code', column]]
+        df = df[['name', 'code', column]]
         data = df[column].tolist()
 
-        fig, ax     = plt.subplots(figsize = (6, 3), subplot_kw = dict(aspect = "equal"))
+        fig, ax = plt.subplots(figsize = (6, 3), subplot_kw = dict(aspect = "equal"))
         ingredients = (df.name + ':' + df.code).tolist()
         fig.autofmt_xdate()
         ax.set_title(title, fontproperties = get_chinese_font())
         if ctype is not None:
-            wedges, texts, autotexts = ax.pie(data, labels = xtuple, autopct = lambda pct: xfunc(pct, data), textprops = dict(color = "w", fontproperties = get_chinese_font()))
+            wedges, texts, autotexts = ax.pie(data, radius = 1.5, labels = xtuple, autopct = lambda pct: xfunc(pct, data), textprops = dict(color = "w", fontproperties = get_chinese_font()))
             ax.legend(wedges, ingredients, title = 'name', loc = "upper right", bbox_to_anchor=(1, 0, 1, 1), prop = get_chinese_font(), fontsize = 'x-small')
             plt.setp(autotexts, size = 6)
             plt.setp(texts, size = 6, color = 'b')
         else:
-            wedges, texts = ax.pie(data, labels = xtuple, textprops = dict(color = "w", fontproperties = get_chinese_font()))
+            wedges, texts = ax.pie(data, radius = 1.5, labels = xtuple, textprops = dict(color = "w", fontproperties = get_chinese_font()))
             ax.legend(wedges, ingredients, title = 'name',  loc = "upper right", bbox_to_anchor=(1, 0, 1, 1), prop = get_chinese_font(), fontsize = 'x-small')
             plt.setp(texts, size = 6, color = 'b')
         plt.savefig('%s/%s.png' % (dir_name, filename), dpi = 1000)
@@ -192,10 +192,10 @@ class CDoc:
         fig.autofmt_xdate()
         plt.savefig('%s/%s.png' % (dir_name, file_name), dpi=1000)
 
-    def generate(self, cdate, sh_df, sz_df, sh_rzrq_df, sz_rzrq_df, av_df, limit_info, stock_info, industry_info, index_info, emotion_info, all_stock_info):
+    def generate(self, cdate, sh_df, sz_df, sh_rzrq_df, sz_rzrq_df, av_df, limit_info, stock_info, industry_info, index_info, all_stock_info):
         image_dir = os.path.join(self.sdir, "%s-StockReView" % cdate)
         file_name = "%s.md" % image_dir
-        if os.path.exists(file_name): return True
+        #if os.path.exists(file_name): return True
         os.makedirs(image_dir, exist_ok = True)
 
         md = MarkdownWriter()
@@ -213,10 +213,6 @@ class CDoc:
         md.addHeader("流通市值分析:", 3)
         self.market_plot(sh_df, sz_df, x_dict, 'negotiable_value', dir_name = image_dir)
         md.addImage("market_negotiable_value.png", imageTitle = "流通市值")
-        #上海和深圳的上市公司分析
-        md.addHeader("上市公司数分析:", 3)
-        self.market_plot(sh_df, sz_df, x_dict, 'number', dir_name = image_dir)
-        md.addImage("market_number.png", imageTitle = "上市公司")
         #上海和深圳的换手率分析
         md.addHeader("市场换手率分析:", 3)
         self.market_plot(sh_df, sz_df, x_dict, 'turnover', dir_name = image_dir)
@@ -320,10 +316,6 @@ class CDoc:
             md.addHeader("金额减少百分比的行业分布:", 3)
             self.plot_pie(df, 'mchange', '每日成交减少百分比行业分布', xtuple, image_dir, 'industry_money_decrease_percent_distribution')
             md.addImage("industry_money_decrease_percent_distribution.png", imageTitle = "金额减少百分比的行业分布")
-
-        md.addHeader("情绪变化:", 2)
-        self.emotion_plot(emotion_info, dir_name = image_dir, file_name = 'emotion')
-        md.addImage("emotion.png", imageTitle = "今日情绪")
 
         #指数行情
         index_info = index_info[['name', 'open', 'high', 'close', 'low', 'volume', 'amount']]
