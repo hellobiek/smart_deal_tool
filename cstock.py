@@ -457,8 +457,6 @@ class CStock(CMysqlObj):
         df['ibreakup'] = 0
         df['pday'] = 0
         df['profit'] = 0.0
-        import pdb
-        pdb.set_trace()
         df = base_floating_profit(df)
         return self.mysql_client.delsert(df, self.get_day_table())
 
