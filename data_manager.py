@@ -355,13 +355,13 @@ class DataManager:
         df = self.industry_info_client.get()
         cfunc = partial(_set_industry_info, cdate)
         if cdate is None:
-            return concurrent_run(cfunc, failed_list, num = 5)
+            return concurrent_run(cfunc, df.code.tolist(), num = 5)
         else:
             succeed = True
             start_date = get_day_nday_ago(cdate, num = 30, dformat = "%Y-%m-%d")
             for mdate in get_dates_array(start_date, cdate, asending = True):
                 if self.cal_client.is_trading_day(mdate):
-                    if not concurrent_run(cfunc, failed_list, num = 5):
+                    if not concurrent_run(cfunc, df.code.tolist(), num = 5):
                         succeed = False
             return succeed
 
@@ -400,13 +400,13 @@ class DataManager:
                 return (code_id, False)
         cfunc = partial(_set_index_info, cdate)
         if cdate is None:
-            return concurrent_run(cfunc, failed_list, num = 5)
+            return concurrent_run(cfunc, list(ct.TDX_INDEX_DICT.keys()), num = 5)
         else:
             succeed = True
             start_date = get_day_nday_ago(cdate, num = 30, dformat = "%Y-%m-%d")
             for mdate in get_dates_array(start_date, cdate, asending = True):
                 if self.cal_client.is_trading_day(mdate):
-                    if not concurrent_run(cfunc, failed_list, num = 5):
+                    if not concurrent_run(cfunc, list(ct.TDX_INDEX_DICT.keys()), num = 5):
                         succeed = False
             return succeed
 

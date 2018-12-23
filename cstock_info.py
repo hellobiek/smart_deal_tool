@@ -73,7 +73,7 @@ class CStockInfo:
     def update(self):
         if self.init():
             df = self.get(redis = self.redis)
-            return concurrent_run(self.create_stock_obj, df.code.tolist(), num = 500)
+            return concurrent_run(self.create_stock_obj, df.code.tolist(), num = 10)
         return False 
 
     @staticmethod

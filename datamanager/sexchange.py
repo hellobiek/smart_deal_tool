@@ -221,8 +221,6 @@ class StockExchange(object):
                 if not self.set_k_data(mdate):
                     succeed = False
                     self.logger.info("market %s for %s set failed" % (self.market, mdate))
-                else:
-                    self.logger.info("market %s for %s set succcess" % (self.market, mdate))
         return succeed
 
 if __name__ == '__main__':
