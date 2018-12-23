@@ -94,8 +94,6 @@ class Margin(object):
                 if not self.set_data(mdate):
                     self.logger.error("%s set failed" % mdate)
                     succeed = False
-                else:
-                    self.logger.info("%s set success" % mdate)
         return succeed
 
     def is_table_exists(self, table_name):

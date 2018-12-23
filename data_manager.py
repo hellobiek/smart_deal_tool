@@ -303,6 +303,9 @@ class DataManager:
                         self.logger.info("is collecting time. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                         self.bootstrap(cdate = datetime.now().strftime('%Y-%m-%d'))
             except Exception as e:
+                kill_process("zygote")
+                kill_process("defunct")
+                kill_process("show-component-extension-options")
                 self.logger.error(e)
             time.sleep(sleep_time)
 
@@ -353,14 +356,15 @@ class DataManager:
         def _set_industry_info(cdate, code_id):
             return (code_id, CIndex(code_id).set_k_data(cdate))
         df = self.industry_info_client.get()
-        cfunc = partial(_set_industry_info, cdate)
         if cdate is None:
+            cfunc = partial(_set_industry_info, cdate)
             return concurrent_run(cfunc, df.code.tolist(), num = 5)
         else:
             succeed = True
             start_date = get_day_nday_ago(cdate, num = 30, dformat = "%Y-%m-%d")
             for mdate in get_dates_array(start_date, cdate, asending = True):
                 if self.cal_client.is_trading_day(mdate):
+                    cfunc = partial(_set_industry_info, mdate)
                     if not concurrent_run(cfunc, df.code.tolist(), num = 5):
                         succeed = False
             return succeed
@@ -398,14 +402,15 @@ class DataManager:
             except Exception as e:
                 self.logger.error(e)
                 return (code_id, False)
-        cfunc = partial(_set_index_info, cdate)
         if cdate is None:
+            cfunc = partial(_set_index_info, cdate)
             return concurrent_run(cfunc, list(ct.TDX_INDEX_DICT.keys()), num = 5)
         else:
             succeed = True
             start_date = get_day_nday_ago(cdate, num = 30, dformat = "%Y-%m-%d")
             for mdate in get_dates_array(start_date, cdate, asending = True):
                 if self.cal_client.is_trading_day(mdate):
+                    cfunc = partial(_set_index_info, mdate)
                     if not concurrent_run(cfunc, list(ct.TDX_INDEX_DICT.keys()), num = 5):
                         succeed = False
             return succeed
