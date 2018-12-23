@@ -344,7 +344,7 @@ class DataManager:
             return concurrent_run(cfunc, failed_list, num = 5)
         else:
             succeed = True
-            start_date = get_day_nday_ago(cdate, num = 30, dformat = "%Y-%m-%d")
+            start_date = get_day_nday_ago(cdate, num = 10, dformat = "%Y-%m-%d")
             for mdate in get_dates_array(start_date, cdate, asending = True):
                 if self.cal_client.is_trading_day(mdate):
                     cfunc = partial(_set_stock_info, mdate, bonus_info, index_info)

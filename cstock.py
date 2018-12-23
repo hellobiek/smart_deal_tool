@@ -514,6 +514,7 @@ class CStock(CMysqlObj):
             aprice = data.loc[data.date == zdate, 'aprice'].tolist()[0]
             outstanding = data.loc[data.date == zdate, 'outstanding'].tolist()[0]
             pre_outstanding = data.loc[data.date == pre_date, 'outstanding'].tolist()[0]
+            zdate = zdate.encode("UTF-8")
             df = compute_oneday_distribution(pre_date_dist, zdate, pos, volume, aprice, pre_outstanding, outstanding)
         return df
 
