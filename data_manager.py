@@ -432,10 +432,11 @@ class DataManager:
 if __name__ == '__main__':
     #from cmysql import CMySQL
     #mysql_client = CMySQL(dbinfo = ct.DB_INFO)
-    #mysql_client.delete(ct.LIMIT_TABLE)
     #mysql_client.delete_db(ct.RINDEX_STOCK_INFO_DB)
     #code_list = copy.deepcopy(ct.ALL_CODE_LIST)
     #for code in code_list: mysql_client.delete_db('s%s' % code)
+    #import sys
+    #sys.exit(0)
     dm = DataManager()
     dm.logger.info("start compute!")
     dm.bootstrap()
