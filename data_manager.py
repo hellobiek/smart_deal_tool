@@ -438,6 +438,6 @@ if __name__ == '__main__':
     #for code in code_list: mysql_client.delete_db('s%s' % code)
     dm = DataManager()
     dm.logger.info("start compute!")
-    #dm.bootstrap()
-    dm.bootstrap(cdate='2018-12-21')
+    dm.bootstrap()
+    #dm.bootstrap(cdate='2018-12-21')
     dm.logger.info("end compute!")

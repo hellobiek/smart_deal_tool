@@ -139,20 +139,19 @@ class CDoc:
             return "{:.1f}%".format(pct)
         df = df[['name', 'code', column]]
         data = df[column].tolist()
-
-        fig, ax = plt.subplots(figsize = (6, 3), subplot_kw = dict(aspect = "equal"))
+        fig, ax = plt.subplots(figsize = (6, 4), subplot_kw = dict(aspect = "equal"))
         ingredients = (df.name + ':' + df.code).tolist()
-        fig.autofmt_xdate()
         ax.set_title(title, fontproperties = get_chinese_font())
         if ctype is not None:
-            wedges, texts, autotexts = ax.pie(data, radius = 1.5, labels = xtuple, autopct = lambda pct: xfunc(pct, data), textprops = dict(color = "w", fontproperties = get_chinese_font()))
-            ax.legend(wedges, ingredients, title = 'name', loc = "upper right", bbox_to_anchor=(1, 0, 1, 1), prop = get_chinese_font(), fontsize = 'x-small')
-            plt.setp(autotexts, size = 6)
-            plt.setp(texts, size = 6, color = 'b')
+            wedges, texts, autotexts = ax.pie(data, radius = 1, labels = xtuple, autopct = lambda pct: xfunc(pct, data), textprops = dict(color = "w", fontproperties = get_chinese_font()))
+            ax.legend(wedges, ingredients, title = 'name', loc = "lower left", bbox_to_anchor=(1, 0), prop = get_chinese_font(), fontsize = 'x-small')
+            plt.setp(autotexts, size = 7)
+            plt.setp(texts, size = 7, color = 'b')
         else:
-            wedges, texts = ax.pie(data, radius = 1.5, labels = xtuple, textprops = dict(color = "w", fontproperties = get_chinese_font()))
-            ax.legend(wedges, ingredients, title = 'name',  loc = "upper right", bbox_to_anchor=(1, 0, 1, 1), prop = get_chinese_font(), fontsize = 'x-small')
-            plt.setp(texts, size = 6, color = 'b')
+            wedges, texts = ax.pie(data, radius = 1, labels = xtuple, textprops = dict(color = "w", fontproperties = get_chinese_font()))
+            ax.legend(wedges, ingredients, title = 'name',  loc = "lower left", bbox_to_anchor=(1, 0), prop = get_chinese_font(), fontsize = 'x-small')
+            plt.setp(texts, size = 8, color = 'b')
+        fig.autofmt_xdate()
         plt.savefig('%s/%s.png' % (dir_name, filename), dpi = 1000)
 
     def static_plot(self, stock_info, limit_info,  dir_name, file_name):
