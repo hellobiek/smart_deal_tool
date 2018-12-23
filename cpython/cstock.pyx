@@ -130,9 +130,9 @@ def base_floating_profit(df, mdate = None):
                     base = np_data['uprice'][s_index]
                     direction = np_data['breakup'][e_index]
                     ppchange = 1.1 if direction < 0 else 0.9
-                    np_data['base'][s_index:e_index - 1] = base
-                    ppchange_array[s_index:e_index - 1] = ppchange
-                    np_data['pday'][s_index:e_index - 1] = -1 * direction * (index_array[s_index:e_index - 1] - s_index + 1)
+                    np_data['base'][s_index:e_index] = base
+                    ppchange_array[s_index:e_index] = ppchange
+                    np_data['pday'][s_index:e_index] = -1 * direction * (index_array[s_index:e_index] - s_index + 1)
                     s_index = e_index
                     if e_index == effective_breakup_index_list[-1]:
                         base = np_data['uprice'][e_index]

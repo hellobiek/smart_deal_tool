@@ -14,8 +14,8 @@ from ticks import read_tick
 from cinfluxdb import CInflux
 from datetime import datetime
 from functools import partial
-#from cchip import compute_distribution, compute_oneday_distribution
 from cpython.cchip import compute_distribution, compute_oneday_distribution
+#from features import base_floating_profit
 from cpython.cstock import base_floating_profit
 from base.cobj import CMysqlObj
 from common import create_redis_obj, get_years_between, transfer_date_string_to_int, transfer_int_to_date_string, is_df_has_unexpected_data, concurrent_run
@@ -380,8 +380,7 @@ class CStock(CMysqlObj):
         df = self.transfer2adjusted(df)
 
         df = self.relative_index_strength(df, index_df, cdate)
-        if df is None:
-            return False
+        if df is None: return False
 
         #set chip distribution
         dist_df = df.append(preday_df, sort = False)
@@ -458,6 +457,8 @@ class CStock(CMysqlObj):
         df['ibreakup'] = 0
         df['pday'] = 0
         df['profit'] = 0.0
+        import pdb
+        pdb.set_trace()
         df = base_floating_profit(df)
         return self.mysql_client.delsert(df, self.get_day_table())
 
