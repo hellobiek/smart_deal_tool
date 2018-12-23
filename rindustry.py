@@ -99,8 +99,8 @@ class RIndexIndustryInfo:
         good_list = list()
         obj_pool = Pool(500)
         all_df = pd.DataFrame()
-        today_industry_info = IndustryInfo.get(self.redis)
-        failed_list = today_industry_info.code.tolist()
+        industry_info = IndustryInfo.get(self.redis)
+        failed_list = industry_info.code.tolist()
         cfunc = partial(self.get_industry_data, cdate)
         failed_count = 0
         while len(failed_list) > 0:
@@ -155,6 +155,4 @@ class RIndexIndustryInfo:
                 if not self.set_data(mdate):
                     self.logger.error("%s rindustry set failed" % mdate)
                     succeed = False
-                else:
-                    self.logger.info("%s rindustry set success" % mdate)
         return succeed
