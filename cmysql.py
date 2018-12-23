@@ -293,7 +293,7 @@ class CMySQL:
         finally:
             if 'curosr' in dir(): cursor.close()
             if 'conn' in dir(): conn.close()
-        if res == True: return self.redis.sadd(ALL_DATABASES, dbname)
+        if res == True: self.redis.sadd(ALL_DATABASES, dbname)
         return res
 
 if __name__ == '__main__':

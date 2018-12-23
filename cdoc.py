@@ -327,7 +327,7 @@ class CDoc:
             t_index.addRow(data_list)
         md.addTable(t_index)
 
-        # 股票数据
+        #选股指标
         md.addHeader("选股器选股", 2)
         t_selector = MarkdownTable(headers = ["方法", "股票列表"])
 

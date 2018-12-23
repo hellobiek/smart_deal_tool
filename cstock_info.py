@@ -62,6 +62,7 @@ class CStockInfo:
             CStock(code, should_create_influxdb = True, should_create_mysqldb = True)
             return (code, True)
         except Exception as e:
+            logger.info(e)
             return (code, False)
 
     def init(self):
