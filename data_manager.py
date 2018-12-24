@@ -327,7 +327,10 @@ class DataManager:
     def init_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, index_info, code_id):
             _obj = CStock(code_id)
-            return (code_id, True) if _obj.set_k_data(bonus_info, index_info, _date) else (code_id, False) 
+            if _obj.set_k_data(bonus_info, index_info, _date):
+                return (code_id, True)
+            self.logger.error("%s set k data failed" % code_id)
+            return (code_id, False)
 
         #get stock bonus info
         bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',',
@@ -440,6 +443,6 @@ if __name__ == '__main__':
     #sys.exit(0)
     dm = DataManager()
     dm.logger.info("start compute!")
-    dm.bootstrap()
-    #dm.bootstrap(cdate='2018-12-21')
+    #dm.bootstrap()
+    dm.bootstrap(cdate='2018-12-24')
     dm.logger.info("end compute!")

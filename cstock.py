@@ -467,7 +467,7 @@ class CStock(CMysqlObj):
             return self.set_all_data(quantity_change_info, price_change_info, index_info)
         else:
             today_df, pre_date = self.read(cdate)
-            if today_df.empty: return False
+            if today_df.empty: return True
             if pre_date is None:
                 return self.set_all_data(quantity_change_info, price_change_info, index_info)
             else:
