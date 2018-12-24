@@ -3,11 +3,11 @@ import os
 import redis
 import const as ct
 
-pool = redis.ConnectionPool(host=ct.REDIS_HOST, port=ct.REDIS_PORT, decode_responses=False)
-r = redis.StrictRedis(connection_pool=pool)
-df_byte = r.smembers('all_existed_stocks')
-print(df_byte)
-print(len(df_byte))
+#pool = redis.ConnectionPool(host=ct.REDIS_HOST, port=ct.REDIS_PORT, decode_responses=False)
+#r = redis.StrictRedis(connection_pool=pool)
+#df_byte = r.smembers('all_existed_stocks')
+#print(df_byte)
+print(len(ct.ALL_CODE_LIST))
 
 #all_tables = r.smembers(ALL_TABLES)
 ##for table in ['300318_ticket', '300308_ticket', '300328_ticket', '300338_ticket', '300348_ticket']:
