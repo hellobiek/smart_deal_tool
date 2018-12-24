@@ -351,7 +351,7 @@ class CDoc:
         gkblvs_code_list = gkblvs.choose(stock_info)
         t_selector.addRow(['博弈K线带量长阳', json.dumps(gkblvs_code_list)])
 
-        gkbsvs = GameKLineBigraiseLargeVolumeSelecter()
+        gkbsvs = GameKLineBigraiseSmallVolumeSelecter()
         gkbsvs_code_list = gkbsvs.choose(stock_info)
         t_selector.addRow(['博弈K线无量长阳', json.dumps(gkbsvs_code_list)])
 

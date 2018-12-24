@@ -443,6 +443,6 @@ if __name__ == '__main__':
     #sys.exit(0)
     dm = DataManager()
     dm.logger.info("start compute!")
-    #dm.bootstrap()
-    dm.bootstrap(cdate='2018-12-24')
+    dm.bootstrap()
+    #dm.bootstrap(cdate='2018-12-24')
     dm.logger.info("end compute!")
