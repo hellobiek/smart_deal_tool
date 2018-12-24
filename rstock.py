@@ -111,7 +111,7 @@ class RIndexStock:
 
     def generate_all_data(self, cdate):
         good_list = list()
-        obj_pool = Pool(500)
+        obj_pool = Pool(50)
         all_df = pd.DataFrame()
         #stock_info = CStockInfo.get()
         #failed_list = stock_info.code.tolist()
