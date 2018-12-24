@@ -4481,8 +4481,10 @@ const.SZ_MARKET_DICT = {
 }
 ###################################################
 const.SELECTERS_DICT = {
-    "StrongerThanMarketSelecter"   : "S000001",
-    "AntiMarketUpSelecter"         : "S000002",
-    "LowVolumeHighProfitSelecter"  : "S000003",
-    "GameKLineBigraiseLargeVolumeSelecter"      : "S000004"
+    "StrongerThanMarketSelecter" : "S000001",
+    "AntiMarketUpSelecter" : "S000002",
+    "LowVolumeHighProfitSelecter" : "S000003",
+    "GameKLineBigraiseLargeVolumeSelecter" : "S000004",
+    "GameKLineBigraiseSmallVolumeSelecter" : "S000005",
+    "NeiChipIntensiveSelecter" : "S000006"
 }

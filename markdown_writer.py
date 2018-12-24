@@ -124,9 +124,9 @@ class MarkdownWriter():
             raise ValueError("request a 'MarkdownTable' object")
         self.stream += table.getTable()
 
-    def addTitle(self):
+    def addTitle(self, cdate):
         self.stream += "---\n"
-        self.stream += "title: 复盘\n"
+        self.stream += "title: %s 复盘\n" % cdate
         self.stream += "date: 日期\n"
         self.stream += "categories:\n"
         self.stream += "- 股市\n"

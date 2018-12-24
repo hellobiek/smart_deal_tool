@@ -18,7 +18,9 @@ from visualization.marauder_map import MarauderMap
 from algotrade.selecters.anti_market_up import AntiMarketUpSelecter
 from algotrade.selecters.stronger_than_market import StrongerThanMarketSelecter
 from algotrade.selecters.less_volume_in_high_profit import LowVolumeHighProfitSelecter
+from algotrade.selecters.nei_chip_intensive import NeiChipIntensiveSelecter
 from algotrade.selecters.game_kline_bigraise_and_large_volume import GameKLineBigraiseLargeVolumeSelecter
+from algotrade.selecters.game_kline_bigraise_and_small_volume import GameKLineBigraiseSmallVolumeSelecter
 class CDoc:
     COLORS = ['#F5DEB3', '#A0522D', '#1E90FF', '#FFE4C4', '#00FFFF', '#DAA520', '#3CB371', '#808080', '#ADFF2F', '#4B0082']
     def __init__(self):
@@ -198,7 +200,7 @@ class CDoc:
         os.makedirs(image_dir, exist_ok = True)
 
         md = MarkdownWriter()
-        md.addTitle()
+        md.addTitle(cdate)
         md.addHeader("股票复盘", 1)
         # 资金面分析
         md.addHeader("资金面分析:", 2)
@@ -218,7 +220,9 @@ class CDoc:
         md.addImage("market_turnover.png", imageTitle = "换手率")
         #上海和深圳的融资融券分析
         md.addHeader("融资融券分析:", 3)
-        self.market_plot(sh_rzrq_df, sz_rzrq_df, x_dict, 'rzrqye', dir_name = image_dir)
+        y_dict = dict()
+        y_dict['日期'] = sh_rzrq_df.date.tolist()
+        self.market_plot(sh_rzrq_df, sz_rzrq_df, y_dict, 'rzrqye', dir_name = image_dir)
         md.addImage("market_rzrqye.png", imageTitle = "融资融券")
         #平均股价走势
         md.addHeader("平均股价分析:", 3)
@@ -333,7 +337,7 @@ class CDoc:
 
         stm = StrongerThanMarketSelecter()
         stm_code_list = stm.choose(all_stock_info, av_df)
-        t_selector.addRow(['强于大盘', json.dumps(stm_code_list)])
+        t_selector.addRow(['强于平均股价5%', json.dumps(stm_code_list)])
 
         amus = AntiMarketUpSelecter()
         amus_code_list = amus.choose(stock_info)
@@ -346,7 +350,15 @@ class CDoc:
         gkblvs = GameKLineBigraiseLargeVolumeSelecter()
         gkblvs_code_list = gkblvs.choose(stock_info)
         t_selector.addRow(['博弈K线带量长阳', json.dumps(gkblvs_code_list)])
-        md.addTable(t_selector)
 
+        gkbsvs = GameKLineBigraiseLargeVolumeSelecter()
+        gkbsvs_code_list = gkbsvs.choose(stock_info)
+        t_selector.addRow(['博弈K线无量长阳', json.dumps(gkbsvs_code_list)])
+
+        ncis = NeiChipIntensiveSelecter()
+        ncis_code_list = ncis.choose(stock_info)
+        t_selector.addRow(['低位筹码密集', json.dumps(ncis_code_list)])
+
+        md.addTable(t_selector)
         with open(file_name, "w+") as f:
             f.write(md.getStream())

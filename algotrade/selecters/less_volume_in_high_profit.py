@@ -10,4 +10,4 @@ class LowVolumeHighProfitSelecter(Selecter):
         Selecter.__init__(self, code, dbinfo, redis_host)
 
     def choose(self, df):
-        return df.loc[(df.ppercent > 50) & (df.turnover < 3)].code.tolist()
+        return df.loc[(df.ppercent > 80) & (df.turnover < 4)].code.tolist()
