@@ -520,6 +520,8 @@ class CStock(CMysqlObj):
     def set_chip_table(self, df, myear):
         #get new df
         tmp_df = df.loc[df.date.str.startswith(myear)]
+        #some stock halted more than one year
+        if tmp_df.empty: return (myear, True)
         tmp_df = tmp_df.reset_index(drop = True)
         #get chip table name
         chip_table = self.get_chip_distribution_table(myear)
