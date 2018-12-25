@@ -237,6 +237,7 @@ class CStock(CMysqlObj):
         dheaders = ['date', 'open', 'high', 'close', 'low', 'amount', 'volume']
         df = pd.read_csv(filename, sep = ',', usecols = dheaders)
         df = df[df['volume'] > 0]
+        df = df[df['amount'] > 0]
         df = df.sort_values(by = 'date', ascending= True)
         df = df.reset_index(drop = True)
         if cdate is not None:
@@ -420,7 +421,7 @@ class CStock(CMysqlObj):
         if df is None:
             logger.error("length of code %s is not equal to index." % self.code)
             return False
-        
+       
         #set chip distribution
         logger.info("compute %s distribution" % self.code)
         dist_data = self.compute_distribution(df)
