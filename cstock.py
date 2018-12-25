@@ -15,6 +15,7 @@ from cinfluxdb import CInflux
 from datetime import datetime
 from functools import partial
 from cpython.cchip import compute_distribution, compute_oneday_distribution
+#from cchip import compute_distribution, compute_oneday_distribution
 #from features import base_floating_profit
 from cpython.cstock import base_floating_profit
 from base.cobj import CMysqlObj

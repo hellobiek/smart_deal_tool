@@ -23,15 +23,18 @@ def divide_according_property(np.ndarray property_series, np.ndarray[long] volum
     cdef long tmp_volume = 0
     cdef float holding_property = 0
     cdef float total_property = now_property * len(volume_series) - np.sum(property_series)
-    while total_volume != 0:
-        tmp_volume = total_volume
-        for (index, ), pro in np.ndenumerate(property_series):
-            holding_property = now_property - pro
-            expected_volume = max(1, long(tmp_volume * (holding_property / total_property)))
-            if expected_volume > total_volume: expected_volume = total_volume
-            total_volume -= min(volume_series[index], expected_volume)
-            volume_series[index] = max(0, volume_series[index] - expected_volume)
-            if 0 == total_volume: break
+    if 1 == len(volume_series):
+        volume_series[0] -= total_volume
+    else:
+        while total_volume != 0:
+            tmp_volume = total_volume
+            for (index, ), pro in np.ndenumerate(property_series):
+                holding_property = now_property - pro
+                expected_volume = max(1, long(tmp_volume * (holding_property / total_property)))
+                if expected_volume > total_volume: expected_volume = total_volume
+                total_volume -= min(volume_series[index], expected_volume)
+                volume_series[index] = max(0, volume_series[index] - expected_volume)
+                if 0 == total_volume: break
     return volume_series
 
 def number_of_days(np.ndarray[long] pre_pos, long pos):
@@ -97,10 +100,10 @@ def adjust_volume(np.ndarray mdata, long pos, long volume, float price, long pre
     cdef long s_p_volume = 0, s_u_volume = 0, l_p_volume = 0, l_u_volume = 0
     s_p_volume, s_u_volume, l_p_volume, l_u_volume = divide_volume(volume, volume_total, s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total)
 
-    if s_p_volume > 0: s_p_data['volume'] = divide_according_property(s_p_data['price'], s_p_data['volume'], s_p_volume, price)
-    if s_u_volume > 0: s_u_data['volume'] = divide_according_property(s_u_data['pos'], s_u_data['volume'], s_u_volume, pos)
-    if l_p_volume > 0: l_p_data['volume'] = divide_according_property(l_p_data['price'], l_p_data['volume'], l_p_volume, price)
-    if l_u_volume > 0: l_u_data['volume'] = divide_according_property(l_u_data['pos'], l_u_data['volume'], l_u_volume, pos)
+    if s_p_volume > 0:s_p_data['volume'] = divide_according_property(s_p_data['price'], s_p_data['volume'], s_p_volume, price)
+    if s_u_volume > 0:s_u_data['volume'] = divide_according_property(s_u_data['pos'], s_u_data['volume'], s_u_volume, pos)
+    if l_p_volume > 0:l_p_data['volume'] = divide_according_property(l_p_data['price'], l_p_data['volume'], l_p_volume, price)
+    if l_u_volume > 0:l_u_data['volume'] = divide_according_property(l_u_data['pos'], l_u_data['volume'], l_u_volume, pos)
     return np.concatenate((s_p_data, s_u_data, l_p_data, l_u_data), axis = 0)
 
 def compute_oneday_distribution(pre_date_dist, char *cdate, long pos, long volume, float aprice, long pre_outstanding, long outstanding):
