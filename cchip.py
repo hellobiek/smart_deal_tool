@@ -126,9 +126,9 @@ def compute_distribution(data):
     np_data = data.values
     for _index, row in enumerate(np_data):
         print(_index)
-        if _index == 308:
-            import pdb
-            pdb.set_trace()
+        #if _index == 308:
+        #    import pdb
+        #    pdb.set_trace()
         cdate, volume, aprice, outstanding = row[[0, 1, 2, 3]]
         if 0 == _index:
             t1 = (_index, cdate, cdate, aprice, volume, outstanding)

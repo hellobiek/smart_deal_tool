@@ -19,22 +19,32 @@ def evenly_distributed_new_chip(np.ndarray[long] volume_series, long pre_outstan
     volume_series[np.argpartition(volume_series, abs(delta_sum))[:abs(delta_sum)]] += delta
     return volume_series
 
-def divide_according_property(np.ndarray property_series, np.ndarray[long] volume_series, long total_volume, now_property):
+def divide_according_price(np.ndarray price_series, np.ndarray[long] volume_series, long total_volume):
     cdef long tmp_volume = 0
-    cdef float holding_property = 0
-    cdef float total_property = now_property * len(volume_series) - np.sum(property_series)
-    if 1 == len(volume_series):
-        volume_series[0] -= total_volume
-    else:
-        while total_volume != 0:
-            tmp_volume = total_volume
-            for (index, ), pro in np.ndenumerate(property_series):
-                holding_property = now_property - pro
-                expected_volume = max(1, long(tmp_volume * (holding_property / total_property)))
-                if expected_volume > total_volume: expected_volume = total_volume
-                total_volume -= min(volume_series[index], expected_volume)
-                volume_series[index] = max(0, volume_series[index] - expected_volume)
-                if 0 == total_volume: break
+    cdef float total_price = np.sum(price_series)
+    while total_volume != 0:
+        tmp_volume = total_volume
+        for (index, ), price in np.ndenumerate(price_series):
+            expected_volume = max(1, long(tmp_volume * (price / total_price)))
+            if expected_volume > total_volume: expected_volume = total_volume
+            total_volume -= min(volume_series[index], expected_volume)
+            volume_series[index] = max(0, volume_series[index] - expected_volume)
+            if 0 == total_volume: break
+    return volume_series
+
+def divide_according_position(np.ndarray position_series, np.ndarray[long] volume_series, long total_volume, long now_position):
+    cdef long tmp_volume = 0
+    cdef float holding_position = 0
+    cdef float total_position = now_position * len(volume_series) - np.sum(position_series)
+    while total_volume != 0:
+        tmp_volume = total_volume
+        for (index, ), pos in np.ndenumerate(position_series):
+            holding_position = now_position - pos
+            expected_volume = max(1, long(tmp_volume * (holding_position / total_position)))
+            if expected_volume > total_volume: expected_volume = total_volume
+            total_volume -= min(volume_series[index], expected_volume)
+            volume_series[index] = max(0, volume_series[index] - expected_volume)
+            if 0 == total_volume: break
     return volume_series
 
 def number_of_days(np.ndarray[long] pre_pos, long pos):
@@ -100,10 +110,10 @@ def adjust_volume(np.ndarray mdata, long pos, long volume, float price, long pre
     cdef long s_p_volume = 0, s_u_volume = 0, l_p_volume = 0, l_u_volume = 0
     s_p_volume, s_u_volume, l_p_volume, l_u_volume = divide_volume(volume, volume_total, s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total)
 
-    if s_p_volume > 0:s_p_data['volume'] = divide_according_property(s_p_data['price'], s_p_data['volume'], s_p_volume, price)
-    if s_u_volume > 0:s_u_data['volume'] = divide_according_property(s_u_data['pos'], s_u_data['volume'], s_u_volume, pos)
-    if l_p_volume > 0:l_p_data['volume'] = divide_according_property(l_p_data['price'], l_p_data['volume'], l_p_volume, price)
-    if l_u_volume > 0:l_u_data['volume'] = divide_according_property(l_u_data['pos'], l_u_data['volume'], l_u_volume, pos)
+    if s_p_volume > 0:s_p_data['volume'] = divide_according_price(s_p_data['price'], s_p_data['volume'], s_p_volume)
+    if s_u_volume > 0:s_u_data['volume'] = divide_according_position(s_u_data['pos'], s_u_data['volume'], s_u_volume, pos)
+    if l_p_volume > 0:l_p_data['volume'] = divide_according_price(l_p_data['price'], l_p_data['volume'], l_p_volume)
+    if l_u_volume > 0:l_u_data['volume'] = divide_according_position(l_u_data['pos'], l_u_data['volume'], l_u_volume, pos)
     return np.concatenate((s_p_data, s_u_data, l_p_data, l_u_data), axis = 0)
 
 def compute_oneday_distribution(pre_date_dist, char *cdate, long pos, long volume, float aprice, long pre_outstanding, long outstanding):
@@ -123,29 +133,29 @@ def compute_oneday_distribution(pre_date_dist, char *cdate, long pos, long volum
 def compute_distribution(data):
     cdef char *cdate
     cdef float aprice, open_price = data.at[0, 'open']
-    cdef long pos, volume, _index, outstanding, pre_outstanding = 0
+    cdef long pos, volume, index, outstanding, pre_outstanding = 0
     data = data[['date', 'volume', 'aprice', 'outstanding']]
     data.date = data.date.str.encode("UTF-8")
     cdef np.ndarray np_data = data.values
     tmp_arrary = np.zeros((2, 6), dtype = DTYPE_LIST)
     data_arrary = np.zeros((2, 6), dtype = DTYPE_LIST)
-    for _index, row in enumerate(np_data):
+    for index, row in enumerate(np_data):
         cdate, volume, aprice, outstanding = row[[0, 1, 2, 3]]
-        if 0 == _index:
-            t1 = (_index, cdate, cdate, aprice, volume, outstanding)
-            t2 = (_index, cdate, cdate, open_price, outstanding - volume, outstanding)
+        if 0 == index:
+            t1 = (index, cdate, cdate, aprice, volume, outstanding)
+            t2 = (index, cdate, cdate, open_price, outstanding - volume, outstanding)
             t = np.array([t1, t2], dtype = DTYPE_LIST)
             tmp_arrary = t.copy()
         else:
-            tmp_arrary = adjust_volume(tmp_arrary, _index, volume, aprice, pre_outstanding, outstanding)
+            tmp_arrary = adjust_volume(tmp_arrary, index, volume, aprice, pre_outstanding, outstanding)
             tmp_arrary['date'] = cdate
             tmp_arrary['outstanding'] = outstanding
-            tdata = (_index, cdate, cdate, aprice, volume, outstanding)
+            tdata = (index, cdate, cdate, aprice, volume, outstanding)
             t = np.array([tdata], dtype = DTYPE_LIST)
             tmp_arrary = np.concatenate((tmp_arrary, np.array(t)), axis=0)
         pre_outstanding = outstanding
         tmp_arrary = tmp_arrary[tmp_arrary['volume'] > 0]
-        data_arrary = tmp_arrary.copy() if 0 == _index else np.concatenate((data_arrary, tmp_arrary), axis = 0)
+        data_arrary = tmp_arrary.copy() if 0 == index else np.concatenate((data_arrary, tmp_arrary), axis = 0)
     df = DataFrame(data = data_arrary, columns = CHIP_COLUMNS)
     df.date = df.date.str.decode('utf-8')
     df.sdate = df.sdate.str.decode('utf-8')
