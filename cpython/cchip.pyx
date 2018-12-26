@@ -24,11 +24,12 @@ def divide_according_price(np.ndarray[float] price_series, np.ndarray[long] volu
     cdef np.ndarray[float] delta_price_series = price_series - price
     delta_price_series += 2 * np.abs(np.min(delta_price_series))
     cdef total_delta_price = np.sum(delta_price_series)
+    cdef long length = len(price_series)
     while total_volume != 0:
         tmp_volume = total_volume
         for (index, ), delta_price in np.ndenumerate(delta_price_series):
             if 0 == total_delta_price:
-                expected_volume = max(1, long(tmp_volume * (1 / len(price_series))))
+                expected_volume = max(1, long(tmp_volume / length))
             else:
                 expected_volume = max(1, long(tmp_volume * (delta_price / total_delta_price)))
             if expected_volume > total_volume: expected_volume = total_volume
