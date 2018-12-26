@@ -75,24 +75,24 @@ def divide_data(np.ndarray mdata, long pos, float price):
 def divide_volume(long volume, long s_p_volume_total, long s_u_volume_total, long l_p_volume_total, long l_u_volume_total):
     cdef long s_p_volume = 0, s_u_volume = 0, l_p_volume = 0, l_u_volume = 0
     if s_p_volume_total == max(s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total):
-        l_p_volume = long(min(0.40 * volume, l_p_volume_total))
-        l_u_volume = long(min(0.07 * volume, l_u_volume_total))
-        s_u_volume = long(min(0.03 * volume, s_u_volume_total))
+        l_p_volume = long(min(0.30 * volume, l_p_volume_total))
+        l_u_volume = long(min(0.08 * volume, l_u_volume_total))
+        s_u_volume = long(min(0.02 * volume, s_u_volume_total))
         s_p_volume = volume - s_u_volume - l_p_volume - l_u_volume
     elif s_u_volume_total == max(s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total):
-        l_p_volume = long(min(0.40 * volume, l_p_volume_total))
-        s_p_volume = long(min(0.20 * volume, s_p_volume_total))
+        l_p_volume = long(min(0.35 * volume, l_p_volume_total))
+        s_p_volume = long(min(0.25 * volume, s_p_volume_total))
         l_u_volume = long(min(0.10 * volume, l_u_volume_total))
         s_u_volume = volume - s_p_volume - l_p_volume - l_u_volume
     elif l_p_volume_total == max(s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total):
-        s_p_volume = long(min(0.20 * volume, s_p_volume_total))
-        l_u_volume = long(min(0.06 * volume, l_u_volume_total))
-        s_u_volume = long(min(0.03 * volume, s_u_volume_total))
+        s_p_volume = long(min(0.30 * volume, s_p_volume_total))
+        l_u_volume = long(min(0.08 * volume, l_u_volume_total))
+        s_u_volume = long(min(0.02 * volume, s_u_volume_total))
         l_p_volume = volume - s_p_volume - s_u_volume - l_u_volume
     else:
-        l_p_volume = long(min(0.40 * volume, l_p_volume_total))
-        s_p_volume = long(min(0.30 * volume, s_p_volume_total))
-        s_u_volume = long(min(0.05 * volume, s_u_volume_total))
+        l_p_volume = long(min(0.30 * volume, l_p_volume_total))
+        s_p_volume = long(min(0.20 * volume, s_p_volume_total))
+        s_u_volume = long(min(0.15 * volume, s_u_volume_total))
         l_u_volume = volume - s_p_volume - s_u_volume - l_p_volume
     return s_p_volume, s_u_volume, l_p_volume, l_u_volume
 
