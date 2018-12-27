@@ -83,6 +83,8 @@ class CStock(CMysqlObj):
         data['totals']      = data['totals'] * 10000
         data['outstanding'] = data['outstanding'].astype(int)
         data['outstanding'] = data['outstanding'] * 10000
+        data = data[data.volume < data.outstanding]
+        data = data.reset_index(drop = True)
         return data
 
     def qfq(self, data, info):

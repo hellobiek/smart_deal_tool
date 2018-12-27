@@ -11,7 +11,7 @@ def evenly_distributed_new_chip(np.ndarray[long] volume_series, long pre_outstan
     cdef long delta = 0
     cdef long real_total_volume = np.sum(volume_series)
     cdef long delta_sum = outstanding - real_total_volume
-    while abs(delta_sum) > len(volume_series):
+    while abs(delta_sum) >= len(volume_series):
         volume_series += long(delta_sum / len(volume_series))
         delta_sum = outstanding - np.sum(volume_series)
         if delta_sum == 0: return volume_series
@@ -20,18 +20,16 @@ def evenly_distributed_new_chip(np.ndarray[long] volume_series, long pre_outstan
     return volume_series
 
 def divide_according_price(np.ndarray[float] price_series, np.ndarray[long] volume_series, long total_volume, float price):
+    cdef np.ndarray[float] delta_price_series = np.abs(price - price_series)
+    cdef float total_delta_price = np.sum(delta_price_series)
+    cdef float ratio = 0
     cdef long tmp_volume = 0
-    cdef np.ndarray[float] delta_price_series = price_series - price
-    delta_price_series += 2 * np.abs(np.min(delta_price_series))
-    cdef total_delta_price = np.sum(delta_price_series)
     cdef long length = len(price_series)
     while total_volume != 0:
         tmp_volume = total_volume
         for (index, ), delta_price in np.ndenumerate(delta_price_series):
-            if 0 == total_delta_price:
-                expected_volume = max(1, long(tmp_volume / length))
-            else:
-                expected_volume = max(1, long(tmp_volume * (delta_price / total_delta_price)))
+            ratio = tmp_volume / length if 0 == total_delta_price else delta_price / total_delta_price
+            expected_volume = max(1, int(tmp_volume * ratio))
             if expected_volume > total_volume: expected_volume = total_volume
             total_volume -= min(volume_series[index], expected_volume)
             volume_series[index] = max(0, volume_series[index] - expected_volume)
@@ -40,13 +38,12 @@ def divide_according_price(np.ndarray[float] price_series, np.ndarray[long] volu
 
 def divide_according_position(np.ndarray[long] position_series, np.ndarray[long] volume_series, long total_volume, long now_position):
     cdef long tmp_volume = 0
-    cdef float holding_position = 0
-    cdef float total_position = now_position * len(volume_series) - np.sum(position_series)
+    cdef np.ndarray[long] delta_position_series = now_position - position_series
+    cdef long total_position = np.sum(delta_position_series)
     while total_volume != 0:
         tmp_volume = total_volume
-        for (index, ), pos in np.ndenumerate(position_series):
-            holding_position = now_position - pos
-            expected_volume = max(1, long(tmp_volume * (holding_position / total_position)))
+        for (index, ), position in np.ndenumerate(delta_position_series):
+            expected_volume = max(1, long(tmp_volume * (position / total_position)))
             if expected_volume > total_volume: expected_volume = total_volume
             total_volume -= min(volume_series[index], expected_volume)
             volume_series[index] = max(0, volume_series[index] - expected_volume)
@@ -72,28 +69,51 @@ def divide_data(np.ndarray mdata, long pos, float price):
     l_u_data = l_data[l_data['price'] > price]
     return s_p_data, s_u_data, l_p_data, l_u_data
 
-def divide_volume(long volume, long s_p_volume_total, long s_u_volume_total, long l_p_volume_total, long l_u_volume_total):
+def divide_volume(long volume, long s_p_volume_total, long s_u_volume_total, long l_p_volume_total, long l_u_volume_total, long volume_total):
+    cdef long l_p_delta_volume = 0, s_p_delta_volume = 0, delta_volume = 0, tmp_volume = 0
     cdef long s_p_volume = 0, s_u_volume = 0, l_p_volume = 0, l_u_volume = 0
     if s_p_volume_total == max(s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total):
-        l_p_volume = long(min(0.30 * volume, l_p_volume_total))
-        l_u_volume = long(min(0.08 * volume, l_u_volume_total))
-        s_u_volume = long(min(0.02 * volume, s_u_volume_total))
+        l_p_volume = long(volume * (l_p_volume_total / volume_total))
+        l_u_volume = long(volume * (l_u_volume_total / volume_total))
+        s_u_volume = long(volume * (s_u_volume_total / volume_total))
         s_p_volume = volume - s_u_volume - l_p_volume - l_u_volume
     elif s_u_volume_total == max(s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total):
-        l_p_volume = long(min(0.35 * volume, l_p_volume_total))
-        s_p_volume = long(min(0.25 * volume, s_p_volume_total))
-        l_u_volume = long(min(0.10 * volume, l_u_volume_total))
+        s_p_volume = long(volume * (s_p_volume_total / volume_total))
+        l_p_volume = long(volume * (l_p_volume_total / volume_total))
+        l_u_volume = long(volume * (l_u_volume_total / volume_total))
         s_u_volume = volume - s_p_volume - l_p_volume - l_u_volume
     elif l_p_volume_total == max(s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total):
-        s_p_volume = long(min(0.30 * volume, s_p_volume_total))
-        l_u_volume = long(min(0.08 * volume, l_u_volume_total))
-        s_u_volume = long(min(0.02 * volume, s_u_volume_total))
+        s_p_volume = long(volume * (s_p_volume_total / volume_total))
+        l_u_volume = long(volume * (l_u_volume_total / volume_total))
+        s_u_volume = long(volume * (s_u_volume_total / volume_total))
         l_p_volume = volume - s_p_volume - s_u_volume - l_u_volume
     else:
-        l_p_volume = long(min(0.30 * volume, l_p_volume_total))
-        s_p_volume = long(min(0.20 * volume, s_p_volume_total))
-        s_u_volume = long(min(0.15 * volume, s_u_volume_total))
+        l_p_volume = long(volume * (l_p_volume_total / volume_total))
+        s_p_volume = long(volume * (s_p_volume_total / volume_total))
+        s_u_volume = long(volume * (s_u_volume_total / volume_total))
         l_u_volume = volume - s_p_volume - s_u_volume - l_p_volume
+
+    l_p_delta_volume = l_p_volume_total - l_p_volume
+    s_p_delta_volume = s_p_volume_total - s_p_volume
+    delta_volume = min(long(0.5 * s_u_volume + 0.5 * l_u_volume), l_p_delta_volume + s_p_delta_volume)
+    if delta_volume == 0: return s_p_volume, s_u_volume, l_p_volume, l_u_volume
+    if s_u_volume > l_u_volume:
+        tmp_volume = long(delta_volume * l_u_volume / (s_u_volume + l_u_volume))
+        l_u_volume -= tmp_volume
+        s_u_volume -= delta_volume - tmp_volume
+    else:
+        tmp_volume = long(delta_volume * s_u_volume / (s_u_volume + l_u_volume))
+        s_u_volume -= tmp_volume
+        l_u_volume -= delta_volume - tmp_volume
+
+    if l_p_delta_volume > s_p_delta_volume:
+        tmp_volume = long(delta_volume * s_p_delta_volume/(l_p_delta_volume + s_p_delta_volume))
+        s_p_volume += tmp_volume
+        l_p_volume += delta_volume - tmp_volume
+    else:
+        tmp_volume = long(delta_volume * l_p_delta_volume/(l_p_delta_volume + s_p_delta_volume))
+        l_p_volume += tmp_volume
+        s_p_volume += delta_volume - tmp_volume
     return s_p_volume, s_u_volume, l_p_volume, l_u_volume
 
 def adjust_volume(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):
@@ -104,14 +124,14 @@ def adjust_volume(np.ndarray mdata, long pos, long volume, float price, long pre
     s_p_data, s_u_data, l_p_data, l_u_data = divide_data(mdata, pos, price)
 
     #total volume
-    #cdef long volume_total = outstanding
+    cdef long volume_total = outstanding
     cdef long s_p_volume_total = np.sum(s_p_data['volume'])
     cdef long s_u_volume_total = np.sum(s_u_data['volume'])
     cdef long l_p_volume_total = np.sum(l_p_data['volume'])
     cdef long l_u_volume_total = np.sum(l_u_data['volume'])
 
     cdef long s_p_volume = 0, s_u_volume = 0, l_p_volume = 0, l_u_volume = 0
-    s_p_volume, s_u_volume, l_p_volume, l_u_volume = divide_volume(volume, s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total)
+    s_p_volume, s_u_volume, l_p_volume, l_u_volume = divide_volume(volume, s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total, volume_total)
 
     if s_p_volume > 0:s_p_data['volume'] = divide_according_price(s_p_data['price'], s_p_data['volume'], s_p_volume, price)
     if s_u_volume > 0:s_u_data['volume'] = divide_according_position(s_u_data['pos'], s_u_data['volume'], s_u_volume, pos)

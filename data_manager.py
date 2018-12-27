@@ -303,6 +303,9 @@ class DataManager:
                         self.logger.info("is collecting time. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                         self.bootstrap(cdate = datetime.now().strftime('%Y-%m-%d'))
             except Exception as e:
+                kill_process("google-chrome")
+                kill_process("renderer")
+                kill_process("Xvfb")
                 kill_process("zygote")
                 kill_process("defunct")
                 kill_process("show-component-extension-options")
@@ -441,10 +444,19 @@ if __name__ == '__main__':
     #    mysql_client.delete_db('s%s' % code)
     #import sys
     #sys.exit(0)
+
+
+    kill_process("google-chrome")
+    kill_process("renderer")
+    kill_process("Xvfb")
+    kill_process("zygote")
+    kill_process("defunct")
+    kill_process("show-component-extension-options")
+
     dm = DataManager()
     dm.logger.info("start compute!")
-    dm.init_stock_info(cdate = None)
-    dm.init_base_float_profit()
-    #dm.bootstrap()
+    #dm.init_stock_info(cdate = None)
+    #dm.init_base_float_profit()
+    dm.bootstrap()
     #dm.bootstrap(cdate='2018-12-25')
     dm.logger.info("end compute!")
