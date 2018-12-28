@@ -44,7 +44,7 @@ class CStock(CMysqlObj):
     def adjust_share(self, data, info):
         data['outstanding'] = 0
         data['totals'] = 0
-        if 0 == len(info): return data
+        if 0 == len(info): return pd.DataFrame()
         cur_totals = 0
         cur_outstanding = 0
         next_totals = 0
@@ -91,7 +91,7 @@ class CStock(CMysqlObj):
         data['adj'] = 1.0
         data['preclose'] = data['close'].shift(1)
         data.at[0, 'preclose'] = data.loc[0, 'open']
-        if 0 == len(info): return data
+        if 0 == len(info): return pd.DataFrame()
         for info_index, start_date in info.date.iteritems():
             dates = data.loc[data.date <= start_date].index.tolist()
             if len(dates) == 0 : continue
@@ -412,7 +412,9 @@ class CStock(CMysqlObj):
 
         #modify price and quanity for all split-adjusted share prices
         df = self.adjust_share(df, quantity_change_info)
+        if df.empty: return False
         df = self.qfq(df, price_change_info)
+        if df.empty: return False
 
         #transfer data to split-adjusted share prices
         df = self.transfer2adjusted(df)
@@ -454,6 +456,7 @@ class CStock(CMysqlObj):
 
     def set_base_floating_profit(self):
         df = self.get_k_data()
+        if df is None: return False
         df['base'] = 0.0
         df['ibase'] = 0
         df['breakup'] = 0
