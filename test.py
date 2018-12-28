@@ -1,13 +1,15 @@
 #coding=utf-8
 import os
 import redis
+import _pickle
 import const as ct
 
-#pool = redis.ConnectionPool(host=ct.REDIS_HOST, port=ct.REDIS_PORT, decode_responses=False)
-#r = redis.StrictRedis(connection_pool=pool)
-#df_byte = r.smembers('all_existed_stocks')
-#print(df_byte)
-print(len(ct.ALL_CODE_LIST))
+pool = redis.ConnectionPool(host='127.0.0.1', port=ct.REDIS_PORT, decode_responses=False)
+r = redis.StrictRedis(connection_pool=pool)
+df_byte = r.get(ct.STOCK_INFO)
+df = _pickle.loads(df_byte)
+for code in ct.ALL_CODE_LIST:
+    print(code, df.loc[df.code == code, 'name'])
 
 #all_tables = r.smembers(ALL_TABLES)
 ##for table in ['300318_ticket', '300308_ticket', '300328_ticket', '300338_ticket', '300348_ticket']:
