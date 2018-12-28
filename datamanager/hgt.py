@@ -121,6 +121,7 @@ class StockConnect(object):
 
         ret, df = self.crawler.crawl(cdate)
         if ret != 0: return False
+        if df.empty: return True
         df = df.reset_index(drop = True)
         df['date'] = cdate
         if self.mysql_client.set(df, table_name):

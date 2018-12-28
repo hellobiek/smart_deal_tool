@@ -122,11 +122,14 @@ class MCrawl:
     def crawl(self, req_date = None):
         result = self.crawer.process(req_date)
         if result is None:
+            self.logger.error("get data from %s failed" % self.crawer.link)
             self.crawer.refresh()
             return 1, pd.DataFrame()
         soup      = BeautifulSoup(result, "html.parser")
         real_date = soup.select("h2.ccass-heading")[0].span.text.strip().split(":")[1].strip()
-        if req_date != real_date.replace('/', '-'): return 1, pd.DataFrame()
+        if req_date != real_date.replace('/', '-'):
+            self.logger.info("req_date:%s is not euqal to real_date:%s, no need to store data" % (req_date, real_date))
+            return 0, pd.DataFrame()
         data = []
         rows = soup.select("table#mutualmarket-result")[0].find_all('tr')
         for index in range(1, len(rows)):
