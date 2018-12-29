@@ -438,6 +438,7 @@ class DataManager:
 if __name__ == '__main__':
     #from cmysql import CMySQL
     #mysql_client = CMySQL(dbinfo = ct.DB_INFO)
+    #mysql_client.delete_db(ct.RINDEX_STOCK_INFO_DB)
     #code_list = copy.deepcopy(ct.ALL_CODE_LIST)
     #for code in code_list:
     #    print(code)

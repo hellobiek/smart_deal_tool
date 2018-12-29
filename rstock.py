@@ -106,8 +106,7 @@ class RIndexStock:
         return self.mysql_client.get(sql)
 
     def get_stock_data(self, cdate, code):
-        stock_obj = CStock(code, should_create_influxdb = False, should_create_mysqldb = False)
-        return (code, stock_obj.get_k_data(cdate))
+        return (code, CStock(code).get_k_data(cdate))
 
     def generate_all_data(self, cdate):
         good_list = list()
