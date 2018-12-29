@@ -110,7 +110,7 @@ class RIndexStock:
 
     def generate_all_data(self, cdate):
         good_list = list()
-        obj_pool = Pool(100)
+        obj_pool = Pool(500)
         all_df = pd.DataFrame()
         #stock_info = CStockInfo.get()
         #failed_list = stock_info.code.tolist()
@@ -121,7 +121,6 @@ class RIndexStock:
             print(len(failed_list), cdate)
             for code_data in obj_pool.imap_unordered(cfunc, failed_list):
                 if code_data[1] is not None:
-                    print(code_data[0])
                     tem_df = code_data[1]
                     tem_df['code'] = code_data[0]
                     all_df = all_df.append(tem_df)
