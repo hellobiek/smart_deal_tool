@@ -5,6 +5,7 @@ monkey.patch_all(thread = True)
 from gevent.pool import Pool
 import os
 import datetime
+import traceback
 import matplotlib
 import const as ct
 import pandas as pd
@@ -111,9 +112,15 @@ class CReivew:
             #market info
             sh_df = self.get_market_data(ct.SH_MARKET_SYMBOL, start_date, end_date)
             sz_df = self.get_market_data(ct.SZ_MARKET_SYMBOL, start_date, end_date)
+            date_list = list(set(sh_df.date.tolist()).intersection(set(sz_df.date.tolist())))
+            sh_df = sh_df[sh_df.date.isin(date_list)]
+            sz_df = sz_df[sz_df.date.isin(date_list)]
             #rzrq info
             sh_rzrq_df = self.get_rzrq_info(ct.SH_MARKET_SYMBOL, start_date, end_date)
             sz_rzrq_df = self.get_rzrq_info(ct.SZ_MARKET_SYMBOL, start_date, end_date)
+            date_list = list(set(sh_rzrq_df.date.tolist()).intersection(set(sz_rzrq_df.date.tolist())))
+            sh_rzrq_df = sh_rzrq_df[sh_rzrq_df.date.isin(date_list)]
+            sz_rzrq_df = sz_rzrq_df[sz_rzrq_df.date.isin(date_list)]
             #average price info
             av_df = self.get_index_df('880003', start_date, end_date)
             #limit up and down info
@@ -133,6 +140,7 @@ class CReivew:
             #self.gen_animation()
         except Exception as e:
             self.logger.error(e)
+            traceback.print_exc()
 
     def gen_animation(self, sfile = None):
         style.use('fivethirtyeight')
@@ -174,4 +182,4 @@ class CReivew:
 
 if __name__ == '__main__':
     creview = CReivew(ct.DB_INFO)
-    data = creview.update('2018-12-25')
+    data = creview.update('2018-12-28')

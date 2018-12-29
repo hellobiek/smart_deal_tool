@@ -248,7 +248,7 @@ class DataManager:
                 return False
             self.set_update_info(11, exec_date, cdate)
 
-        if finished_step < 12: 
+        if finished_step < 12:
             if not self.rindustry_info_client.update(exec_date):
                 self.logger.error("init %s rindustry info failed" % exec_date)
                 return False
@@ -458,5 +458,5 @@ if __name__ == '__main__':
     #dm.init_stock_info(cdate = None)
     #dm.init_base_float_profit()
     #dm.bootstrap()
-    dm.bootstrap(cdate='2018-12-27')
+    dm.bootstrap(cdate='2018-12-28')
     dm.logger.info("end compute!")

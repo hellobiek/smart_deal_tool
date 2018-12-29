@@ -158,7 +158,7 @@ class CLimit:
         succeed = True
         for mdate in date_array:
             if CCalendar.is_trading_day(mdate, redis = self.redis):
-                if mdate == end_date: continue
+                #if mdate == end_date: continue
                 if not self.crawl_data(mdate):
                     self.logger.error("%s set failed" % mdate)
                     succeed = False

@@ -112,7 +112,6 @@ class Margin(object):
         if self.is_date_exists(table_name, cdate):
             self.logger.debug("existed table:%s, date:%s" % (table_name, cdate))
             return True
-
         total_df = smart_get(self.crawler.margin, trade_date=transfer_date_string_to_int(cdate))
         if total_df is None:
             self.logger.error("crawel margin for %s failed" % cdate)
