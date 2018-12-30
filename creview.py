@@ -2,7 +2,6 @@
 import gevent
 from gevent import monkey
 monkey.patch_all(thread = True)
-from gevent.pool import Pool
 import os
 import datetime
 import traceback
@@ -51,9 +50,6 @@ class CReivew:
         industry_info = IndustryInfo.get()
         df = pd.merge(df, industry_info, how='left', on=['code'])
         return df
-
-    def get_limitup_data(self, cdate):
-        return CLimit(self.dbinfo).get_data(cdate)
 
     def get_index_data(self, cdate):
         df = pd.DataFrame()
@@ -124,7 +120,7 @@ class CReivew:
             #average price info
             av_df = self.get_index_df('880003', start_date, end_date)
             #limit up and down info
-            limit_info = self.get_limitup_data(cdate)
+            limit_info = CLimit(self.dbinfo).get_data(cdate)
             stock_info = self.rstock_client.get_data(cdate)
             stock_info = stock_info[stock_info.volume > 0] #get volume > 0 stock list
             stock_info = stock_info.reset_index(drop = True)
