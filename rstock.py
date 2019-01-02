@@ -60,6 +60,9 @@ class RIndexStock:
                                              sai float,\
                                              sri float,\
                                              uprice float,\
+                                             sprice float,\
+                                             mprice float,\
+                                             lprice float,\
                                              ppercent float,\
                                              npercent float,\
                                              base float,\
