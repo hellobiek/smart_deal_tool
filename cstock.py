@@ -6,6 +6,7 @@ import os
 import time
 import _pickle
 import datetime
+import numpy as np
 import const as ct
 import pandas as pd
 import tushare as ts
@@ -387,23 +388,20 @@ class CStock(CMysqlObj):
             logger.error("length of code %s is not equal to index." % self.code)
             return False
        
-        ##set chip distribution
-        #logger.info("compute %s distribution" % self.code)
-        #dist_data = self.compute_distribution(df)
-        #if dist_data.empty:
-        #    return False
+        #set chip distribution
+        logger.info("compute %s distribution" % self.code)
+        dist_data = self.compute_distribution(df)
+        if dist_data.empty:
+            return False
 
-        #logger.info("store %s distribution" % self.code)
-        #if not self.set_chip_distribution(dist_data):
-        #    return False
+        logger.info("store %s distribution" % self.code)
+        if not self.set_chip_distribution(dist_data):
+            return False
 
-        dist_data = self.get_chip_distribution()
+        df['uprice'] = mac(dist_data, 0)
         df['sprice'] = mac(dist_data, 5)
-
-        import pdb
-        pdb.set_trace()
-
-        df['uprice'],df['sprice'],df['mprice'],df['lprice'] = mac(dist_data, [0,5,13,37])
+        df['mprice'] = mac(dist_data, 13)
+        df['lprice'] = mac(dist_data, 37)
         df = pro_nei_chip(df, dist_data)
 
         if is_df_has_unexpected_data(df):

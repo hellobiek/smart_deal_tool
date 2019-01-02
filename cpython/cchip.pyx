@@ -8,7 +8,18 @@ from pandas import DataFrame
 CHIP_COLUMNS = ['pos', 'sdate', 'date', 'price', 'volume', 'outstanding']
 DTYPE_LIST = [('pos', 'i8'), ('sdate', 'S10'), ('date', 'S10'), ('price', 'f4'), ('volume', 'i8'), ('outstanding', 'i8')]
 
-def mac(data, np.ndarray[int] perieds = [0,5,13,37]):
+def mac(data, int peried):
+    ulist = list()
+    for name, group in data.groupby(data.date):
+        if peried != 0 and len(group) > peried:
+            group = group.nlargest(peried, 'pos')
+        total_volume = group.volume.sum()
+        total_amount = group.price.dot(group.volume)
+        ulist.append(total_amount / total_volume)
+    return ulist
+
+def mac1(data, perieds):
+    cdef int peried
     cdef str ndate
     cdef char* cdate
     cdef long total_volume = 0
