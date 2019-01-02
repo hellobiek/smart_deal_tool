@@ -4571,5 +4571,7 @@ const.SELECTERS_DICT = {
     "LowVolumeHighProfitSelecter" : "S000003",
     "GameKLineBigraiseLargeVolumeSelecter" : "S000004",
     "GameKLineBigraiseSmallVolumeSelecter" : "S000005",
-    "NeiChipIntensiveSelecter" : "S000006"
+    "BullMoreBearLessSelecter" : "S000006",
+    "NoChipNetSpaceSelecter" : "S000007",
+    "NeiChipIntensiveSelecter" : "S000100"
 }

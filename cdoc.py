@@ -19,6 +19,7 @@ from algotrade.selecters.anti_market_up import AntiMarketUpSelecter
 from algotrade.selecters.stronger_than_market import StrongerThanMarketSelecter
 from algotrade.selecters.less_volume_in_high_profit import LowVolumeHighProfitSelecter
 from algotrade.selecters.nei_chip_intensive import NeiChipIntensiveSelecter
+from algotrade.selecters.bull_more_bear_less import BullMoreBearLessSelecter
 from algotrade.selecters.game_kline_bigraise_and_large_volume import GameKLineBigraiseLargeVolumeSelecter
 from algotrade.selecters.game_kline_bigraise_and_small_volume import GameKLineBigraiseSmallVolumeSelecter
 class CDoc:
@@ -196,7 +197,7 @@ class CDoc:
     def generate(self, cdate, sh_df, sz_df, sh_rzrq_df, sz_rzrq_df, av_df, limit_info, stock_info, industry_info, index_info, all_stock_info):
         image_dir = os.path.join(self.sdir, "%s-StockReView" % cdate)
         file_name = "%s.md" % image_dir
-        #if os.path.exists(file_name): return True
+        if os.path.exists(file_name): return True
         os.makedirs(image_dir, exist_ok = True)
 
         md = MarkdownWriter()
@@ -358,6 +359,9 @@ class CDoc:
         ncis = NeiChipIntensiveSelecter()
         ncis_code_list = ncis.choose(stock_info)
         t_selector.addRow(['低位筹码密集', json.dumps(ncis_code_list)])
+
+        bmbl = BullMoreBearLessSelecter()
+        bmbl.choose(all_stock_info)
 
         md.addTable(t_selector)
         with open(file_name, "w+") as f:

@@ -17,7 +17,7 @@ from functools import partial
 from cpython.cchip import compute_distribution, compute_oneday_distribution
 #from cchip import compute_distribution, compute_oneday_distribution
 #from features import base_floating_profit
-from cpython.cstock import base_floating_profit
+from cpython.cstock import base_floating_profit,pro_nei_chip,mac
 from base.cobj import CMysqlObj
 from common import create_redis_obj, get_years_between, transfer_date_string_to_int, transfer_int_to_date_string, is_df_has_unexpected_data, concurrent_run
 pd.set_option('display.max_columns', None)
@@ -296,45 +296,6 @@ class CStock(CMysqlObj):
         p_date = price_change_info.date[p_index]
         return now_date == p_date
 
-    def pro_nei_chip(self, df, dist_data, preday_df = None, mdate = None):
-        if mdate is None:
-            p_profit_vol_list = list()
-            p_neighbor_vol_list = list()
-            groups = dist_data.groupby(dist_data.date)
-            for _index, cdate in df.date.iteritems():
-                drow = df.loc[_index]
-                close_price = drow['close']
-                outstanding = drow['outstanding']
-                group = groups.get_group(cdate)
-                p_val = 100 * group[group.price < close_price].volume.sum() / outstanding
-                n_val = 100 * group[(group.price < close_price * 1.08) & (group.price > close_price * 0.92)].volume.sum() / outstanding
-                p_profit_vol_list.append(p_val)
-                p_neighbor_vol_list.append(n_val)
-            df['ppercent'] = p_profit_vol_list
-            df['npercent'] = p_neighbor_vol_list
-            df['gamekline'] = df['ppercent'] - df['ppercent'].shift(1)
-            df.at[0, 'gamekline'] = df.loc[0, 'ppercent']
-        else:
-            p_close     = df['close'].values[0]
-            outstanding = df['outstanding'].values[0]
-            p_val = 100 * dist_data[dist_data.price < p_close].volume.sum() / outstanding
-            n_val = 100 * dist_data[(dist_data.price < p_close * 1.08) & (dist_data.price > p_close * 0.92)].volume.sum() / outstanding
-            df['ppercent'] = p_val
-            df['npercent'] = n_val
-            df['gamekline'] = df['ppercent'].values[0] - preday_df['ppercent'].values[0]
-        return df
-
-    def mac(self, df, data, peried = 0):
-        ulist = list()
-        for name, group in data.groupby(data.date):
-            if peried != 0 and len(group) > peried:
-                group = group.nlargest(peried, 'pos')
-            total_volume = group.volume.sum()
-            total_amount = group.price.dot(group.volume)
-            ulist.append(total_amount / total_volume)
-        df['uprice'] = ulist
-        return df
-
     def relative_index_strength(self, df, index_df, cdate = None):
         index_df = index_df.loc[index_df.date.isin(df.date.tolist())]
         if len(df) != len(index_df): logger.debug("length of code %s is not equal to index." % self.code)
@@ -395,8 +356,8 @@ class CStock(CMysqlObj):
             return False
 
         if self.set_chip_distribution(dist_data, zdate = cdate):
-            df = self.mac(df, dist_data, 0)
-            df = self.pro_nei_chip(df, dist_data, preday_df, cdate)
+            df['uprice'] = mac(dist_data, 0)
+            df = pro_nei_chip(df, dist_data, preday_df, cdate)
             if is_df_has_unexpected_data(df):
                 logger.error("data for %s is not clean." % self.code)
                 return False
@@ -435,8 +396,8 @@ class CStock(CMysqlObj):
         if not self.set_chip_distribution(dist_data):
             return False
 
-        df = self.mac(df, dist_data, 0)
-        df = self.pro_nei_chip(df, dist_data)
+        df['uprice'] = mac(dist_data, 0)
+        df = pro_nei_chip(df, dist_data)
 
         if is_df_has_unexpected_data(df):
             logger.error("data for %s is not clean." % self.code)
