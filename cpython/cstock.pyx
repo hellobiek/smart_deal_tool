@@ -146,16 +146,6 @@ def base_floating_profit(df, mdate = None):
     df.date = df.date.str.decode('utf-8')
     return df
 
-def mac(data, int peried = 0):
-    ulist = list()
-    for name, group in data.groupby(data.date):
-        if peried != 0 and len(group) > peried:
-            group = group.nlargest(peried, 'pos')
-        total_volume = group.volume.sum()
-        total_amount = group.price.dot(group.volume)
-        ulist.append(total_amount / total_volume)
-    return ulist
-
 def pro_nei_chip(df, dist_data, preday_df = None, mdate = None):
     if mdate is None:
         p_profit_vol_list = list()

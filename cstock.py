@@ -14,10 +14,8 @@ from ticks import read_tick
 from cinfluxdb import CInflux
 from datetime import datetime
 from functools import partial
-from cpython.cchip import compute_distribution, compute_oneday_distribution
-#from cchip import compute_distribution, compute_oneday_distribution
-#from features import base_floating_profit
-from cpython.cstock import base_floating_profit,pro_nei_chip,mac
+from cpython.cchip import compute_distribution, compute_oneday_distribution,mac
+from cpython.cstock import base_floating_profit,pro_nei_chip
 from base.cobj import CMysqlObj
 from common import create_redis_obj, get_years_between, transfer_date_string_to_int, transfer_int_to_date_string, is_df_has_unexpected_data, concurrent_run
 pd.set_option('display.max_columns', None)
@@ -357,6 +355,9 @@ class CStock(CMysqlObj):
 
         if self.set_chip_distribution(dist_data, zdate = cdate):
             df['uprice'] = mac(dist_data, 0)
+            df['sprice'] = mac(dist_data, 5)
+            df['mprice'] = mac(dist_data, 13)
+            df['lprice'] = mac(dist_data, 37)
             df = pro_nei_chip(df, dist_data, preday_df, cdate)
             if is_df_has_unexpected_data(df):
                 logger.error("data for %s is not clean." % self.code)
@@ -386,17 +387,23 @@ class CStock(CMysqlObj):
             logger.error("length of code %s is not equal to index." % self.code)
             return False
        
-        #set chip distribution
-        logger.info("compute %s distribution" % self.code)
-        dist_data = self.compute_distribution(df)
-        if dist_data.empty:
-            return False
+        ##set chip distribution
+        #logger.info("compute %s distribution" % self.code)
+        #dist_data = self.compute_distribution(df)
+        #if dist_data.empty:
+        #    return False
 
-        logger.info("store %s distribution" % self.code)
-        if not self.set_chip_distribution(dist_data):
-            return False
+        #logger.info("store %s distribution" % self.code)
+        #if not self.set_chip_distribution(dist_data):
+        #    return False
 
-        df['uprice'] = mac(dist_data, 0)
+        dist_data = self.get_chip_distribution()
+        df['sprice'] = mac(dist_data, 5)
+
+        import pdb
+        pdb.set_trace()
+
+        df['uprice'],df['sprice'],df['mprice'],df['lprice'] = mac(dist_data, [0,5,13,37])
         df = pro_nei_chip(df, dist_data)
 
         if is_df_has_unexpected_data(df):
@@ -608,12 +615,11 @@ class CStock(CMysqlObj):
         return self.mysql_client.get(sql)
 
 if __name__ == '__main__':
-    #cdate = None
-    cdate = '2018-12-10'
+    cdate = None
+    #cdate = '2019-12-28'
     from cindex import CIndex
     index_info = CIndex('000001').get_k_data(cdate)
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-
     cstock = CStock('601318')
     logger.info("start compute")
     cstock.set_k_data(bonus_info, index_info, cdate)

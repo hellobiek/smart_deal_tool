@@ -1,10 +1,40 @@
 # cython: language_level=3, boundscheck=False, nonecheck=False, infer_types=True
+import array
 import numpy as np
+from cpython cimport array
+import numpy_indexed as npi
 cimport numpy as np
 from pandas import DataFrame
-
 CHIP_COLUMNS = ['pos', 'sdate', 'date', 'price', 'volume', 'outstanding']
 DTYPE_LIST = [('pos', 'i8'), ('sdate', 'S10'), ('date', 'S10'), ('price', 'f4'), ('volume', 'i8'), ('outstanding', 'i8')]
+
+def mac(data, np.ndarray[int] perieds = [0,5,13,37]):
+    cdef str ndate
+    cdef char* cdate
+    cdef long total_volume = 0
+    cdef float total_amount = 0
+    cdef array.array ulist = array.array('f', [])
+    cdef array.array slist = array.array('f', [])
+    cdef array.array mlist = array.array('f', [])
+    cdef array.array llist = array.array('f', [])
+    cdef np.ndarray group, dist_data = data.to_records(index = False).astype(DTYPE_LIST)
+    for peried in perieds:
+        for cdate in np.unique(dist_data['date']):
+            ndate = cdate.decode('utf-8')
+            group = dist_data[np.where(np.char.decode(dist_data['date']) == ndate)]
+            if peried != 0 and len(group) > peried:
+                group = group[np.argpartition(group['pos'], -peried)][-peried:]
+            total_volume = group['volume'].sum()
+            total_amount = group['price'].dot(group['volume'])
+            if peried == 0:
+                ulist.append(total_amount / total_volume)
+            elif peried == 5:
+                slist.append(total_amount / total_volume)
+            elif peried == 13:
+                mlist.append(total_amount / total_volume)
+            else:
+                llist.append(total_amount / total_volume)
+    return ulist, slist, mlist, llist
 
 def evenly_distributed_new_chip(np.ndarray[long] volume_series, long pre_outstanding, long outstanding):
     volume_series = (outstanding * (volume_series / pre_outstanding)).astype(long)
