@@ -168,19 +168,15 @@ class DataManager:
             json.dump(step_info, f)
         self.logger.info("finish step :%s" %  step_length)
 
-    def get_update_info(self, cdate = None, filename = ct.STEPFILE):
-        if cdate is None:
-            cdate = 'none'
-            exec_date = datetime.now().strftime('%Y-%m-%d')
-        else:
-            exec_date = cdate
+    def get_update_info(self, cdate = None, exec_date = None, filename = ct.STEPFILE):
+        if cdate is None: cdate = 'none'
         if not os.path.exists(filename): return (0, exec_date)
         with open(filename, 'r') as f: step_info = json.load(f)
         if cdate not in step_info: return (0, exec_date)
         return (step_info[cdate]['step'], step_info[cdate]['date'])
 
-    def bootstrap(self, cdate = None):
-        finished_step, exec_date = self.get_update_info(cdate)
+    def bootstrap(self, cdate = None, exec_date = datetime.now().strftime('%Y-%m-%d')):
+        finished_step, exec_date = self.get_update_info(cdate, exec_date)
         self.logger.info("enter updating.%s" % finished_step)
         if finished_step < 1:
             if not self.cal_client.init():

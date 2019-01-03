@@ -2,7 +2,6 @@
 import array
 import numpy as np
 from cpython cimport array
-import numpy_indexed as npi
 cimport numpy as np
 from pandas import DataFrame
 CHIP_COLUMNS = ['pos', 'sdate', 'date', 'price', 'volume', 'outstanding']
