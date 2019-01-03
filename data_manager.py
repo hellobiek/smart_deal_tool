@@ -439,6 +439,10 @@ if __name__ == '__main__':
     #from cmysql import CMySQL
     #mysql_client = CMySQL(dbinfo = ct.DB_INFO)
     #mysql_client.delete_db(ct.RINDEX_STOCK_INFO_DB)
+    #mysql_client.delete_db(ct.RINDEX_INDUSTRY_INFO_DB)
+    #for code in IndustryInfo().get().code.tolist():
+    #    print(code)
+    #    mysql_client.delete_db('i%s' % code)
     #code_list = copy.deepcopy(ct.ALL_CODE_LIST)
     #for code in code_list:
     #    print(code)
@@ -458,6 +462,6 @@ if __name__ == '__main__':
     dm.logger.info("start compute!")
     #dm.init_stock_info(cdate = None)
     #dm.init_base_float_profit()
-    #dm.bootstrap()
-    dm.bootstrap(cdate='2018-12-28')
+    dm.bootstrap()
+    #dm.bootstrap(cdate='2018-12-28')
     dm.logger.info("end compute!")

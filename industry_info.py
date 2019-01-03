@@ -10,7 +10,7 @@ from pandas import DataFrame
 from common import create_redis_obj, concurrent_run
 logger = getLogger(__name__)
 class IndustryInfo:
-    def __init__(self, dbinfo, redis_host = None):
+    def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.table = ct.INDUSTRY_INFO
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
         self.mysql_client = cmysql.CMySQL(dbinfo, iredis = self.redis)
