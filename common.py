@@ -242,6 +242,7 @@ def concurrent_run(mfunc, todo_list, num = 10, max_retry_times = 10):
                 is_failed = True
         if is_failed:
             if failed_count > max_retry_times:
+                with open(ct.FAILED_INFO_FILE, 'w') as f: json.dump(json.dumps(failed_list), f)
                 obj_pool.join(timeout = 10)
                 obj_pool.kill()
                 return False

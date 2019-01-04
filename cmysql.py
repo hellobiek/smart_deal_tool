@@ -193,7 +193,7 @@ class CMySQL:
                 logger.error(e)
                 if 'conn' in dir(): conn.close()
             if True == res: return data
-        #logger.error("%s %s failed afer try %d times" % (self.dbname, sql, ct.RETRY_TIMES))
+        logger.error("%s %s failed afer try %d times" % (self.dbname, sql, ct.RETRY_TIMES))
         return None
 
     def exec_sql(self, sql, params = None):
@@ -218,7 +218,7 @@ class CMySQL:
             if hasSucceed: return True
             if ct.RETRY_TIMES > 1: 
                 time.sleep(ct.SHORT_SLEEP_TIME)
-        #logger.error("%s failed" % sql)
+        logger.error("%s failed" % sql)
         return False
 
     def register(self, sql, register):
