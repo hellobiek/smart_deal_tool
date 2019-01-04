@@ -458,6 +458,6 @@ if __name__ == '__main__':
     dm.logger.info("start compute!")
     #dm.init_stock_info(cdate = None)
     #dm.init_base_float_profit()
-    dm.bootstrap()
+    dm.bootstrap(exec_date = '2019-01-02')
     #dm.bootstrap(cdate='2018-12-28')
     dm.logger.info("end compute!")

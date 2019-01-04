@@ -395,10 +395,12 @@ class CStock(CMysqlObj):
         #logger.info("compute %s distribution" % self.code)
         dist_data = self.compute_distribution(df)
         if dist_data.empty:
+            logger.error("%s is empty distribution." % self.code)
             return False
 
         logger.info("store %s distribution" % self.code)
         if not self.set_chip_distribution(dist_data):
+            logger.info("store %s distribution failed" % self.code)
             return False
 
         df['uprice'] = mac(dist_data, 0)
@@ -412,10 +414,11 @@ class CStock(CMysqlObj):
             return False
 
         day_table = self.get_day_table()
-        if self.mysql_client.delsert(df, day_table): 
-            self.redis.sadd(day_table, *set(df.date.tolist()))
-            return True
-        return False
+        if not self.mysql_client.delsert(df, day_table): 
+            logger.error("save %s data to mysql failed." % self.code)
+            return False
+        self.redis.sadd(day_table, *set(df.date.tolist()))
+        return True
 
     def get_base_floating_profit(self, date = None):
         return self.get_k_data(date)
