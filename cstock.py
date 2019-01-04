@@ -392,7 +392,7 @@ class CStock(CMysqlObj):
             return False
        
         #set chip distribution
-        logger.info("compute %s distribution" % self.code)
+        #logger.info("compute %s distribution" % self.code)
         dist_data = self.compute_distribution(df)
         if dist_data.empty:
             return False
