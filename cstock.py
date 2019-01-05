@@ -90,7 +90,7 @@ class CStock(CMysqlObj):
         data['adj'] = 1.0
         data['preclose'] = data['close'].shift(1)
         data.at[0, 'preclose'] = data.loc[0, 'open']
-        if 0 == len(info): return pd.DataFrame()
+        #if 0 == len(info): return data
         for info_index, start_date in info.date.iteritems():
             dates = data.loc[data.date <= start_date].index.tolist()
             if len(dates) == 0 : continue
@@ -105,10 +105,7 @@ class CStock(CMysqlObj):
 
     def has_on_market(self, cdate):
         time2Market = self.get('timeToMarket')
-
-        if str(time2Market) == '0': 
-            return False
-
+        if str(time2Market) == '0': return False
         t = time.strptime(str(time2Market), "%Y%m%d")
         y,m,d = t[0:3]
         time2Market = datetime(y,m,d)

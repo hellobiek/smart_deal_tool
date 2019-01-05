@@ -267,13 +267,13 @@ class DataManager:
                 self.logger.error("init_yesterday_margin failed")
                 return False
             self.set_update_info(15, exec_date, cdate)
-       
+
         if finished_step < 16:
             if not self.init_stock_info(cdate):
                 self.logger.error("init_stock_info set failed")
                 return False
             self.set_update_info(16, exec_date, cdate)
-
+        
         if finished_step < 17:
             if not self.init_base_float_profit():
                 self.logger.error("init base float profit for all stock")
@@ -340,7 +340,8 @@ class DataManager:
     
         #df = self.stock_info_client.get()
         #failed_list = df.code.tolist()
-        failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
+        #failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
+        failed_list = copy.deepcopy(ct.ALL_CODE_LIST_BAK)
         if cdate is None:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
             return concurrent_run(cfunc, failed_list, num = 5)
