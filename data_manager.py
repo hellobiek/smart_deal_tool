@@ -340,8 +340,7 @@ class DataManager:
     
         #df = self.stock_info_client.get()
         #failed_list = df.code.tolist()
-        #failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
-        failed_list = copy.deepcopy(ct.ALL_CODE_LIST_BAK)
+        failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
         if cdate is None:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
             return concurrent_run(cfunc, failed_list, num = 5)
