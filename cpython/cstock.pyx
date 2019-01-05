@@ -5,7 +5,7 @@ cimport numpy as np
 from cpython cimport array
 from pandas import DataFrame
 PRE_DAYS_NUM = 60
-DATA_COLUMS = ['date', 'open', 'high', 'close', 'preclose', 'low', 'volume', 'amount', 'outstanding', 'totals', 'adj', 'aprice', 'pchange', 'turnover', 'sai', 'sri', 'uprice', 'ppercent', 'npercent', 'base', 'ibase', 'breakup', 'ibreakup', 'pday', 'profit', 'gamekline']
+DATA_COLUMS = ['date', 'open', 'high', 'close', 'preclose', 'low', 'volume', 'amount', 'outstanding', 'totals', 'adj', 'aprice', 'pchange', 'turnover', 'sai', 'sri', 'uprice', 'sprice', 'mprice', 'lprice', 'ppercent', 'npercent', 'base', 'ibase', 'breakup', 'ibreakup', 'pday', 'profit', 'gamekline']
 DTYPE_LIST = [('date', 'S10'),\
               ('open', 'f4'),\
               ('high', 'f4'),\
@@ -23,6 +23,9 @@ DTYPE_LIST = [('date', 'S10'),\
               ('sai', 'f4'),\
               ('sri', 'f4'),\
               ('uprice', 'f4'),\
+              ('sprice', 'f4'),\
+              ('mprice', 'f4'),\
+              ('lprice', 'f4'),\
               ('ppercent', 'f4'),\
               ('npercent', 'f4'),\
               ('base', 'f4'),\
@@ -102,8 +105,7 @@ def base_floating_profit(df, mdate = None):
     cdef int direction = 0
     cdef float base, ppchange
     cdef long s_index = 0, e_index = 0
-    cdef np.ndarray np_data = df.to_records(index = False)
-    np_data = np_data.astype(DTYPE_LIST)
+    cdef np.ndarray np_data = df.to_records(index = False).astype(DTYPE_LIST, copy = False)
     cdef np.ndarray break_index_lists
     cdef array.array effective_breakup_index_list
     cdef np.ndarray index_array = np.arange(len(np_data))
@@ -157,7 +159,7 @@ def pro_nei_chip(df, dist_data, preday_df = None, mdate = None):
             outstanding = drow['outstanding']
             group = groups.get_group(cdate)
             p_val = 100 * group[group.price < close_price].volume.sum() / outstanding
-            n_val = 100 * group[(group.price < close_price * 1.08) & (group.price > close_price * 0.92)].volume.sum() / outstanding
+            n_val = 100 * group[(group.price < close_price * 1.15) & (group.price > close_price * 0.85)].volume.sum() / outstanding
             p_profit_vol_list.append(p_val)
             p_neighbor_vol_list.append(n_val)
         df['ppercent'] = p_profit_vol_list

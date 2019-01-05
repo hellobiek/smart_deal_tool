@@ -273,7 +273,7 @@ class DataManager:
                 self.logger.error("init_stock_info set failed")
                 return False
             self.set_update_info(16, exec_date, cdate)
-        
+
         if finished_step < 17:
             if not self.init_base_float_profit():
                 self.logger.error("init base float profit for all stock")
@@ -327,6 +327,7 @@ class DataManager:
         def _set_stock_info(_date, bonus_info, index_info, code_id):
             _obj = CStock(code_id)
             if _obj.set_k_data(bonus_info, index_info, _date):
+                self.logger.info("%s set k data success" % code_id)
                 return (code_id, True)
             self.logger.error("%s set k data failed" % code_id)
             return (code_id, False)
@@ -458,6 +459,6 @@ if __name__ == '__main__':
     dm.logger.info("start compute!")
     #dm.init_stock_info(cdate = None)
     #dm.init_base_float_profit()
-    dm.bootstrap(exec_date = '2019-01-02')
-    #dm.bootstrap(cdate='2018-12-28')
+    dm.bootstrap(exec_date = '2019-01-04')
+    #dm.bootstrap(cdate='2019-01-04', exec_date = '2019-01-04')
     dm.logger.info("end compute!")

@@ -1140,8 +1140,8 @@ typedef npy_clongdouble __pyx_t_5numpy_clongdouble_t;
  * cdef inline object PyArray_MultiIterNew1(a):
  */
 typedef npy_cdouble __pyx_t_5numpy_complex_t;
-struct __pyx_ctuple_11518__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc;
-typedef struct __pyx_ctuple_11518__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc __pyx_ctuple_11518__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc;
+struct __pyx_ctuple_23fd3__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc;
+typedef struct __pyx_ctuple_23fd3__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc __pyx_ctuple_23fd3__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc;
 
 /* "cchip.pyx":188
  *     np_pre_data['date'] = cdate
@@ -1150,7 +1150,7 @@ typedef struct __pyx_ctuple_11518__long__and_char__ptr__and_char__ptr__and_float
  *     df = DataFrame(data = np_pre_data, columns = CHIP_COLUMNS)
  *     df = df[df.volume != 0]
  */
-struct __pyx_ctuple_11518__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc {
+struct __pyx_ctuple_23fd3__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc {
   long f0;
   char *f1;
   char *f2;
@@ -1742,7 +1742,7 @@ static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value);
 static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value);
 
 /* ToPyCTupleUtility.proto */
-static PyObject* __pyx_convert__to_py___pyx_ctuple_11518__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc(__pyx_ctuple_11518__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc);
+static PyObject* __pyx_convert__to_py___pyx_ctuple_23fd3__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc(__pyx_ctuple_23fd3__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc);
 
 /* RealImag.proto */
 #if CYTHON_CCOMPLEX
@@ -8538,10 +8538,10 @@ static PyObject *__pyx_pf_5cchip_20compute_distribution(CYTHON_UNUSED PyObject *
   PyObject *__pyx_v_tmp_arrary = NULL;
   PyObject *__pyx_v_data_arrary = NULL;
   PyObject *__pyx_v_row = NULL;
-  __pyx_ctuple_11518__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc __pyx_v_t1;
-  __pyx_ctuple_11518__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc __pyx_v_t2;
+  __pyx_ctuple_23fd3__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc __pyx_v_t1;
+  __pyx_ctuple_23fd3__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc __pyx_v_t2;
   PyObject *__pyx_v_t = NULL;
-  __pyx_ctuple_11518__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc __pyx_v_tdata;
+  __pyx_ctuple_23fd3__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc __pyx_v_tdata;
   PyObject *__pyx_v_df = NULL;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
@@ -8561,7 +8561,7 @@ static PyObject *__pyx_pf_5cchip_20compute_distribution(CYTHON_UNUSED PyObject *
   long __pyx_t_14;
   long __pyx_t_15;
   int __pyx_t_16;
-  __pyx_ctuple_11518__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc __pyx_t_17;
+  __pyx_ctuple_23fd3__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc __pyx_t_17;
   PyObject *__pyx_t_18 = NULL;
   PyObject *__pyx_t_19 = NULL;
   int __pyx_t_20;
@@ -8917,9 +8917,9 @@ static PyObject *__pyx_pf_5cchip_20compute_distribution(CYTHON_UNUSED PyObject *
       __pyx_t_10 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_array); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 210, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_10);
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-      __pyx_t_1 = __pyx_convert__to_py___pyx_ctuple_11518__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc(__pyx_v_t1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 210, __pyx_L1_error)
+      __pyx_t_1 = __pyx_convert__to_py___pyx_ctuple_23fd3__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc(__pyx_v_t1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 210, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
-      __pyx_t_9 = __pyx_convert__to_py___pyx_ctuple_11518__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc(__pyx_v_t2); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 210, __pyx_L1_error)
+      __pyx_t_9 = __pyx_convert__to_py___pyx_ctuple_23fd3__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc(__pyx_v_t2); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 210, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_9);
       __pyx_t_8 = PyList_New(2); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 210, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_8);
@@ -9126,7 +9126,7 @@ static PyObject *__pyx_pf_5cchip_20compute_distribution(CYTHON_UNUSED PyObject *
       __pyx_t_8 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_array); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 217, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_8);
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-      __pyx_t_1 = __pyx_convert__to_py___pyx_ctuple_11518__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc(__pyx_v_tdata); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 217, __pyx_L1_error)
+      __pyx_t_1 = __pyx_convert__to_py___pyx_ctuple_23fd3__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc(__pyx_v_tdata); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 217, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
       __pyx_t_21 = PyList_New(1); if (unlikely(!__pyx_t_21)) __PYX_ERR(0, 217, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_21);
@@ -16101,7 +16101,7 @@ static void __Pyx_ReleaseBuffer(Py_buffer *view) {
 }
 
 /* ToPyCTupleUtility */
-  static PyObject* __pyx_convert__to_py___pyx_ctuple_11518__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc(__pyx_ctuple_11518__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc value) {
+  static PyObject* __pyx_convert__to_py___pyx_ctuple_23fd3__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc(__pyx_ctuple_23fd3__long__and_char__ptr__and_char__ptr__and_float__and_long__and_long__etc value) {
     PyObject* item = NULL;
     PyObject* result = PyTuple_New(6);
     if (!result) goto bad;

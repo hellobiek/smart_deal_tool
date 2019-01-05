@@ -68,7 +68,7 @@ class IndustryInfo:
             if len(info_list) == 5:
                 industry = info_list[2]
                 code = info_list[1]
-                if industry == "T00": continue #not include B stock
+                if len(industry) == 3: continue #not include B stock and big industry code
                 if industry not in industry_dict: industry_dict[industry] = list()
                 industry_dict[industry].append(code)
         for key in industry_dict:

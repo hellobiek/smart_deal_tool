@@ -17,7 +17,6 @@ from algotrade.selecters.no_chip_net_space import NoChipNetSpaceSelecter
 from algotrade.selecters.bull_more_bear_less import BullMoreBearLessSelecter
 from algotrade.selecters.game_kline_bigraise_and_large_volume import GameKLineBigraiseLargeVolumeSelecter
 from algotrade.selecters.game_kline_bigraise_and_small_volume import GameKLineBigraiseSmallVolumeSelecter
-
 def get_market_data(market, start_date, end_date):
     if market == ct.SH_MARKET_SYMBOL:
         sh_market_client = StockExchange(market = ct.SH_MARKET_SYMBOL)
@@ -81,14 +80,8 @@ def get_index_df(code, start_date, end_date):
     df = df[['time', 'open', 'high', 'low', 'close', 'volume', 'amount', 'date']]
     return df
 
-def compute_short_mac(stock_info, int peried = 5):
-    ulist = list()
-    for index, code in stock_info:
-        dist_data = CStock(code).get_chip_distribution()
-        mac(dist_data, peried)
-
 if __name__ == '__main__':
-    cdate = '2018-12-28' 
+    cdate = '2019-01-02' 
     start_date = get_day_nday_ago(cdate, 100, dformat = "%Y-%m-%d")
     end_date = cdate
     #market info

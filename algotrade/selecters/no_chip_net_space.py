@@ -10,7 +10,9 @@ class NoChipNetSpaceSelecter(Selecter):
         code = ct.SELECTERS_DICT[self.__class__.__name__]
         Selecter.__init__(self, code, dbinfo, redis_host)
 
-    def choose(self, stock_df, all_stock_info):
+    def choose(self, stock_df):
         #大盘超跌的判断
+        import pdb
+        pdb.set_trace()
         delta = (np.log(stock_df['aprice']) - np.log(stock_df['sprice'])) / np.log(0.9)
         return stock_df.loc[(delta > 2.5) & (stock_df.npercent < 20)].code.tolist()

@@ -395,7 +395,6 @@ class CStock(CMysqlObj):
             logger.error("%s is empty distribution." % self.code)
             return False
 
-        logger.info("store %s distribution" % self.code)
         if not self.set_chip_distribution(dist_data):
             logger.info("store %s distribution failed" % self.code)
             return False
