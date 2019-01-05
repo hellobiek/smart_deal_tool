@@ -316,8 +316,7 @@ class DataManager:
 
     def init_base_float_profit(self):
         def _set_base_float_profit(code_id):
-            _obj = CStock(code_id, should_create_mysqldb = False)
-            return (code_id, True) if _obj.set_base_floating_profit() else (code_id, False)
+            return (code_id, True) if CStock(code_id).set_base_floating_profit() else (code_id, False)
         #df = self.stock_info_client.get()
         #failed_list = df.code.tolist()
         failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
@@ -325,8 +324,7 @@ class DataManager:
 
     def init_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, index_info, code_id):
-            _obj = CStock(code_id)
-            if _obj.set_k_data(bonus_info, index_info, _date):
+            if CStock(code_id).set_k_data(bonus_info, index_info, _date):
                 self.logger.info("%s set k data success" % code_id)
                 return (code_id, True)
             self.logger.error("%s set k data failed" % code_id)
