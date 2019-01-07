@@ -11,8 +11,6 @@ class NoChipNetSpaceSelecter(Selecter):
         Selecter.__init__(self, code, dbinfo, redis_host)
 
     def choose(self, stock_df):
-        #大盘超跌的判断
-        import pdb
-        pdb.set_trace()
+        #个股超跌 + 紧邻无筹码的判断
         delta = (np.log(stock_df['aprice']) - np.log(stock_df['sprice'])) / np.log(0.9)
-        return stock_df.loc[(delta > 2.5) & (stock_df.npercent < 20)].code.tolist()
+        return stock_df.loc[(delta > 1) & (stock_df.npercent < 20)].code.tolist()

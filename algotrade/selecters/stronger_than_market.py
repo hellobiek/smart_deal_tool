@@ -15,7 +15,7 @@ class StrongerThanMarketSelecter(Selecter):
         open_price  = df['open'].tolist()[0]
         return 100 * (close_price - open_price) / open_price
 
-    def choose(self, stock_df, av_df, strength = 5):
+    def choose(self, stock_df, av_df, strength = 10):
         code_list = list()
         av_pchange = self.get_pchange(av_df)
         for code, df in stock_df.groupby('code'):

@@ -38,7 +38,7 @@ class CLimit:
                                                  fdmoney float,\
                                                  first_time varchar(20),\
                                                  last_time varchar(20),\
-                                                 open_times int,\
+                                                 open_times varchar(20),\
                                                  intensity float,\
                                                  PRIMARY KEY (date, code))' % self.table
             return True if self.mysql_client.create(sql, self.table) else False
@@ -141,7 +141,6 @@ class CLimit:
         df = df.reset_index(drop = True)
         df.columns = ['code', 'price', 'pchange', 'prange', 'fcb', 'flb', 'fdmoney', 'first_time', 'last_time', 'open_times', 'intensity', 'concept']
         df['date'] = cdate
-
         if self.mysql_client.set(df, self.table):
             return self.redis.sadd(self.table, cdate)
         return False

@@ -18,6 +18,7 @@ from visualization.marauder_map import MarauderMap
 from algotrade.selecters.anti_market_up import AntiMarketUpSelecter
 from algotrade.selecters.stronger_than_market import StrongerThanMarketSelecter
 from algotrade.selecters.less_volume_in_high_profit import LowVolumeHighProfitSelecter
+from algotrade.selecters.no_chip_net_space import NoChipNetSpaceSelecter
 from algotrade.selecters.nei_chip_intensive import NeiChipIntensiveSelecter
 from algotrade.selecters.bull_more_bear_less import BullMoreBearLessSelecter
 from algotrade.selecters.game_kline_bigraise_and_large_volume import GameKLineBigraiseLargeVolumeSelecter
@@ -361,7 +362,12 @@ class CDoc:
         t_selector.addRow(['低位筹码密集', json.dumps(ncis_code_list)])
 
         bmbl = BullMoreBearLessSelecter()
-        bmbl.choose(all_stock_info)
+        bmbl_code_list = bmbl.choose(all_stock_info)
+        t_selector.addRow(['牛长熊短', json.dumps(bmbl_code_list)])
+
+        ncns = NoChipNetSpaceSelecter()
+        ncns_code_list = ncns.choose(stock_info)
+        t_selector.addRow(['无筹码净空间', json.dumps(ncns_code_list)])
 
         md.addTable(t_selector)
         with open(file_name, "w+") as f:
