@@ -69,11 +69,12 @@ class MarkdownWriter():
             raise ValueError("tabulation number must be positive")
 
         self.stream += ">"*tabulation
-        self.stream += self.getStylizedText( self.transformSpecialCharacters( text ), textStyle )
+        self.stream += self.getStylizedText(self.transformSpecialCharacters(text), textStyle)
         self.addDoubleLineBreak() 
 
     def addText(self, text, textStyle='normal'):
-        self.stream += self.getStylizedText( self.transformSpecialCharacters( text ), textStyle )
+        self.stream += self.getStylizedText(self.transformSpecialCharacters(text), textStyle)
+        self.stream += "\n"
 
     def addList(self, text, numStyleList=False, tabulation=0, textStyle='normal'):
         if type(text) is not list:

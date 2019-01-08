@@ -67,7 +67,6 @@ class CPlot():
             cdates = k_data.date.tolist()
             i_data = i_data.loc[i_data.date.isin(cdates)]
             i_data = i_data.reset_index(drop = True)
-            #i_data.date = pd.to_datetime(i_data.date).dt.strftime('%Y-%m-%d')
             with open('i_data.json', 'w') as f:
                 f.write(i_data.to_json(orient='records', lines=True))
         else:
@@ -82,16 +81,9 @@ class CPlot():
 
         k_data = k_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount', 'outstanding', 'totals', 'adj', 'aprice', 'uprice']]
         k_data = k_data.rename(columns = {"date": "time"})
-        #k_data.time = pd.to_datetime(k_data.time, format='%Y-%m-%d')
-        #k_data.time = mdates.date2num(k_data.time)
-        #k_data.time = k_data.time.astype(int)
 
         i_data = i_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount']]
         i_data = i_data.rename(columns = {"date": "time"})
-        #i_data.time = pd.to_datetime(i_data.time, format='%Y-%m-%d')
-        #i_data.time = mdates.date2num(i_data.time)
-        #i_data.time = i_data.time.astype(int)
-
         return k_data, d_data, i_data
 
     def on_key_press(self, event):
@@ -193,5 +185,5 @@ class CPlot():
         plt.show()
 
 if __name__ == '__main__':
-    cp = CPlot('300237')
+    cp = CPlot('002888')
     cp.plot()

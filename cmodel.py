@@ -10,6 +10,7 @@ from rindustry import RIndexIndustryInfo
 from datamanager.margin import Margin
 from datamanager.sexchange import StockExchange
 from algotrade.selecters.anti_market_up import AntiMarketUpSelecter
+from algotrade.selecters.market_oversold_judger import MarketOversoldJudger
 from algotrade.selecters.stronger_than_market import StrongerThanMarketSelecter
 from algotrade.selecters.less_volume_in_high_profit import LowVolumeHighProfitSelecter
 from algotrade.selecters.nei_chip_intensive import NeiChipIntensiveSelecter

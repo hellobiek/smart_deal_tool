@@ -281,7 +281,7 @@ class DataManager:
             self.set_update_info(17, exec_date, cdate)
 
         if finished_step < 18:
-            if not self.rindex_stock_data_client.update(exec_date, num = 400):
+            if not self.rindex_stock_data_client.update(exec_date, num = 500):
                 self.logger.error("rindex_stock_data set failed")
                 return False
             self.set_update_info(18, exec_date, cdate)

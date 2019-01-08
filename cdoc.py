@@ -147,12 +147,12 @@ class CDoc:
         ingredients = (df.name + ':' + df.code).tolist()
         ax.set_title(title, fontproperties = get_chinese_font())
         if ctype is not None:
-            wedges, texts, autotexts = ax.pie(data, radius = 1, labels = xtuple, autopct = lambda pct: xfunc(pct, data), textprops = dict(color = "w", fontproperties = get_chinese_font()))
+            wedges, texts, autotexts = ax.pie(data, center=(-100, 0), radius = 1, labels = xtuple, autopct = lambda pct: xfunc(pct, data), textprops = dict(color = "w", fontproperties = get_chinese_font()), labeldistance = 1.1, pctdistance = 1.1, startangle = 90)
             ax.legend(wedges, ingredients, title = 'name', loc = "lower left", bbox_to_anchor=(1, 0), prop = get_chinese_font(), fontsize = 'x-small')
-            plt.setp(autotexts, size = 7)
-            plt.setp(texts, size = 7, color = 'b')
+            plt.setp(autotexts, size = 8)
+            plt.setp(texts, size = 8, color = 'b')
         else:
-            wedges, texts = ax.pie(data, radius = 1, labels = xtuple, textprops = dict(color = "w", fontproperties = get_chinese_font()))
+            wedges, texts = ax.pie(data, center=(-100, 0), radius = 1, labels = xtuple, textprops = dict(color = "w", fontproperties = get_chinese_font()), labeldistance = 1.1, pctdistance = 1.1, startangle = 90)
             ax.legend(wedges, ingredients, title = 'name',  loc = "lower left", bbox_to_anchor=(1, 0), prop = get_chinese_font(), fontsize = 'x-small')
             plt.setp(texts, size = 8, color = 'b')
         fig.autofmt_xdate()
@@ -198,7 +198,7 @@ class CDoc:
     def generate(self, cdate, sh_df, sz_df, sh_rzrq_df, sz_rzrq_df, av_df, limit_info, stock_info, industry_info, index_info, all_stock_info):
         image_dir = os.path.join(self.sdir, "%s-StockReView" % cdate)
         file_name = "%s.md" % image_dir
-        if os.path.exists(file_name): return True
+        #if os.path.exists(file_name): return True
         os.makedirs(image_dir, exist_ok = True)
 
         md = MarkdownWriter()
@@ -224,16 +224,28 @@ class CDoc:
         md.addHeader("融资融券分析:", 3)
         y_dict = dict()
         y_dict['日期'] = sh_rzrq_df.date.tolist()
+
         self.market_plot(sh_rzrq_df, sz_rzrq_df, y_dict, 'rzrqye', dir_name = image_dir)
+
         md.addImage("market_rzrqye.png", imageTitle = "融资融券")
         #平均股价走势
         md.addHeader("平均股价分析:", 3)
         self.plot_ohlc(av_df, '平均股价', '平均股价走势图', image_dir, 'average_price')
         md.addImage("average_price.png", imageTitle = "平均股价")
+
         #活点地图
         md.addHeader("活点地图分析:", 3)
         self.mmap_clinet.plot(cdate, image_dir, 'marauder_map')
         md.addImage("marauder_map.png", imageTitle = "活点地图")
+
+        #牛熊股比
+        md.addHeader("牛熊股比:", 3)
+        all_marauder_data = self.mmap_clinet.ris.get_data(cdate)
+
+        bull_stock_num = len(all_marauder_data[all_marauder_data.profit >= 0])
+        bear_stock_num = len(all_marauder_data[all_marauder_data.profit <  0])
+        md.addText("牛熊股比:%s" % (100 * bull_stock_num / bear_stock_num))
+
         #涨停分析
         md.addHeader("涨停跌停分析:", 3)
         self.static_plot(stock_info, limit_info, dir_name = image_dir, file_name = 'pchange_static')

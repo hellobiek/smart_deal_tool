@@ -1,18 +1,13 @@
 #-*- coding: utf-8 -*-
-import gevent
-from gevent import monkey
-monkey.patch_all(thread = True)
-from gevent.pool import Pool
-
 import os
 import sys
 import time
 import copy
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
-
 import pandas as pd
 from cstock import CStock
+from rstock import RIndexStock
 from log import getLogger
 from functools import partial
 import matplotlib
@@ -23,45 +18,11 @@ import matplotlib.animation as animation
 class MarauderMap():
     def __init__(self, code_list):
         self.codes  = code_list
+        self.ris = RIndexStock()
         self.logger = getLogger(__name__)
 
-    def get_data(self, cdate):
-        def _get_base_float_profit(cdate, code_id):
-            _obj = CStock(code_id, should_create_mysqldb = False)
-            return (code_id, _obj.get_base_floating_profit(cdate))
-
-        obj_pool = Pool(500)
-        failed_count = 0
-
-        failed_list  = copy.deepcopy(self.codes)
-        cfunc = partial(_get_base_float_profit, cdate)
-        df = pd.DataFrame()
-        while len(failed_list) > 0:
-            is_failed = False
-            for code_data in obj_pool.imap_unordered(cfunc, failed_list):
-                if code_data[1] is None:
-                    self.logger.error("%s data is none" % code_data[0])
-                    is_failed = True
-                    continue
-                if not code_data[1].empty: 
-                    tmp_data = code_data[1]
-                    tmp_data = tmp_data.rename(columns = {"date": "time"})
-                    tmp_data = tmp_data.drop_duplicates()
-                    tmp_data['code'] = code_data[0]
-                    df = df.append(tmp_data)
-                failed_list.remove(code_data[0])
-            if is_failed: 
-                failed_count += 1
-                if failed_count > 10:
-                    self.logger.error("%s index init failed" % len(failed_list))
-                    return pd.DataFrame()
-                time.sleep(10)
-        obj_pool.join(timeout = 10)
-        obj_pool.kill()
-        return df
-
     def plot(self, cdate, fdir, fname):
-        df = self.get_data(cdate)
+        df = self.ris.get_data(cdate)
 
         if df.empty: return
         fig, ax = plt.subplots()

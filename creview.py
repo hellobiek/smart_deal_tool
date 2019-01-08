@@ -110,13 +110,17 @@ class CReivew:
             sz_df = self.get_market_data(ct.SZ_MARKET_SYMBOL, start_date, end_date)
             date_list = list(set(sh_df.date.tolist()).intersection(set(sz_df.date.tolist())))
             sh_df = sh_df[sh_df.date.isin(date_list)]
+            sh_df = sh_df.reset_index(drop = True)
             sz_df = sz_df[sz_df.date.isin(date_list)]
+            sz_df = sz_df.reset_index(drop = True)
             #rzrq info
             sh_rzrq_df = self.get_rzrq_info(ct.SH_MARKET_SYMBOL, start_date, end_date)
             sz_rzrq_df = self.get_rzrq_info(ct.SZ_MARKET_SYMBOL, start_date, end_date)
             date_list = list(set(sh_rzrq_df.date.tolist()).intersection(set(sz_rzrq_df.date.tolist())))
             sh_rzrq_df = sh_rzrq_df[sh_rzrq_df.date.isin(date_list)]
+            sh_rzrq_df = sh_rzrq_df.reset_index(drop = True)
             sz_rzrq_df = sz_rzrq_df[sz_rzrq_df.date.isin(date_list)]
+            sz_rzrq_df = sz_rzrq_df.reset_index(drop = True)
             #average price info
             av_df = self.get_index_df('880003', start_date, end_date)
             #limit up and down info
