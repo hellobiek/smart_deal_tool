@@ -281,7 +281,7 @@ class DataManager:
             self.set_update_info(17, exec_date, cdate)
 
         if finished_step < 18:
-            if not self.rindex_stock_data_client.update(exec_date, num = 500):
+            if not self.rindex_stock_data_client.update(exec_date, num = 300):
                 self.logger.error("rindex_stock_data set failed")
                 return False
             self.set_update_info(18, exec_date, cdate)
@@ -317,9 +317,9 @@ class DataManager:
     def init_base_float_profit(self):
         def _set_base_float_profit(code_id):
             return (code_id, True) if CStock(code_id).set_base_floating_profit() else (code_id, False)
-        #df = self.stock_info_client.get()
-        #failed_list = df.code.tolist()
-        failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
+        df = self.stock_info_client.get()
+        failed_list = df.code.tolist()
+        #failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
         return concurrent_run(_set_base_float_profit, failed_list, num = 500)
 
     def init_stock_info(self, cdate = None):
@@ -337,9 +337,9 @@ class DataManager:
         index_info = CIndex('000001').get_k_data()
         if index_info is None or index_info.empty: return False
     
-        #df = self.stock_info_client.get()
-        #failed_list = df.code.tolist()
-        failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
+        df = self.stock_info_client.get()
+        failed_list = df.code.tolist()
+        #failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
         if cdate is None:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
             return concurrent_run(cfunc, failed_list, num = 5)
@@ -438,13 +438,11 @@ if __name__ == '__main__':
     #for code in IndustryInfo().get().code.tolist():
     #    print(code)
     #    mysql_client.delete_db('i%s' % code)
-    #code_list = copy.deepcopy(ct.ALL_CODE_LIST)
-    #for code in code_list:
+    #for code in CStockInfo().get().code.tolist():
     #    print(code)
     #    mysql_client.delete_db('s%s' % code)
     #import sys
     #sys.exit(0)
-
 
     kill_process("google-chrome")
     kill_process("renderer")
@@ -457,6 +455,6 @@ if __name__ == '__main__':
     dm.logger.info("start compute!")
     #dm.init_stock_info(cdate = None)
     #dm.init_base_float_profit()
-    #dm.bootstrap(exec_date = '2019-01-07')
-    dm.bootstrap(cdate='2019-01-07', exec_date = '2019-01-07')
+    dm.bootstrap(exec_date = '2019-01-08')
+    #dm.bootstrap(cdate='2019-01-08', exec_date = '2019-01-08')
     dm.logger.info("end compute!")

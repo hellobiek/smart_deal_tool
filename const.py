@@ -4574,5 +4574,6 @@ const.SELECTERS_DICT = {
     "GameKLineBigraiseSmallVolumeSelecter" : "S000005",
     "BullMoreBearLessSelecter" : "S000006",
     "NoChipNetSpaceSelecter" : "S000007",
+    "MarketOversoldJudger" : "S000008",
     "NeiChipIntensiveSelecter" : "S000100"
 }

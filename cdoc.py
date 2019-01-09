@@ -12,9 +12,11 @@ import matplotlib.dates as mdates
 import matplotlib.ticker as mticker
 from common import get_chinese_font
 from mpl_finance import candlestick_ohlc
+from cstock_info import CStockInfo
 from markdown_table import MarkdownTable
 from markdown_writer import MarkdownWriter
 from visualization.marauder_map import MarauderMap
+from algotrade.selecters.market_oversold import MarketOversoldJudger
 from algotrade.selecters.anti_market_up import AntiMarketUpSelecter
 from algotrade.selecters.stronger_than_market import StrongerThanMarketSelecter
 from algotrade.selecters.less_volume_in_high_profit import LowVolumeHighProfitSelecter
@@ -27,7 +29,7 @@ class CDoc:
     COLORS = ['#F5DEB3', '#A0522D', '#1E90FF', '#FFE4C4', '#00FFFF', '#DAA520', '#3CB371', '#808080', '#ADFF2F', '#4B0082']
     def __init__(self):
         self.sdir = '/data/docs/blog/hellobiek.github.io/source/_posts'
-        self.mmap_clinet = MarauderMap(ct.ALL_CODE_LIST)
+        
 
     def emotion_plot(self, df, dir_name, file_name):
         fig = plt.figure()
@@ -204,6 +206,18 @@ class CDoc:
         md = MarkdownWriter()
         md.addTitle(cdate)
         md.addHeader("股票复盘", 1)
+
+        #指数行情
+        index_info = index_info[['name', 'open', 'high', 'close', 'low', 'volume', 'amount', 'pchange']]
+        md.addHeader("指数行情", 2)
+        t_index = MarkdownTable(headers = ["名称", "价格", "涨幅(百分比)", "成交量", "成交额(亿)"])
+        for index in range(len(index_info)):
+            data_list = index_info.loc[index].tolist()
+            data_list = [data_list[0], round(data_list[3], 2), round(data_list[7], 2), int(data_list[5]/100), round(data_list[6] / 100000000, 2)]
+            data_list = [str(i) for i in data_list]
+            t_index.addRow(data_list)
+        md.addTable(t_index)
+
         # 资金面分析
         md.addHeader("资金面分析:", 2)
         x_dict = dict()
@@ -235,8 +249,14 @@ class CDoc:
 
         #活点地图
         md.addHeader("活点地图分析:", 3)
-        self.mmap_clinet.plot(cdate, image_dir, 'marauder_map')
+        mmap_clinet = MarauderMap(CStockInfo().get().code.tolist())
+        mmap_clinet.plot(cdate, image_dir, 'marauder_map')
         md.addImage("marauder_map.png", imageTitle = "活点地图")
+
+        #大盘是否超跌
+        md.addHeader("大盘是否超跌:", 3)
+        moj = MarketOversoldJudger()
+        md.addText("大盘是否超跌:%s" % moj.judge(stock_info))
 
         #牛熊股比
         md.addHeader("牛熊股比:", 3)
@@ -334,24 +354,13 @@ class CDoc:
             self.plot_pie(df, 'mchange', '每日成交减少百分比行业分布', xtuple, image_dir, 'industry_money_decrease_percent_distribution')
             md.addImage("industry_money_decrease_percent_distribution.png", imageTitle = "金额减少百分比的行业分布")
 
-        #指数行情
-        index_info = index_info[['name', 'open', 'high', 'close', 'low', 'volume', 'amount']]
-        md.addHeader("指数行情", 2)
-        t_index = MarkdownTable(headers = ["名称", "价格", "涨幅(百分比)", "成交量", "成交额(亿)"])
-        for index in range(len(index_info)):
-            data_list = index_info.loc[index].tolist()
-            data_list = [data_list[0], round(data_list[3], 2), round(100 * (data_list[3] -  data_list[1]) / data_list[1] , 2), int(data_list[5]/100), round(data_list[6] / 100000000, 2)]
-            data_list = [str(i) for i in data_list]
-            t_index.addRow(data_list)
-        md.addTable(t_index)
-
         #选股指标
         md.addHeader("选股器选股", 2)
         t_selector = MarkdownTable(headers = ["方法", "股票列表"])
 
         stm = StrongerThanMarketSelecter()
         stm_code_list = stm.choose(all_stock_info, av_df)
-        t_selector.addRow(['强于平均股价5%', json.dumps(stm_code_list)])
+        t_selector.addRow(['强于平均股价10%', json.dumps(stm_code_list)])
 
         amus = AntiMarketUpSelecter()
         amus_code_list = amus.choose(stock_info)

@@ -182,4 +182,4 @@ class CReivew:
 
 if __name__ == '__main__':
     creview = CReivew(ct.DB_INFO)
-    data = creview.update('2019-01-07')
+    data = creview.update('2019-01-08')

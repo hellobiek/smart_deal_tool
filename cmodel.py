@@ -10,7 +10,7 @@ from rindustry import RIndexIndustryInfo
 from datamanager.margin import Margin
 from datamanager.sexchange import StockExchange
 from algotrade.selecters.anti_market_up import AntiMarketUpSelecter
-from algotrade.selecters.market_oversold_judger import MarketOversoldJudger
+from algotrade.selecters.market_oversold import MarketOversoldJudger
 from algotrade.selecters.stronger_than_market import StrongerThanMarketSelecter
 from algotrade.selecters.less_volume_in_high_profit import LowVolumeHighProfitSelecter
 from algotrade.selecters.nei_chip_intensive import NeiChipIntensiveSelecter
@@ -82,7 +82,7 @@ def get_index_df(code, start_date, end_date):
     return df
 
 if __name__ == '__main__':
-    cdate = '2019-01-02' 
+    cdate = '2019-01-07' 
     start_date = get_day_nday_ago(cdate, 100, dformat = "%Y-%m-%d")
     end_date = cdate
     #market info
@@ -134,3 +134,6 @@ if __name__ == '__main__':
 
     ncns = NoChipNetSpaceSelecter()
     ncns_code_list = ncns.choose(stock_info)
+
+    moj = MarketOversoldJudger()
+    is_over_sold = moj.judge(stock_info)
