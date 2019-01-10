@@ -317,9 +317,7 @@ class DataManager:
     def init_base_float_profit(self):
         def _set_base_float_profit(code_id):
             return (code_id, True) if CStock(code_id).set_base_floating_profit() else (code_id, False)
-        df = self.stock_info_client.get()
-        failed_list = df.code.tolist()
-        #failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
+        failed_list = self.stock_info_client.get().code.tolist()
         return concurrent_run(_set_base_float_profit, failed_list, num = 500)
 
     def init_stock_info(self, cdate = None):

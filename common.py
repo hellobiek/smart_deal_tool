@@ -12,6 +12,7 @@ import const as ct
 import numpy as np
 import pandas as pd
 import tushare as ts
+from multiprocessing import Process
 from gevent.pool import Pool
 from crack_bmp import crack_bmp
 from datetime import datetime, timedelta
@@ -229,20 +230,63 @@ def loads_jsonp(_jsonp):
     except:
         return None
 
-def concurrent_run(mfunc, todo_list, num = 10, max_retry_times = 10):
+def process_concurrent_run(mfunc, todo_list, process_name = 3, num = 10, max_retry_times = 10):
+    if len(todo_list) < len(process_name): return False
+    av_num = len(todo_list) / process_name
+    i_start = 0
+    i_end = av_num
+    jobs = []
+    for x in range(process_name):
+        d_list = todo_list[i_start:i_end]
+        i_start = av_num
+        i_end = min(i_start + av_num, len(todo_list))
+        p = Process(target = thread_concurrent_run, args=(mfunc, d_list, num = num, max_retry_times = max_retry_times))
+        jobs.append(p)
+
+    for j in jobs:
+        j.start()
+
+    init_res = True
+    for j in jobs:
+        j.join()
+        init_res = init_res & j.exitcode
+    return init_res
+
+def thread_concurrent_run(mfunc, todo_list, num = 10, max_retry_times = 10):
     failed_count = 0
     obj_pool = Pool(num)
-    failed_list = copy.deepcopy(todo_list)
-    while len(failed_list) > 0:
+    while len(todo_list) > 0:
         is_failed = False
-        for result in obj_pool.imap_unordered(mfunc, failed_list):
+        for result in obj_pool.imap_unordered(mfunc, todo_list):
             if True == result[1]: 
-                failed_list.remove(result[0])
+                todo_list.remove(result[0])
             else:
                 is_failed = True
         if is_failed:
             if failed_count > max_retry_times:
-                with open(ct.FAILED_INFO_FILE, 'w') as f: json.dump(json.dumps(failed_list), f)
+                with open(ct.FAILED_INFO_FILE, 'w') as f: json.dump(json.dumps(todo_list), f)
+                obj_pool.join(timeout = 10)
+                obj_pool.kill()
+                sys.exit(False)
+            failed_count += 1
+            time.sleep(10)
+    obj_pool.join(timeout = 10)
+    obj_pool.kill()
+    sys.exit(True)
+
+def concurrent_run(mfunc, todo_list, num = 10, max_retry_times = 10):
+    failed_count = 0
+    obj_pool = Pool(num)
+    while len(todo_list) > 0:
+        is_failed = False
+        for result in obj_pool.imap_unordered(mfunc, todo_list):
+            if True == result[1]: 
+                todo_list.remove(result[0])
+            else:
+                is_failed = True
+        if is_failed:
+            if failed_count > max_retry_times:
+                with open(ct.FAILED_INFO_FILE, 'w') as f: json.dump(json.dumps(todo_list), f)
                 obj_pool.join(timeout = 10)
                 obj_pool.kill()
                 return False

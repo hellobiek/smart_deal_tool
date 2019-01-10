@@ -115,10 +115,7 @@ class RIndexStock:
         good_list = list()
         obj_pool = Pool(500)
         all_df = pd.DataFrame()
-        stock_info = CStockInfo.get()
-        failed_list = stock_info.code.tolist()
-        #import copy
-        #failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
+        failed_list = CStockInfo.get().code.tolist()
         cfunc = partial(self.get_stock_data, cdate)
         while len(failed_list) > 0:
             print(len(failed_list), cdate)
