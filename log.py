@@ -51,7 +51,21 @@ def getLogger(name, save_dir="/tmp/"):
     ch = logging.StreamHandler()
     ch.setLevel(logging.WARNING)
     ch.setFormatter(formatter)
+    ch.addFilter(InfoFilter(logging.WARNING))
     logger.addHandler(ch)
+
+    # ERROR print stderr
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.ERROR)
+    ch.setFormatter(formatter)
+    ch.addFilter(InfoFilter(logging.ERROR))
+    logger.addHandler(ch)
+
+    ## WARNING print stderr
+    #ch = logging.StreamHandler()
+    #ch.setLevel(logging.WARNING)
+    #ch.setFormatter(formatter)
+    #logger.addHandler(ch)
 
     logger.propagate = False # duplicate log
     return logger

@@ -1,7 +1,4 @@
 # coding=utf-8
-import gevent
-from gevent import monkey
-monkey.patch_all(thread=True, subprocess = True)
 import const as ct
 from log import getLogger
 from ctrader import CTrader

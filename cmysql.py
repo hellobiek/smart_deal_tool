@@ -18,7 +18,7 @@ class CMySQL:
         self.dbinfo = dbinfo
         self.dbname = dbname
         self.redis  = create_redis_obj() if iredis is None else iredis
-        self.engine = create_engine("mysql://%s:%s@%s/%s?charset=utf8" % (self.dbinfo['user'], self.dbinfo['password'], self.dbinfo['host'], self.dbname), pool_size=0 , max_overflow=-1, pool_recycle=20, pool_timeout=5, connect_args={'connect_timeout': 4})
+        self.engine = create_engine("mysql://%s:%s@%s/%s?charset=utf8" % (self.dbinfo['user'], self.dbinfo['password'], self.dbinfo['host'], self.dbname), pool_size=0 , max_overflow=-1, pool_recycle=20, pool_timeout=5, connect_args={'connect_timeout': 60})
 
     def __del__(self):
         self.redis = None
@@ -26,7 +26,7 @@ class CMySQL:
 
     def changedb(self, dbname = 'stock'):
         self.dbname = dbname
-        self.engine = create_engine("mysql://%s:%s@%s/%s?charset=utf8" % (self.dbinfo['user'], self.dbinfo['password'], self.dbinfo['host'], self.dbname), pool_size=0 , max_overflow=-1, pool_recycle=20, pool_timeout=5, connect_args={'connect_timeout': 4})
+        self.engine = create_engine("mysql://%s:%s@%s/%s?charset=utf8" % (self.dbinfo['user'], self.dbinfo['password'], self.dbinfo['host'], self.dbname), pool_size=0 , max_overflow=-1, pool_recycle=20, pool_timeout=5, connect_args={'connect_timeout': 60})
 
     def get_all_databases(self):
         if self.redis.exists(ALL_DATABASES):

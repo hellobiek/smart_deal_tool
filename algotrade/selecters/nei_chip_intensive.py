@@ -10,4 +10,4 @@ class NeiChipIntensiveSelecter(Selecter):
         Selecter.__init__(self, code, dbinfo, redis_host)
 
     def choose(self, df):
-        return df.loc[(df.npercent > 70) & (df.profit < 1)].code.tolist()
+        return df.loc[(df.npercent > 60) & (df.profit < 1)].code.tolist()

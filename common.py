@@ -1,6 +1,7 @@
 # coding=utf-8
 import os
 import re
+import sys
 import json
 import time
 import copy
@@ -231,16 +232,23 @@ def loads_jsonp(_jsonp):
         return None
 
 def process_concurrent_run(mfunc, todo_list, process_name = 3, num = 10, max_retry_times = 10):
-    if len(todo_list) < len(process_name): return False
-    av_num = len(todo_list) / process_name
+    if len(todo_list) < process_name: return False
+    d_list = list()
+    for x in range(process_name):
+        filename = "%s_%s.json" % (ct.FAILED_INFO_FILE, x)
+        if os.path.exists(filename):
+            with open(filename, 'rt') as f: d_list.extend(json.loads(json.load(f)))
+
+    if len(d_list) > 0: todo_list = d_list
+    jobs = []
+    av_num = int(len(todo_list) / process_name) + process_name
     i_start = 0
     i_end = av_num
-    jobs = []
     for x in range(process_name):
-        d_list = todo_list[i_start:i_end]
+        z_list = todo_list[i_start:i_end]
         i_start = av_num
         i_end = min(i_start + av_num, len(todo_list))
-        p = Process(target = thread_concurrent_run, args=(mfunc, d_list, num = num, max_retry_times = max_retry_times))
+        p = Process(target = thread_concurrent_run, args=(mfunc, z_list), kwargs={'num': num, 'max_retry_times': max_retry_times, 'name': x})
         jobs.append(p)
 
     for j in jobs:
@@ -249,27 +257,35 @@ def process_concurrent_run(mfunc, todo_list, process_name = 3, num = 10, max_ret
     init_res = True
     for j in jobs:
         j.join()
+        print(j.exitcode)
         init_res = init_res & j.exitcode
     return init_res
 
-def thread_concurrent_run(mfunc, todo_list, num = 10, max_retry_times = 10):
+def thread_concurrent_run(mfunc, todo_list, num = 10, max_retry_times = 10, name = 0):
     failed_count = 0
     obj_pool = Pool(num)
+    remove_num = 0
+    filename = "%s_%s.json" % (ct.FAILED_INFO_FILE, name)
     while len(todo_list) > 0:
         is_failed = False
         for result in obj_pool.imap_unordered(mfunc, todo_list):
             if True == result[1]: 
+                remove_num += 1
                 todo_list.remove(result[0])
+                if remove_num > 5:
+                    with open(filename, 'wt') as f: json.dump(json.dumps(todo_list), f)
+                    remove_num = 0
             else:
                 is_failed = True
         if is_failed:
             if failed_count > max_retry_times:
-                with open(ct.FAILED_INFO_FILE, 'w') as f: json.dump(json.dumps(todo_list), f)
+                with open(filename, 'wt') as f: json.dump(json.dumps(todo_list), f)
                 obj_pool.join(timeout = 10)
                 obj_pool.kill()
                 sys.exit(False)
             failed_count += 1
-            time.sleep(10)
+            time.sleep(3)
+    if os.path.exists(filename): os.remove(filename)
     obj_pool.join(timeout = 10)
     obj_pool.kill()
     sys.exit(True)
@@ -286,12 +302,11 @@ def concurrent_run(mfunc, todo_list, num = 10, max_retry_times = 10):
                 is_failed = True
         if is_failed:
             if failed_count > max_retry_times:
-                with open(ct.FAILED_INFO_FILE, 'w') as f: json.dump(json.dumps(todo_list), f)
                 obj_pool.join(timeout = 10)
                 obj_pool.kill()
                 return False
             failed_count += 1
-            time.sleep(10)
+            time.sleep(3)
     obj_pool.join(timeout = 10)
     obj_pool.kill()
     return True

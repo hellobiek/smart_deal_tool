@@ -1,4 +1,6 @@
 #coding=utf-8
+from gevent import monkey
+monkey.patch_all()
 import os
 import time
 import json
@@ -12,7 +14,6 @@ from log import getLogger
 from cstock import CStock
 from cindex import CIndex
 from climit import CLimit 
-from gevent.pool import Pool
 from functools import partial
 from datetime import datetime
 from rstock import RIndexStock
@@ -31,7 +32,7 @@ from rindustry import RIndexIndustryInfo
 from combination_info import CombinationInfo
 from futuquant.common.constant import SubType
 from subscriber import Subscriber, StockQuoteHandler, TickerHandler
-from common import is_trading_time, delta_days, create_redis_obj, add_prifix, add_index_prefix, kill_process, concurrent_run, get_day_nday_ago, get_dates_array
+from common import is_trading_time, delta_days, create_redis_obj, add_prifix, add_index_prefix, kill_process, concurrent_run, get_day_nday_ago, get_dates_array, process_concurrent_run
 pd.options.mode.chained_assignment = None #default='warn'
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -120,7 +121,6 @@ class DataManager:
     def collect_index_runtime_data(self):
         if self.quote_handler.empty(): return
         datas = self.quote_handler.getQueue()
-        obj_pool = Pool(10)
         while not datas.empty():
             df = datas.get()
             df['time'] = df.data_date + ' ' + df.data_time
@@ -274,6 +274,9 @@ class DataManager:
                 return False
             self.set_update_info(16, exec_date, cdate)
 
+        import sys
+        sys.exit(0)
+
         if finished_step < 17:
             if not self.init_base_float_profit():
                 self.logger.error("init base float profit for all stock")
@@ -322,11 +325,16 @@ class DataManager:
 
     def init_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, index_info, code_id):
-            if CStock(code_id).set_k_data(bonus_info, index_info, _date):
-                self.logger.info("%s set k data success" % code_id)
-                return (code_id, True)
-            self.logger.error("%s set k data failed" % code_id)
-            return (code_id, False)
+            try:
+                if CStock(code_id).set_k_data(bonus_info, index_info, _date):
+                    self.logger.info("%s set k data success" % code_id)
+                    return (code_id, True)
+                else:
+                    self.logger.error("%s set k data failed" % code_id)
+                    return (code_id, False)
+            except Exception as e:
+                self.logger.error("%s set k data exception:%s" % (code_id, e))
+                return (code_id, False)
 
         #get stock bonus info
         bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',',
@@ -337,10 +345,9 @@ class DataManager:
     
         df = self.stock_info_client.get()
         failed_list = df.code.tolist()
-        #failed_list = copy.deepcopy(ct.ALL_CODE_LIST)
         if cdate is None:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
-            return concurrent_run(cfunc, failed_list, num = 5)
+            return process_concurrent_run(cfunc, failed_list, num = 5)
         else:
             succeed = True
             start_date = get_day_nday_ago(cdate, num = 10, dformat = "%Y-%m-%d")

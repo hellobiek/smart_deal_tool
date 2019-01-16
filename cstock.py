@@ -354,7 +354,6 @@ class CStock(CMysqlObj):
         if dist_data.empty:
             logger.error("%s chip distribution compute failed." % self.code)
             return False
-
         if self.set_chip_distribution(dist_data, zdate = cdate):
             df['uprice'] = mac(dist_data, 0)
             df['sprice'] = mac(dist_data, 5)

@@ -3,14 +3,14 @@ import queue
 import threading
 import const as ct
 from log import getLogger
-from gevent.lock import Semaphore
+from threading import Lock
 from futuquant import OpenQuoteContext
 from futuquant.quote.quote_response_handler import OrderBookHandlerBase, TickerHandlerBase, StockQuoteHandlerBase
 logger = getLogger(__name__)
 class StockQuoteHandler(StockQuoteHandlerBase):
     def __init__(self):
         super(StockQuoteHandler, self).__init__()
-        self.__lock  = Semaphore(1)
+        self.__lock  = Lock()
         self.__queue = queue.Queue()
 
     def empty(self):
@@ -28,7 +28,7 @@ class StockQuoteHandler(StockQuoteHandlerBase):
 class TickerHandler(TickerHandlerBase):
     def __init__(self):
         super(TickerHandler, self).__init__()
-        self.__lock  = Semaphore(1)
+        self.__lock  = Lock()
         self.__queue = queue.Queue()
 
     def empty(self):
@@ -46,7 +46,7 @@ class TickerHandler(TickerHandlerBase):
 class OrderBookHandler(OrderBookHandlerBase):
     def __init__(self):
         super(OrderBookHandler, self).__init__()
-        self.__lock  = Semaphore(1)
+        self.__lock  = Lock()
         self.__queue = queue.Queue()
 
     def empty(self):
@@ -66,7 +66,7 @@ class Subscriber:
         self._status = False
         self.sub_dict = None
         self.quote_ctx = None
-        self.lock = Semaphore(1)
+        self.lock = Lock()
 
     def __del__(self):
         if self.quote_ctx is not None:
