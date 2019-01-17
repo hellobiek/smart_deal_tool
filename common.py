@@ -231,14 +231,13 @@ def loads_jsonp(_jsonp):
     except:
         return None
 
-def process_concurrent_run(mfunc, todo_list, process_name = 3, num = 10, max_retry_times = 10):
+def process_concurrent_run(mfunc, todo_list, process_name = 2, num = 10, max_retry_times = 10):
     if len(todo_list) < process_name: return False
     d_list = list()
     for x in range(process_name):
         filename = "%s_%s.json" % (ct.FAILED_INFO_FILE, x)
         if os.path.exists(filename):
             with open(filename, 'rt') as f: d_list.extend(json.loads(json.load(f)))
-
     if len(d_list) > 0: todo_list = d_list
     jobs = []
     av_num = int(len(todo_list) / process_name) + process_name

@@ -274,9 +274,6 @@ class DataManager:
                 return False
             self.set_update_info(16, exec_date, cdate)
 
-        import sys
-        sys.exit(0)
-
         if finished_step < 17:
             if not self.init_base_float_profit():
                 self.logger.error("init base float profit for all stock")
@@ -321,7 +318,7 @@ class DataManager:
         def _set_base_float_profit(code_id):
             return (code_id, True) if CStock(code_id).set_base_floating_profit() else (code_id, False)
         failed_list = self.stock_info_client.get().code.tolist()
-        return concurrent_run(_set_base_float_profit, failed_list, num = 500)
+        return process_concurrent_run(_set_base_float_profit, failed_list, num = 500)
 
     def init_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, index_info, code_id):
@@ -354,7 +351,7 @@ class DataManager:
             for mdate in get_dates_array(start_date, cdate, asending = True):
                 if self.cal_client.is_trading_day(mdate):
                     cfunc = partial(_set_stock_info, mdate, bonus_info, index_info)
-                    if not concurrent_run(cfunc, failed_list, num = 500):
+                    if not process_concurrent_run(cfunc, failed_list, num = 500):
                         succeed = False
             return succeed
 
@@ -460,6 +457,6 @@ if __name__ == '__main__':
     dm.logger.info("start compute!")
     #dm.init_stock_info(cdate = None)
     #dm.init_base_float_profit()
-    dm.bootstrap(exec_date = '2019-01-08')
-    #dm.bootstrap(cdate='2019-01-08', exec_date = '2019-01-08')
+    #dm.bootstrap(exec_date = '2019-01-18')
+    dm.bootstrap(cdate='2019-01-18', exec_date = '2019-01-18')
     dm.logger.info("end compute!")
