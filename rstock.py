@@ -118,7 +118,7 @@ class RIndexStock:
         failed_list = CStockInfo.get().code.tolist()
         cfunc = partial(self.get_stock_data, cdate)
         while len(failed_list) > 0:
-            print(len(failed_list), cdate)
+            print("all stock list:%s, cdate:%s" % (len(failed_list),cdate))
             for code_data in obj_pool.imap_unordered(cfunc, failed_list):
                 if code_data[1] is not None:
                     tem_df = code_data[1]
