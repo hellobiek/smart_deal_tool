@@ -159,7 +159,7 @@ def pro_nei_chip(df, dist_data, preday_df = None, mdate = None):
             outstanding = drow['outstanding']
             group = groups.get_group(cdate)
             p_val = 100 * group[group.price < close_price].volume.sum() / outstanding
-            n_val = 100 * group[(group.price < close_price * 1.15) & (group.price > close_price * 0.85)].volume.sum() / outstanding
+            n_val = 100 * group[(group.price < close_price * 1.075) & (group.price > close_price * 0.925)].volume.sum() / outstanding
             p_profit_vol_list.append(p_val)
             p_neighbor_vol_list.append(n_val)
         df['ppercent'] = p_profit_vol_list

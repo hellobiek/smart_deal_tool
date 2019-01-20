@@ -67,7 +67,8 @@ class CStockInfo:
 
     def init(self):
         df = smart_get(ts.get_stock_basics)
-        if df is None: return False 
+        if df is None: return False
+        df = df[~df.index.isin(ct.BLACK_LIST)]
         df = df.reset_index(drop = False)
         return self.redis.set(ct.STOCK_INFO, _pickle.dumps(df, 2))
 

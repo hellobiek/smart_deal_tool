@@ -328,11 +328,11 @@ class CStock(CMysqlObj):
         preday_df = self.get_k_data(date = pre_date)
 
         if preday_df is None:
-            logger.error("%s get pre date data failed." % self.code)
+            logger.error("%s get %s data failed." % (self.code, pre_date))
             return False
 
         if preday_df.empty:
-            logger.error("%s get pre date data empty." % self.code)
+            logger.error("%s get %s data empty." % (self.code, pre_date))
             return False
 
         df['adj']         = 1.0
@@ -375,9 +375,14 @@ class CStock(CMysqlObj):
 
         #modify price and quanity for all split-adjusted share prices
         df = self.adjust_share(df, quantity_change_info)
-        if df.empty: return False
+        if df.empty: 
+            logger.error("adjust share %s failed" % self.code)
+            return False
+
         df = self.qfq(df, price_change_info)
-        if df.empty: return False
+        if df.empty: 
+            logger.error("qfq %s failed" % self.code)
+            return False
 
         #transfer data to split-adjusted share prices
         df = self.transfer2adjusted(df)
@@ -413,6 +418,7 @@ class CStock(CMysqlObj):
         if not self.mysql_client.delsert(df, day_table): 
             logger.error("save %s data to mysql failed." % self.code)
             return False
+
         self.redis.sadd(day_table, *set(df.date.tolist()))
         return True
 

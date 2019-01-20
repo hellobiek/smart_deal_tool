@@ -342,6 +342,7 @@ class DataManager:
     
         df = self.stock_info_client.get()
         failed_list = df.code.tolist()
+        self.logger.info("all code list length:%s" % len(failed_list))
         if cdate is None:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
             return process_concurrent_run(cfunc, failed_list, num = 5)
@@ -457,6 +458,6 @@ if __name__ == '__main__':
     dm.logger.info("start compute!")
     #dm.init_stock_info(cdate = None)
     #dm.init_base_float_profit()
-    #dm.bootstrap(exec_date = '2019-01-18')
+    #dm.bootstrap(exec_date = '2019-01-17')
     dm.bootstrap(cdate='2019-01-18', exec_date = '2019-01-18')
     dm.logger.info("end compute!")
