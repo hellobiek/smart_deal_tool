@@ -280,8 +280,11 @@ class DataManager:
                 return False
             self.set_update_info(17, exec_date, cdate)
 
+        import sys
+        sys.exit(0)
+
         if finished_step < 18:
-            if not self.rindex_stock_data_client.update(exec_date, num = 300):
+            if not self.rindex_stock_data_client.update(exec_date, num = 150):
                 self.logger.error("rindex_stock_data set failed")
                 return False
             self.set_update_info(18, exec_date, cdate)
@@ -456,8 +459,6 @@ if __name__ == '__main__':
 
     dm = DataManager()
     dm.logger.info("start compute!")
-    #dm.init_stock_info(cdate = None)
-    #dm.init_base_float_profit()
-    #dm.bootstrap(exec_date = '2019-01-17')
+    #dm.bootstrap(exec_date = '2019-01-18')
     dm.bootstrap(cdate='2019-01-18', exec_date = '2019-01-18')
     dm.logger.info("end compute!")

@@ -260,7 +260,7 @@ class CDoc:
 
         #牛熊股比
         md.addHeader("牛熊股比:", 3)
-        all_marauder_data = self.mmap_clinet.ris.get_data(cdate)
+        all_marauder_data = mmap_clinet.ris.get_data(cdate)
 
         bull_stock_num = len(all_marauder_data[all_marauder_data.profit >= 0])
         bear_stock_num = len(all_marauder_data[all_marauder_data.profit <  0])

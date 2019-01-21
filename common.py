@@ -238,26 +238,29 @@ def process_concurrent_run(mfunc, todo_list, process_name = 2, num = 10, max_ret
         filename = "%s_%s.json" % (ct.FAILED_INFO_FILE, x)
         if os.path.exists(filename):
             with open(filename, 'rt') as f: d_list.extend(json.loads(json.load(f)))
+            os.remove(filename)
     if len(d_list) > 0: todo_list = d_list
-    if len(todo_list) < process_name: return False
-    av_num = int(len(todo_list) / process_name) + process_name
-    i_start = 0
-    i_end = av_num
-    for x in range(process_name):
-        z_list = todo_list[i_start:i_end]
-        i_start = i_end
-        i_end = min(i_start + av_num, len(todo_list))
-        p = Process(target = thread_concurrent_run, args=(mfunc, z_list), kwargs={'num': num, 'max_retry_times': max_retry_times, 'name': x})
-        jobs.append(p)
+    if len(todo_list) < process_name:
+        return concurrent_run(mfunc, todo_list, num = process_name)
+    else:
+        av_num = int(len(todo_list) / process_name) + process_name
+        i_start = 0
+        i_end = av_num
+        for x in range(process_name):
+            z_list = todo_list[i_start:i_end]
+            i_start = i_end
+            i_end = min(i_start + av_num, len(todo_list))
+            p = Process(target = thread_concurrent_run, args=(mfunc, z_list), kwargs={'num': num, 'max_retry_times': max_retry_times, 'name': x})
+            jobs.append(p)
 
-    for j in jobs:
-        j.start()
+        for j in jobs:
+            j.start()
 
-    init_res = True
-    for j in jobs:
-        j.join()
-        init_res = init_res & j.exitcode
-    return init_res
+        init_res = True
+        for j in jobs:
+            j.join()
+            init_res = init_res & j.exitcode
+        return init_res
 
 def thread_concurrent_run(mfunc, todo_list, num = 10, max_retry_times = 10, name = 0):
     failed_count = 0

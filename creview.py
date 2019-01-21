@@ -126,6 +126,8 @@ class CReivew:
             #limit up and down info
             limit_info = CLimit(self.dbinfo).get_data(cdate)
             stock_info = self.rstock_client.get_data(cdate)
+            import pdb
+            pdb.set_trace()
             stock_info = stock_info[stock_info.volume > 0] #get volume > 0 stock list
             stock_info = stock_info.reset_index(drop = True)
             #index info

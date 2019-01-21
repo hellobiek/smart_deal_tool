@@ -82,7 +82,7 @@ def get_index_df(code, start_date, end_date):
     return df
 
 if __name__ == '__main__':
-    cdate = '2019-01-07' 
+    cdate = '2019-01-18' 
     start_date = get_day_nday_ago(cdate, 100, dformat = "%Y-%m-%d")
     end_date = cdate
     #market info

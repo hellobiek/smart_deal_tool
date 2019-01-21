@@ -2,19 +2,20 @@
 import time
 import _pickle
 import datetime
-from gevent.pool import Pool
-from datetime import datetime
-from functools import partial
 import const as ct
 import numpy as np
 import pandas as pd
-from common import delta_days, create_redis_obj, get_day_nday_ago, get_dates_array
+from tornado import gen
+from tornado import ioloop
+from functools import partial
+from datetime import datetime
 from log import getLogger
 from cmysql import CMySQL
 from cstock import CStock
 from cstock_info import CStockInfo
 from ccalendar import CCalendar
 from collections import OrderedDict
+from common import delta_days, create_redis_obj, get_day_nday_ago, get_dates_array
 class RIndexStock:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
@@ -111,7 +112,28 @@ class RIndexStock:
     def get_stock_data(self, cdate, code):
         return (code, CStock(code).get_k_data(cdate))
 
+    @gen.coroutine
+    def run(self, cdate):
+        df = pd.DataFrame()
+        code_list = CStockInfo.get().code.tolist()
+        responses = yield [self.get_stock_data(cdate, code) for code in code_list]
+        import pdb
+        pdb.set_trace()
+        for response in responses:
+            if response[1] is not None:
+                tem_df = response[1]
+                tem_df['code'] = response[0]
+                df = df.append(tem_df)
+        raise gen.Return(value=df)
+
+    def generate_data(self, cdate):
+        _ioloop = ioloop.IOLoop.instance()
+        cfunc = partial(self.run, cdate)
+        df = _ioloop.run_sync(cfunc)
+        return df
+
     def generate_all_data(self, cdate):
+        from gevent.pool import Pool
         good_list = list()
         obj_pool = Pool(500)
         all_df = pd.DataFrame()
@@ -155,6 +177,8 @@ class RIndexStock:
             self.logger.debug("existed table:%s, date:%s" % (table_name, cdate))
             return True
         df = self.generate_all_data(cdate)
+        #self.logger.info("date:%s" % cdate)
+        #df = self.generate_data(cdate)
         if self.mysql_client.set(df, table_name):
             self.redis.sadd(table_name, cdate)
             return True

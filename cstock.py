@@ -17,6 +17,8 @@ from datetime import datetime
 from functools import partial
 from cpython.cchip import compute_distribution, compute_oneday_distribution,mac
 from cpython.cstock import base_floating_profit,pro_nei_chip
+#from cpython.cstock import pro_nei_chip
+#from features import base_floating_profit
 from base.cobj import CMysqlObj
 from common import create_redis_obj, get_years_between, transfer_date_string_to_int, transfer_int_to_date_string, is_df_has_unexpected_data, concurrent_run
 pd.set_option('display.max_columns', None)

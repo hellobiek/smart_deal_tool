@@ -65,8 +65,8 @@ def get_effective_breakup_index(np.ndarray[long] break_index_lists, np.ndarray d
                 effective_breakup_index_list = cyappend(effective_breakup_index_list, break_index_lists[break_index])
             else:
                 if break_index_lists[break_index + 1] - break_index_lists[break_index] > PRE_DAYS_NUM:
-                    if df['breakup'][break_index_lists[break_index + 1]] * df['breakup'][break_index_lists[break_index]] > 0: raise("get error ip failed")
-                    effective_breakup_index_list = cyappend(effective_breakup_index_list, break_index_lists[break_index])
+                    if df['breakup'][break_index_lists[break_index + 1]] * df['breakup'][break_index_lists[break_index]] < 0:
+                        effective_breakup_index_list = cyappend(effective_breakup_index_list, break_index_lists[break_index])
         else:
             now_price = df['uprice'][len(df) - 1]
             if now_price > pre_price * 1.2 or now_price < pre_price * 0.8:
