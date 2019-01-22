@@ -60,16 +60,17 @@ def get_effective_breakup_index(np.ndarray[long] break_index_lists, np.ndarray d
     while break_index < len(break_index_lists):
         pre_price = df['uprice'][break_index_lists[break_index]]
         if break_index < len(break_index_lists) - 1:
-            now_price = df['uprice'][break_index_lists[break_index + 1]]
-            if now_price > pre_price * 1.2 or now_price < pre_price * 0.8:
+            high_price = np.amax(df['uprice'][break_index_lists[break_index]:break_index_lists[break_index + 1]])
+            low_price  = np.amin(df['uprice'][break_index_lists[break_index]:break_index_lists[break_index + 1]])
+            if high_price > pre_price * 1.2 or low_price < pre_price * 0.8:
                 effective_breakup_index_list = cyappend(effective_breakup_index_list, break_index_lists[break_index])
             else:
                 if break_index_lists[break_index + 1] - break_index_lists[break_index] > PRE_DAYS_NUM:
-                    if df['breakup'][break_index_lists[break_index + 1]] * df['breakup'][break_index_lists[break_index]] < 0:
-                        effective_breakup_index_list = cyappend(effective_breakup_index_list, break_index_lists[break_index])
+                    effective_breakup_index_list = cyappend(effective_breakup_index_list, break_index_lists[break_index])
         else:
-            now_price = df['uprice'][len(df) - 1]
-            if now_price > pre_price * 1.2 or now_price < pre_price * 0.8:
+            high_price = np.amax(df['uprice'][break_index_lists[break_index]:])
+            low_price  = np.amin(df['uprice'][break_index_lists[break_index]:])
+            if high_price > pre_price * 1.2 or low_price < pre_price * 0.8:
                 effective_breakup_index_list = cyappend(effective_breakup_index_list, break_index_lists[break_index])
             else:
                 if len(df) - break_index_lists[break_index] > PRE_DAYS_NUM:
@@ -84,10 +85,10 @@ def get_effective_breakup_index(np.ndarray[long] break_index_lists, np.ndarray d
     return effective_breakup_index_list
 
 def get_breakup_data(np.ndarray df):
-    cdef np.ndarray pos_array = np.zeros(len(df), dtype = int)
+    cdef np.ndarray[long] pos_array = np.zeros(len(df), dtype = long)
     pos_array[df.close > df.uprice] = 1
     pos_array[df.close < df.uprice] = -1
-    cdef np.ndarray pre_pos_array = shift(pos_array, 1)
+    cdef np.ndarray[long] pre_pos_array = shift(pos_array, 1)
 
     df['breakup'] = 0
     df['breakup'][np.where((pre_pos_array <= 0) & (pos_array > 0))] = 1
