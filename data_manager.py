@@ -348,6 +348,7 @@ class DataManager:
     
         df = self.stock_info_client.get()
         failed_list = df.code.tolist()
+        #failed_list = ["603186", "600785", "000552", "000717", "601598"]
         self.logger.info("all code list length:%s" % len(failed_list))
         if cdate is None:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
@@ -462,6 +463,6 @@ if __name__ == '__main__':
 
     dm = DataManager()
     dm.logger.info("start compute!")
-    #dm.bootstrap(exec_date = '2019-01-18')
-    dm.bootstrap(cdate='2019-01-18', exec_date = '2019-01-18')
+    #dm.bootstrap(exec_date = '2019-01-22')
+    dm.bootstrap(cdate='2019-01-22', exec_date = '2019-01-22')
     dm.logger.info("end compute!")

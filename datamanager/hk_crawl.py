@@ -138,6 +138,6 @@ class MCrawl:
             code     = code_str if self.type == ct.HK_MARKET_SYMBOL else self.transfer_code(code_str)
             name     = traditional2simplified(items[1].strip().split(':')[1].strip())
             quanity  = int(items[2].strip().split(':')[1].strip().replace(',', ''))
-            percent  = float(items[3].strip().split(':')[1].strip('%'))
+            percent  = 0.0 if items[3].strip().split(':')[1].strip('%') == '' else float(items[3].strip().split(':')[1].strip('%'))
             data.append({"code": code, "name": name, "volume": quanity, "percent": percent})
         return 0, pd.DataFrame(data, columns=["code", "name", "volume", "percent"])
