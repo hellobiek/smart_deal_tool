@@ -316,8 +316,14 @@ class DataManager:
 
     def init_base_float_profit(self):
         def _set_base_float_profit(code_id):
-            return (code_id, True) if CStock(code_id).set_base_floating_profit() else (code_id, False)
+            if CStock(code_id).set_base_floating_profit():
+                self.logger.info("%s set base float profit success" % code_id)
+                return (code_id, True)
+            else:
+                self.logger.error("%s set base float profit failed" % code_id)
+                return (code_id, False)
         failed_list = self.stock_info_client.get().code.tolist()
+        self.logger.info("%s stocks to be set" % len(failed_list))
         return process_concurrent_run(_set_base_float_profit, failed_list, num = 500)
 
     def init_stock_info(self, cdate = None):
