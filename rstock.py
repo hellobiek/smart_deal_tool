@@ -117,8 +117,6 @@ class RIndexStock:
         df = pd.DataFrame()
         code_list = CStockInfo.get().code.tolist()
         responses = yield [self.get_stock_data(cdate, code) for code in code_list]
-        import pdb
-        pdb.set_trace()
         for response in responses:
             if response[1] is not None:
                 tem_df = response[1]
@@ -177,15 +175,11 @@ class RIndexStock:
             self.logger.debug("existed table:%s, date:%s" % (table_name, cdate))
             return True
         df = self.generate_all_data(cdate)
-        #self.logger.info("date:%s" % cdate)
-        #df = self.generate_data(cdate)
         if self.mysql_client.set(df, table_name):
             self.redis.sadd(table_name, cdate)
             return True
         return False
 
 if __name__ == '__main__':
-    #start_date = '2018-03-25'
-    #end_date = '2018-04-05'
-    ris = RIndexStock(ct.DB_INFO, redis_host = '127.0.0.1')
-    ris.set_data()
+    ris = RIndexStock(ct.DB_INFO)
+    ris.set_day_data(cdate = '2019-01-22')

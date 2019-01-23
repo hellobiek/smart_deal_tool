@@ -180,43 +180,43 @@ class DataManager:
         self.logger.info("enter updating.%s" % finished_step)
         if finished_step < 1:
             if not self.cal_client.init():
-                self.logger.error("cal_client init failed")
+                self.logger.error("cal client init failed")
                 return False
             self.set_update_info(1, exec_date, cdate)
 
         if finished_step < 2:
             if not self.index_info_client.update():
-                self.logger.error("index_info init failed")
+                self.logger.error("index info init failed")
                 return False
             self.set_update_info(2, exec_date, cdate)
 
         if finished_step < 3:
             if not self.stock_info_client.update():
-                self.logger.error("stock_info init failed")
+                self.logger.error("stock info init failed")
                 return False
             self.set_update_info(3, exec_date, cdate)
 
         if finished_step < 4:
             if not self.comb_info_client.update():
-                self.logger.error("comb_info init failed")
+                self.logger.error("comb info init failed")
                 return False
             self.set_update_info(4, exec_date, cdate)
 
         if finished_step < 5:
             if not self.industry_info_client.update():
-                self.logger.error("industry_info init failed")
+                self.logger.error("industry info init failed")
                 return False
             self.set_update_info(5, exec_date, cdate)
 
         if finished_step < 6:
             if not self.download_and_extract(exec_date):
-                self.logger.error("download_and_extract failed")
+                self.logger.error("download and extract failed")
                 return False
             self.set_update_info(6, exec_date, cdate)
 
         if finished_step < 7:
             if not self.init_tdx_index_info(cdate):
-                self.logger.error("init_tdx_index_info failed")
+                self.logger.error("init tdx index info failed")
                 return False
             self.set_update_info(7, exec_date, cdate)
 
@@ -240,7 +240,7 @@ class DataManager:
 
         if finished_step < 11:
             if not self.init_industry_info(cdate):
-                self.logger.error("init_industry_info failed")
+                self.logger.error("init industry info failed")
                 return False
             self.set_update_info(11, exec_date, cdate)
 
@@ -252,25 +252,25 @@ class DataManager:
 
         if finished_step < 13:
             if not self.limit_client.update(exec_date):
-                self.logger.error("init_limit_info failed")
+                self.logger.error("init limit info failed")
                 return False
             self.set_update_info(13, exec_date, cdate)
 
         if finished_step < 14:
             if not self.init_yesterday_hk_info(exec_date):
-                self.logger.error("init_yesterday_hk_info failed")
+                self.logger.error("init yesterday hk info failed")
                 return False
             self.set_update_info(14, exec_date, cdate)
 
         if finished_step < 15:
             if not self.margin_client.update(exec_date):
-                self.logger.error("init_yesterday_margin failed")
+                self.logger.error("init yesterday margin failed")
                 return False
             self.set_update_info(15, exec_date, cdate)
 
         if finished_step < 16:
             if not self.init_stock_info(cdate):
-                self.logger.error("init_stock_info set failed")
+                self.logger.error("init stock info set failed")
                 return False
             self.set_update_info(16, exec_date, cdate)
 
@@ -282,7 +282,7 @@ class DataManager:
 
         if finished_step < 18:
             if not self.rindex_stock_data_client.update(exec_date, num = 150):
-                self.logger.error("rindex_stock_data set failed")
+                self.logger.error("rstock data set failed")
                 return False
             self.set_update_info(18, exec_date, cdate)
 
@@ -345,10 +345,8 @@ class DataManager:
 
         index_info = CIndex('000001').get_k_data()
         if index_info is None or index_info.empty: return False
-    
         df = self.stock_info_client.get()
         failed_list = df.code.tolist()
-        #failed_list = ["603186", "600785", "000552", "000717", "601598"]
         self.logger.info("all code list length:%s" % len(failed_list))
         if cdate is None:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
@@ -464,5 +462,5 @@ if __name__ == '__main__':
     dm = DataManager()
     dm.logger.info("start compute!")
     #dm.bootstrap(exec_date = '2019-01-22')
-    dm.bootstrap(cdate='2019-01-22', exec_date = '2019-01-22')
+    dm.bootstrap(cdate='2019-01-23', exec_date = '2019-01-23')
     dm.logger.info("end compute!")

@@ -111,7 +111,7 @@ class CStock(CMysqlObj):
         t = time.strptime(str(time2Market), "%Y%m%d")
         y,m,d = t[0:3]
         time2Market = datetime(y,m,d)
-        return (datetime.strptime(cdate, "%Y-%m-%d") - time2Market).days > 0
+        return (datetime.strptime(cdate, "%Y-%m-%d") - time2Market).days >= 0
 
     @property
     def is_subnew(self, time2Market = None, timeLimit = 365):
@@ -248,7 +248,7 @@ class CStock(CMysqlObj):
             if len(index_list) == 0: return pd.DataFrame(), None
             preday_index = index_list[0] - 1
             if preday_index < 0:
-                return pd.DataFrame(), None
+                return df.loc[df.date == transfer_date_string_to_int(cdate)], None
             else:
                 pre_day = df.at[preday_index, 'date']
                 return df.loc[df.date == transfer_date_string_to_int(cdate)], transfer_int_to_date_string(pre_day)
@@ -433,6 +433,7 @@ class CStock(CMysqlObj):
     def set_base_floating_profit(self):
         df = self.get_k_data()
         if df is None: return False
+        if df.empty: return True
         df['base'] = 0.0
         df['ibase'] = 0
         df['breakup'] = 0
@@ -443,7 +444,9 @@ class CStock(CMysqlObj):
         return self.mysql_client.delsert(df, self.get_day_table())
 
     def set_k_data(self, bonus_info, index_info, cdate = None):
-        if not self.has_on_market(datetime.now().strftime('%Y-%m-%d')): return True
+        if not self.has_on_market(cdate):
+            logger.info("%s not on market %s" % (self.code, cdate))
+            return True
         quantity_change_info, price_change_info = self.collect_right_info(bonus_info)
         if cdate is None or self.is_need_reright(cdate, price_change_info):
             return self.set_all_data(quantity_change_info, price_change_info, index_info)

@@ -231,9 +231,10 @@ def loads_jsonp(_jsonp):
     except:
         return None
 
-def process_concurrent_run(mfunc, todo_list, process_name = 2, num = 10, max_retry_times = 10):
+def process_concurrent_run(mfunc, all_list, process_name = 2, num = 10, max_retry_times = 10):
     jobs = list()
     d_list = list()
+    todo_list = copy.deepcopy(all_list)
     for x in range(process_name):
         filename = "%s_%s.json" % (ct.FAILED_INFO_FILE, x)
         if os.path.exists(filename):
@@ -262,9 +263,10 @@ def process_concurrent_run(mfunc, todo_list, process_name = 2, num = 10, max_ret
             init_res = init_res & j.exitcode
         return init_res
 
-def thread_concurrent_run(mfunc, todo_list, num = 10, max_retry_times = 10, name = 0):
+def thread_concurrent_run(mfunc, all_list, num = 10, max_retry_times = 10, name = 0):
     failed_count = 0
     obj_pool = Pool(num)
+    todo_list = copy.deepcopy(all_list)
     remove_num = 0
     filename = "%s_%s.json" % (ct.FAILED_INFO_FILE, name)
     while len(todo_list) > 0:
@@ -291,9 +293,10 @@ def thread_concurrent_run(mfunc, todo_list, num = 10, max_retry_times = 10, name
     obj_pool.kill()
     sys.exit(True)
 
-def concurrent_run(mfunc, todo_list, num = 10, max_retry_times = 10):
+def concurrent_run(mfunc, all_list, num = 10, max_retry_times = 10):
     failed_count = 0
     obj_pool = Pool(num)
+    todo_list = copy.deepcopy(all_list)
     while len(todo_list) > 0:
         is_failed = False
         for result in obj_pool.imap_unordered(mfunc, todo_list):
