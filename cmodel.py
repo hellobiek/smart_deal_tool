@@ -110,7 +110,7 @@ if __name__ == '__main__':
     industry_info = get_industry_data(cdate)
     #all stock info 
     all_stock_info = RIndexStock().get_k_data_in_range(start_date, end_date)
-   
+
     stm = StrongerThanMarketSelecter()
     stm_code_list = stm.choose(all_stock_info, av_df)
 

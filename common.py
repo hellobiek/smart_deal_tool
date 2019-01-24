@@ -62,8 +62,7 @@ def get_dates_array(start_date, end_date, dformat = "%Y-%m-%d", asending = False
     start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(start_date, dformat))
     data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
     date_only_array = np.vectorize(lambda s: s.strftime(dformat))(data_times.to_pydatetime())
-    if asending:
-        return date_only_array
+    if asending: return date_only_array
     date_only_array = date_only_array[::-1]
     return date_only_array
 

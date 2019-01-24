@@ -249,7 +249,7 @@ class CDoc:
 
         #活点地图
         md.addHeader("活点地图分析:", 3)
-        mmap_clinet = MarauderMap(CStockInfo().get().code.tolist())
+        mmap_clinet = MarauderMap()
         mmap_clinet.plot(cdate, image_dir, 'marauder_map')
         md.addImage("marauder_map.png", imageTitle = "活点地图")
 
