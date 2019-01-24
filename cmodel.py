@@ -82,7 +82,7 @@ def get_index_df(code, start_date, end_date):
     return df
 
 if __name__ == '__main__':
-    cdate = '2019-01-18' 
+    cdate = '2019-01-23' 
     start_date = get_day_nday_ago(cdate, 100, dformat = "%Y-%m-%d")
     end_date = cdate
     #market info
@@ -134,6 +134,9 @@ if __name__ == '__main__':
 
     ncns = NoChipNetSpaceSelecter()
     ncns_code_list = ncns.choose(stock_info)
+
+    import pdb
+    pdb.set_trace()
 
     moj = MarketOversoldJudger()
     is_over_sold = moj.judge(stock_info)

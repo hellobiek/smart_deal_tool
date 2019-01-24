@@ -445,7 +445,7 @@ class CStock(CMysqlObj):
 
     def set_k_data(self, bonus_info, index_info, cdate = None):
         if not self.has_on_market(cdate):
-            logger.info("%s not on market %s" % (self.code, cdate))
+            logger.debug("%s not on market %s" % (self.code, cdate))
             return True
         quantity_change_info, price_change_info = self.collect_right_info(bonus_info)
         if cdate is None or self.is_need_reright(cdate, price_change_info):
