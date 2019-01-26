@@ -102,6 +102,100 @@ def get_breakup_data(np.ndarray df):
         if _index != 0 and breakup != 0: pre_index = _index
         df['ibreakup'][_index] = pre_index
 
+def compute_profit(df, mdate = None, pbase = 'long'):
+    def get_effective_breakup_points(np.ndarray[long] break_index_lists, np.ndarray df):
+        cdef float pre_price = 0.0
+        cdef long break_index = 0, now_price = 0
+        cdef array.array effective_breakup_index_list = array.array('l', [])
+        while break_index < len(break_index_lists):
+            pre_price = df[pbase][break_index_lists[break_index]]
+            if break_index < len(break_index_lists) - 1:
+                high_price = np.amax(df[pbase][break_index_lists[break_index]:break_index_lists[break_index + 1]])
+                low_price  = np.amin(df[pbase][break_index_lists[break_index]:break_index_lists[break_index + 1]])
+                if high_price > pre_price * 1.2 or low_price < pre_price * 0.8:
+                    effective_breakup_index_list = cyappend(effective_breakup_index_list, break_index_lists[break_index])
+                else:
+                    if break_index_lists[break_index + 1] - break_index_lists[break_index] > PRE_DAYS_NUM:
+                        effective_breakup_index_list = cyappend(effective_breakup_index_list, break_index_lists[break_index])
+            else:
+                high_price = np.amax(df[pbase][break_index_lists[break_index]:])
+                low_price  = np.amin(df[pbase][break_index_lists[break_index]:])
+                if high_price > pre_price * 1.2 or low_price < pre_price * 0.8:
+                    effective_breakup_index_list = cyappend(effective_breakup_index_list, break_index_lists[break_index])
+                else:
+                    if len(df) - break_index_lists[break_index] > PRE_DAYS_NUM:
+                        effective_breakup_index_list = cyappend(effective_breakup_index_list, break_index_lists[break_index])
+            break_index += 1
+        #ibase means inex of base(effective break up points)
+        df['ibase'] = 0
+        cdef long pre_base_index = 0
+        for _index, ibase in enumerate(df['ibase']):
+            if _index != 0 and _index in effective_breakup_index_list: pre_base_index = _index
+            df['ibase'][_index] = pre_base_index
+        return effective_breakup_index_list
+
+    def get_breakup_points(np.ndarray df):
+        cdef np.ndarray[long] pos_array = np.zeros(len(df), dtype = long)
+        pos_array[df['close'] > df[pbase]] = 1
+        pos_array[df['close'] < df[pbase]] = -1
+        cdef np.ndarray[long] pre_pos_array = shift(pos_array, 1)
+        df['breakup'] = 0
+        df['breakup'][np.where((pre_pos_array <= 0) & (pos_array > 0))] = 1
+        df['breakup'][np.where((pre_pos_array >= 0) & (pos_array < 0))] = -1
+        #ibreak up means index of break up
+        df['ibreakup'] = 0
+        cdef int breakup = 0
+        cdef long pre_index = 0, _index = 0
+        for _index, breakup in enumerate(df['breakup']):
+            if _index != 0 and breakup != 0: pre_index = _index
+            df['ibreakup'][_index] = pre_index
+
+    cdef int direction = 0
+    cdef float base, ppchange
+    cdef long s_index = 0, e_index = 0
+    cdef np.ndarray np_data = df.to_records(index = False).astype(DTYPE_LIST, copy = False)
+    cdef np.ndarray break_index_lists
+    cdef array.array effective_breakup_index_list
+    cdef np.ndarray index_array = np.arange(len(np_data))
+    cdef np.ndarray ppchange_array = np.zeros(len(np_data), dtype = float)
+    if mdate is None:
+        get_breakup_points(np_data)
+        break_index_lists = np.where(np_data['breakup'] != 0)[0]
+        effective_breakup_index_list = get_effective_breakup_points(break_index_lists, np_data)
+        np_data['pday'] = 1
+        np_data['base'] = np_data['close'].copy()
+        if len(effective_breakup_index_list) == 0:
+            np_data['profit'] = (np_data['close'] - np_data[pbase]) / np_data[pbase]
+        else:
+            for e_index in effective_breakup_index_list:
+                if s_index == e_index:
+                    if len(effective_breakup_index_list) == 1:
+                        base = np_data[pbase][s_index]
+                        direction = np_data['breakup'][s_index]
+                        ppchange = 1.1 if direction > 0 else 0.9
+                        np_data['base'][s_index] = base
+                        ppchange_array[s_index:] = ppchange
+                        np_data['pday'][s_index:] = direction * (index_array[s_index:] - s_index + 1)
+                else:
+                    base = np_data[pbase][s_index]
+                    direction = np_data['breakup'][e_index]
+                    ppchange = 1.1 if direction < 0 else 0.9
+                    np_data['base'][s_index:e_index] = base
+                    ppchange_array[s_index:e_index] = ppchange
+                    np_data['pday'][s_index:e_index] = -1 * direction * (index_array[s_index:e_index] - s_index + 1)
+                    s_index = e_index
+                    if e_index == effective_breakup_index_list[-1]:
+                        base = np_data[pbase][e_index]
+                        direction = np_data['breakup'][e_index]
+                        ppchange = 1.1 if direction > 0 else 0.9
+                        np_data['base'][e_index:] = base
+                        ppchange_array[e_index:] = ppchange
+                        np_data['pday'][e_index:] = direction * (index_array[e_index:] - e_index + 1)
+            np_data['profit'] = abs(np.log(np_data['close']) - np.log(np_data['base'])) / np.log(ppchange_array)
+    df = DataFrame(data = np_data, columns = DATA_COLUMS)
+    df.date = df.date.str.decode('utf-8')
+    return df
+
 def base_floating_profit(df, mdate = None):
     cdef int direction = 0
     cdef float base, ppchange

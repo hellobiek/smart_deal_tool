@@ -124,14 +124,13 @@ class CStock(CMysqlObj):
 
     def create(self, should_create_influxdb, should_create_mysqldb):
         influxdb_flag = self.create_influx_db() if should_create_influxdb else True
-        mysql_flag    = self.create_db(self.dbname) and self.create_mysql_table() if should_create_mysqldb else True
+        mysql_flag    = self.create_db(self.dbname) and self.create_mysql_table(self.get_day_table()) if should_create_mysqldb else True
         return influxdb_flag and mysql_flag
 
     def create_influx_db(self):
         return self.influx_client.create()
 
-    def create_mysql_table(self):
-        table_name = self.get_day_table()
+    def create_mysql_table(self, table_name):
         if table_name not in self.mysql_client.get_all_tables():
             sql = 'create table if not exists %s(date varchar(10) not null,\
                                                  open float,\
@@ -219,6 +218,9 @@ class CStock(CMysqlObj):
 
     def get_day_table(self):
         return "%s_day" % self.dbname
+
+    def get_profit_table(self):
+        return "%s_profit" % self.dbname
 
     def create_chip_table(self, table):
         sql = 'create table if not exists %s(pos int not null,\
@@ -442,6 +444,20 @@ class CStock(CMysqlObj):
         df['profit'] = 0.0
         df = base_floating_profit(df)
         return self.mysql_client.delsert(df, self.get_day_table())
+
+    def compute_floating_profit(self):
+        if self.create_mysql_table(self.get_profit_table()): return False
+        df = self.get_k_data()
+        if df is None: return False
+        if df.empty: return True
+        df['base'] = 0.0
+        df['ibase'] = 0
+        df['breakup'] = 0
+        df['ibreakup'] = 0
+        df['pday'] = 0
+        df['profit'] = 0.0
+        df = base_floating_profit(df)
+        return self.mysql_client.delsert(df, self.get_profit_table())
 
     def set_k_data(self, bonus_info, index_info, cdate = None):
         if not self.has_on_market(cdate):

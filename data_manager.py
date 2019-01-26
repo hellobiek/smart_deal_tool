@@ -281,7 +281,7 @@ class DataManager:
             self.set_update_info(17, exec_date, cdate)
 
         if finished_step < 18:
-            if not self.rindex_stock_data_client.update(exec_date, num = 150):
+            if not self.rindex_stock_data_client.update(exec_date, num = 325):
                 self.logger.error("rstock data set failed")
                 return False
             self.set_update_info(18, exec_date, cdate)
@@ -326,6 +326,18 @@ class DataManager:
         self.logger.info("%s stocks to be set" % len(failed_list))
         return process_concurrent_run(_set_base_float_profit, failed_list, num = 500)
 
+    def compute_base_float_profit(self):
+        def _compute_base_float_profit(code_id):
+            if CStock(code_id).compute_floating_profit():
+                self.logger.info("%s set base float profit success" % code_id)
+                return (code_id, True)
+            else:
+                self.logger.error("%s set base float profit failed" % code_id)
+                return (code_id, False)
+        failed_list = self.stock_info_client.get().code.tolist()
+        self.logger.info("%s stocks to be set" % len(failed_list))
+        return process_concurrent_run(_compute_base_float_profit, failed_list, num = 500)
+
     def init_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, index_info, code_id):
             try:
@@ -353,7 +365,7 @@ class DataManager:
             return process_concurrent_run(cfunc, failed_list, num = 5)
         else:
             succeed = True
-            start_date = get_day_nday_ago(cdate, num = 7, dformat = "%Y-%m-%d")
+            start_date = get_day_nday_ago(cdate, num = 2, dformat = "%Y-%m-%d")
             for mdate in get_dates_array(start_date, cdate, asending = True):
                 if self.cal_client.is_trading_day(mdate):
                     cfunc = partial(_set_stock_info, mdate, bonus_info, index_info)
@@ -462,5 +474,8 @@ if __name__ == '__main__':
     dm = DataManager()
     dm.logger.info("start compute!")
     #dm.bootstrap(exec_date = '2019-01-22')
-    dm.bootstrap(cdate='2019-01-23', exec_date = '2019-01-23')
+    #dm.bootstrap(cdate='2019-01-25', exec_date = '2019-01-25')
+    dm.rindex_stock_data_client.update(end_date = '2019-01-25', num = 450)
+
+    #dm.compute_base_float_profit()
     dm.logger.info("end compute!")

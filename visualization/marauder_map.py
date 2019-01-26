@@ -9,7 +9,7 @@ import pandas as pd
 from log import getLogger
 from cstock import CStock
 from rstock import RIndexStock
-from common import get_day_nday_ago
+from common import get_day_nday_ago, get_chinese_font
 from functools import partial
 import matplotlib
 matplotlib.use('Agg')
@@ -49,14 +49,10 @@ class MarauderMap():
             ax.scatter(pday, profit, s = 5, alpha = 1, linewidths = 0.1)
         plt.savefig('%s/%s.png' % (fdir, fname), dpi=1000)
 
-    def gen_animation(self, end_date):
-        start_date = get_day_nday_ago(end_date, num = 140, dformat = "%Y-%m-%d")
+    def gen_animation(self, end_date, days):
+        start_date = get_day_nday_ago(end_date, num = days, dformat = "%Y-%m-%d")
         df = self.ris.get_k_data_in_range(start_date, end_date)
         fig, ax = plt.subplots()
-
-        Writer = animation.writers['ffmpeg']
-        writer = Writer(fps=30, metadata = dict(artist='biek'), bitrate = 1800)
-
         #get min profit day
         min_pday = df.pday.values.min()
         max_pday = df.pday.values.max()
@@ -69,6 +65,9 @@ class MarauderMap():
         groups = df.groupby(df.date)
         dates = list(set(df.date.tolist()))
         dates.sort()
+
+        Writer = animation.writers['ffmpeg']
+        writer = Writer(fps = 2, metadata = dict(artist='biek'), bitrate = -1)
         def init():
             ax.clear()
             ax.set_xlim(-xmax, xmax)
@@ -83,23 +82,26 @@ class MarauderMap():
         def animate(i):
             cdate = dates[i]
             df = groups.get_group(cdate)
+            init()
+            print(cdate, len(df))
+            bull_stock_num = len(df[df.profit >= 0])
             for code in df.code.tolist():
                 pday   = df.loc[df.code == code, 'pday']
                 profit = df.loc[df.code == code, 'profit']
-                ax.scatter(pday, profit, s = 5, alpha = 1, linewidths = 0.1)
+                ax.scatter(pday, profit, color = 'black', s = 1)
+                ax.set_title("日期：%s 股票总数：%s 牛熊股比:%s" % (cdate, len(df), 100 * bull_stock_num / len(df)), fontproperties = get_chinese_font())
 
-        ani = animation.FuncAnimation(fig, animate, frames = len(dates), init_func = init, interval = 1, repeat = False)
-        sfile = '/code/animation.mp4'
-        #ani.save(sfile, writer, fps = 30, dpi = 100)
+        ani = animation.FuncAnimation(fig, animate, frames = len(dates), init_func = init, interval = 1000, repeat = False)
+        sfile = '/code/nanimation.mp4'
         ani.save(sfile, writer)
         ax.set_title('Marauder Map for date')
         ax.grid(True)
         plt.close(fig)
 
 if __name__ == '__main__':
-    cdate = "2019-01-22"
-    image_dir = "/code"
-    image_name = "test"
-    mmap_clinet = MarauderMap()
-    #mmap_clinet.plot(cdate, image_dir, image_name)
-    mmap_clinet.gen_animation("2019-01-22")
+    #cdate = "2019-01-22"
+    #image_dir = "/code"
+    #image_name = "test"
+    #mmap_clinet = MarauderMap()
+    ##mmap_clinet.plot(cdate, image_dir, image_name)
+    #mmap_clinet.gen_animation("2019-01-24", 290)
