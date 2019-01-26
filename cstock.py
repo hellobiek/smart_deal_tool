@@ -106,6 +106,7 @@ class CStock(CMysqlObj):
         return data
 
     def has_on_market(self, cdate):
+        if cdate is None: cdate = datetime.now().strftime('%Y-%m-%d') 
         time2Market = self.get('timeToMarket')
         if str(time2Market) == '0': return False
         t = time.strptime(str(time2Market), "%Y%m%d")
@@ -655,7 +656,8 @@ if __name__ == '__main__':
     from cindex import CIndex
     index_info = CIndex('000001').get_k_data(cdate)
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    cstock = CStock('601318')
+    cstock = CStock('000400')
     logger.info("start compute")
-    cstock.set_k_data(bonus_info, index_info, cdate)
+    cstock.set_k_data(bonus_info, index_info)
+    cstock.set_base_floating_profit()
     logger.info("end compute")

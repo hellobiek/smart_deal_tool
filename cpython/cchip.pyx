@@ -110,7 +110,7 @@ def divide_data(np.ndarray mdata, long pos, float price):
     return s_p_data, s_u_data, l_p_data, l_u_data
 
 def divide_volume(long volume, long s_p_volume_total, long s_u_volume_total, long l_p_volume_total, long l_u_volume_total, long volume_total):
-    cdef long l_p_delta_volume = 0, s_p_delta_volume = 0, delta_volume = 0, tmp_volume = 0
+    cdef long l_p_delta_volume = 0, s_p_delta_volume = 0, delta_volume = 0, tmp_volume1 = 0, tmp_volume2 = 0, total_delta_volume = 0
     cdef long s_p_volume = 0, s_u_volume = 0, l_p_volume = 0, l_u_volume = 0
     if s_p_volume_total == max(s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total):
         l_p_volume = long(volume * (l_p_volume_total / volume_total))
@@ -133,27 +133,30 @@ def divide_volume(long volume, long s_p_volume_total, long s_u_volume_total, lon
         s_u_volume = long(volume * (s_u_volume_total / volume_total))
         l_u_volume = volume - s_p_volume - s_u_volume - l_p_volume
 
+    l_u_delta_volume = l_u_volume_total - l_u_volume
     l_p_delta_volume = l_p_volume_total - l_p_volume
     s_p_delta_volume = s_p_volume_total - s_p_volume
-    delta_volume = min(long(0.5 * s_u_volume + 0.5 * l_u_volume), l_p_delta_volume + s_p_delta_volume)
+    total_delta_volume = l_u_delta_volume + l_p_delta_volume + s_p_delta_volume
+    delta_volume = min(long(0.5 * s_u_volume), l_p_delta_volume + s_p_delta_volume + l_u_delta_volume)
     if delta_volume == 0: return s_p_volume, s_u_volume, l_p_volume, l_u_volume
-    if s_u_volume > l_u_volume:
-        tmp_volume = long(delta_volume * l_u_volume / (s_u_volume + l_u_volume))
-        l_u_volume -= tmp_volume
-        s_u_volume -= delta_volume - tmp_volume
+    if l_p_delta_volume == max(l_p_delta_volume, l_u_delta_volume, s_p_delta_volume):
+        tmp_volume1 = long(delta_volume * s_p_delta_volume/total_delta_volume)
+        s_p_volume += tmp_volume1
+        tmp_volume2 = long(delta_volume * l_u_delta_volume/total_delta_volume)
+        l_u_volume += tmp_volume2
+        l_p_volume += delta_volume - tmp_volume1 - tmp_volume2
+    elif l_u_delta_volume == max(l_p_delta_volume, l_u_delta_volume, s_p_delta_volume):
+        tmp_volume1 = long(delta_volume * s_p_delta_volume/total_delta_volume)
+        s_p_volume += tmp_volume1
+        tmp_volume2 = long(delta_volume * l_p_delta_volume/total_delta_volume)
+        l_p_volume += tmp_volume2
+        l_u_volume += delta_volume - tmp_volume1 - tmp_volume2
     else:
-        tmp_volume = long(delta_volume * s_u_volume / (s_u_volume + l_u_volume))
-        s_u_volume -= tmp_volume
-        l_u_volume -= delta_volume - tmp_volume
-
-    if l_p_delta_volume > s_p_delta_volume:
-        tmp_volume = long(delta_volume * s_p_delta_volume/(l_p_delta_volume + s_p_delta_volume))
-        s_p_volume += tmp_volume
-        l_p_volume += delta_volume - tmp_volume
-    else:
-        tmp_volume = long(delta_volume * l_p_delta_volume/(l_p_delta_volume + s_p_delta_volume))
-        l_p_volume += tmp_volume
-        s_p_volume += delta_volume - tmp_volume
+        tmp_volume1 = long(delta_volume * l_u_delta_volume/total_delta_volume)
+        l_u_volume += tmp_volume1
+        tmp_volume2 = long(delta_volume * l_p_delta_volume/total_delta_volume)
+        l_p_volume += tmp_volume2
+        s_p_volume += delta_volume - tmp_volume1 - tmp_volume2
     return s_p_volume, s_u_volume, l_p_volume, l_u_volume
 
 def adjust_volume(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):

@@ -5,6 +5,7 @@ from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import numpy as np
 import pandas as pd
+import const as ct
 from cindex import CIndex
 from cstock import CStock
 import matplotlib.pyplot as plt
@@ -51,7 +52,7 @@ class CPlot():
 
     def read_data(self):
         if not os.path.exists('i_data.json'):
-            obj = CStock(self.code, redis_host = '127.0.0.1')
+            obj = CStock(self.code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
             k_data = obj.get_k_data()
             k_data.date = pd.to_datetime(k_data.date).dt.strftime('%Y-%m-%d')
             with open('k_data.json', 'w') as f:
@@ -61,7 +62,7 @@ class CPlot():
             with open('d_data.json', 'w') as f:
                 f.write(d_data.to_json(orient='records', lines=True))
 
-            iobj = CIndex(self.index_code)
+            iobj = CIndex(self.index_code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
 
             i_data = iobj.get_k_data()
             cdates = k_data.date.tolist()
@@ -79,7 +80,7 @@ class CPlot():
                 i_data = pd.read_json(f.read(), orient = 'records', lines = True)
                 i_data.date = i_data.date.dt.strftime('%Y-%m-%d')
 
-        k_data = k_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount', 'outstanding', 'totals', 'adj', 'aprice', 'uprice']]
+        k_data = k_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount', 'outstanding', 'totals', 'adj', 'aprice', 'uprice', 'sprice', 'mprice', 'lprice']]
         k_data = k_data.rename(columns = {"date": "time"})
 
         i_data = i_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount']]
@@ -151,7 +152,10 @@ class CPlot():
         self.dateMin  = k_data.time.values.min()
         self.dateMax  = k_data.time.values.max()
         candlestick_ohlc(self.price_ax, k_data.values, width = 1.0, colorup = 'r', colordown = 'g')
-        self.price_ax.plot(k_data.time, k_data['uprice'], 'b',  label = "无穷成本均线", linewidth = 1)
+        self.price_ax.plot(k_data.time, k_data['uprice'], 'r',  label = "无穷成本均线", linewidth = 1)
+        self.price_ax.plot(k_data.time, k_data['sprice'], 'g',  label = "5日成本均线", linewidth = 1)
+        self.price_ax.plot(k_data.time, k_data['mprice'], 'b',  label = "13日成本均线", linewidth = 1)
+        self.price_ax.plot(k_data.time, k_data['lprice'], 'y',  label = "37日成本均线", linewidth = 1)
         self.price_ax.set_ylabel("prices")
         self.price_ax.yaxis.label.set_color('k')
         self.price_ax.set_xlim(self.dateMin, self.dateMax)
@@ -185,5 +189,5 @@ class CPlot():
         plt.show()
 
 if __name__ == '__main__':
-    cp = CPlot('000040')
+    cp = CPlot('000400')
     cp.plot()

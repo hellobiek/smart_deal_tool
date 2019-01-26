@@ -56,6 +56,9 @@ const.MARKET_ELSE   = "MARKET_ELSE"
 const.SUBMITTED = 0
 const.ONGOING = 1
 ##############################
+const.OUT_DB_INFO = {'user': 'root',
+                 'password': '123456',
+                 'host': '127.0.0.1'}
 const.DB_INFO = {'user': 'root',
                  'password': '123456',
                  'host': os.environ['dockerhost']}

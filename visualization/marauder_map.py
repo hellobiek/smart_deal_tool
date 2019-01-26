@@ -9,6 +9,7 @@ import pandas as pd
 from log import getLogger
 from cstock import CStock
 from rstock import RIndexStock
+from rprofit import RProfit
 from common import get_day_nday_ago, get_chinese_font
 from functools import partial
 import matplotlib
@@ -19,6 +20,7 @@ import matplotlib.animation as animation
 class MarauderMap():
     def __init__(self):
         self.ris = RIndexStock()
+        self.rp  = RProfit()
         self.logger = getLogger(__name__)
 
     def plot(self, cdate, fdir, fname):
@@ -51,7 +53,8 @@ class MarauderMap():
 
     def gen_animation(self, end_date, days):
         start_date = get_day_nday_ago(end_date, num = days, dformat = "%Y-%m-%d")
-        df = self.ris.get_k_data_in_range(start_date, end_date)
+        #df = self.ris.get_k_data_in_range(start_date, end_date)
+        df = self.rp.get_k_data_in_range(start_date, end_date)
         fig, ax = plt.subplots()
         #get min profit day
         min_pday = df.pday.values.min()
@@ -91,7 +94,7 @@ class MarauderMap():
                 ax.set_title("日期：%s 股票总数：%s 牛熊股比:%s" % (cdate, len(df), 100 * bull_stock_num / len(df)), fontproperties = get_chinese_font())
 
         ani = animation.FuncAnimation(fig, animate, frames = len(dates), init_func = init, interval = 1000, repeat = False)
-        sfile = '/code/nanimation.mp4'
+        sfile = '/code/panimation.mp4'
         ani.save(sfile, writer)
         ax.set_title('Marauder Map for date')
         ax.grid(True)
@@ -102,5 +105,5 @@ if __name__ == '__main__':
     #image_dir = "/code"
     #image_name = "test"
     mmap_clinet = MarauderMap()
-    ##mmap_clinet.plot(cdate, image_dir, image_name)
-    mmap_clinet.gen_animation("2019-01-25", 370)
+    #mmap_clinet.plot(cdate, image_dir, image_name)
+    mmap_clinet.gen_animation("2019-01-25", 100)
