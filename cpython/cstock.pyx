@@ -102,7 +102,7 @@ def get_breakup_data(np.ndarray df):
         if _index != 0 and breakup != 0: pre_index = _index
         df['ibreakup'][_index] = pre_index
 
-def compute_profit(df, mdate = None, pbase = 'long'):
+def compute_profit(df, mdate = None, pbase = 'lprice'):
     def get_effective_breakup_points(np.ndarray[long] break_index_lists, np.ndarray df):
         cdef float pre_price = 0.0
         cdef long break_index = 0, now_price = 0

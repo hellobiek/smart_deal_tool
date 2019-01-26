@@ -65,7 +65,6 @@ class MarauderMap():
         groups = df.groupby(df.date)
         dates = list(set(df.date.tolist()))
         dates.sort()
-
         Writer = animation.writers['ffmpeg']
         writer = Writer(fps = 2, metadata = dict(artist='biek'), bitrate = -1)
         def init():
@@ -102,6 +101,6 @@ if __name__ == '__main__':
     #cdate = "2019-01-22"
     #image_dir = "/code"
     #image_name = "test"
-    #mmap_clinet = MarauderMap()
+    mmap_clinet = MarauderMap()
     ##mmap_clinet.plot(cdate, image_dir, image_name)
-    #mmap_clinet.gen_animation("2019-01-24", 290)
+    mmap_clinet.gen_animation("2019-01-25", 370)

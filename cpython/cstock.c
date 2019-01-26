@@ -1145,7 +1145,7 @@ typedef npy_cdouble __pyx_t_5numpy_complex_t;
 /* "cstock.pyx":105
  *         df['ibreakup'][_index] = pre_index
  * 
- * def compute_profit(df, mdate = None, pbase = 'long'):             # <<<<<<<<<<<<<<
+ * def compute_profit(df, mdate = None, pbase = 'lprice'):             # <<<<<<<<<<<<<<
  *     def get_effective_breakup_points(np.ndarray[long] break_index_lists, np.ndarray df):
  *         cdef float pre_price = 0.0
  */
@@ -2111,7 +2111,6 @@ static const char __pyx_k_data[] = "data";
 static const char __pyx_k_date[] = "date";
 static const char __pyx_k_drow[] = "drow";
 static const char __pyx_k_high[] = "high";
-static const char __pyx_k_long[] = "long";
 static const char __pyx_k_main[] = "__main__";
 static const char __pyx_k_name[] = "__name__";
 static const char __pyx_k_open[] = "open";
@@ -2306,7 +2305,6 @@ static PyObject *__pyx_n_s_iteritems;
 static PyObject *__pyx_n_u_l;
 static PyObject *__pyx_n_s_loc;
 static PyObject *__pyx_n_s_log;
-static PyObject *__pyx_n_u_long;
 static PyObject *__pyx_n_u_low;
 static PyObject *__pyx_n_s_low_price;
 static PyObject *__pyx_n_u_lprice;
@@ -4259,7 +4257,7 @@ static PyObject *__pyx_pf_6cstock_6get_breakup_data(CYTHON_UNUSED PyObject *__py
  *         if _index != 0 and breakup != 0: pre_index = _index
  *         df['ibreakup'][_index] = pre_index             # <<<<<<<<<<<<<<
  * 
- * def compute_profit(df, mdate = None, pbase = 'long'):
+ * def compute_profit(df, mdate = None, pbase = 'lprice'):
  */
     __pyx_t_5 = __Pyx_PyInt_From_long(__pyx_v_pre_index); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 103, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
@@ -4321,7 +4319,7 @@ static PyObject *__pyx_pf_6cstock_6get_breakup_data(CYTHON_UNUSED PyObject *__py
 /* "cstock.pyx":105
  *         df['ibreakup'][_index] = pre_index
  * 
- * def compute_profit(df, mdate = None, pbase = 'long'):             # <<<<<<<<<<<<<<
+ * def compute_profit(df, mdate = None, pbase = 'lprice'):             # <<<<<<<<<<<<<<
  *     def get_effective_breakup_points(np.ndarray[long] break_index_lists, np.ndarray df):
  *         cdef float pre_price = 0.0
  */
@@ -4340,7 +4338,7 @@ static PyObject *__pyx_pw_6cstock_9compute_profit(PyObject *__pyx_self, PyObject
     static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_df,&__pyx_n_s_mdate,&__pyx_n_s_pbase,0};
     PyObject* values[3] = {0,0,0};
     values[1] = ((PyObject *)Py_None);
-    values[2] = ((PyObject *)__pyx_n_u_long);
+    values[2] = ((PyObject *)__pyx_n_u_lprice);
     if (unlikely(__pyx_kwds)) {
       Py_ssize_t kw_args;
       const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
@@ -4407,7 +4405,7 @@ static PyObject *__pyx_pw_6cstock_9compute_profit(PyObject *__pyx_self, PyObject
 
 /* "cstock.pyx":106
  * 
- * def compute_profit(df, mdate = None, pbase = 'long'):
+ * def compute_profit(df, mdate = None, pbase = 'lprice'):
  *     def get_effective_breakup_points(np.ndarray[long] break_index_lists, np.ndarray df):             # <<<<<<<<<<<<<<
  *         cdef float pre_price = 0.0
  *         cdef long break_index = 0, now_price = 0
@@ -4538,7 +4536,7 @@ static PyObject *__pyx_pf_6cstock_14compute_profit_get_effective_breakup_points(
   __pyx_pybuffernd_break_index_lists.diminfo[0].strides = __pyx_pybuffernd_break_index_lists.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_break_index_lists.diminfo[0].shape = __pyx_pybuffernd_break_index_lists.rcbuffer->pybuffer.shape[0];
 
   /* "cstock.pyx":107
- * def compute_profit(df, mdate = None, pbase = 'long'):
+ * def compute_profit(df, mdate = None, pbase = 'lprice'):
  *     def get_effective_breakup_points(np.ndarray[long] break_index_lists, np.ndarray df):
  *         cdef float pre_price = 0.0             # <<<<<<<<<<<<<<
  *         cdef long break_index = 0, now_price = 0
@@ -5348,7 +5346,7 @@ static PyObject *__pyx_pf_6cstock_14compute_profit_get_effective_breakup_points(
 
   /* "cstock.pyx":106
  * 
- * def compute_profit(df, mdate = None, pbase = 'long'):
+ * def compute_profit(df, mdate = None, pbase = 'lprice'):
  *     def get_effective_breakup_points(np.ndarray[long] break_index_lists, np.ndarray df):             # <<<<<<<<<<<<<<
  *         cdef float pre_price = 0.0
  *         cdef long break_index = 0, now_price = 0
@@ -5856,7 +5854,7 @@ static PyObject *__pyx_pf_6cstock_14compute_profit_2get_breakup_points(PyObject 
 /* "cstock.pyx":105
  *         df['ibreakup'][_index] = pre_index
  * 
- * def compute_profit(df, mdate = None, pbase = 'long'):             # <<<<<<<<<<<<<<
+ * def compute_profit(df, mdate = None, pbase = 'lprice'):             # <<<<<<<<<<<<<<
  *     def get_effective_breakup_points(np.ndarray[long] break_index_lists, np.ndarray df):
  *         cdef float pre_price = 0.0
  */
@@ -5907,7 +5905,7 @@ static PyObject *__pyx_pf_6cstock_8compute_profit(CYTHON_UNUSED PyObject *__pyx_
 
   /* "cstock.pyx":106
  * 
- * def compute_profit(df, mdate = None, pbase = 'long'):
+ * def compute_profit(df, mdate = None, pbase = 'lprice'):
  *     def get_effective_breakup_points(np.ndarray[long] break_index_lists, np.ndarray df):             # <<<<<<<<<<<<<<
  *         cdef float pre_price = 0.0
  *         cdef long break_index = 0, now_price = 0
@@ -6838,7 +6836,7 @@ static PyObject *__pyx_pf_6cstock_8compute_profit(CYTHON_UNUSED PyObject *__pyx_
   /* "cstock.pyx":105
  *         df['ibreakup'][_index] = pre_index
  * 
- * def compute_profit(df, mdate = None, pbase = 'long'):             # <<<<<<<<<<<<<<
+ * def compute_profit(df, mdate = None, pbase = 'lprice'):             # <<<<<<<<<<<<<<
  *     def get_effective_breakup_points(np.ndarray[long] break_index_lists, np.ndarray df):
  *         cdef float pre_price = 0.0
  */
@@ -11981,7 +11979,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_u_l, __pyx_k_l, sizeof(__pyx_k_l), 0, 1, 0, 1},
   {&__pyx_n_s_loc, __pyx_k_loc, sizeof(__pyx_k_loc), 0, 0, 1, 1},
   {&__pyx_n_s_log, __pyx_k_log, sizeof(__pyx_k_log), 0, 0, 1, 1},
-  {&__pyx_n_u_long, __pyx_k_long, sizeof(__pyx_k_long), 0, 1, 0, 1},
   {&__pyx_n_u_low, __pyx_k_low, sizeof(__pyx_k_low), 0, 1, 0, 1},
   {&__pyx_n_s_low_price, __pyx_k_low_price, sizeof(__pyx_k_low_price), 0, 0, 1, 1},
   {&__pyx_n_u_lprice, __pyx_k_lprice, sizeof(__pyx_k_lprice), 0, 1, 0, 1},
@@ -12068,7 +12065,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
 
   /* "cstock.pyx":106
  * 
- * def compute_profit(df, mdate = None, pbase = 'long'):
+ * def compute_profit(df, mdate = None, pbase = 'lprice'):
  *     def get_effective_breakup_points(np.ndarray[long] break_index_lists, np.ndarray df):             # <<<<<<<<<<<<<<
  *         cdef float pre_price = 0.0
  *         cdef long break_index = 0, now_price = 0
@@ -12571,7 +12568,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "cstock.pyx":105
  *         df['ibreakup'][_index] = pre_index
  * 
- * def compute_profit(df, mdate = None, pbase = 'long'):             # <<<<<<<<<<<<<<
+ * def compute_profit(df, mdate = None, pbase = 'lprice'):             # <<<<<<<<<<<<<<
  *     def get_effective_breakup_points(np.ndarray[long] break_index_lists, np.ndarray df):
  *         cdef float pre_price = 0.0
  */
@@ -13244,7 +13241,7 @@ if (!__Pyx_RefNanny) {
   /* "cstock.pyx":105
  *         df['ibreakup'][_index] = pre_index
  * 
- * def compute_profit(df, mdate = None, pbase = 'long'):             # <<<<<<<<<<<<<<
+ * def compute_profit(df, mdate = None, pbase = 'lprice'):             # <<<<<<<<<<<<<<
  *     def get_effective_breakup_points(np.ndarray[long] break_index_lists, np.ndarray df):
  *         cdef float pre_price = 0.0
  */

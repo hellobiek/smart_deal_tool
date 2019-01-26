@@ -475,7 +475,6 @@ if __name__ == '__main__':
     dm.logger.info("start compute!")
     #dm.bootstrap(exec_date = '2019-01-22')
     #dm.bootstrap(cdate='2019-01-25', exec_date = '2019-01-25')
-    dm.rindex_stock_data_client.update(end_date = '2019-01-25', num = 450)
 
-    #dm.compute_base_float_profit()
+    dm.compute_base_float_profit()
     dm.logger.info("end compute!")

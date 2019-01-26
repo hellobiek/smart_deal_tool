@@ -16,7 +16,7 @@ from cinfluxdb import CInflux
 from datetime import datetime
 from functools import partial
 from cpython.cchip import compute_distribution, compute_oneday_distribution,mac
-from cpython.cstock import base_floating_profit,pro_nei_chip
+from cpython.cstock import compute_profit,base_floating_profit,pro_nei_chip
 #from cpython.cstock import pro_nei_chip
 #from features import base_floating_profit
 from base.cobj import CMysqlObj
@@ -446,7 +446,7 @@ class CStock(CMysqlObj):
         return self.mysql_client.delsert(df, self.get_day_table())
 
     def compute_floating_profit(self):
-        if self.create_mysql_table(self.get_profit_table()): return False
+        if not self.create_mysql_table(self.get_profit_table()): return False
         df = self.get_k_data()
         if df is None: return False
         if df.empty: return True
@@ -456,7 +456,7 @@ class CStock(CMysqlObj):
         df['ibreakup'] = 0
         df['pday'] = 0
         df['profit'] = 0.0
-        df = base_floating_profit(df)
+        df = compute_profit(df)
         return self.mysql_client.delsert(df, self.get_profit_table())
 
     def set_k_data(self, bonus_info, index_info, cdate = None):
@@ -631,6 +631,14 @@ class CStock(CMysqlObj):
     def get_k_data_in_range(self, start_date, end_date, dtype = 9):
         table_name = self.get_day_table()
         sql = "select * from %s where date between \"%s\" and \"%s\"" %(table_name, start_date, end_date)
+        return self.mysql_client.get(sql)
+
+    def get_p_data(self, date = None, dtype = 9):
+        table_name = self.get_profit_table()
+        if date is not None:
+            sql = "select * from %s where date=\"%s\"" %(table_name, date)
+        else:
+            sql = "select * from %s" % table_name
         return self.mysql_client.get(sql)
 
     def get_k_data(self, date = None, dtype = 9):

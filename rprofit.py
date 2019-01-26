@@ -1,4 +1,6 @@
 #coding=utf-8
+from gevent import monkey
+monkey.patch_all()
 import time
 import _pickle
 import datetime
@@ -16,7 +18,7 @@ from cstock_info import CStockInfo
 from ccalendar import CCalendar
 from collections import OrderedDict
 from common import delta_days, create_redis_obj, get_day_nday_ago, get_dates_array
-class RIndexStock:
+class RProfit:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
         self.dbname = self.get_dbname()
@@ -27,7 +29,7 @@ class RIndexStock:
 
     @staticmethod
     def get_dbname():
-        return ct.RINDEX_STOCK_INFO_DB
+        return "sprofit"
 
     def get_table_name(self, cdate):
         cdates = cdate.split('-')
@@ -111,7 +113,8 @@ class RIndexStock:
         return self.mysql_client.get(sql)
 
     def get_stock_data(self, cdate, code):
-        return (code, CStock(code).get_k_data(cdate))
+        obj = CStock(code)
+        return (code, obj.get_k_data(cdate, obj.get_profit_table()))
 
     @gen.coroutine
     def run(self, cdate):
@@ -134,7 +137,7 @@ class RIndexStock:
     def generate_all_data(self, cdate):
         from gevent.pool import Pool
         good_list = list()
-        obj_pool = Pool(1000)
+        obj_pool = Pool(4000)
         all_df = pd.DataFrame()
         failed_list = CStockInfo(redis_host = self.redis_host).get(redis = self.redis).code.tolist()
         cfunc = partial(self.get_stock_data, cdate)
@@ -185,5 +188,5 @@ class RIndexStock:
         return False
 
 if __name__ == '__main__':
-    ris = RIndexStock(ct.DB_INFO, redis_host = '127.0.0.1')
-    ris.update(end_date = '2019-01-25', num = 500)
+    rp = RProfit(ct.DB_INFO, redis_host = '127.0.0.1')
+    rp.update(end_date = '2019-01-25', num = 300)
