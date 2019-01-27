@@ -31,35 +31,41 @@ class CBullRation():
         lprice_df = self.rp.get_k_data_in_range(start_date, end_date)
         iobj = CIndex('000001', dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
         i_data = iobj.get_k_data_in_range(start_date, end_date)
-        i_data = i_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount']]
-        i_data = i_data.rename(columns = {"date": "time"})
-        i_data.time = pd.to_datetime(i_data.time)
-        i_data.time = i_data.time.apply(lambda x:date2num(x))
+        i_data['time'] = i_data.index.tolist()
+        i_data = i_data[['time', 'open', 'high', 'low', 'close', 'volume', 'amount', 'date']]
         return uprice_df,lprice_df,i_data
 
     def get_bull_ratios(self, data):
         date_list = list()
         rate_list = list()
         for cdate, df in data.groupby(data.date):
+            df = df[df.code.str.startswith('6')]
             bull_stock_num = len(df[df.profit >= 0])
             bull_ration = 100 * bull_stock_num / len(df)
-            mdate = date2num(dt.datetime.strptime(cdate, '%Y-%m-%d'))
-            date_list.append(mdate)
+            date_list.append(cdate)
             rate_list.append(bull_ration)
         return date_list, rate_list
 
     def plot(self, start_date, end_date):
         uprice_df,lprice_df,index_data = self.get_data(start_date, end_date)
+        date_tickers = index_data.date.tolist()
+        def _format_date(x, pos = None):
+            if x < 0 or x > len(date_tickers) - 1: return ''
+            return date_tickers[int(x)]
         udate_list, uratio_list = self.get_bull_ratios(uprice_df) 
-        ldate_list, lratio_list = self.get_bull_ratios(lprice_df) 
+        ldate_list, lratio_list = self.get_bull_ratios(lprice_df)
         candlestick_ohlc(self.price_ax, index_data.values, width = 1.0, colorup = 'r', colordown = 'g')
         self.ratio_ax.plot(udate_list, uratio_list, 'r',  label = "uprice 成本均线", linewidth = 1)
         self.ratio_ax.plot(ldate_list, lratio_list, 'b',  label = "lprice 成本均线", linewidth = 1)
+        self.ratio_ax.xaxis.set_major_locator(mticker.MultipleLocator(3))
+        self.ratio_ax.xaxis.set_major_formatter(mticker.FuncFormatter(_format_date))
+        self.price_ax.xaxis.set_major_locator(mticker.MultipleLocator(3))
+        self.price_ax.xaxis.set_major_formatter(mticker.FuncFormatter(_format_date))
         self.fig.autofmt_xdate()
         plt.show()
 
 if __name__ == '__main__':
-    start_date = '2018-09-25' 
+    start_date = '2018-05-10' 
     end_date = '2019-01-25'
     cbr = CBullRation()
     cbr.plot(start_date, end_date)
