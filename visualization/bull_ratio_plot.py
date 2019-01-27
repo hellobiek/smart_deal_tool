@@ -24,7 +24,7 @@ class CBullRation():
         self.base_color = '#e6daa6'
         self.fig = plt.figure(facecolor = self.base_color, figsize = (24, 24))
         self.price_ax = plt.subplot2grid((12,12), (0,0), rowspan = 6, colspan = 12, facecolor = self.base_color, fig = self.fig)
-        self.ratio_ax = plt.subplot2grid((12,12), (6,0), rowspan = 6, colspan = 12, facecolor = self.base_color, fig = self.fig)
+        self.ratio_ax = plt.subplot2grid((12,12), (6,0), rowspan = 6, colspan = 12, facecolor = self.base_color, sharex = self.price_ax, fig = self.fig)
 
     def get_data(self, start_date, end_date):
         uprice_df = self.ris.get_k_data_in_range(start_date, end_date)
@@ -57,9 +57,7 @@ class CBullRation():
         candlestick_ohlc(self.price_ax, index_data.values, width = 1.0, colorup = 'r', colordown = 'g')
         self.ratio_ax.plot(udate_list, uratio_list, 'r',  label = "uprice 成本均线", linewidth = 1)
         self.ratio_ax.plot(ldate_list, lratio_list, 'b',  label = "lprice 成本均线", linewidth = 1)
-        self.ratio_ax.xaxis.set_major_locator(mticker.MultipleLocator(3))
-        self.ratio_ax.xaxis.set_major_formatter(mticker.FuncFormatter(_format_date))
-        self.price_ax.xaxis.set_major_locator(mticker.MultipleLocator(3))
+        self.price_ax.xaxis.set_major_locator(mticker.MultipleLocator(10))
         self.price_ax.xaxis.set_major_formatter(mticker.FuncFormatter(_format_date))
         self.fig.autofmt_xdate()
         plt.show()
