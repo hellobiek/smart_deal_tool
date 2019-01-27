@@ -50,27 +50,8 @@ class CPlot():
             self.fig.canvas.mpl_disconnect(self.cidrelease)
             plt.close(self.fig)
 
-    def read_data(self):
-        if not os.path.exists('i_data.json'):
-            obj = CStock(self.code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
-            k_data = obj.get_k_data()
-            k_data.date = pd.to_datetime(k_data.date).dt.strftime('%Y-%m-%d')
-            with open('k_data.json', 'w') as f:
-                f.write(k_data.to_json(orient='records', lines=True))
-
-            d_data = obj.get_chip_distribution()
-            with open('d_data.json', 'w') as f:
-                f.write(d_data.to_json(orient='records', lines=True))
-
-            iobj = CIndex(self.index_code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
-
-            i_data = iobj.get_k_data()
-            cdates = k_data.date.tolist()
-            i_data = i_data.loc[i_data.date.isin(cdates)]
-            i_data = i_data.reset_index(drop = True)
-            with open('i_data.json', 'w') as f:
-                f.write(i_data.to_json(orient='records', lines=True))
-        else:
+    def read_data(self, needStore = False):
+        if os.path.exists('i_data.json'):
             with open('k_data.json', 'r') as f:
                 k_data = pd.read_json(f.read(), orient = 'records', lines = True)
                 k_data.date = k_data.date.dt.strftime('%Y-%m-%d')
@@ -79,12 +60,27 @@ class CPlot():
             with open('i_data.json', 'r') as f:
                 i_data = pd.read_json(f.read(), orient = 'records', lines = True)
                 i_data.date = i_data.date.dt.strftime('%Y-%m-%d')
-
-        k_data = k_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount', 'outstanding', 'totals', 'adj', 'aprice', 'uprice', 'sprice', 'mprice', 'lprice']]
-        k_data = k_data.rename(columns = {"date": "time"})
-
-        i_data = i_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount']]
-        i_data = i_data.rename(columns = {"date": "time"})
+        else:
+            obj = CStock(self.code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
+            k_data = obj.get_k_data()
+            k_data.date = pd.to_datetime(k_data.date).dt.strftime('%Y-%m-%d')
+            d_data = obj.get_chip_distribution()
+            iobj = CIndex(self.index_code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
+            i_data = iobj.get_k_data()
+            cdates = k_data.date.tolist()
+            i_data = i_data.loc[i_data.date.isin(cdates)]
+            i_data = i_data.reset_index(drop = True)
+            k_data = k_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount', 'outstanding', 'totals', 'adj', 'aprice', 'uprice', 'sprice', 'mprice', 'lprice']]
+            k_data = k_data.rename(columns = {"date": "time"})
+            i_data = i_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount']]
+            i_data = i_data.rename(columns = {"date": "time"})
+            if needStore:
+                with open('k_data.json', 'w') as f:
+                    f.write(k_data.to_json(orient='records', lines=True))
+                with open('d_data.json', 'w') as f:
+                    f.write(d_data.to_json(orient='records', lines=True))
+                with open('i_data.json', 'w') as f:
+                    f.write(i_data.to_json(orient='records', lines=True))
         return k_data, d_data, i_data
 
     def on_key_press(self, event):
@@ -189,5 +185,5 @@ class CPlot():
         plt.show()
 
 if __name__ == '__main__':
-    cp = CPlot('000400')
+    cp = CPlot('601398')
     cp.plot()

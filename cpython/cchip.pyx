@@ -137,8 +137,9 @@ def divide_volume(long volume, long s_p_volume_total, long s_u_volume_total, lon
     l_p_delta_volume = l_p_volume_total - l_p_volume
     s_p_delta_volume = s_p_volume_total - s_p_volume
     total_delta_volume = l_u_delta_volume + l_p_delta_volume + s_p_delta_volume
-    delta_volume = min(long(0.5 * s_u_volume), l_p_delta_volume + s_p_delta_volume + l_u_delta_volume)
+    delta_volume = min(long(0.32 * s_u_volume), total_delta_volume)
     if delta_volume == 0: return s_p_volume, s_u_volume, l_p_volume, l_u_volume
+    s_u_volume -= delta_volume
     if l_p_delta_volume == max(l_p_delta_volume, l_u_delta_volume, s_p_delta_volume):
         tmp_volume1 = long(delta_volume * s_p_delta_volume/total_delta_volume)
         s_p_volume += tmp_volume1

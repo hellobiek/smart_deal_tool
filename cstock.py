@@ -354,7 +354,6 @@ class CStock(CMysqlObj):
         #set chip distribution
         dist_df = df.append(preday_df, sort = False)
         dist_df = dist_df.sort_values(by = 'date', ascending = True)
-
         dist_data = self.compute_distribution(dist_df, cdate)
         if dist_data.empty:
             logger.error("%s chip distribution compute failed." % self.code)
@@ -656,8 +655,9 @@ if __name__ == '__main__':
     from cindex import CIndex
     index_info = CIndex('000001').get_k_data(cdate)
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    cstock = CStock('000400')
+    cstock = CStock('601398')
     logger.info("start compute")
     cstock.set_k_data(bonus_info, index_info)
+    logger.info("enter set base floating profit")
     cstock.set_base_floating_profit()
     logger.info("end compute")
