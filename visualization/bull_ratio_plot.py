@@ -57,9 +57,8 @@ class CBullRation():
         candlestick_ohlc(self.price_ax, index_data.values, width = 1.0, colorup = 'r', colordown = 'g')
         self.ratio_ax.plot(udate_list, uratio_list, 'r',  label = "uprice 成本均线", linewidth = 1)
         self.ratio_ax.plot(ldate_list, lratio_list, 'b',  label = "lprice 成本均线", linewidth = 1)
-        self.price_ax.xaxis.set_major_locator(mticker.MultipleLocator(10))
+        self.price_ax.xaxis.set_major_locator(mticker.MultipleLocator(20))
         self.price_ax.xaxis.set_major_formatter(mticker.FuncFormatter(_format_date))
-        self.fig.autofmt_xdate()
         plt.show()
 
 if __name__ == '__main__':
