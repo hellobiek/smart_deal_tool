@@ -7,10 +7,9 @@ import matplotlib.pyplot as plt
 #set key
 quandl.ApiConfig.api_key = 'oo_pjaFaPvQ2m2jb1T8t'
 
-selected = ['CNP', 'F', 'WMT', 'GE', 'TSLA']
-data = quandl.get_table('WIKI/PRICES', ticker = selected,
-                       qopts = {'columns': ['date', 'ticker', 'adj_close']},
-                       date = {'gte': '2014-1-1', 'lte': '2016-12-31'}, paginate=True)
+#selected = ['NFLX', 'AAPL', 'AMZN', 'GOOGL', 'TSLA']
+selected = ['KO', 'PEP', 'HTZ', 'WFC', 'BA', 'NFLX', 'AAPL', 'AMZN', 'GOOGL', 'TSLA']
+data = quandl.get_table('WIKI/PRICES', ticker = selected, qopts = {'columns': ['date', 'ticker', 'adj_close']}, date = {'gte': '2014-1-1', 'lte': '2016-12-31'}, paginate=True)
 
 clean = data.set_index('date')
 table = clean.pivot(columns='ticker')
@@ -27,10 +26,9 @@ sharpe_ratio = []
 stock_weights = []
 
 num_assets = len(selected)
-num_portfolios = 50000
+num_portfolios = 100000
 
 np.random.seed(101)
-
 for single_portfolio in range(num_portfolios):
     weights = np.random.random(num_assets)
     weights /= np.sum(weights)
@@ -52,12 +50,6 @@ for counter,symbol in enumerate(selected):
 df = pd.DataFrame(portfolio)
 column_order = ['Returns', 'Volatility', 'Sharpe Ratio'] + [stock+' Weight' for stock in selected]
 df = df[column_order]
-
-plt.style.use('seaborn-dark')
-df.plot.scatter(x = 'Volatility', y = 'Returns', c = 'Sharpe Ratio', cmap = 'RdYlGn', edgecolors = 'black', figsize = (10, 8), grid = True)
-plt.xlabel('Volatility (Std. Deviation)')
-plt.ylabel('Expected Returns')
-plt.title('Efficient Frontier')
 
 min_volatility = df['Volatility'].min()
 max_sharpe = df['Sharpe Ratio'].max()

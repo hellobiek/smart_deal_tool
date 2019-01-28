@@ -194,7 +194,6 @@ class CMySQL:
                 if 'conn' in dir(): conn.close()
             if True == res: return data
         logger.error("%s %s failed afer try %d times" % (self.dbname, sql, ct.RETRY_TIMES))
-        time.sleep(5)
         return None
 
     def exec_sql(self, sql, params = None):
