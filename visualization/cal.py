@@ -18,7 +18,7 @@ def get_data(selected = ['KO']):
     data.index = data.date
     return data
 
-def get_candle_features(df, target = 'return_t+1', remove_zero_days = False):
+def get_candle_features(df, target = 'return_t+1', remove_zero_days = True):
     cdl_methods = [m for m in dir(ta) if 'CDL' in m]
     df_cdl = pd.DataFrame(index = df.index)
     for mtd in cdl_methods:
@@ -40,7 +40,7 @@ def plot_res(ytrue, base_zero, base_avg, pred, name):
     name = "Difference from zero baseline - {}".format(name)
     fig = pd.Series([0,r2,r3], index=['Zero', 'Train average', 'Random Forest']).plot.bar(title=name)
     plt.tight_layout()
-    plt.savefig(name)
+    plt.savefig("/Users/hellobiek/Desktop/%s" % name)
 
 data = get_data()
 xtrain, ytrain = get_candle_features(data)
