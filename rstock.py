@@ -12,8 +12,8 @@ from datetime import datetime
 from log import getLogger
 from cmysql import CMySQL
 from cstock import CStock
-from cstock_info import CStockInfo
 from ccalendar import CCalendar
+from cstock_info import CStockInfo
 from collections import OrderedDict
 from common import delta_days, create_redis_obj, get_day_nday_ago, get_dates_array
 class RIndexStock:

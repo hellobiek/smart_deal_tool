@@ -280,12 +280,11 @@ class DataManager:
                 return False
             self.set_update_info(17, exec_date, cdate)
 
-        if finished_step < 18:
-            if not self.rindex_stock_data_client.update(exec_date, num = 325):
-                self.logger.error("rstock data set failed")
-                return False
-            self.set_update_info(18, exec_date, cdate)
-
+        #if finished_step < 18:
+        #    if not self.rindex_stock_data_client.update(exec_date, num = 325):
+        #        self.logger.error("rstock data set failed")
+        #        return False
+        #    self.set_update_info(18, exec_date, cdate)
         self.logger.info("updating succeed")
         return True
         
@@ -365,7 +364,7 @@ class DataManager:
             return process_concurrent_run(cfunc, failed_list, num = 5)
         else:
             succeed = True
-            start_date = get_day_nday_ago(cdate, num = 2, dformat = "%Y-%m-%d")
+            start_date = get_day_nday_ago(cdate, num = 5, dformat = "%Y-%m-%d")
             for mdate in get_dates_array(start_date, cdate, asending = True):
                 if self.cal_client.is_trading_day(mdate):
                     cfunc = partial(_set_stock_info, mdate, bonus_info, index_info)
@@ -454,7 +453,7 @@ if __name__ == '__main__':
     #from cmysql import CMySQL
     #mysql_client = CMySQL(dbinfo = ct.DB_INFO)
     #mysql_client.delete_db(ct.RINDEX_STOCK_INFO_DB)
-    #mysql_client.delete_db(ct.RINDEX_INDUSTRY_INFO_DB)
+    #mysql_client.delete_db('rprofit')
     #for code in IndustryInfo().get().code.tolist():
     #    print(code)
     #    mysql_client.delete_db('i%s' % code)
@@ -473,7 +472,6 @@ if __name__ == '__main__':
 
     dm = DataManager()
     dm.logger.info("start compute!")
-    dm.bootstrap(exec_date = '2019-01-25')
-    #dm.bootstrap(cdate='2019-01-25', exec_date = '2019-01-25')
-    #dm.compute_base_float_profit()
+    #dm.bootstrap(exec_date = '2019-01-25')
+    dm.bootstrap(cdate='2019-01-29', exec_date = '2019-01-29')
     dm.logger.info("end compute!")

@@ -27,7 +27,7 @@ class RProfit:
 
     @staticmethod
     def get_dbname():
-        return "sprofit"
+        return "rprofit"
 
     def get_table_name(self, cdate):
         cdates = cdate.split('-')
