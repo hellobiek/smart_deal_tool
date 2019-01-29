@@ -238,7 +238,6 @@ def process_concurrent_run(mfunc, all_list, process_name = 2, num = 10, max_retr
         filename = "%s_%s.json" % (ct.FAILED_INFO_FILE, x)
         if os.path.exists(filename):
             with open(filename, 'rt') as f: d_list.extend(json.loads(json.load(f)))
-            os.remove(filename)
     if len(d_list) > 0: todo_list = d_list
     if len(todo_list) < process_name:
         return concurrent_run(mfunc, todo_list, num = process_name)
