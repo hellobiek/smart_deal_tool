@@ -134,7 +134,7 @@ class RIndexStock:
     def generate_all_data(self, cdate):
         from gevent.pool import Pool
         good_list = list()
-        obj_pool = Pool(1000)
+        obj_pool = Pool(4000)
         all_df = pd.DataFrame()
         failed_list = CStockInfo(redis_host = self.redis_host).get(redis = self.redis).code.tolist()
         cfunc = partial(self.get_stock_data, cdate)
@@ -186,4 +186,4 @@ class RIndexStock:
 
 if __name__ == '__main__':
     ris = RIndexStock(ct.OUT_DB_INFO, redis_host = '127.0.0.1')
-    ris.update(end_date = '2019-01-29', num = 500)
+    ris.update(end_date = '2019-01-29', num = 1000)

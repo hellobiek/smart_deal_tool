@@ -18,7 +18,7 @@ def get_data(start_date, end_date, selected = ['AAPL']):
     data.index = data.date
     return data
 
-def get_candle_features(df, target = 'return_t+1', remove_zero_days = True):
+def get_candle_features(df, target = 'return_t+3', remove_zero_days = True):
     cdl_methods = [m for m in dir(ta) if 'CDL' in m]
     df_cdl = pd.DataFrame(index = df.index)
     for mtd in cdl_methods:
@@ -42,11 +42,11 @@ def plot_res(ytrue, base_zero, base_avg, pred, name):
     plt.tight_layout()
     plt.savefig("/Users/hellobiek/Desktop/%s" % name)
 
-data = get_data(start_date = '2014-1-1', end_date = '2016-12-31')
-data = get_data()
+test_data = get_data(start_date = '2014-1-1', end_date = '2016-12-31')
+real_data = get_data(start_date = '2017-1-1', end_date = '2018-12-31')
 
-xtrain, ytrain = get_candle_features(data)
-xval, yval = get_candle_features(data)
+xtrain, ytrain = get_candle_features(test_data)
+xval, yval = get_candle_features(real_data)
 
 base_avg = np.ones(yval.shape) * ytrain.mean()
 base_zero = np.zeros(yval.shape)
@@ -54,4 +54,4 @@ base_zero = np.zeros(yval.shape)
 mdl = RandomForestRegressor(n_estimators = 10, n_jobs = 1)
 mdl.fit(xtrain, ytrain)
 res = mdl.predict(xval)
-plot_res(yval, base_zero, base_avg, res, "T+1")
+plot_res(yval, base_zero, base_avg, res, "T+3")
