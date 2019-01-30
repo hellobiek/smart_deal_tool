@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
 from sklearn.ensemble import RandomForestRegressor
 quandl.ApiConfig.api_key = 'oo_pjaFaPvQ2m2jb1T8t'
-def get_data(selected = ['KO']):
+def get_data(start_date, end_date, selected = ['AAPL']):
     data = quandl.get_table('WIKI/PRICES', ticker = selected,\
            qopts = {'columns': ['date', 'high', 'low', 'open', 'close', 'volume', 'adj_close']},\
-           date = {'gte': '2014-1-1', 'lte': '2016-12-31'}, paginate=True)
+           date = {'gte': start_date, 'lte': end_date}, paginate=True)
     data['return_t+1'] = data['adj_close'].pct_change(1).shift(-1) 
     data['return_t+3'] = data['adj_close'].pct_change(3).shift(-3) 
     data = data.iloc[:-5]
@@ -42,7 +42,9 @@ def plot_res(ytrue, base_zero, base_avg, pred, name):
     plt.tight_layout()
     plt.savefig("/Users/hellobiek/Desktop/%s" % name)
 
+data = get_data(start_date = '2014-1-1', end_date = '2016-12-31')
 data = get_data()
+
 xtrain, ytrain = get_candle_features(data)
 xval, yval = get_candle_features(data)
 
