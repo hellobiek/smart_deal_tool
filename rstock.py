@@ -161,8 +161,8 @@ class RIndexStock:
         count = 0
         for mdate in date_array:
             count += 1
-            print(count)
             if CCalendar.is_trading_day(mdate, redis = self.redis):
+                print(count)
                 if not self.set_day_data(mdate):
                     self.logger.error("set %s data for rstock failed" % mdate)
                     succeed = False
@@ -186,4 +186,4 @@ class RIndexStock:
 
 if __name__ == '__main__':
     ris = RIndexStock(ct.OUT_DB_INFO, redis_host = '127.0.0.1')
-    ris.update(end_date = '2019-01-29', num = 1000)
+    ris.update(end_date = '2019-01-30', num = 2000)
