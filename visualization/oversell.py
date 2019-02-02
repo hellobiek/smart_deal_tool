@@ -64,8 +64,6 @@ class OverSell():
             if x < 0 or x > len(date_tickers) - 1: return ''
             return date_tickers[int(x)]
         info = self.compute_stock_score(df)
-        import pdb
-        pdb.set_trace()
         candlestick_ohlc(self.price_ax, index_data.values, width = 1.0, colorup = 'r', colordown = 'g')
         self.ratio_ax.plot(info['date'], info['rate'], 'r',  label = "超跌系数", linewidth = 1)
         self.price_ax.xaxis.set_major_locator(mticker.MultipleLocator(20))
@@ -73,8 +71,8 @@ class OverSell():
         plt.show()
 
 if __name__ == '__main__':
-    start_date = '2013-12-29' 
-    end_date = '2019-01-29'
+    start_date = '2012-12-29' 
+    end_date = '2019-02-01'
     code = '000001'
     cbr = OverSell()
     cbr.plot(start_date, end_date, code)

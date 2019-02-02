@@ -138,6 +138,7 @@ class CIndex(CMysqlObj):
             df['weight'] = 1/len(df)
         if 'flag' not in df.columns:
             df['flag']   = 1
+        if self.code == "000001": df = df[df.code.str.startswith('6')]
         df = df.reset_index(drop = True)
 
         if is_df_has_unexpected_data(df):
