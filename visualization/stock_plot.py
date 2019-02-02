@@ -70,7 +70,7 @@ class CPlot():
             cdates = k_data.date.tolist()
             i_data = i_data.loc[i_data.date.isin(cdates)]
             i_data = i_data.reset_index(drop = True)
-            k_data = k_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount', 'outstanding', 'totals', 'adj', 'aprice', 'uprice', 'sprice', 'mprice', 'lprice']]
+            k_data = k_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount', 'outstanding', 'totals', 'adj', 'aprice', 'uprice', 'sprice', 'mprice', 'lprice', 'profit']]
             k_data = k_data.rename(columns = {"date": "time"})
             i_data = i_data[['date', 'open', 'high', 'low', 'close', 'volume', 'amount']]
             i_data = i_data.rename(columns = {"date": "time"})
@@ -101,7 +101,8 @@ class CPlot():
                 k_data = self.k_data.loc[(self.k_data.time >= start_date) & (self.k_data.time <= end_date)]
                 i_data = self.i_data.loc[(self.i_data.time >= start_date) & (self.i_data.time <= end_date)]
                 self.plot_stock(k_data)
-                self.plot_volume(k_data)
+                self.plot_base_profit(k_data)
+                #self.plot_volume(k_data)
                 self.plot_index(i_data)
                 self.plot_distribution(self.d_data, start_date)
                 self.fig.suptitle(self.code, color='k')
@@ -111,13 +112,26 @@ class CPlot():
             k_data = self.k_data.loc[self.k_data.time >= start_date]
             i_data = self.i_data.loc[self.i_data.time >= start_date]
             self.plot_stock(k_data)
-            self.plot_volume(k_data)
+            self.plot_base_profit(k_data)
+            #self.plot_volume(k_data)
             self.plot_index(i_data)
             self.plot_distribution(self.d_data, start_date)
             self.fig.suptitle(self.code, color='k')
             self.fig.autofmt_xdate()
         self.press = None
         self.release = None
+
+    def plot_base_profit(self, k_data):
+        self.profitMin = k_data.profit.values.min()
+        self.profitMax = k_data.profit.values.max()
+        self.volume_ax.set_ylim(self.profitMin, self.profitMax)
+        self.price_ax.xaxis.set_major_locator(mticker.MultipleLocator(250))
+        self.price_ax.xaxis.set_major_formatter(mticker.FuncFormatter(self.format_date))
+        self.volume_ax.yaxis.label.set_color("k")
+        self.volume_ax.set_ylabel("volumes")
+        self.volume_ax.fill_between(k_data.time, 0, k_data.profit, where = k_data.profit >= 0, facecolor = 'r', alpha = 1)
+        self.volume_ax.fill_between(k_data.time, 0, k_data.profit, where = k_data.profit < 0, facecolor = 'g', alpha = 1)
+        self.volume_ax.grid(True, color = 'k', linestyle = '--')
 
     def plot_volume(self, k_data):
         self.volumeMax = k_data.volume.values.max()
@@ -148,10 +162,10 @@ class CPlot():
         self.dateMin  = k_data.time.values.min()
         self.dateMax  = k_data.time.values.max()
         candlestick_ohlc(self.price_ax, k_data.values, width = 1.0, colorup = 'r', colordown = 'g')
-        self.price_ax.plot(k_data.time, k_data['uprice'], 'r',  label = "无穷成本均线", linewidth = 1)
-        self.price_ax.plot(k_data.time, k_data['sprice'], 'g',  label = "5日成本均线", linewidth = 1)
-        self.price_ax.plot(k_data.time, k_data['mprice'], 'b',  label = "13日成本均线", linewidth = 1)
-        self.price_ax.plot(k_data.time, k_data['lprice'], 'y',  label = "37日成本均线", linewidth = 1)
+        self.price_ax.plot(k_data.time, k_data['uprice'], 'b',  label = "无穷成本均线", linewidth = 1)
+        #self.price_ax.plot(k_data.time, k_data['sprice'], 'g',  label = "5日成本均线", linewidth = 1)
+        #self.price_ax.plot(k_data.time, k_data['mprice'], 'r',  label = "13日成本均线", linewidth = 1)
+        #self.price_ax.plot(k_data.time, k_data['lprice'], 'y',  label = "37日成本均线", linewidth = 1)
         self.price_ax.set_ylabel("prices")
         self.price_ax.yaxis.label.set_color('k')
         self.price_ax.set_xlim(self.dateMin, self.dateMax)
@@ -177,7 +191,8 @@ class CPlot():
 
     def plot(self):
         self.plot_stock(self.k_data)
-        self.plot_volume(self.k_data)
+        self.plot_base_profit(self.k_data)
+        #self.plot_volume(self.k_data)
         self.plot_index(self.i_data)
         self.plot_distribution(self.d_data, 0)
         self.fig.suptitle(self.code, color='k')
@@ -185,5 +200,5 @@ class CPlot():
         plt.show()
 
 if __name__ == '__main__':
-    cp = CPlot('002690')
+    cp = CPlot('600268')
     cp.plot()

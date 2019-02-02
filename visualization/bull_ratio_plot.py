@@ -63,16 +63,14 @@ class CBullRation():
         return pd.DataFrame(info)
 
     def plot(self, start_date, end_date, index_code):
-        index_data = self.get_index_data(start_date, end_date, index_code)
-        uprice_df = self.get_data(start_date, end_date)
         code_list = self.get_components(index_code, end_date)
+        uprice_df = self.get_data(start_date, end_date)
+        index_data = self.get_index_data(start_date, end_date, index_code)
         date_tickers = index_data.date.tolist()
         def _format_date(x, pos = None):
             if x < 0 or x > len(date_tickers) - 1: return ''
             return date_tickers[int(x)]
         info = self.get_bull_ratios(uprice_df, code_list)
-        import pdb
-        pdb.set_trace()
         candlestick_ohlc(self.price_ax, index_data.values, width = 1.0, colorup = 'r', colordown = 'g')
         self.ratio_ax.plot(info['date'], info['rate'], 'r',  label = "uprice 成本均线", linewidth = 1)
         self.price_ax.xaxis.set_major_locator(mticker.MultipleLocator(20))
@@ -81,7 +79,7 @@ class CBullRation():
 
 if __name__ == '__main__':
     start_date = '2014-08-18' 
-    end_date = '2019-01-01'
+    end_date = '2019-02-01'
     code = '399006'
     cbr = CBullRation()
     cbr.plot(start_date, end_date, code)
