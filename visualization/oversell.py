@@ -49,14 +49,13 @@ class OverSell():
             total_num = len(df)
             oversell_code_list = self.get_oversell_stocks(df)
             oversold_num = len(oversell_code_list)
-            #oversell_ratio += 100 * oversold_num / total_num
             oversell_ratio = 100 * oversold_num / total_num
             date_list.append(cdate)
             rate_list.append(oversell_ratio)
             code_list.append(oversell_code_list)
         info = {'date':date_list, 'rate':rate_list, 'code':code_list}
         df = pd.DataFrame(info)
-        return pd.DataFrame(info)
+        return df
 
     def plot(self, start_date, end_date, index_code):
         df, index_data = self.get_data(start_date, end_date, index_code)
@@ -65,6 +64,8 @@ class OverSell():
             if x < 0 or x > len(date_tickers) - 1: return ''
             return date_tickers[int(x)]
         info = self.compute_stock_score(df)
+        import pdb
+        pdb.set_trace()
         candlestick_ohlc(self.price_ax, index_data.values, width = 1.0, colorup = 'r', colordown = 'g')
         self.ratio_ax.plot(info['date'], info['rate'], 'r',  label = "超跌系数", linewidth = 1)
         self.price_ax.xaxis.set_major_locator(mticker.MultipleLocator(20))
@@ -72,9 +73,8 @@ class OverSell():
         plt.show()
 
 if __name__ == '__main__':
-    start_date = '2014-12-29' 
+    start_date = '2013-12-29' 
     end_date = '2019-01-29'
     code = '000001'
     cbr = OverSell()
-    #cbr.is_market_oversell(start_date, end_date, code)
     cbr.plot(start_date, end_date, code)
