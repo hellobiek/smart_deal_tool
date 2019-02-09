@@ -23,7 +23,7 @@ class RIndexStock:
         self.redis_host = redis_host
         self.logger = getLogger(__name__)
         self.mysql_client = CMySQL(dbinfo, self.dbname, iredis = self.redis)
-        if not self.mysql_client.create_db(self.get_dbname()): raise Exception("init rindex stock database failed")
+        if not self.mysql_client.create_db(self.get_dbname()): raise Exception("init rstock database failed")
 
     @staticmethod
     def get_dbname():

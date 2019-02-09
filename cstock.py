@@ -92,7 +92,6 @@ class CStock(CMysqlObj):
         data['adj'] = 1.0
         data['preclose'] = data['close'].shift(1)
         data.at[0, 'preclose'] = data.loc[0, 'open']
-        #if 0 == len(info): return data
         for info_index, start_date in info.date.iteritems():
             dates = data.loc[data.date <= start_date].index.tolist()
             if len(dates) == 0 : continue
@@ -102,7 +101,10 @@ class CStock(CMysqlObj):
             count = info.loc[info_index, 'count']   #转送股数量
             start_index = dates[len(dates) - 1]
             adj = (data.loc[start_index, 'preclose'] * 10 - money + rate * price) / ((10 + rate + count) * data.loc[start_index, 'preclose'])
-            data.at[:start_index - 1, 'adj'] = data.loc[:start_index - 1, 'adj'] * adj
+            if start_date == data['date'][start_index]:
+                data.at[:start_index - 1, 'adj'] = data.loc[:start_index - 1, 'adj'] * adj
+            else:
+                data.at[:start_index, 'adj'] = data.loc[:start_index, 'adj'] * adj
         return data
 
     def has_on_market(self, cdate):
@@ -382,7 +384,7 @@ class CStock(CMysqlObj):
         if df.empty: 
             logger.error("adjust share %s failed" % self.code)
             return False
-
+        
         df = self.qfq(df, price_change_info)
         if df.empty: 
             logger.error("qfq %s failed" % self.code)
@@ -655,9 +657,9 @@ if __name__ == '__main__':
     from cindex import CIndex
     index_info = CIndex('000001').get_k_data(cdate)
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    cstock = CStock('600268')
+    cstock = CStock('600682')
     logger.info("start compute")
-    #cstock.set_k_data(bonus_info, index_info)
-    #logger.info("enter set base floating profit")
+    cstock.set_k_data(bonus_info, index_info)
+    logger.info("enter set base floating profit")
     cstock.set_base_floating_profit()
     logger.info("end compute")

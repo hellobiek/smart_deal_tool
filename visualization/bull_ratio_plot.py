@@ -78,7 +78,7 @@ class CBullRation():
         plt.show()
 
 if __name__ == '__main__':
-    start_date = '2014-08-18' 
+    start_date = '2017-06-09' 
     end_date = '2019-02-01'
     code = '399006'
     cbr = CBullRation()
