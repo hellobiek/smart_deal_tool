@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import scrapy
-from items import ShiborItem
+from dspider.items import ShiborItem
 
 #define rate name to xpath 
 rate_type_to_path={

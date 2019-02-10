@@ -4,7 +4,7 @@
 #
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
-import poster, items
+from dspider import poster, items
 post_router = {
     items.InvestorSituationItem:poster.InvestorSituationItemPoster
 }

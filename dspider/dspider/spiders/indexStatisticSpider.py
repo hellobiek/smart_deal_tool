@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import scrapy
-from items import IndexStatisticItem
+from dspider.items import IndexStatisticItem
 
 def linesToDict(lines):
     """

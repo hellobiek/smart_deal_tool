@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 import scrapy
-from items import FoundationBriefItem
-class FoundationspiderSpider(scrapy.Spider):
+from dspider.items import FoundationBriefItem
+
+class FoundationSpider(scrapy.Spider):
     name = 'foundationSpider'
     allowed_domains = ['www.cninfo.com.cn']
     start_urls = ['http://www.cninfo.com.cn/cninfo-new/index']
-
     def parse_foundation_brief(self,response):
         #基金代码、基金名称所在的xpath
         foundation_code_and_name_xpath="//*[@id='cninfoform']/table/tr/td[1]/text()"

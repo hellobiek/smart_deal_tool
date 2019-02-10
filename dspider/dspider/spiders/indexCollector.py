@@ -2,7 +2,7 @@
 import scrapy
 import json
 import datetime
-from items import IndexCollectorItem
+from dspider.items import IndexCollectorItem
 
 #定义键值的映射关系
 kvmaping={

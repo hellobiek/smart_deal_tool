@@ -200,5 +200,5 @@ class CPlot():
         plt.show()
 
 if __name__ == '__main__':
-    cp = CPlot('600682')
+    cp = CPlot('300333')
     cp.plot()
