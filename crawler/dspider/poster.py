@@ -5,8 +5,10 @@ sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import pymysql
 import pymysql.cursors
 import const as ct
+from log import getLogger
 from twisted.enterprise import adbapi
 from investor import InvestorCrawler
+from pymysql.err import IntegrityError
 class Poster(object):
     def __init__(self, item):
         self.item = item
@@ -22,12 +24,14 @@ class Poster(object):
 class InvestorSituationItemPoster(Poster):
     def __init__(self, item, dbinfo = ct.DB_INFO):
         self.item = item
+        self.logger = getLogger(__name__)
         self.dbname = InvestorCrawler.get_dbname()
         self.table = InvestorCrawler.get_table_name()
         self.dbpool = adbapi.ConnectionPool("pymysql", host = dbinfo['host'], db = self.dbname, user = dbinfo['user'], password = dbinfo['password'], charset = "utf8", cursorclass = pymysql.cursors.DictCursor, use_unicode = True)
 
     def on_error(self, failure):
-        print(failure)
+        if not (failure.type == IntegrityError and failure.value.args[0] == 1062):
+            print(failure.type, failure.value, failure.getTraceback())
 
     def store(self):
         query = self.dbpool.runInteraction(self.do_insert, self.item)

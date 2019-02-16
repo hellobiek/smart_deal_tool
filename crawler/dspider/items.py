@@ -13,7 +13,7 @@ class DspiderItem(scrapy.Item):
     pass
 
 class InvestorSituationItem(DspiderItem):
-    push_date                = scrapy.Field()
+    date                     = scrapy.Field()
     new_investor             = scrapy.Field()
     final_investor           = scrapy.Field()
     new_natural_person       = scrapy.Field()
@@ -22,14 +22,15 @@ class InvestorSituationItem(DspiderItem):
     final_non_natural_person = scrapy.Field()
     unit                     = scrapy.Field()
     def convert(self):
-        dc = dict(self)
-        #定义要做数据类型转换的k值，把str 转换成float
         res = {}
+        dc = dict(self)
         ks = ['new_investor','final_investor','new_natural_person','new_non_natural_person','final_natural_person','final_non_natural_person']
+        for k in ks:
+            if '-' == dc[k]: dc[k] = '0'
         if '万' in dc['unit']:
             for k in ks:
                 res[k] = float(dc[k].replace(',','')) * 10000
-            res['date'] = dc['push_date']
+        res['date'] = dc['date']
         return res
 
     def get_insert_sql(self, table):

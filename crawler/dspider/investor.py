@@ -4,7 +4,6 @@ from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
 import const as ct
-from log import getLogger
 from cmysql import CMySQL
 from common import create_redis_obj
 from twisted.internet import reactor
@@ -13,7 +12,6 @@ from scrapy.utils.project import get_project_settings
 from dspider.spiders.investorSituationSpider import InvestorSituationSpider
 class InvestorCrawler(object):
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
-        self.logger = getLogger(__name__)
         self.dbname = self.get_dbname()
         self.table = self.get_table_name()
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
@@ -46,7 +44,7 @@ class InvestorCrawler(object):
         myrunner.crawl(InvestorSituationSpider)
         d = myrunner.join()
         d.addBoth(lambda _: reactor.stop())
-        reactor.run() # the script will block here until the crawling is finished
+        reactor.run() #the script will block here until the crawling is finished
 
 if __name__ == '__main__':
     ic = InvestorCrawler()
