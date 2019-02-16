@@ -102,6 +102,7 @@ class CLimit:
             return
 
         limit_up_json_obj = self.convert_to_json(data)
+
         limit_up_df = pd.DataFrame(limit_up_json_obj, columns=self.get_columns(table))
         limit_up_df = limit_up_df[self.get_useful_columns(table)]
 
@@ -133,13 +134,13 @@ class CLimit:
         if df_up is None or df_down is None: 
             return False
         
-        df = pd.concat([df_up, df_down])
+        df = pd.concat([df_up, df_down], sort=True)
 
         if df.empty: 
             return False
 
         df = df.reset_index(drop = True)
-        df.columns = ['code', 'price', 'pchange', 'prange', 'fcb', 'flb', 'fdmoney', 'first_time', 'last_time', 'open_times', 'intensity', 'concept']
+        df.columns = ['code', 'price', 'pchange', 'prange', 'fcb', 'flb', 'fdmoney', 'concept', 'last_time', 'open_times', 'intensity', 'first_time']
         df['date'] = cdate
         if self.mysql_client.set(df, self.table):
             return self.redis.sadd(self.table, cdate)

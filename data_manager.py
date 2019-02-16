@@ -450,11 +450,11 @@ class DataManager:
             return False
  
 if __name__ == '__main__':
-    from cmysql import CMySQL
-    mysql_client = CMySQL(dbinfo = ct.DB_INFO)
-    mysql_client.delete_db(ct.RINDEX_STOCK_INFO_DB)
-    import sys
-    sys.exit(0)
+    #from cmysql import CMySQL
+    #mysql_client = CMySQL(dbinfo = ct.DB_INFO)
+    #mysql_client.delete_db(ct.RINDEX_STOCK_INFO_DB)
+    #import sys
+    #sys.exit(0)
     #for code in IndustryInfo().get().code.tolist():
     #    print(code)
     #    mysql_client.delete_db('i%s' % code)
@@ -474,5 +474,5 @@ if __name__ == '__main__':
     dm = DataManager()
     dm.logger.info("start compute!")
     #dm.bootstrap(exec_date = '2019-01-25')
-    dm.bootstrap(cdate='2019-02-01', exec_date = '2019-02-01')
+    dm.bootstrap(cdate='2019-02-15', exec_date = '2019-02-15')
     dm.logger.info("end compute!")

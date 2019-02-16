@@ -186,4 +186,4 @@ class RIndexStock:
 
 if __name__ == '__main__':
     ris = RIndexStock(ct.OUT_DB_INFO, redis_host = '127.0.0.1')
-    ris.update(end_date = '2019-02-01', num = 2200)
+    ris.update(end_date = '2019-02-15', num = 3700)
