@@ -12,6 +12,11 @@ class DspiderItem(scrapy.Item):
     # name = scrapy.Field()
     pass
 
+class SPledgeSituationItem(DspiderItem):
+    files = scrapy.Field()
+    file_urls = scrapy.Field()
+    file_name = scrapy.Field()
+
 class InvestorSituationItem(DspiderItem):
     date                     = scrapy.Field()
     new_investor             = scrapy.Field()

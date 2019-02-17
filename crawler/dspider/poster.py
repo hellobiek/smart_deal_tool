@@ -13,6 +13,7 @@ class Poster(object):
     def __init__(self, item):
         self.item = item
         self.table = ''
+        self.logger = getLogger(__name__)
 
     def do_insert(self, cursor, item):
         insert_sql, params = item.get_insert_sql(self.table)
@@ -21,17 +22,22 @@ class Poster(object):
     def store(self):
         print(self.item.convert())
 
+class SPledgeSituationItemPoster(Poster):
+    def __init__(self, item):
+        self.item = item
+
+    def store(self):
+        pass
+
 class InvestorSituationItemPoster(Poster):
     def __init__(self, item, dbinfo = ct.DB_INFO):
-        self.item = item
-        self.logger = getLogger(__name__)
         self.dbname = InvestorCrawler.get_dbname()
         self.table = InvestorCrawler.get_table_name()
         self.dbpool = adbapi.ConnectionPool("pymysql", host = dbinfo['host'], db = self.dbname, user = dbinfo['user'], password = dbinfo['password'], charset = "utf8", cursorclass = pymysql.cursors.DictCursor, use_unicode = True)
 
     def on_error(self, failure):
         if not (failure.type == IntegrityError and failure.value.args[0] == 1062):
-            print(failure.type, failure.value, failure.getTraceback())
+            self.logger.error(failure.type, failure.value, failure.getTraceback())
 
     def store(self):
         query = self.dbpool.runInteraction(self.do_insert, self.item)

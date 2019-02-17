@@ -14,7 +14,6 @@ BOT_NAME = 'dspider'
 SPIDER_MODULES = ['dspider.spiders']
 NEWSPIDER_MODULE = 'dspider.spiders'
 
-
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'dspider (+http://www.yourdomain.com)'
 
@@ -65,8 +64,11 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See https://doc.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    'dspider.pipelines.DspiderPipeline': 3
+    'dspider.pipelines.SPledgePipline': 1,
+    'dspider.pipelines.DspiderPipeline': 3,
 }
+
+FILES_STORE = '/data/tdx/history/weeks/pledge'
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://doc.scrapy.org/en/latest/topics/autothrottle.html
