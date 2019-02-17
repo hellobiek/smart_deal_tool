@@ -398,17 +398,32 @@ class FinancialAnalysis():
         return None if cdate not in all_date_list else self.parse(cdate)
 
 if __name__ == "__main__":
+    filepath = "/Volumes/data/quant/stock/data/tdx/history/weeks/pledge/20190210_20190216.xls"
+    index_list = [1, 2, 3, 4, 5, 6, 7, 8]
+    name_list = ['date', 'code', 'name', 'counts', 'unlimited', 'limited', 'total', 'ratio'] 
+    pledge_df = pd.read_excel(filepath, sheet_name = 0, skiprows = 2, header = 0, usecols = index_list, names = name_list)
+    pledge_df.code = pledge_df.code.astype(str).str.zfill(6)
+
     fa = FinancialAnalysis()
     results = fa.report_list(cdate = '2018-09-30')
     df = fa.to_df(results)
-    df = df[['code', 'col11', 'col13', 'col24', 'col74', 'col197', 'col213']]
+
+    df = df[['code', 'col11', 'col13', 'col24', 'col74', 'col197', 'col210', 'col213']]
     df['应收账款率'] = 100 * (df['col11'] + df['col13']) / df['col74']
-    df = df[(df['col197'] > 5) & (df['col213'] < 30) & (df['col213'] > 0) & (df['应收账款率'] < 30)]
+    df = df[(df['col197'] > 10) & (df['col213'] < 30) & (df['col213'] > 0) & (df['应收账款率'] < 30) & (df['col210'] < 30)]
     df = df.reset_index(drop = True)
+    xdf_codelist = df.code.tolist()
+    ydf = pledge_df[pledge_df['ratio'] < 15]
+    ydf_codelist = ydf.code.tolist()
+    code_list = list(set(xdf_codelist).intersection(set(ydf_codelist)))
+
     #净资产收益率 = df.loc[df.code == code, 'col197']
     #应收账款周转率 = df.loc[df.code == code, 'col172']
-    #74.--其中：营业收入
     #11.--应收账款
     #13.--其他应收款
     #24.--长期应收款
-    fa.plot(df)
+    #74.--其中：营业收入
+    #197.--净资产收益率
+    #210.--资产负债率(%)
+    #213.--存货比率(非金融类指标)
+    #fa.plot(df)
