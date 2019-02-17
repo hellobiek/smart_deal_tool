@@ -41,8 +41,8 @@ def cyappend(array.array arr, long x):
     res.append(x)
     return res
 
-def shift(np.ndarray[long] arr, int num, fill_value = 0):
-    cdef np.ndarray result = np.empty_like(arr, dtype = long)
+def shift(np.ndarray[np.int32_t] arr, int num, fill_value = 0):
+    cdef np.ndarray result = np.empty_like(arr, dtype = np.int32)
     if num > 0:
         result[:num] = fill_value
         result[num:] = arr[:-num]
@@ -54,10 +54,10 @@ def shift(np.ndarray[long] arr, int num, fill_value = 0):
     return result
 
 def get_breakup_data(np.ndarray df):
-    cdef np.ndarray[long] pos_array = np.zeros(len(df), dtype = long)
+    cdef np.ndarray[np.int32_t] pos_array = np.zeros(len(df), dtype = np.int32)
     pos_array[df.close > df.uprice] = 1
     pos_array[df.close < df.uprice] = -1
-    cdef np.ndarray[long] pre_pos_array = shift(pos_array, 1)
+    cdef np.ndarray[np.int32_t] pre_pos_array = shift(pos_array, 1)
     cdef np.ndarray[np.int32_t] break_array = np.zeros(len(df), dtype=np.int32)
     break_array[np.where((pre_pos_array <= 0) & (pos_array > 0))] = 1
     break_array[np.where((pre_pos_array >= 0) & (pos_array < 0))] = -1
@@ -85,7 +85,7 @@ def get_effective_breakup_index(np.ndarray[long] break_index_lists, np.ndarray d
                     pre_break_index_value = -1
             else:
                 if break_index_lists[break_index + 1] - break_index_lists[break_index] > PRE_DAYS_NUM:
-                    if pre_break_index_value * break_array[break_index] <= 0:
+                    if pre_break_index_value * break_array[break_index] < 0:
                         df['breakup'][break_index_lists[break_index]] = break_array[break_index] 
                         effective_breakup_index_list = cyappend(effective_breakup_index_list, break_index_lists[break_index])
                         pre_break_index_value = -1 * break_array[break_index]

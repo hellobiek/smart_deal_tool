@@ -50,7 +50,9 @@ class CBullRation():
         code_list = list()
         date_list = list()
         rate_list = list()
+        import pdb
         for cdate, df in data.groupby(data.date):
+            pdb.set_trace()
             df = df[df.code.isin(ccode_list)]
             profit_code_list = self.get_profit_stocks(df)
             bull_stock_num = len(profit_code_list)
@@ -60,10 +62,11 @@ class CBullRation():
             code_list.append(profit_code_list)
         info = {'date':date_list, 'rate':rate_list, 'code':code_list}
         df = pd.DataFrame(info)
+        pdb.set_trace()
         return pd.DataFrame(info)
 
     def plot(self, start_date, end_date, index_code):
-        code_list = self.get_components(index_code, end_date)
+        code_list = self.get_components(index_code, '2019-02-15')
         uprice_df = self.get_data(start_date, end_date)
         index_data = self.get_index_data(start_date, end_date, index_code)
         date_tickers = index_data.date.tolist()
@@ -79,7 +82,7 @@ class CBullRation():
 
 if __name__ == '__main__':
     start_date = '2007-06-29' 
-    end_date = '2019-02-15'
+    end_date = '2008-01-01'
     code = '000001'
     cbr = CBullRation()
     cbr.plot(start_date, end_date, code)

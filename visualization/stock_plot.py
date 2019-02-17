@@ -13,7 +13,6 @@ from matplotlib import dates as mdates
 from matplotlib import ticker as mticker
 from matplotlib.widgets import MultiCursor
 from matplotlib.dates import DateFormatter
-
 class CPlot():
     def __init__(self, code, index_code = '000001'):
         self.code = code
@@ -200,5 +199,5 @@ class CPlot():
         plt.show()
 
 if __name__ == '__main__':
-    cp = CPlot('300333')
+    cp = CPlot('601988')
     cp.plot()
