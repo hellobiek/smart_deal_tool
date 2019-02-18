@@ -26,6 +26,7 @@ from combination import Combination
 from industry_info import IndustryInfo
 from datamanager.margin  import Margin
 from datamanager.emotion import Emotion
+from datamanager.bull_stock_ratio import BullStockRatio
 from datamanager.hgt import StockConnect
 from datamanager.sexchange import StockExchange
 from rindustry import RIndexIndustryInfo
@@ -280,11 +281,17 @@ class DataManager:
                 return False
             self.set_update_info(17, exec_date, cdate)
 
-        #if finished_step < 18:
-        #    if not self.rindex_stock_data_client.update(exec_date, num = 325):
-        #        self.logger.error("rstock data set failed")
-        #        return False
-        #    self.set_update_info(18, exec_date, cdate)
+        if finished_step < 18:
+            if not self.rindex_stock_data_client.update(exec_date, num = 30):
+                self.logger.error("rstock data set failed")
+                return False
+            self.set_update_info(18, exec_date, cdate)
+
+        if finished_step < 18:
+            if not self.set_bull_stock_ratio(exec_date, num = 30):
+                self.logger.error("bull ratio set failed")
+                return False
+            self.set_update_info(18, exec_date, cdate)
         self.logger.info("updating succeed")
         return True
         
@@ -413,6 +420,11 @@ class DataManager:
             _obj = self.index_objs[code_id] if code_id in self.index_objs else CIndex(code_id)
             return (code_id, _obj.set_components_data(cdate))
         return concurrent_run(_set_index_info, list(ct.INDEX_DICT.keys()), num = 10)
+
+    def set_bull_stock_ratio(self, cdate):
+        def _set_bull_stock_ratio(code_id):
+            return (code_id, BullStockRatio(code_id).update(cdate))
+        return concurrent_run(_set_bull_stock_ratio, list(ct.INDEX_DICT.keys()), num = 10)
 
     def init_tdx_index_info(self, cdate = None):
         def _set_index_info(cdate, code_id):

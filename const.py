@@ -145,6 +145,7 @@ const.ANIMATION_INFO = 'animation'
 const.INDUSTRY_INFO = 'industry'
 #############################
 const.EMOTION_TABLE = 'emotion'
+const.BULLSTOCKRATIO_TABLE = 'bull_stock_ratio'
 #############################
 const.REDIS_HOST = 'redis-container'
 const.REDIS_PORT = 6379

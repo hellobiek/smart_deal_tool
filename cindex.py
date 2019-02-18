@@ -110,7 +110,9 @@ class CIndex(CMysqlObj):
         return True if table_name in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table_name)
 
     def get_components_data(self, cdate = datetime.now().strftime('%Y-%m-%d')):
-        sql = "select * from %s where date=\"%s\"" % (self.get_components_table_name(cdate), cdate)
+        table_name = self.get_components_table_name(cdate)
+        if not self.is_table_exists(table_name): return pd.DataFrame()
+        sql = "select * from %s where date=\"%s\"" % (table_name, cdate)
         return self.mysql_client.get(sql)
 
     def set_components_data(self, cdate = datetime.now().strftime('%Y-%m-%d')):
