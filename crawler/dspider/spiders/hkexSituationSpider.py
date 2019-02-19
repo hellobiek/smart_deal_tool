@@ -13,8 +13,9 @@ class HkexSpider(scrapy.Spider):
             'dspider.pipelines.DspiderPipeline': 2
         }
     }
+
     def start_requests(self):
-        cdate = datetime(2017, 1, 1)
+        cdate = datetime(2018, 2, 18)
         matching_url = "https://sc.hkex.com.hk/TuniS/www.hkex.com.hk/chi/csm/DailyStat/data_tab_daily_{}c.js"
         while cdate < datetime.now():  # 自己控制下时间范围
             cdate += timedelta(days=1)

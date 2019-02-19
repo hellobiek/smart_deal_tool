@@ -90,3 +90,6 @@ FILES_STORE = '/data/tdx/history/weeks/pledge'
 #HTTPCACHE_DIR = 'httpcache'
 #HTTPCACHE_IGNORE_HTTP_CODES = []
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
+RANDOM_DELAY = 5
+DOWNLOAD_TIMEOUT = 5
+CLOSESPIDER_TIMEOUT = 82800

@@ -58,7 +58,7 @@ class HkexTradeTopTenItem(DspiderItem):
         dc = dict(self)
         ks = ['total_turnover', 'buy_turnover', 'sell_turnover']
         for k in ks:
-            dc[k] = float(dc[k].replace(',',''))
+            dc[k] = 0 if '-' == dc[k] else float(dc[k].replace(',',''))
         return dc
 
     def get_insert_sql(self, table):
@@ -84,7 +84,7 @@ class HkexTradeOverviewItem(DspiderItem):
         dc = dict(self)
         ks = ['total_turnover', 'buy_turnover', 'sell_turnover', 'total_trade_count', 'buy_trade_count', 'sell_trade_count']
         for k in ks:
-            dc[k] = float(dc[k].replace(',',''))
+            dc[k] = 0 if '-' == dc[k] else float(dc[k].replace(',',''))
         return dc
 
     def get_insert_sql(self, table):

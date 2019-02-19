@@ -10,18 +10,20 @@ from twisted.enterprise import adbapi
 from hkex import HkexCrawler
 from investor import InvestorCrawler
 from pymysql.err import OperationalError, InterfaceError, DataError, InternalError, IntegrityError
+
+logger = getLogger(__name__)
+
 class Poster(object):
     def __init__(self, item):
         self.item = item
         self.table = ''
-        self.logger = getLogger(__name__)
 
     def do_insert(self, cursor, item):
         insert_sql, params = item.get_insert_sql(self.table)
         cursor.execute(insert_sql, params)
 
     def store(self):
-        print(self.item.convert())
+        pass
 
 def get_hk_dbname(market, direction):
     dbname = ''
@@ -38,6 +40,7 @@ def get_hk_dbname(market, direction):
 class HkexTradeOverviewPoster(Poster):
     def __init__(self, item, dbinfo = ct.DB_INFO):
         super(HkexTradeOverviewPoster, self).__init__(item)
+        self.mysql_reconnect_wait = 60
         self.dbname = get_hk_dbname(market = item['market'], direction = item['direction'])
         self.table = HkexCrawler.get_capital_table(self.dbname)
         self.dbpool = adbapi.ConnectionPool("pymysql", host = dbinfo['host'], db = self.dbname, user = dbinfo['user'], password = dbinfo['password'], charset = "utf8", cursorclass = pymysql.cursors.DictCursor, use_unicode = True)
@@ -49,7 +52,7 @@ class HkexTradeOverviewPoster(Poster):
             # <class 'pymysql.err.OperationalError'> (2013, 'Lost connection to MySQL server during query ([Errno 110] Connection timed out)')
             # <class 'pymysql.err.OperationalError'> (2003, "Can't connect to MySQL server on '127.0.0.1' ([WinError 10061] 由于目标计算机积极拒绝，无法连接。)")
             # <class 'pymysql.err.InterfaceError'> (0, '')    # after crawl started: sudo service mysqld stop
-            self.logger.info('MySQL: exception {} {}, Trying to recommit in {} sec'.format(failure.type, args, self.mysql_reconnect_wait)) 
+            logger.info('MySQL: exception {} {}, Trying to recommit in {} sec'.format(failure.type, args, self.mysql_reconnect_wait)) 
             # https://twistedmatrix.com/documents/12.1.0/core/howto/time.html
             from twisted.internet import task
             from twisted.internet import reactor
@@ -58,17 +61,17 @@ class HkexTradeOverviewPoster(Poster):
         elif failure.type in [DataError, InternalError]:
             # <class 'pymysql.err.DataError'> (1264, "Out of range value for column 'position_id' at row 2")
             # <class 'pymysql.err.InternalError'> (1292, "Incorrect date value: '1977-06-31' for column 'release_day' at row 26")
-            self.logger.warn('MySQL: {} {} exception from item {}'.format(failure.type, args, item))
+            logger.warn('MySQL: {} {} exception from item {}'.format(failure.type, args, item))
             #self.store()
             return
         elif failure.type in [IntegrityError]:    
             # <class 'pymysql.err.IntegrityError'> (1048, "Column 'name' cannot be null") films 43894
             if failure.value.args[0] != 1062:
-                self.logger.warn('MySQL: {} {} exception from some items'.format(failure.type, args))
+                logger.warn('MySQL: {} {} exception from some items'.format(failure.type, args))
                 #self.store()
             return
         else:
-            self.logger.error('MySQL: {} {} unhandled exception'.format(failure.type, args))
+            logger.error('MySQL: {} {} unhandled exception'.format(failure.type, args))
             return
 
     def store(self):
@@ -90,7 +93,7 @@ class HkexTradeTopTenItemPoster(Poster):
             # <class 'pymysql.err.OperationalError'> (2013, 'Lost connection to MySQL server during query ([Errno 110] Connection timed out)')
             # <class 'pymysql.err.OperationalError'> (2003, "Can't connect to MySQL server on '127.0.0.1' ([WinError 10061] 由于目标计算机积极拒绝，无法连接。)")
             # <class 'pymysql.err.InterfaceError'> (0, '')    # after crawl started: sudo service mysqld stop
-            self.logger.info('MySQL: exception {} {}, Trying to recommit in {} sec'.format(failure.type, args, self.mysql_reconnect_wait)) 
+            logger.info('MySQL: exception {} {}, Trying to recommit in {} sec'.format(failure.type, args, self.mysql_reconnect_wait)) 
             # https://twistedmatrix.com/documents/12.1.0/core/howto/time.html
             from twisted.internet import task
             from twisted.internet import reactor
@@ -100,16 +103,16 @@ class HkexTradeTopTenItemPoster(Poster):
             # <class 'pymysql.err.DataError'> (1264, "Out of range value for column 'position_id' at row 2")
             # <class 'pymysql.err.InternalError'> (1292, "Incorrect date value: '1977-06-31' for column 'release_day' at row 26")
             if failure.value.args[0] != 1062:
-                self.logger.warn('MySQL: {} {} exception from item {}'.format(failure.type, args, item))
+                logger.warn('MySQL: {} {} exception from item {}'.format(failure.type, args, item))
                 #self.store()
             return
         elif failure.type in [IntegrityError]:    
             # <class 'pymysql.err.IntegrityError'> (1048, "Column 'name' cannot be null") films 43894
-            self.logger.warn('MySQL: {} {} exception from some items'.format(failure.type, args))
+            logger.warn('MySQL: {} {} exception from some items'.format(failure.type, args))
             #self.store()
             return
         else:
-            self.logger.error('MySQL: {} {} unhandled exception'.format(failure.type, args))
+            logger.error('MySQL: {} {} unhandled exception'.format(failure.type, args))
             return
 
     def store(self):
@@ -128,7 +131,7 @@ class InvestorSituationItemPoster(Poster):
 
     def on_error(self, failure):
         if not (failure.type == IntegrityError and failure.value.args[0] == 1062):
-            self.logger.error(failure.type, failure.value, failure.getTraceback())
+            logger.error(failure.type, failure.value, failure.getTraceback())
 
     def store(self):
         query = self.dbpool.runInteraction(self.do_insert, self.item)
