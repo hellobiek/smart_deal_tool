@@ -4,14 +4,16 @@
 #
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: https://doc.scrapy.org/en/latest/topics/item-pipeline.html
-from scrapy import Request
 from dspider import items
+from scrapy import Request
 import dspider.poster as poster
 from scrapy.pipelines.files import FilesPipeline
 
 post_router={
     items.SPledgeSituationItem:poster.SPledgeSituationItemPoster,
-    items.InvestorSituationItem:poster.InvestorSituationItemPoster
+    items.InvestorSituationItem:poster.InvestorSituationItemPoster,
+    items.HkexTradeOverviewItem:poster.HkexTradeOverviewPoster,
+    items.HkexTradeTopTenItem:poster.HkexTradeTopTenItemPoster,
 }
 
 class DspiderPipeline(object):

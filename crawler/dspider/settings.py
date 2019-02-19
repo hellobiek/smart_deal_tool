@@ -63,10 +63,10 @@ ROBOTSTXT_OBEY = True
 
 # Configure item pipelines
 # See https://doc.scrapy.org/en/latest/topics/item-pipeline.html
-ITEM_PIPELINES = {
-    'dspider.pipelines.SPledgePipline': 1,
-    'dspider.pipelines.DspiderPipeline': 3,
-}
+#ITEM_PIPELINES = {
+#    'dspider.pipelines.SPledgePipline': 1,
+#    'dspider.pipelines.DspiderPipeline': 3,
+#}
 
 FILES_STORE = '/data/tdx/history/weeks/pledge'
 

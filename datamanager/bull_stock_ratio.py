@@ -51,11 +51,11 @@ class BullStockRatio:
         if end_date is None: end_date = datetime.now().strftime('%Y-%m-%d')
         start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
         succeed = True
-        code_list = self.get_components(end_date) 
+        code_list = self.get_components(end_date)
         for mdate in get_dates_array(start_date, end_date):
             if CCalendar.is_trading_day(mdate, redis = self.redis):
                 if not self.set_ratio(code_list, mdate):
-                    self.logger.error("set score for %s set failed" % mdate)
+                    self.logger.error("set %s score for %s set failed" % (self.index_code, mdate))
                     succeed = False
         return succeed
 
@@ -82,5 +82,5 @@ class BullStockRatio:
 
 if __name__ == '__main__':
     cdate = '2019-02-15'
-    bsr = BullStockRatio('000001')
+    bsr = BullStockRatio('399006')
     bsr.update(end_date = cdate, num = 1000)

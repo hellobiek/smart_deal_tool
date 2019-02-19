@@ -18,6 +18,11 @@ investor_count_to_path = {
 
 class InvestorSituationSpider(Spider):
     name = 'investorSituationSpider'
+    custom_settings = {
+        'ITEM_PIPELINES': {
+            'dspider.pipelines.DspiderPipeline': 2
+        }
+    }
     allowed_domains = ['www.chinaclear.cn']
     start_urls = ['http://www.chinaclear.cn/cms-search/view.action']
     def start_requests(self):

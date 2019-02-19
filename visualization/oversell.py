@@ -71,7 +71,7 @@ class OverSell():
         plt.show()
 
 if __name__ == '__main__':
-    start_date = '2006-12-19' 
+    start_date = '2005-12-19' 
     end_date = '2019-02-15'
     code = '000001'
     cbr = OverSell()

@@ -421,10 +421,10 @@ class DataManager:
             return (code_id, _obj.set_components_data(cdate))
         return concurrent_run(_set_index_info, list(ct.INDEX_DICT.keys()), num = 10)
 
-    def set_bull_stock_ratio(self, cdate):
+    def set_bull_stock_ratio(self, cdate, num = 10):
         def _set_bull_stock_ratio(code_id):
             return (code_id, BullStockRatio(code_id).update(cdate))
-        return concurrent_run(_set_bull_stock_ratio, list(ct.INDEX_DICT.keys()), num = 10)
+        return concurrent_run(_set_bull_stock_ratio, list(ct.INDEX_DICT.keys()), num = num)
 
     def init_tdx_index_info(self, cdate = None):
         def _set_index_info(cdate, code_id):
@@ -486,5 +486,5 @@ if __name__ == '__main__':
     dm = DataManager()
     dm.logger.info("start compute!")
     #dm.bootstrap(exec_date = '2019-01-25')
-    dm.bootstrap(cdate='2019-02-15', exec_date = '2019-02-15')
+    dm.bootstrap(cdate='2019-02-18', exec_date = '2019-02-18')
     dm.logger.info("end compute!")

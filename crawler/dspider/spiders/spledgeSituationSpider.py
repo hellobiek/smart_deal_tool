@@ -5,6 +5,11 @@ from scrapy import Spider, FormRequest
 from dspider.items import SPledgeSituationItem
 class SPledgeSituationSpider(Spider):
     name = 'spledgeSituationSpider'
+    custom_settings = {
+        'ITEM_PIPELINES': {
+            'dspider.pipelines.SPledgePipline': 1
+        }
+    }
     allowed_domains = ['www.chinaclear.cn']
     start_urls = ['http://www.chinaclear.cn/cms-rank/downloadFile']
     def start_requests(self):
@@ -18,7 +23,7 @@ class SPledgeSituationSpider(Spider):
             formdata['queryDate'] = start_date
             yield FormRequest(url = self.start_urls[0], method = 'GET', formdata = formdata, callback = self.parse)
 
-    def parse(self, response):
+    def parse(self, response): 
         fname = response.headers['Content-Disposition'].decode().split('=')[1]
         yield SPledgeSituationItem(file_urls = [response.url], file_name = fname)
 
