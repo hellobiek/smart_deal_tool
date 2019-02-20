@@ -57,10 +57,12 @@ const.SUBMITTED = 0
 const.ONGOING = 1
 ##############################
 const.OUT_DB_INFO = {'user': 'root',
+                 'port': 3306,
                  'password': '123456',
                  'host': '127.0.0.1'}
 const.DB_INFO = {'user': 'root',
                  'password': '123456',
+                 'port': 3306,
                  'host': os.environ['dockerhost']}
 const.IN_DB_INFO = {'user': 'root',
                     'password': '123456',

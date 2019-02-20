@@ -70,6 +70,7 @@ class BullStockRatio:
         code_list = self.get_components(cdate)
         if len(code_list) == 0: code_list = now_code_list
         df = self.get_data(cdate)
+        if df is None: return False
         df = df[df.code.isin(code_list)]
         profit_code_list = self.get_profit_stocks(df)
         bull_stock_num = len(profit_code_list)

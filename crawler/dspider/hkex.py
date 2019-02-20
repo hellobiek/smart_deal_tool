@@ -16,7 +16,9 @@ class HkexCrawler(object):
             dbname = self.get_dbname(market_from, market_to) 
             self.mysql_client = CMySQL(dbinfo, dbname)
             if not self.mysql_client.create_db(dbname): raise Exception("init hkex crawler database failed")
+            #self.mysql_client.delete(self.get_topten_table(dbname))
             if not self.create_topten_table(dbname): raise Exception("init hkex crawler topten table failed")
+            #self.mysql_client.delete(self.get_capital_table(dbname))
             if not self.create_capital_table(dbname): raise Exception("init hkex crawler capital table failed failed")
 
     @staticmethod

@@ -57,12 +57,14 @@ class HkexTradeTopTenItem(DspiderItem):
         res = {}
         dc = dict(self)
         ks = ['total_turnover', 'buy_turnover', 'sell_turnover']
+        if dc['code'] == '-': return None
         for k in ks:
             dc[k] = 0 if '-' == dc[k] else float(dc[k].replace(',',''))
         return dc
 
     def get_insert_sql(self, table):
         dc = self.convert()
+        if dc is None: return None, None
         params = (dc['date'], dc['rank'], dc['code'], dc['name'], dc['total_turnover'], dc['buy_turnover'], dc['sell_turnover'])
         insert_sql = "insert ignore into {}(date, rank, code, name, total_turnover, buy_turnover, sell_turnover) VALUES (%s,%s,%s,%s,%s,%s,%s)".format(table)
         return insert_sql, params
@@ -85,10 +87,13 @@ class HkexTradeOverviewItem(DspiderItem):
         ks = ['total_turnover', 'buy_turnover', 'sell_turnover', 'total_trade_count', 'buy_trade_count', 'sell_trade_count']
         for k in ks:
             dc[k] = 0 if '-' == dc[k] else float(dc[k].replace(',',''))
-        return dc
+        total = 0
+        for k in ks: total += dc[k]
+        return None if 0 == total else dc
 
     def get_insert_sql(self, table):
         dc = self.convert()
+        if dc is None: return None, None
         params = (dc['date'], dc['total_turnover'], dc['buy_turnover'], dc['sell_turnover'], dc['total_trade_count'], dc['buy_trade_count'], dc['sell_trade_count'])
         insert_sql = "insert ignore into {}(date, total_turnover, buy_turnover, sell_turnover, total_trade_count, buy_trade_count, sell_trade_count) VALUES(%s,%s,%s,%s,%s,%s,%s)".format(table)
         return insert_sql, params

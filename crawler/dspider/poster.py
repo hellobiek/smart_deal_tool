@@ -43,7 +43,9 @@ class HkexTradeOverviewPoster(Poster):
         self.mysql_reconnect_wait = 60
         self.dbname = get_hk_dbname(market = item['market'], direction = item['direction'])
         self.table = HkexCrawler.get_capital_table(self.dbname)
-        self.dbpool = adbapi.ConnectionPool("pymysql", host = dbinfo['host'], db = self.dbname, user = dbinfo['user'], password = dbinfo['password'], charset = "utf8", cursorclass = pymysql.cursors.DictCursor, use_unicode = True)
+        self.connect = pymysql.connect(host=dbinfo['host'], port=dbinfo['port'], db=self.dbname, user=dbinfo['user'], passwd=dbinfo['password'], charset=ct.UTF8)
+        self.cursor = self.connect.cursor()
+        #self.dbpool = adbapi.ConnectionPool("pymysql", host = dbinfo['host'], db = self.dbname, user = dbinfo['user'], password = dbinfo['password'], charset = "utf8", cursorclass = pymysql.cursors.DictCursor, use_unicode = True)
 
     def on_error(self, failure):
         args = failure.value.args
@@ -56,7 +58,7 @@ class HkexTradeOverviewPoster(Poster):
             # https://twistedmatrix.com/documents/12.1.0/core/howto/time.html
             from twisted.internet import task
             from twisted.internet import reactor
-            task.deferLater(reactor, self.mysql_reconnect_wait, self.store)
+            task.deferLater(reactor, self.mysql_reconnect_wait, self.async_store)
             return
         elif failure.type in [DataError, InternalError]:
             # <class 'pymysql.err.DataError'> (1264, "Out of range value for column 'position_id' at row 2")
@@ -74,9 +76,18 @@ class HkexTradeOverviewPoster(Poster):
             logger.error('MySQL: {} {} unhandled exception'.format(failure.type, args))
             return
 
-    def store(self):
+    def async_store(self):
         query = self.dbpool.runInteraction(self.do_insert, self.item)
         query.addErrback(self.on_error)
+
+    def store(self):
+        try:
+            insert_sql, params = self.item.get_insert_sql(self.table)
+            if insert_sql == None and params == None: return
+            self.cursor.execute(insert_sql, params)
+            self.connect.commit()
+        except Exception as e:
+            logger.debug(e)
 
 class HkexTradeTopTenItemPoster(Poster):
     def __init__(self, item, dbinfo = ct.DB_INFO):
@@ -84,7 +95,9 @@ class HkexTradeTopTenItemPoster(Poster):
         self.mysql_reconnect_wait = 60
         self.dbname = get_hk_dbname(market = item['market'], direction = item['direction'])
         self.table = HkexCrawler.get_topten_table(self.dbname)
-        self.dbpool = adbapi.ConnectionPool("pymysql", host = dbinfo['host'], db = self.dbname, user = dbinfo['user'], password = dbinfo['password'], charset = "utf8", cursorclass = pymysql.cursors.DictCursor, use_unicode = True)
+        self.connect = pymysql.connect(host=dbinfo['host'], port=dbinfo['port'], db=self.dbname, user=dbinfo['user'], passwd=dbinfo['password'], charset=ct.UTF8)
+        self.cursor = self.connect.cursor()
+        #self.dbpool = adbapi.ConnectionPool("pymysql", host = dbinfo['host'], db = self.dbname, user = dbinfo['user'], password = dbinfo['password'], charset = "utf8", cursorclass = pymysql.cursors.DictCursor, use_unicode = True)
 
     def on_error(self, failure):
         args = failure.value.args
@@ -115,9 +128,18 @@ class HkexTradeTopTenItemPoster(Poster):
             logger.error('MySQL: {} {} unhandled exception'.format(failure.type, args))
             return
 
-    def store(self):
+    def async_store(self):
         query = self.dbpool.runInteraction(self.do_insert, self.item)
         query.addErrback(self.on_error)
+
+    def store(self):
+        try:
+            insert_sql, params = self.item.get_insert_sql(self.table)
+            if insert_sql == None and params == None: return
+            self.cursor.execute(insert_sql, params)
+            self.connect.commit()
+        except Exception as e:
+            logger.debug(e)
 
 class SPledgeSituationItemPoster(Poster):
     def __init__(self, item):
