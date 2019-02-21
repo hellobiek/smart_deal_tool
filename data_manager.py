@@ -32,6 +32,7 @@ from datamanager.sexchange import StockExchange
 from rindustry import RIndexIndustryInfo
 from combination_info import CombinationInfo
 from futuquant.common.constant import SubType
+from crawler.dspider.hkex import HkexCrawler
 from subscriber import Subscriber, StockQuoteHandler, TickerHandler
 from common import is_trading_time, delta_days, create_redis_obj, add_prifix, add_index_prefix, kill_process, concurrent_run, get_day_nday_ago, get_dates_array, process_concurrent_run
 pd.options.mode.chained_assignment = None #default='warn'
@@ -292,6 +293,7 @@ class DataManager:
                 self.logger.error("bull ratio set failed")
                 return False
             self.set_update_info(19, exec_date, cdate)
+
         self.logger.info("updating succeed")
         return True
         
@@ -412,7 +414,9 @@ class DataManager:
         kill_process("zygote")
         kill_process("defunct")
         kill_process("show-component-extension-options")
-        return succeed
+    
+        hc = HkexCrawler()
+        return hc.run() and succeed
 
     def init_index_components_info(self, cdate = None):
         if cdate is None: cdate = datetime.now().strftime('%Y-%m-%d')
@@ -486,5 +490,6 @@ if __name__ == '__main__':
     dm = DataManager()
     dm.logger.info("start compute!")
     #dm.bootstrap(exec_date = '2019-01-25')
-    dm.bootstrap(cdate='2019-02-20', exec_date = '2019-02-20')
+    mdate = datetime.now().strftime('%Y-%m-%d')
+    dm.bootstrap(cdate = mdate, exec_date = mdate)
     dm.logger.info("end compute!")
