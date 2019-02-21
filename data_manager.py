@@ -291,7 +291,7 @@ class DataManager:
             if not self.set_bull_stock_ratio(exec_date, num = 30):
                 self.logger.error("bull ratio set failed")
                 return False
-            self.set_update_info(18, exec_date, cdate)
+            self.set_update_info(19, exec_date, cdate)
         self.logger.info("updating succeed")
         return True
         
@@ -486,5 +486,5 @@ if __name__ == '__main__':
     dm = DataManager()
     dm.logger.info("start compute!")
     #dm.bootstrap(exec_date = '2019-01-25')
-    dm.bootstrap(cdate='2019-02-19', exec_date = '2019-02-19')
+    dm.bootstrap(cdate='2019-02-20', exec_date = '2019-02-20')
     dm.logger.info("end compute!")

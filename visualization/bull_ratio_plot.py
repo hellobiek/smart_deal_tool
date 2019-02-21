@@ -37,7 +37,7 @@ class CBullRation():
         return uprice_df
 
     def get_components(self, code, cdate):
-        iobj = CIndex(code)
+        iobj = CIndex(code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
         df = iobj.get_components_data(cdate)
         if code == '000001': df = df[df.code.str.startswith('6')]
         return df.code.tolist()
@@ -78,8 +78,8 @@ class CBullRation():
         plt.show()
 
 if __name__ == '__main__':
-    start_date = '2005-12-12' 
-    end_date = '2019-02-15'
+    start_date = '2003-01-27' 
+    end_date = '2019-02-20'
     code = '000001'
     cbr = CBullRation()
     cbr.plot(start_date, end_date, code)
