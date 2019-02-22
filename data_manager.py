@@ -491,5 +491,6 @@ if __name__ == '__main__':
     dm.logger.info("start compute!")
     #dm.bootstrap(exec_date = '2019-01-25')
     mdate = datetime.now().strftime('%Y-%m-%d')
-    dm.bootstrap(cdate = mdate, exec_date = mdate)
+    #dm.bootstrap(cdate = mdate, exec_date = mdate)
+    dm.set_bull_stock_ratio(exec_date = '2019-02-21', num = 6000)
     dm.logger.info("end compute!")

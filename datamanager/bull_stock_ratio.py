@@ -84,4 +84,4 @@ class BullStockRatio:
 if __name__ == '__main__':
     cdate = '2019-02-15'
     bsr = BullStockRatio('399006')
-    bsr.update(end_date = cdate, num = 1000)
+    bsr.update(end_date = cdate, num = 7000)

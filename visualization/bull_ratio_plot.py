@@ -78,8 +78,8 @@ class CBullRation():
         plt.show()
 
 if __name__ == '__main__':
-    start_date = '2003-01-27' 
-    end_date = '2019-02-20'
+    start_date = '2000-06-01' 
+    end_date = '2019-02-21'
     code = '000001'
     cbr = CBullRation()
     cbr.plot(start_date, end_date, code)
