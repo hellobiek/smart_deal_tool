@@ -310,9 +310,8 @@ class TdxFgIndex(CIndex):
         return False
 
 if __name__ == '__main__':
-    cdate = '2019-02-22'
     tdi = TdxFgIndex(code = '880883', should_create_influxdb = True, should_create_mysqldb = True)
-    #tdi.set_components_data(cdate)
+    tdi.set_k_data()
     #for code in ["000001", "000300", "000016", "000905", "399673", "399001", "399005", "399006"]:
     #    av   = CIndex(code)
     #    res  = av.set_components_data()

@@ -59,9 +59,7 @@ def create_lagged_series(symbol, start_date, end_date, lags=5):
     # Create the "Direction" column (+1 or -1) indicating an up/down day
     tsret["Direction"] = np.sign(tsret["Today"])
     tsret = tsret[tsret.index >= start_date]
-
     return tsret
-
 
 if __name__ == "__main__":
     # Create a lagged series of the S&P500 US stock market index

@@ -445,16 +445,17 @@ class DataManager:
             except Exception as e:
                 self.logger.error(e)
                 return (code_id, False)
+        index_code_list = self.get_concerned_index_codes()
         if cdate is None:
             cfunc = partial(_set_index_info, cdate)
-            return concurrent_run(cfunc, list(ct.TDX_INDEX_DICT.keys()), num = 5)
+            return concurrent_run(cfunc, index_code_list, num = 5)
         else:
             succeed = True
             start_date = get_day_nday_ago(cdate, num = 30, dformat = "%Y-%m-%d")
             for mdate in get_dates_array(start_date, cdate, asending = True):
                 if self.cal_client.is_trading_day(mdate):
                     cfunc = partial(_set_index_info, mdate)
-                    if not concurrent_run(cfunc, list(ct.TDX_INDEX_DICT.keys()), num = 5):
+                    if not concurrent_run(cfunc, index_code_list, num = 5):
                         succeed = False
             return succeed
 
