@@ -6,6 +6,8 @@ from log import getLogger
 from cinfluxdb import CInflux
 from datetime import datetime
 from base.cobj import CMysqlObj
+from pytdx.reader import BlockReader
+# http://blog.sina.com.cn/s/blog_623d2d280102vt8y.html
 from common import float_random, is_df_has_unexpected_data, smart_get
 logger = getLogger(__name__)
 class CIndex(CMysqlObj):
@@ -27,6 +29,7 @@ class CIndex(CMysqlObj):
         super(CIndex, self).__init__(code, self.get_dbname(code), dbinfo, redis_host)
         self.code = code
         self.influx_client = CInflux(ct.IN_DB_INFO, self.dbname, iredis = self.redis)
+        #self.mysql_client.delete_db(self.dbname)
         if not self.create(should_create_influxdb, should_create_mysqldb):
             raise Exception("create index %s table failed" % self.code)
 
@@ -129,6 +132,7 @@ class CIndex(CMysqlObj):
         url          = self.INDEX_URLS[self.code][0]
         columns      = self.INDEX_URLS[self.code][1]
         column_names = self.INDEX_URLS[self.code][2]
+
         df = smart_get(pd.read_excel, url, usecols = columns)
         if df is None:
             logger.error("data for %s is empty" % self.code)
@@ -254,9 +258,63 @@ class CIndex(CMysqlObj):
                 return True
         return False
 
+class TdxFgIndex(CIndex):
+    def __init__(self, code, dbinfo = ct.DB_INFO, redis_host = None, should_create_influxdb = False, should_create_mysqldb = False):
+        self.name = self.get_fg_index_name(code)
+        super(TdxFgIndex, self).__init__(code, dbinfo, redis_host, should_create_influxdb, should_create_mysqldb)
+       
+    def get_fg_index_name(self, tcode, fname = ct.TONG_DA_XIN_INDEX_PATH):
+        with open(fname, "rb") as f:
+            data = f.read()
+        str_list = data.decode("gb2312").split('\r\n')
+        for x in str_list:
+            info_list = x.split('|')
+            name = info_list[0]
+            ccode = info_list[1]
+            if ccode == tcode: return name
+        raise Exception("can not find index name for %s" % self.code)
+
+    def get_fg_index_df(self, cdate):
+        df = BlockReader().get_df(ct.TONG_DA_XIN_FG_INDEX_PATH)
+        df = df.loc[df.blockname == self.name]
+        df = df[['code']]
+        df['date'] = cdate
+        df = df.reset_index(drop = True)
+        return df
+
+    def create_components_table(self, table_name):
+        sql = 'create table if not exists %s(date varchar(10) not null,\
+                                             code varchar(20) not null,\
+                                             PRIMARY KEY (date, code))' % table_name
+        return True if table_name in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table_name)
+
+    def set_components_data(self, cdate = datetime.now().strftime('%Y-%m-%d')):
+        table_name = self.get_components_table_name(cdate)
+        if not self.is_table_exists(table_name):
+            if not self.create_components_table(table_name):
+                logger.error("create components table failed")
+                return False
+
+        if self.is_date_exists(table_name, cdate): 
+            logger.debug("existed table:%s, date:%s" % (table_name, cdate))
+            return True
+
+        df = self.get_fg_index_df(cdate)
+
+        if is_df_has_unexpected_data(df):
+            logger.error("data for %s is not clear" % self.code)
+            return False
+
+        if self.mysql_client.set(df, table_name):
+            if self.redis.sadd(table_name, cdate): return True
+        return False
+
 if __name__ == '__main__':
-    for code in ["000001", "000300", "000016", "000905", "399673", "399001", "399005", "399006"]:
-        av   = CIndex(code)
-        res  = av.set_components_data()
-        data = av.get_components_data()
-        print("code:%s, length:%s" % (code, len(data)))
+    cdate = '2019-02-22'
+    tdi = TdxFgIndex(code = '880883', should_create_influxdb = True, should_create_mysqldb = True)
+    #tdi.set_components_data(cdate)
+    #for code in ["000001", "000300", "000016", "000905", "399673", "399001", "399005", "399006"]:
+    #    av   = CIndex(code)
+    #    res  = av.set_components_data()
+    #    data = av.get_components_data()
+    #    print("code:%s, length:%s" % (code, len(data)))

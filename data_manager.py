@@ -418,17 +418,24 @@ class DataManager:
         hc = HkexCrawler()
         return hc.run() and succeed
 
+    def get_concerned_index_codes(self):
+        index_codes = list(ct.INDEX_DICT.keys())
+        index_codes.append('880883')
+        return index_codes
+
     def init_index_components_info(self, cdate = None):
         if cdate is None: cdate = datetime.now().strftime('%Y-%m-%d')
         def _set_index_info(code_id):
             _obj = self.index_objs[code_id] if code_id in self.index_objs else CIndex(code_id)
             return (code_id, _obj.set_components_data(cdate))
-        return concurrent_run(_set_index_info, list(ct.INDEX_DICT.keys()), num = 10)
+        index_codes = self.get_concerned_index_codes()
+        return concurrent_run(_set_index_info, index_codes, num = 10)
 
     def set_bull_stock_ratio(self, cdate, num = 10):
         def _set_bull_stock_ratio(code_id):
-            return (code_id, BullStockRatio(code_id).update(cdate))
-        return concurrent_run(_set_bull_stock_ratio, list(ct.INDEX_DICT.keys()), num = num)
+            return (code_id, BullStockRatio(code_id).update(cdate, num))
+        index_codes = self.get_concerned_index_codes()
+        return concurrent_run(_set_bull_stock_ratio, index_codes, num = num)
 
     def init_tdx_index_info(self, cdate = None):
         def _set_index_info(cdate, code_id):
@@ -491,6 +498,6 @@ if __name__ == '__main__':
     dm.logger.info("start compute!")
     #dm.bootstrap(exec_date = '2019-01-25')
     mdate = datetime.now().strftime('%Y-%m-%d')
-    #dm.bootstrap(cdate = mdate, exec_date = mdate)
-    dm.set_bull_stock_ratio(exec_date = '2019-02-21', num = 6000)
+    mdare = '2019-02-22'
+    dm.bootstrap(cdate = mdate, exec_date = mdate)
     dm.logger.info("end compute!")

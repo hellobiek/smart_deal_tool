@@ -78,4 +78,3 @@ class CombinationInfo:
 
 if __name__ == '__main__':
     cm = CombinationInfo(ct.DB_INFO)
-    cm.init()

@@ -37,6 +37,10 @@ class BullStockRatio:
             return cdate in set(str(tdate, encoding = ct.UTF8) for tdate in self.redis.smembers(table_name))
         return False
 
+    def get_k_data_between(self, start_date, end_date):
+        sql = "select * from %s where date between \"%s\" and \"%s\"" % (self.get_table_name(), start_date, end_date)
+        return self.mysql_client.get(sql)
+
     def get_components(self, cdate):
         df = self.index_obj.get_components_data(cdate)
         if df is None: return list()
@@ -71,7 +75,9 @@ class BullStockRatio:
         if len(code_list) == 0: code_list = now_code_list
         df = self.get_data(cdate)
         if df is None: return False
+        if df.empty: return False
         df = df[df.code.isin(code_list)]
+        if df.empty: return True
         profit_code_list = self.get_profit_stocks(df)
         bull_stock_num = len(profit_code_list)
         bull_ration = 100 * bull_stock_num / len(df)
@@ -82,6 +88,6 @@ class BullStockRatio:
         return False
 
 if __name__ == '__main__':
-    cdate = '2019-02-15'
-    bsr = BullStockRatio('399006')
-    bsr.update(end_date = cdate, num = 7000)
+    cdate = '2019-02-22'
+    bsr = BullStockRatio('880883')
+    bsr.update(end_date = cdate, num = 7001)

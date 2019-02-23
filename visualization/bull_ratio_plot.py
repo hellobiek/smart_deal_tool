@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 import datetime as dt
 from cindex import CIndex
-from rprofit import RProfit
 from rstock import RIndexStock
+from datamanager.bull_stock_ratio import BullStockRatio
 import matplotlib.pyplot as plt
 from matplotlib.pylab import date2num
 from matplotlib import dates as mdates
@@ -32,10 +32,6 @@ class CBullRation():
         i_data = i_data[['time', 'open', 'high', 'low', 'close', 'volume', 'amount', 'date']]
         return i_data
 
-    def get_data(self, start_date, end_date):
-        uprice_df = self.ris.get_k_data_in_range(start_date, end_date)
-        return uprice_df
-
     def get_components(self, code, cdate):
         iobj = CIndex(code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
         df = iobj.get_components_data(cdate)
@@ -46,40 +42,27 @@ class CBullRation():
         data = df[df.profit >= 0]
         return data.code.tolist()
 
-    def get_bull_ratios(self, data, ccode_list):
-        code_list = list()
-        date_list = list()
-        rate_list = list()
-        for cdate, df in data.groupby(data.date):
-            df = df[df.code.isin(ccode_list)]
-            profit_code_list = self.get_profit_stocks(df)
-            bull_stock_num = len(profit_code_list)
-            bull_ration = 100 * bull_stock_num / len(df)
-            date_list.append(cdate)
-            rate_list.append(bull_ration)
-            code_list.append(profit_code_list)
-        info = {'date':date_list, 'rate':rate_list, 'code':code_list}
-        df = pd.DataFrame(info)
-        return pd.DataFrame(info)
+    def get_bull_ratios(self, index_code, start_date, end_date):
+        obj = BullStockRatio(index_code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
+        df = obj.get_k_data_between(start_date, end_date)
+        return df
 
     def plot(self, start_date, end_date, index_code):
-        code_list = self.get_components(index_code, '2019-02-15')
-        uprice_df = self.get_data(start_date, end_date)
+        info = self.get_bull_ratios(index_code, start_date, end_date)
         index_data = self.get_index_data(start_date, end_date, index_code)
         date_tickers = index_data.date.tolist()
         def _format_date(x, pos = None):
             if x < 0 or x > len(date_tickers) - 1: return ''
             return date_tickers[int(x)]
-        info = self.get_bull_ratios(uprice_df, code_list)
         candlestick_ohlc(self.price_ax, index_data.values, width = 1.0, colorup = 'r', colordown = 'g')
-        self.ratio_ax.plot(info['date'], info['rate'], 'r',  label = "uprice 成本均线", linewidth = 1)
+        self.ratio_ax.plot(info['date'], info['ratio'], 'r',  label = "股票牛股比例", linewidth = 1)
         self.price_ax.xaxis.set_major_locator(mticker.MultipleLocator(20))
         self.price_ax.xaxis.set_major_formatter(mticker.FuncFormatter(_format_date))
         plt.show()
 
 if __name__ == '__main__':
-    start_date = '2000-06-01' 
-    end_date = '2019-02-21'
-    code = '000001'
+    start_date = '2000-01-01' 
+    end_date = '2019-02-22'
+    code = '399006'
     cbr = CBullRation()
     cbr.plot(start_date, end_date, code)
