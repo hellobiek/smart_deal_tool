@@ -1,5 +1,4 @@
 ################ Bollinger Bands #############################
-
 # Load the necessary packages and modules
 import pandas as pd
 import pandas.io.data as web
