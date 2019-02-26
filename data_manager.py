@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 from log import getLogger
 from cstock import CStock
-from cindex import CIndex
+from cindex import CIndex, TdxFgIndex
 from climit import CLimit 
 from functools import partial
 from datetime import datetime
@@ -373,13 +373,17 @@ class DataManager:
             return process_concurrent_run(cfunc, failed_list, num = 5)
         else:
             succeed = True
-            start_date = get_day_nday_ago(cdate, num = 1, dformat = "%Y-%m-%d")
-            for mdate in get_dates_array(start_date, cdate, asending = True):
-                if self.cal_client.is_trading_day(mdate):
-                    cfunc = partial(_set_stock_info, mdate, bonus_info, index_info)
-                    if not process_concurrent_run(cfunc, failed_list, num = 500):
-                        succeed = False
+            cfunc = partial(_set_stock_info, mdate, bonus_info, index_info)
+            if not process_concurrent_run(cfunc, failed_list, num = 500):
+                succeed = False
             return succeed
+            #start_date = get_day_nday_ago(cdate, num = 1, dformat = "%Y-%m-%d")
+            #for mdate in get_dates_array(start_date, cdate, asending = True):
+            #    if self.cal_client.is_trading_day(mdate):
+            #        cfunc = partial(_set_stock_info, mdate, bonus_info, index_info)
+            #        if not process_concurrent_run(cfunc, failed_list, num = 500):
+            #            succeed = False
+            #return succeed
 
     def init_industry_info(self, cdate):
         def _set_industry_info(cdate, code_id):
@@ -426,7 +430,10 @@ class DataManager:
     def init_index_components_info(self, cdate = None):
         if cdate is None: cdate = datetime.now().strftime('%Y-%m-%d')
         def _set_index_info(code_id):
-            _obj = self.index_objs[code_id] if code_id in self.index_objs else CIndex(code_id)
+            if code_id in self.index_objs:
+                _obj = self.index_objs[code_id] 
+            else:
+                _obj = CIndex(code_id) if code_id in list(ct.INDEX_DICT.keys()) else TdxFgIndex(code_id)
             return (code_id, _obj.set_components_data(cdate))
         index_codes = self.get_concerned_index_codes()
         return concurrent_run(_set_index_info, index_codes, num = 10)
@@ -440,7 +447,10 @@ class DataManager:
     def init_tdx_index_info(self, cdate = None):
         def _set_index_info(cdate, code_id):
             try:
-                _obj = self.index_objs[code_id] if code_id in self.index_objs else CIndex(code_id)
+                if code_id in self.index_objs:
+                    _obj = self.index_objs[code_id] 
+                else:
+                    _obj = CIndex(code_id) if code_id in list(ct.INDEX_DICT.keys()) else TdxFgIndex(code_id)
                 return (code_id, _obj.set_k_data(cdate))
             except Exception as e:
                 self.logger.error(e)
@@ -498,7 +508,7 @@ if __name__ == '__main__':
     dm = DataManager()
     dm.logger.info("start compute!")
     #dm.bootstrap(exec_date = '2019-01-25')
-    mdate = datetime.now().strftime('%Y-%m-%d')
-    mdare = '2019-02-22'
+    #mdate = datetime.now().strftime('%Y-%m-%d')
+    mdate = '2019-02-26'
     dm.bootstrap(cdate = mdate, exec_date = mdate)
     dm.logger.info("end compute!")

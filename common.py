@@ -86,6 +86,12 @@ def is_afternoon(now_time = None):
     mor_close_time = datetime(y,m,d,mor_close_hour,mor_close_minute,mor_close_second)
     return (mor_open_time < now_time < mor_close_time)
 
+def get_day_nday_after(date, num, dformat = "%Y%m%d"):
+    t = time.strptime(date, dformat)
+    y, m, d = t[0:3]
+    _date = datetime(y, m, d) + timedelta(num)
+    return _date.strftime(dformat)
+
 def get_day_nday_ago(date, num, dformat = "%Y%m%d"):
     t = time.strptime(date, dformat)
     y, m, d = t[0:3]
