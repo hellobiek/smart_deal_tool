@@ -144,10 +144,11 @@ class HkexTradeTopTenItemPoster(Poster):
 
 class SPledgeSituationItemPoster(Poster):
     def __init__(self, item):
-        self.item = item
+        super(SPledgeSituationItemPoster, self).__init__(item)
 
 class InvestorSituationItemPoster(Poster):
     def __init__(self, item, dbinfo = ct.DB_INFO):
+        super(InvestorSituationItemPoster, self).__init__(item)
         self.dbname = InvestorCrawler.get_dbname()
         self.table = InvestorCrawler.get_table_name()
         self.dbpool = adbapi.ConnectionPool("pymysql", host = dbinfo['host'], db = self.dbname, user = dbinfo['user'], password = dbinfo['password'], charset = "utf8", cursorclass = pymysql.cursors.DictCursor, use_unicode = True)

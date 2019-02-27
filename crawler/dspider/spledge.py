@@ -6,10 +6,6 @@ sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
 import const as ct
 from cmysql import CMySQL
 from common import create_redis_obj
-from twisted.internet import reactor
-from scrapy.crawler import CrawlerRunner
-from scrapy.utils.project import get_project_settings
-from dspider.spiders.spledgeSituationSpider import SPledgeSituationSpider
 class SPledgeCrawler(object):
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.dbname = self.get_dbname()
@@ -32,15 +28,3 @@ class SPledgeCrawler(object):
                                              pledge_ratio float,\
                                              PRIMARY KEY(date, code))' % table
         return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
-
-    def run(self):
-        settings = get_project_settings()
-        myrunner = CrawlerRunner(settings)
-        myrunner.crawl(SPledgeSituationSpider)
-        d = myrunner.join()
-        d.addBoth(lambda _: reactor.stop())
-        reactor.run() #the script will block here until the crawling is finished
-
-if __name__ == '__main__':
-    spc = SPledgeCrawler()
-    spc.run()

@@ -6,10 +6,6 @@ sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
 import const as ct
 from cmysql import CMySQL
 from common import create_redis_obj
-from twisted.internet import reactor
-from scrapy.crawler import CrawlerRunner
-from scrapy.utils.project import get_project_settings
-from dspider.spiders.investorSituationSpider import InvestorSituationSpider
 class InvestorCrawler(object):
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.dbname = self.get_dbname()
@@ -37,15 +33,3 @@ class InvestorCrawler(object):
                                              final_non_natural_person float,\
                                              PRIMARY KEY(date))' % self.table
         return True if self.table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.table)
-
-    def run(self):
-        settings = get_project_settings()
-        myrunner = CrawlerRunner(settings)
-        myrunner.crawl(InvestorSituationSpider)
-        d = myrunner.join()
-        d.addBoth(lambda _: reactor.stop())
-        reactor.run() #the script will block here until the crawling is finished
-
-if __name__ == '__main__':
-    ic = InvestorCrawler()
-    ic.run()

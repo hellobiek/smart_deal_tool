@@ -1,10 +1,8 @@
 #coding=utf-8
-from gevent import monkey
-monkey.patch_all()
 import os
 import time
 import json
-import copy
+import schedule
 import datetime
 import traceback
 import const as ct
@@ -33,6 +31,7 @@ from rindustry import RIndexIndustryInfo
 from combination_info import CombinationInfo
 from futuquant.common.constant import SubType
 from crawler.dspider.hkex import HkexCrawler
+from crawler.dspider.run import start_spider
 from subscriber import Subscriber, StockQuoteHandler, TickerHandler
 from common import is_trading_time, delta_days, create_redis_obj, add_prifix, add_index_prefix, kill_process, concurrent_run, get_day_nday_ago, get_dates_array, process_concurrent_run
 pd.options.mode.chained_assignment = None #default='warn'
@@ -296,16 +295,19 @@ class DataManager:
 
         self.logger.info("updating succeed")
         return True
-        
+    
     def update(self, sleep_time):
+        succeed = False
         while True:
             self.logger.info("enter daily update process. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             try:
                 if self.cal_client.is_trading_day(): 
                     self.logger.info("is trading day. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                     if self.is_collecting_time():
-                        self.logger.info("is collecting time. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                        self.bootstrap(cdate = datetime.now().strftime('%Y-%m-%d'))
+                        if not succeed:
+                            self.logger.info("is collecting time. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                            mdate = datetime.now().strftime('%Y-%m-%d')
+                            succeed = self.bootstrap(cdate = mdate, exec_date = mdate)
             except Exception as e:
                 kill_process("google-chrome")
                 kill_process("renderer")
@@ -315,6 +317,7 @@ class DataManager:
                 kill_process("show-component-extension-options")
                 self.logger.error(e)
             time.sleep(sleep_time)
+            succeed = False
 
     def init_combination_info(self):
         trading_info = self.comb_info_client.get()
@@ -482,6 +485,12 @@ class DataManager:
         except Exception as e:
             self.logger.error(e)
             return False
+
+    def scrawler(self, sleep_time):
+        schedule.every().sunday.at("07:00").do(start_spider)
+        while True:
+            schedule.run_pending()
+            time.sleep(sleep_time)
  
 if __name__ == '__main__':
     #from cmysql import CMySQL
