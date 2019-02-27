@@ -5,8 +5,9 @@ from datetime import datetime, timedelta
 from scrapy.spidermiddlewares.httperror import HttpError
 from twisted.internet.error import DNSLookupError
 from twisted.internet.error import TimeoutError
+from dspider.myspider import BasicSpider
 from dspider.items import HkexTradeOverviewItem, HkexTradeTopTenItem
-class HkexSpider(scrapy.Spider):
+class HkexSpider(BasicSpider):
     name = 'hkexSpider'
     custom_settings = {
         'ITEM_PIPELINES': {
@@ -15,11 +16,12 @@ class HkexSpider(scrapy.Spider):
     }
 
     def start_requests(self):
-        cdate = datetime(2018, 2, 18)
         matching_url = "https://sc.hkex.com.hk/TuniS/www.hkex.com.hk/chi/csm/DailyStat/data_tab_daily_{}c.js"
-        while cdate < datetime.now():  # 自己控制下时间范围
+        end_date = datetime.now().strftime('%Y.%m.%d')
+        start_date = self.get_nday_ago(end_date, 10, dformat = '%Y.%m.%d')
+        while start_date <= end_date:  # 自己控制下时间范围
             cdate += timedelta(days=1)
-            url = matching_url.format(cdate.strftime('%Y%m%d'))
+            url = matching_url.format(start_date.strftime('%Y%m%d'))
             yield scrapy.Request(url=url, callback=self.parse, errback=self.errback_httpbin, dont_filter=True)
 
     def parse(self, response):

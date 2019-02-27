@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 import re
-import time
-import calendar
 import datetime
-from scrapy import Spider, FormRequest
-from datetime import datetime, timedelta
+from datetime import datetime
+from scrapy import FormRequest
 from dspider.utils import datetime_to_str
+from dspider.myspider import BasicSpider
 from dspider.items import InvestorSituationItem
 investor_count_to_path = {
     "date"                    :"/html/body/div/h2/text()",#日期
@@ -18,7 +17,7 @@ investor_count_to_path = {
     "unit"                    :"//*[@id='settlementList']/table/tbody/tr/td/table/tbody/tr[1]/td[2]/p/strong/span/text()"#单位
 }
 
-class InvestorSituationSpider(Spider):
+class InvestorSituationSpider(BasicSpider):
     name = 'investorSituationSpider'
     custom_settings = {
         'ITEM_PIPELINES': {
@@ -38,12 +37,6 @@ class InvestorSituationSpider(Spider):
             formdata['dateStr'] = start_date
             yield FormRequest(url = self.start_urls[0], method = 'GET', formdata = formdata, callback = self.parse)
 
-    def get_nday_ago(self, mdate, num, dformat = "%Y%m%d"):
-        t = time.strptime(mdate, dformat)
-        y, m, d = t[0:3]
-        _date = datetime(y, m, d) - timedelta(num)
-        return _date.strftime(dformat) 
-
     def parse(self, response):
         patten = re.compile(r'[（](.*?)[）]', re.S)
         investor_situation_item = InvestorSituationItem()
@@ -57,16 +50,3 @@ class InvestorSituationSpider(Spider):
             else:
                 investor_situation_item[k] = response.xpath(investor_count_to_path[k]).extract_first().strip()
         yield investor_situation_item
-
-    def get_next_date(self, sdate = datetime.now().strftime('%Y.%m.%d'), target_day = calendar.FRIDAY):
-        #func: get next date
-        #sdate: str, example: '2017-01-01'
-        #tdate: str, example: '2017-01-06'
-        tdate = ''
-        oneday = timedelta(days = 1)
-        sdate = datetime.strptime(sdate, '%Y.%m.%d')
-        if sdate.weekday() == target_day: sdate += oneday
-        while sdate.weekday() != target_day: 
-            sdate += oneday
-        tdate = sdate.strftime("%Y.%m.%d")
-        return tdate

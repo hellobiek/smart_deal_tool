@@ -65,7 +65,7 @@ class DataManager:
     def is_collecting_time(self, now_time = datetime.now()):
         _date = now_time.strftime('%Y-%m-%d')
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
-        aft_open_hour,aft_open_minute,aft_open_second = (19,00,00)
+        aft_open_hour,aft_open_minute,aft_open_second = (17,00,00)
         aft_open_time = datetime(y,m,d,aft_open_hour,aft_open_minute,aft_open_second)
         aft_close_hour,aft_close_minute,aft_close_second = (23,59,59)
         aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
@@ -295,29 +295,34 @@ class DataManager:
 
         self.logger.info("updating succeed")
         return True
-    
+
+    def clear_network_env(self):
+        kill_process("google-chrome")
+        kill_process("renderer")
+        kill_process("Xvfb")
+        kill_process("zygote")
+        kill_process("defunct")
+        kill_process("show-component-extension-options")
+
     def update(self, sleep_time):
         succeed = False
         while True:
-            self.logger.info("enter daily update process. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            #self.logger.info("enter daily update process. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             try:
                 if self.cal_client.is_trading_day(): 
-                    self.logger.info("is trading day. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                    if self.is_collecting_time():
+                    #self.logger.info("is trading day. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                    if not self.is_collecting_time():
+                        succeed = False
+                    else:
                         if not succeed:
-                            self.logger.info("is collecting time. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                            self.clear_network_env()
+                            #self.logger.info("is collecting time. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                             mdate = datetime.now().strftime('%Y-%m-%d')
                             succeed = self.bootstrap(cdate = mdate, exec_date = mdate)
             except Exception as e:
-                kill_process("google-chrome")
-                kill_process("renderer")
-                kill_process("Xvfb")
-                kill_process("zygote")
-                kill_process("defunct")
-                kill_process("show-component-extension-options")
+                self.clear_network_env()
                 self.logger.error(e)
             time.sleep(sleep_time)
-            succeed = False
 
     def init_combination_info(self):
         trading_info = self.comb_info_client.get()
@@ -376,7 +381,7 @@ class DataManager:
             return process_concurrent_run(cfunc, failed_list, num = 5)
         else:
             succeed = True
-            cfunc = partial(_set_stock_info, mdate, bonus_info, index_info)
+            cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
             if not process_concurrent_run(cfunc, failed_list, num = 500):
                 succeed = False
             return succeed
@@ -386,7 +391,6 @@ class DataManager:
             #        cfunc = partial(_set_stock_info, mdate, bonus_info, index_info)
             #        if not process_concurrent_run(cfunc, failed_list, num = 500):
             #            succeed = False
-            #return succeed
 
     def init_industry_info(self, cdate):
         def _set_industry_info(cdate, code_id):
@@ -487,9 +491,12 @@ class DataManager:
             return False
 
     def scrawler(self, sleep_time):
-        schedule.every().sunday.at("07:00").do(start_spider)
+        schedule.every().monday.at("14:00").do(start_spider)
         while True:
-            schedule.run_pending()
+            try:
+                schedule.run_pending()
+            except Exception as e:
+                self.logger.info(e)
             time.sleep(sleep_time)
  
 if __name__ == '__main__':

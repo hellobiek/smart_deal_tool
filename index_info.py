@@ -1,5 +1,6 @@
 # coding=utf-8
 from cindex import CIndex
+from cindex import TdxFgIndex
 from common import concurrent_run
 import const as ct
 class IndexInfo:
