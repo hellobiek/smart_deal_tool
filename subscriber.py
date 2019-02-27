@@ -4,8 +4,8 @@ import threading
 import const as ct
 from log import getLogger
 from threading import Lock
-from futuquant import OpenQuoteContext
-from futuquant.quote.quote_response_handler import OrderBookHandlerBase, TickerHandlerBase, StockQuoteHandlerBase
+from futu import OpenQuoteContext
+from futu.quote.quote_response_handler import OrderBookHandlerBase, TickerHandlerBase, StockQuoteHandlerBase
 logger = getLogger(__name__)
 class StockQuoteHandler(StockQuoteHandlerBase):
     def __init__(self):

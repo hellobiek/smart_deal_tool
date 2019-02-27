@@ -12,7 +12,7 @@ from log import getLogger
 from pyalgotrade import broker
 from base.base import get_today_time, localnow
 from algotrade.broker.futu.fututrader import FutuTrader, MOrder, MDeal
-from futuquant import OrderStatus, OrderType, TrdEnv, TradeDealHandlerBase, TradeOrderHandlerBase
+from futu import OrderStatus, OrderType, TrdEnv, TradeDealHandlerBase, TradeOrderHandlerBase
 logger = getLogger(__name__)
 
 class EquityTraits(broker.InstrumentTraits):

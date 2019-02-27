@@ -29,7 +29,7 @@ from datamanager.hgt import StockConnect
 from datamanager.sexchange import StockExchange
 from rindustry import RIndexIndustryInfo
 from combination_info import CombinationInfo
-from futuquant.common.constant import SubType
+from futu.common.constant import SubType
 from crawler.dspider.hkex import HkexCrawler
 from crawler.dspider.run import start_spider
 from subscriber import Subscriber, StockQuoteHandler, TickerHandler

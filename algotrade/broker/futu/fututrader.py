@@ -3,7 +3,7 @@ import json
 import threading
 import const as ct
 from log import getLogger
-from futuquant import OrderType, TrdSide, TrdEnv, OpenCNTradeContext, OpenUSTradeContext, OpenHKTradeContext
+from futu import OrderType, TrdSide, TrdEnv, OpenCNTradeContext, OpenUSTradeContext, OpenHKTradeContext
 logger = getLogger(__name__)
 class MDeal(object):
     def __init__(self, jsonDict):

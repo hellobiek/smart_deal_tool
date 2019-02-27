@@ -1,6 +1,7 @@
 # coding=utf-8
 from gevent import monkey
 monkey.patch_all()
+import time
 import const as ct
 from log import getLogger
 from ctrader import CTrader
@@ -8,6 +9,7 @@ from cthread import CThread
 from data_manager import DataManager
 log = getLogger(__name__)
 def main():
+    time.sleep(200)
     threadList = []
     dm = DataManager(ct.DB_INFO)
     log.info("init succeed")
