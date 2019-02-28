@@ -2,7 +2,6 @@
 import json
 import time
 import datetime
-import traceback
 from datetime import datetime
 import ccalendar
 import const as ct
@@ -61,9 +60,7 @@ class CTrader:
                             if True == succeed: 
                                 self.buy_succeed_date = _today
             except Exception as e:
-                self.traders = None
                 logger.error(e)
-                traceback.print_exc()
     
     def get_new_stock_list(self):
         stock_list = []
