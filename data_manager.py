@@ -65,7 +65,7 @@ class DataManager:
     def is_collecting_time(self, now_time = datetime.now()):
         _date = now_time.strftime('%Y-%m-%d')
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
-        aft_open_hour,aft_open_minute,aft_open_second = (17,00,00)
+        aft_open_hour,aft_open_minute,aft_open_second = (18,30,00)
         aft_open_time = datetime(y,m,d,aft_open_hour,aft_open_minute,aft_open_second)
         aft_close_hour,aft_close_minute,aft_close_second = (23,59,59)
         aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
@@ -157,7 +157,7 @@ class DataManager:
                             self.subscriber.stop()
             except Exception as e:
                 self.logger.error(e)
-                traceback.print_exc()
+                #traceback.print_exc()
             time.sleep(sleep_time)
 
     def set_update_info(self, step_length, exec_date, cdate = None, filename = ct.STEPFILE):
@@ -317,11 +317,10 @@ class DataManager:
                     else:
                         if not succeed:
                             self.clear_network_env()
-                            #self.logger.info("is collecting time. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                            self.logger.info("is collecting time. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                             mdate = datetime.now().strftime('%Y-%m-%d')
                             succeed = self.bootstrap(cdate = mdate, exec_date = mdate)
             except Exception as e:
-                self.clear_network_env()
                 self.logger.error(e)
             time.sleep(sleep_time)
 
