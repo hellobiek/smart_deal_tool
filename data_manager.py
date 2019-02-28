@@ -118,6 +118,7 @@ class DataManager:
         for code in index_list: 
             if code not in self.index_objs:
                 self.index_objs[code] = CIndex(code, should_create_influxdb = True, should_create_mysqldb = True)
+        return 0
 
     def collect_index_runtime_data(self):
         if self.quote_handler.empty(): return
@@ -155,8 +156,8 @@ class DataManager:
                         if self.subscriber.status():
                             self.subscriber.stop()
             except Exception as e:
-                traceback.print_exc()
                 self.logger.error(e)
+                traceback.print_exc()
             time.sleep(sleep_time)
 
     def set_update_info(self, step_length, exec_date, cdate = None, filename = ct.STEPFILE):

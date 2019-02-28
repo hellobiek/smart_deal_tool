@@ -76,3 +76,7 @@ class CTrader:
                 price = stocks_info.at[i, IPO_PRICE_HEAD]
                 stock_list.append((code, price))
         return stock_list
+
+
+ctrader = CTrader(ct.DB_INFO)
+ctrader.buy_new_stock(3600)
