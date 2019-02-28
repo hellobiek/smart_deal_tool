@@ -1,6 +1,6 @@
 # coding=utf-8
 import json
-import time
+import gevent
 import datetime
 from datetime import datetime
 import ccalendar
@@ -37,7 +37,6 @@ class CTrader:
                 if self.cal_client.is_trading_day():
                     if is_trading_time():
                         _today = datetime.now().strftime('%Y-%m-%d')
-                        time.sleep(sleep_time)
                         if self.buy_succeed_date != _today:
                             if not self.init(): raise Exception("trader login failed")
                             n_list = self.get_new_stock_list()
@@ -61,6 +60,7 @@ class CTrader:
                                 self.buy_succeed_date = _today
             except Exception as e:
                 logger.error(e)
+            gevent.sleep(sleep_time)
     
     def get_new_stock_list(self):
         stock_list = []
@@ -73,7 +73,3 @@ class CTrader:
                 price = stocks_info.at[i, IPO_PRICE_HEAD]
                 stock_list.append((code, price))
         return stock_list
-
-
-ctrader = CTrader(ct.DB_INFO)
-ctrader.buy_new_stock(3600)

@@ -2,6 +2,7 @@
 import os
 import time
 import json
+import gevent
 import schedule
 import datetime
 import traceback
@@ -158,7 +159,7 @@ class DataManager:
             except Exception as e:
                 self.logger.error(e)
                 #traceback.print_exc()
-            time.sleep(sleep_time)
+            gevent.sleep(sleep_time)
 
     def set_update_info(self, step_length, exec_date, cdate = None, filename = ct.STEPFILE):
         step_info = dict()
@@ -320,9 +321,10 @@ class DataManager:
                             self.logger.info("is collecting time. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                             mdate = datetime.now().strftime('%Y-%m-%d')
                             succeed = self.bootstrap(cdate = mdate, exec_date = mdate)
+                            gevent.sleep(sleep_time)
             except Exception as e:
+                gevent.sleep(30)
                 self.logger.error(e)
-            time.sleep(sleep_time)
 
     def init_combination_info(self):
         trading_info = self.comb_info_client.get()
@@ -497,7 +499,7 @@ class DataManager:
                 schedule.run_pending()
             except Exception as e:
                 self.logger.info(e)
-            time.sleep(sleep_time)
+            gevent.sleep(sleep_time)
  
 if __name__ == '__main__':
     #from cmysql import CMySQL
