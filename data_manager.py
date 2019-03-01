@@ -139,27 +139,29 @@ class DataManager:
             try:
                 if self.cal_client.is_trading_day():
                     if is_trading_time():
-                        sleep_time = 1
                         if not self.subscriber.status():
                             self.subscriber.start()
                             if 0 == self.init_index_info() and 0 == self.init_real_stock_info():
                                 self.init_combination_info()
                             else:
-                                self.logger.debug("enter stop dict time")
+                                self.logger.debug("enter stop subscriber")
                                 self.subscriber.stop()
                         else:
                             self.collect_stock_runtime_data()
                             self.collect_combination_runtime_data()
                             self.collect_index_runtime_data()
                             self.animation_client.collect()
+                            t_sleep_time = 1
                     else:
-                        sleep_time = 60
                         if self.subscriber.status():
                             self.subscriber.stop()
+                        t_sleep_time = sleep_time
+                else:
+                    t_sleep_time = sleep_time
             except Exception as e:
-                self.logger.error(e)
                 #traceback.print_exc()
-            gevent.sleep(sleep_time)
+                self.logger.error(e)
+            gevent.sleep(t_sleep_time)
 
     def set_update_info(self, step_length, exec_date, cdate = None, filename = ct.STEPFILE):
         step_info = dict()
@@ -323,7 +325,7 @@ class DataManager:
                             succeed = self.bootstrap(cdate = mdate, exec_date = mdate)
                             gevent.sleep(sleep_time)
             except Exception as e:
-                gevent.sleep(30)
+                time.sleep(1)
                 self.logger.error(e)
 
     def init_combination_info(self):

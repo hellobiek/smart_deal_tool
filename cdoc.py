@@ -29,7 +29,6 @@ class CDoc:
     COLORS = ['#F5DEB3', '#A0522D', '#1E90FF', '#FFE4C4', '#00FFFF', '#DAA520', '#3CB371', '#808080', '#ADFF2F', '#4B0082']
     def __init__(self):
         self.sdir = '/data/docs/blog/hellobiek.github.io/source/_posts'
-        
 
     def emotion_plot(self, df, dir_name, file_name):
         fig = plt.figure()
@@ -200,7 +199,7 @@ class CDoc:
     def generate(self, cdate, sh_df, sz_df, sh_rzrq_df, sz_rzrq_df, av_df, limit_info, stock_info, industry_info, index_info, all_stock_info):
         image_dir = os.path.join(self.sdir, "%s-StockReView" % cdate)
         file_name = "%s.md" % image_dir
-        #if os.path.exists(file_name): return True
+        if os.path.exists(file_name): return True
         os.makedirs(image_dir, exist_ok = True)
 
         md = MarkdownWriter()

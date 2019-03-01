@@ -102,7 +102,7 @@ class CReivew:
         return df
 
     def update(self, cdate = datetime.now().strftime('%Y-%m-%d')):
-        start_date = get_day_nday_ago(cdate, 100, dformat = "%Y-%m-%d")
+        start_date = get_day_nday_ago(cdate, 300, dformat = "%Y-%m-%d")
         end_date   = cdate
         try:
             #market info
@@ -182,4 +182,4 @@ class CReivew:
 
 if __name__ == '__main__':
     creview = CReivew(ct.DB_INFO)
-    data = creview.update('2019-01-23')
+    data = creview.update('2019-02-28')
