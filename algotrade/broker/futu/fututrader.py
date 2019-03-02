@@ -74,6 +74,8 @@ class MOrder(object):
         return self.__jsonDict["dealt_avg_price"]
 
 class FutuTrader:
+    ORDER_SCHEMA = ['order_id', 'order_type', 'order_status', 'code', 'stock_name', 'trd_side', 'qty', 'price', 'create_time', 'dealt_qty', 'dealt_avg_price', 'updated_time', 'last_err_msg']
+    DEAL_SCHEMA = ['trd_side', 'deal_id', 'order_id', 'code', 'stock_name', 'qty', 'price', 'create_time', 'dealt_qty', 'counter_broker_id', 'counter_broker_name']
     def __init__(self, host, port, trd_env, market, unlock_path = ct.FUTU_PATH):
         if market != ct.CN_MARKET_SYMBOL and market != ct.US_MARKET_SYMBOL and market != ct.HK_MARKET_SYMBOL: raise Exception("not supported market:%s" % market)
         if ct.CN_MARKET_SYMBOL == market:
@@ -127,7 +129,7 @@ class FutuTrader:
         ret, data = self.trd_ctx.order_list_query(trd_env = TrdEnv.SIMULATE, order_id = id_, status_filter_list = filter_list)
         if ret != 0: raise Exception("get opend order failed. order_id:%s, filter_list:%s" % (id_, filter_list))
         if data.empty: return orders
-        data = data[['order_id', 'order_type', 'order_status', 'code', 'trd_side', 'qty', 'price', 'create_time', 'dealt_qty', 'dealt_avg_price', 'updated_time']]
+        data = data[self.ORDER_SCHEMA]
         for mdict in data.to_dict("records"):
             orders.append(MOrder(mdict))
         return orders if id_ != "" else orders[0]
@@ -142,6 +144,28 @@ class FutuTrader:
         if  ret  != 0: logger.error("trade failed, ret:%s, data:%s" % (ret, data))
         #logger.info("trade %s success, ret:%s, data:%s" % (code, ret, data))
         return ret, data
+
+    def get_history_orders(self, code = "", start = "", end = "", status_filter_list = ["FILLED_ALL"]):
+        orders = list()
+        ret, data = self.trd_ctx.history_order_list_query(status_filter_list, code, start, end, trd_env = self.trd_env, acc_id = self.acc_id)
+        if ret != 0: raise Exception("get history orders failed.code:%s, start:%s, end:%s" % (code, start, end))
+        if data.empty: return orders
+        return data
+        #data = data[self.ORDER_SCHEMA]
+        #for mdict in data.to_dict("records"):
+        #    orders.append(MOrder(mdict))
+        #return orders
+
+    def get_history_deals(self, code = "", start = "", end = ""):
+        deals = list()
+        ret, data = self.trd_ctx.history_deal_list_query(code, start, end, trd_env = self.trd_env, acc_id = self.acc_id)
+        if ret != 0: raise Exception("get history deals failed.code:%s, start:%s, end:%s" % (code, start, end))
+        if data.empty: return deals
+        return data
+        #data = data[self.DEAL_SCHEMA]
+        #for mdict in data.to_dict("records"):
+        #    deals.append(MDeal(mdict))
+        #return deals
 
     def buy(self, code, price, quantity):
         if self.trd_env == TrdEnv.REAL:
