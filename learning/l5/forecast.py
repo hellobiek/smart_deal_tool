@@ -6,6 +6,7 @@ import datetime
 import numpy as np
 import pandas as pd
 import sklearn
+from alpha_vantage.timeseries import TimeSeries
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
@@ -13,7 +14,6 @@ from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
 from sklearn.metrics import confusion_matrix
 from sklearn.svm import LinearSVC, SVC
 
-from alpha_vantage.timeseries import TimeSeries
 def get_vantage_client():
     VANTAGE_API_KEY = 'R4RZ079WZET1M0JB'
     return TimeSeries(key = VANTAGE_API_KEY, output_format = 'pandas')
