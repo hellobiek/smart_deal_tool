@@ -123,9 +123,9 @@ class MarkdownWriter():
     def addTable(self, table):
         if not isinstance(table, MarkdownTable):
             raise ValueError("request a 'MarkdownTable' object")
-        self.stream += table.getTable()
+        self.stream += table.getTable() + "\n"
 
-    def addTitle(self, cdate):
+    def addTitle(self, cdate, passwd = '708187'):
         self.stream += "---\n"
         self.stream += "title: %s 复盘\n" % cdate
         self.stream += "date: 日期\n"
@@ -133,6 +133,6 @@ class MarkdownWriter():
         self.stream += "- 股市\n"
         self.stream += "tags:\n"
         self.stream += "- 复盘\n"
-        self.stream += "password: 708187\n"
+        self.stream += "password: %s\n" % passwd
         self.stream += "message: 请输入密码\n"
         self.stream += "---\n"

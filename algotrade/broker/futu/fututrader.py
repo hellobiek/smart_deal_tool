@@ -87,6 +87,8 @@ class FutuTrader:
         self.trd_env = trd_env
         self.acc_id = self.get_acc_id()
         self.unlock_pwd = self.get_unlock_pwd(fpath = unlock_path)
+        if self.trd_env == TrdEnv.REAL:
+            self.trd_ctx.unlock_trade(password_md5 = self.unlock_pwd)
         self._status = True
         self._lock   = threading.Lock()
 
@@ -148,7 +150,7 @@ class FutuTrader:
     def get_history_orders(self, code = "", start = "", end = "", status_filter_list = ["FILLED_ALL"]):
         orders = list()
         ret, data = self.trd_ctx.history_order_list_query(status_filter_list, code, start, end, trd_env = self.trd_env, acc_id = self.acc_id)
-        if ret != 0: raise Exception("get history orders failed.code:%s, start:%s, end:%s" % (code, start, end))
+        if ret != 0: raise Exception("get history orders failed.code:%s, start:%s, end:%s, ret:%s, msg:%s" % (code, start, end, ret, data))
         if data.empty: return orders
         return data
         #data = data[self.ORDER_SCHEMA]
@@ -168,8 +170,6 @@ class FutuTrader:
         #return deals
 
     def buy(self, code, price, quantity):
-        if self.trd_env == TrdEnv.REAL:
-            self.trd_ctx.unlock_trade(password_md5 = self.unlock_pwd)
         ret, data = self.trd_ctx.place_order(code = code, price = price, qty = quantity, trd_side = TrdSide.BUY, order_type = OrderType.NORMAL, trd_env = self.trd_env)
         return ret, data
 
