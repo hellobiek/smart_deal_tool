@@ -6,29 +6,6 @@ from pandas import DataFrame
 def MA(data, peried):
     return data.rolling(peried).mean()
 
-def SMA(d, N):
-    last = np.nan
-    v = pd.Series(index=d.index)
-    for key in d.index:
-        x = d[key]
-        x1 = (x + (N - 1) * last) / N if last == last else x
-        last = x1
-        v[key] = x1
-        if x1 != x1: last = x
-    return v
-
-def KDJ(data, N1=9, N2=3, N3=3):
-    low  = data.low.rolling(N1).min()
-    high = data.high.rolling(N1).max()
-    rsv  = (data.close - low) / (high - low) * 100
-    k = SMA(rsv, N2)
-    d = SMA(k, N3)
-    j = k * 3 - d * 2
-    data['K'] = k
-    data['D'] = d
-    data['J'] = j
-    return data
-
 PRE_DAYS_NUM = 60
 DATA_COLUMS = ['date', 'open', 'high', 'close', 'preclose', 'low', 'volume', 'amount', 'outstanding', 'totals', 'adj', 'aprice', 'pchange', 'turnover', 'sai', 'sri', 'uprice', 'sprice', 'mprice', 'lprice', 'ppercent', 'npercent', 'base', 'ibase', 'breakup', 'ibreakup', 'pday', 'profit', 'gamekline']
 DTYPE_LIST = [('date', 'S10'),\

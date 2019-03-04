@@ -1,15 +1,10 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 # grid_search.py
-from __future__ import print_function
-import datetime
 import sklearn
 from sklearn.svm import SVC
-from sklearn import cross_validation
-from sklearn.cross_validation import train_test_split
-from sklearn.grid_search import GridSearchCV
-from create_lagged_series import create_lagged_series
-
+from forecast import create_lagged_series
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import train_test_split
 if __name__ == "__main__":
     # Create a lagged series of the S&P500 US stock market index
     snpret = create_lagged_series("SPX", '2001-01-10', '2005-12-31', lags=5)
@@ -26,5 +21,6 @@ if __name__ == "__main__":
     print("Optimised parameters found on training set:")
     print(model.best_estimator_, "\n")
     print("Grid scores calculated on training set:")
-    for params, mean_score, scores in model.grid_scores_:
-        print("%0.3f for %r" % (mean_score, params))
+    #means = model.cv_results_['mean_test_score']
+    #params = model.cv_results_['params']
+    print(model.cv_results_)

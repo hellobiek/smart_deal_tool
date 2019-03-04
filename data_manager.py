@@ -314,7 +314,7 @@ class DataManager:
             #self.logger.info("enter daily update process. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             try:
                 if self.cal_client.is_trading_day(): 
-                    #self.logger.info("is trading day. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                    self.logger.info("is trading day. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                     if not self.is_collecting_time():
                         succeed = False
                     else:
@@ -323,10 +323,10 @@ class DataManager:
                             self.logger.info("is collecting time. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                             mdate = datetime.now().strftime('%Y-%m-%d')
                             succeed = self.bootstrap(cdate = mdate, exec_date = mdate)
-                            gevent.sleep(sleep_time)
             except Exception as e:
                 time.sleep(1)
                 self.logger.error(e)
+            gevent.sleep(sleep_time)
 
     def init_combination_info(self):
         trading_info = self.comb_info_client.get()
