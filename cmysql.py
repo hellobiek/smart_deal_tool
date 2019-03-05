@@ -125,7 +125,9 @@ class CMySQL:
     def delsert(self, df, table):
         if self.exec_sql("truncate table %s;" % table):
             return self.set(df, table)
-        return False
+        else:
+            logger.error("delsert %s for db %s failed" % (table, self.dbname))
+            return False
    
     def executemany(self, sql, params = None):
         res = True
@@ -211,7 +213,7 @@ class CMySQL:
                 hasSucceed = True
             except db.Error as e:
                 if 'conn' in dir(): conn.rollback()
-                logger.debug("error:%s" % str(e))
+                logger.error("error:%s" % str(e))
             finally:
                 if 'cur' in dir(): cur.close()
                 if 'conn' in dir(): conn.close()

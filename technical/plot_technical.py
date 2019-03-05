@@ -86,7 +86,7 @@ if __name__ == '__main__':
     #plot_kdj(data)
     #plot_cci(data)
     #plot_force_index(data)
-    #plot_evm(data)
+    #plot_emv(data)
     #plot_roc(data)
     #plot_boll(data)
     #plot_ewma(data)

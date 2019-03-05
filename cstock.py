@@ -15,10 +15,10 @@ from ticks import read_tick
 from cinfluxdb import CInflux
 from datetime import datetime
 from functools import partial
-from cpython.cchip import compute_distribution, compute_oneday_distribution,mac
-from cpython.cstock import compute_profit,base_floating_profit,pro_nei_chip
 #from cpython.cstock import pro_nei_chip
 #from features import base_floating_profit
+from cpython.cchip import compute_distribution, compute_oneday_distribution,mac
+from cpython.cstock import compute_profit,base_floating_profit,pro_nei_chip
 from base.cobj import CMysqlObj
 from common import create_redis_obj, get_years_between, transfer_date_string_to_int, transfer_int_to_date_string, is_df_has_unexpected_data, concurrent_run
 pd.set_option('display.max_columns', None)
@@ -301,6 +301,7 @@ class CStock(CMysqlObj):
         now_date = transfer_date_string_to_int(cdate)
         p_index = price_change_info.date.index[-1]
         p_date = price_change_info.date[p_index]
+        logger.debug("%s is need reright for %s" % (self.code, cdate))
         return now_date == p_date
 
     def relative_index_strength(self, df, index_df, cdate = None):
@@ -400,14 +401,13 @@ class CStock(CMysqlObj):
             return False
 
         #set chip distribution
-        #logger.info("compute %s distribution" % self.code)
         dist_data = self.compute_distribution(df)
         if dist_data.empty:
             logger.error("%s is empty distribution." % self.code)
             return False
 
         if not self.set_chip_distribution(dist_data):
-            logger.info("store %s distribution failed" % self.code)
+            logger.error("store %s distribution failed" % self.code)
             return False
 
         df['uprice'] = mac(dist_data, 0)
@@ -657,7 +657,7 @@ if __name__ == '__main__':
     from cindex import CIndex
     index_info = CIndex('000001').get_k_data(cdate)
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    cstock = CStock('000518')
+    cstock = CStock('002098')
     logger.info("start compute")
     cstock.set_k_data(bonus_info, index_info)
     logger.info("enter set base floating profit")

@@ -33,6 +33,7 @@ class CTrader:
 
     def buy_new_stock(self, sleep_time):
         while True:
+            logger.info("enter buy_new_stock")
             try:
                 if self.cal_client.is_trading_day():
                     if is_trading_time():

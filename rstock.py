@@ -162,7 +162,6 @@ class RIndexStock:
         for mdate in date_array:
             count += 1
             if CCalendar.is_trading_day(mdate, redis = self.redis):
-                print(count)
                 if not self.set_day_data(mdate):
                     self.logger.error("set %s data for rstock failed" % mdate)
                     succeed = False

@@ -137,6 +137,7 @@ class DataManager:
     def run(self, sleep_time):
         while True:
             try:
+                self.logger.debug("enter run")
                 if self.cal_client.is_trading_day():
                     if is_trading_time():
                         if not self.subscriber.status():
@@ -311,22 +312,21 @@ class DataManager:
     def update(self, sleep_time):
         succeed = False
         while True:
-            #self.logger.info("enter daily update process. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            self.logger.debug("enter daily update process. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             try:
                 if self.cal_client.is_trading_day(): 
                     self.logger.info("is trading day. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                    if not self.is_collecting_time():
-                        succeed = False
+                    if self.is_collecting_time() and not succeed:
+                        self.logger.info("is collecting time. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                        self.clear_network_env()
+                        mdate = datetime.now().strftime('%Y-%m-%d')
+                        succeed = self.bootstrap(cdate = mdate, exec_date = mdate)
                     else:
-                        if not succeed:
-                            self.clear_network_env()
-                            self.logger.info("is collecting time. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                            mdate = datetime.now().strftime('%Y-%m-%d')
-                            succeed = self.bootstrap(cdate = mdate, exec_date = mdate)
+                        if not self.is_collecting_time(): succeed = False
+                        gevent.sleep(sleep_time)
             except Exception as e:
                 time.sleep(1)
                 self.logger.error(e)
-            gevent.sleep(sleep_time)
 
     def init_combination_info(self):
         trading_info = self.comb_info_client.get()
@@ -495,7 +495,7 @@ class DataManager:
             return False
 
     def scrawler(self, sleep_time):
-        schedule.every().monday.at("14:00").do(start_spider)
+        schedule.every().monday.do(start_spider)
         while True:
             try:
                 schedule.run_pending()
