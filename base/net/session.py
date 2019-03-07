@@ -48,28 +48,30 @@ class SessionClient():
                 return 0, response
         return -1, 'time out'
 
-    def login(self, url, post_data, extra_value = None):
-        if extra_value is not None: cookie_value = extra_value
-        for item in self.cookies: cookie_value += item.name + "=" + item.value + ";"
+    def _format__header_params(self, extra_value = None):
         headers = copy.deepcopy(self.headers)
+        cookie_value = "" if extra_value is None else extra_value
+        for item in self.cookies: cookie_value += item.name + "=" + item.value + ";"
         if 'Cookie' in headers:
             headers['Cookie'] += cookie_value
         else:
             headers['Cookie'] = cookie_value
+        return headers
+
+    def logout(self, url, extra_value = None):
+        headers = self._format__header_params(extra_value)
+        response = self.session.get(url, headers = headers, timeout = self.connect_timeout, verify = False)
+        if response.status_code != 200: return response.status_code, response.reason
+        self.cookies = None
+        return 0, ''
+
+    def login(self, url, post_data, extra_value = None):
+        headers = self._format__header_params(extra_value)
         post_encode = parse.urlencode(post_data).encode("utf-8")
         response = self.session.post(url, data=post_encode, headers = headers, timeout = self.connect_timeout, verify = False)
         if response.status_code != 200: return response.status_code, response.reason
         self.cookies = response.cookies
         return 0, ''
-
-    def logout(self, url):
-        self.session = None
-        response = self.session.post(url)
-        if response['data'] == 'success':
-            self.session = None
-            self.log.info('logged out success.')
-        else:
-            self.log.info('logged out failed, error:%s' % response)
 
     def post(self, url, data, timeout = 10, files = None):
         return self._send_request('POST', url, data = data, timeout = timeout, files=files)

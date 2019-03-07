@@ -33,6 +33,11 @@ class CTrader:
             if 0 != self.traders[i].prepare(): return False
         return True
 
+    def close(self):
+        for i in range(len(self.traders)):
+            if 0 != self.traders[i].close(): return False
+        return True
+
     def buy_new_stock(self, sleep_time):
         while True:
             self.logger.info("enter buy_new_stock")
@@ -41,29 +46,31 @@ class CTrader:
                     if is_trading_time():
                         _today = datetime.now().strftime('%Y-%m-%d')
                         if self.buy_succeed_date != _today:
-                            if not self.init(): raise Exception("rader login failed")
                             n_list = self.get_new_stock_list()
                             if len(n_list) == 0:
                                 self.logger.info("no new stock for %s." % _today)
                                 self.buy_succeed_date = _today
-                            succeed = True
-                            for stock in n_list:
-                                for i in range(len(self.traders)):
-                                    ret, amount = self.traders[i].max_amounts(stock[0], stock[1], stock[2])
-                                    if 0 != ret: 
-                                        succeed = False
-                                    else:
-                                        ret, msg = self.traders[i].deal(stock[0], stock[1], amount, "B")
-                                        if ret != 0 and ret != ct.ALREADY_BUY:
-                                            self.logger.error("buy new stock:%s amount:%s for %s error, msg:%s, ret:%s" % (stock, amount, _today, msg, ret))
+                            else:
+                                if not self.init(): raise Exception("rader login failed")
+                                succeed = True
+                                for stock in n_list:
+                                    for i in range(len(self.traders)):
+                                        ret, amount = self.traders[i].max_amounts(stock[0], stock[1], stock[2])
+                                        if 0 != ret: 
                                             succeed = False
-                                        elif ret == 0:
-                                            self.logger.info("buy new stock:%s amount:%s for %s succeed." % (stock, amount, _today))
-                                        elif ret == ct.ALREADY_BUY:
-                                            self.logger.info("already buy new stock:%s amount:%s for %s, no use to buy more." % (stock, amount, _today))
-                            if True == succeed: 
-                                self.buy_succeed_date = _today
+                                        else:
+                                            ret, msg = self.traders[i].deal(stock[0], stock[1], amount, "B")
+                                            if ret != 0 and ret != ct.ALREADY_BUY:
+                                                self.logger.error("buy new stock:%s amount:%s for %s error, msg:%s, ret:%s" % (stock, amount, _today, msg, ret))
+                                                succeed = False
+                                            elif ret == 0:
+                                                self.logger.info("buy new stock:%s amount:%s for %s succeed." % (stock, amount, _today))
+                                            elif ret == ct.ALREADY_BUY:
+                                                self.logger.info("already buy new stock:%s amount:%s for %s, no use to buy more." % (stock, amount, _today))
+                                if succeed:
+                                    if self.close(): self.buy_succeed_date = _today
             except Exception as e:
+                self.close()
                 self.logger.error(e)
             gevent.sleep(sleep_time)
 

@@ -17,6 +17,7 @@ from broker.changcheng.html_parser import HtmlParser
 LOGIN_URL = "https://trade.cgws.com/cgi-bin/user/Login"
 STOCK_MONUT = "https://trade.cgws.com/cgi-bin/stock/EntrustQuery"
 VALIDATE_IMG_URL = "https://trade.cgws.com/cgi-bin/img/validateimg"
+LOGOUT_URL = "https://trade.cgws.com/cgi-bin/user/Login?function=CloseSession"
 ACCOUNT_URL = "https://trade.cgws.com/cgi-bin/stock/EntrustQuery?function=MyAccount"
 DEAL_URL = "https://trade.cgws.com/cgi-bin/stock/StockEntrust?function=StockBusiness"
 CANCEL_ORDER_URL = "https://trade.cgws.com/cgi-bin/stock/StockEntrust?function=StockCancel"
@@ -47,6 +48,15 @@ class Trader:
         }
         self.client = Client() 
         self.session_client = SessionClient(self.headers)
+
+    def close(self):
+        import pdb
+        pdb.set_trace()
+        extra_value = "fundAccount=%s; loginType=%s;" % (self.account, 'Z')
+        ret, result = self.session_client.logout(LOGOUT_URL, extra_value)
+        if ret != 0:
+            self.log.error('close session failed, account:%s, reason:%s' % (self.account, result))
+        return ret
 
     def prepare(self):
         #prepare for login
@@ -224,3 +234,4 @@ if '__main__' == __name__:
         print(trader.orders(ct.SUBMITTED))
         print(trader.deal('002935', 19.38, 8000, 'B'))
         print(trader.max_amounts('002935', 19.38, 0))
+        print(trader.close())
