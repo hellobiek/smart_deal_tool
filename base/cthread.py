@@ -1,7 +1,5 @@
 # coding=utf-8
-import sys
 import threading
-
 class CThread(threading.Thread):
     def __init__(self, fun, param):
         threading.Thread.__init__(self)

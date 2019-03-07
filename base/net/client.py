@@ -1,15 +1,16 @@
-#!/usr/bin/python
 # coding=utf-8
+import sys
+from os.path import abspath, dirname
+sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import ssl
 from urllib import parse 
+from log import getLogger
 from urllib import request
 from http import cookiejar
-from log import getLogger
-from const import LOGIN_URL
 class Client:
     def __init__(self):
-        self.log = getLogger(__name__)
         self.cookie_value = ""
+        self.log = getLogger(__name__)
         self.context = ssl._create_unverified_context()
         self.cookie = cookiejar.MozillaCookieJar()
         self.ssl_handler = request.HTTPSHandler(context = self.context)
@@ -17,9 +18,9 @@ class Client:
         self.handlers = [self.ssl_handler, self.cookie_handler]
         self.opener = request.build_opener(*self.handlers)
 
-    def prepare(self, first_url = LOGIN_URL):
+    def prepare(self, url):
         try:
-            response = self.opener.open(first_url, timeout=10)
+            response = self.opener.open(url, timeout=10)
             for item in self.cookie:
                 self.cookie_value += item.name + "=" + item.value + ";"
         except request.HTTPError as e:
@@ -55,7 +56,7 @@ class Client:
         tmp_url = request_url
         if get_data: tmp_url = tmp_url + "?" + parse.urlencode(get_data)
         self.log.debug("url:%s, cookie:%s" % (tmp_url, self.cookie))
-        headers_info={
+        headers_info = {
             'Accept':r'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
             'User-agent':r'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.119 Safari/537.36',
         }

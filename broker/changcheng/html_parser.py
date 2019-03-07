@@ -1,12 +1,9 @@
 #coding=utf-8
-import os,time,string
-import sys
-from pyquery import PyQuery as pq
 import re
-
-class html_parser:
-    def __init__(self, html_text):
-        self.html_text = html_text
+from pyquery import PyQuery as pq
+class HtmlParser:
+    def __init__(self, html_response):
+        self.html_text = html_response.text
 
     def get_holdings(self):
         holding_list = []
@@ -37,23 +34,20 @@ class html_parser:
                 one_record["balance"] = float(match.group(1))
             else:
                 one_record["balance"] = 0
-                print("html parse error")
             match = reg.search(pq(i).children().eq(1).text())
             if match:
                 one_record["availble"] = float(match.group(1))
             else:
                 one_record["availble"] = 0
-                print("html parse error")
             tmp_info.append(one_record)
         return tmp_info[0]
 
-    def get_onging_orders(self):
+    def get_orders(self):
         ongoing_list = []
         jp = pq(self.html_text)
         tmp = jp("#tab1 tbody tr")
         for i in tmp:
-            print(pq(i).children().eq(3).text())
-            if pq(i).children().eq(3).text() == "":break
+            if pq(i).children().eq(3).text() == "": break
             one_record = {}
             one_record["stock_code"] = pq(i).children().eq(3).text()
             one_record["amount_commit"] = pq(i).children().eq(8).text()

@@ -220,6 +220,12 @@ def compute_distribution(data):
             tdata = (index, cdate, cdate, aprice, volume, outstanding)
             t = np.array([tdata], dtype = DTYPE_LIST)
             tmp_arrary = np.concatenate((tmp_arrary, np.array(t)), axis=0)
+            print("KKKKKKKKKKKK01")
+            print(index)
+            print(len(tmp_arrary))
+            import time
+            time.sleep(0.1)
+            print("KKKKKKKKKKKK02")
         pre_outstanding = outstanding
         tmp_arrary = tmp_arrary[tmp_arrary['volume'] > 0]
         data_arrary = tmp_arrary.copy() if 0 == index else np.concatenate((data_arrary, tmp_arrary), axis = 0)

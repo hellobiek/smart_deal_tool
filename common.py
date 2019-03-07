@@ -13,10 +13,10 @@ import const as ct
 import numpy as np
 import pandas as pd
 import tushare as ts
-from multiprocessing import Process
 from gevent.pool import Pool
-from crack_bmp import crack_bmp
+from multiprocessing import Process
 from datetime import datetime, timedelta
+
 def trace_func(*dargs, **dkargs):
     def wrapper(func):
         def _wrapper(*args, **kargs):
@@ -39,11 +39,6 @@ def gint(x):
         return -9
     else:
         return int(x)
-
-def get_verified_code(tmp_buff):
-    with open('/tmp/1.jpg','wb') as verify_pic:
-        verify_pic.write(tmp_buff)
-    return crack_bmp().decode_from_file('/tmp/1.jpg')
 
 def _fprint(obj):
     print("***************************s")

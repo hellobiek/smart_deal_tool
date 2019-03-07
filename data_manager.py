@@ -140,6 +140,7 @@ class DataManager:
                 self.logger.debug("enter run")
                 if self.cal_client.is_trading_day():
                     if is_trading_time():
+                        t_sleep_time = 1
                         if not self.subscriber.status():
                             self.subscriber.start()
                             if 0 == self.init_index_info() and 0 == self.init_real_stock_info():
@@ -152,11 +153,10 @@ class DataManager:
                             self.collect_combination_runtime_data()
                             self.collect_index_runtime_data()
                             self.animation_client.collect()
-                            t_sleep_time = 1
                     else:
+                        t_sleep_time = sleep_time
                         if self.subscriber.status():
                             self.subscriber.stop()
-                        t_sleep_time = sleep_time
                 else:
                     t_sleep_time = sleep_time
             except Exception as e:

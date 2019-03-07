@@ -401,6 +401,8 @@ class CStock(CMysqlObj):
             return False
 
         #set chip distribution
+        import pdb
+        pdb.set_trace()
         dist_data = self.compute_distribution(df)
         if dist_data.empty:
             logger.error("%s is empty distribution." % self.code)

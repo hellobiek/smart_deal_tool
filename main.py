@@ -4,8 +4,8 @@ monkey.patch_all()
 import time
 import const as ct
 from log import getLogger
-from ctrader import CTrader
-from cthread import CThread
+from base.cthread import CThread
+from broker.ctrader import CTrader
 from data_manager import DataManager
 log = getLogger(__name__)
 def main():

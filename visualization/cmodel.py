@@ -135,8 +135,5 @@ if __name__ == '__main__':
     ncns = NoChipNetSpaceSelecter()
     ncns_code_list = ncns.choose(stock_info)
 
-    import pdb
-    pdb.set_trace()
-
     moj = MarketOversoldJudger()
     is_over_sold = moj.judge(stock_info)
