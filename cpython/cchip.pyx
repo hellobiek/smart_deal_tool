@@ -6,47 +6,7 @@ cimport numpy as np
 from pandas import DataFrame
 CHIP_COLUMNS = ['pos', 'sdate', 'date', 'price', 'volume', 'outstanding']
 DTYPE_LIST = [('pos', 'i8'), ('sdate', 'S10'), ('date', 'S10'), ('price', 'f4'), ('volume', 'i8'), ('outstanding', 'i8')]
-
-def mac(data, int peried):
-    ulist = list()
-    for name, group in data.groupby(data.date):
-        if peried != 0 and len(group) > peried:
-            group = group.nlargest(peried, 'pos')
-        total_volume = group.volume.sum()
-        total_amount = group.price.dot(group.volume)
-        ulist.append(total_amount / total_volume)
-    return ulist
-
-def mac1(data, perieds):
-    cdef int peried
-    cdef str ndate
-    cdef char* cdate
-    cdef long total_volume = 0
-    cdef float total_amount = 0
-    cdef array.array ulist = array.array('f', [])
-    cdef array.array slist = array.array('f', [])
-    cdef array.array mlist = array.array('f', [])
-    cdef array.array llist = array.array('f', [])
-    cdef np.ndarray group, dist_data = data.to_records(index = False).astype(DTYPE_LIST)
-    for peried in perieds:
-        for cdate in np.unique(dist_data['date']):
-            ndate = cdate.decode('utf-8')
-            group = dist_data[np.where(np.char.decode(dist_data['date']) == ndate)]
-            if peried != 0 and len(group) > peried:
-                group = group[np.argpartition(group['pos'], -peried)][-peried:]
-            total_volume = group['volume'].sum()
-            total_amount = group['price'].dot(group['volume'])
-            if peried == 0:
-                ulist.append(total_amount / total_volume)
-            elif peried == 5:
-                slist.append(total_amount / total_volume)
-            elif peried == 13:
-                mlist.append(total_amount / total_volume)
-            else:
-                llist.append(total_amount / total_volume)
-    return ulist, slist, mlist, llist
-
-def evenly_distributed_new_chip(np.ndarray[long] volume_series, long pre_outstanding, long outstanding):
+def evenly_distributed_chip(np.ndarray[long] volume_series, long pre_outstanding, long outstanding):
     volume_series = (outstanding * (volume_series / pre_outstanding)).astype(long)
     cdef long delta = 0
     cdef long real_total_volume = np.sum(volume_series)
@@ -59,36 +19,53 @@ def evenly_distributed_new_chip(np.ndarray[long] volume_series, long pre_outstan
     volume_series[np.argpartition(volume_series, abs(delta_sum))[:abs(delta_sum)]] += delta
     return volume_series
 
-def divide_according_price(np.ndarray[float] price_series, np.ndarray[long] volume_series, long total_volume, float price):
-    cdef np.ndarray[float] delta_price_series = np.abs(price - price_series)
-    cdef float total_delta_price = np.sum(delta_price_series)
-    cdef float ratio = 0
-    cdef long tmp_volume = 0
-    cdef long length = len(price_series)
-    while total_volume != 0:
-        tmp_volume = total_volume
-        for (index, ), delta_price in np.ndenumerate(delta_price_series):
-            ratio = tmp_volume / length if 0 == total_delta_price else delta_price / total_delta_price
-            expected_volume = max(1, int(tmp_volume * ratio))
-            if expected_volume > total_volume: expected_volume = total_volume
-            total_volume -= min(volume_series[index], expected_volume)
-            volume_series[index] = max(0, volume_series[index] - expected_volume)
-            if 0 == total_volume: break
+def max_min_normalization(np.ndarray[float] series):
+    cdef float max_val = max(series)
+    cdef float min_val = min(series)
+    cdef float mean_val = np.mean(series)
+    if abs(max_val - min_val) < 0.0001:
+        return (np.asarray([1/len(series)for i in range(len(series))])).astype(np.float32)
+    else:
+        return ((series - np.mean(series))/(max_val - min_val)).astype(np.float32)
+
+def postive_normalization(np.ndarray[float] series):
+    cdef float max_val = max(series)
+    cdef float min_val = min(series)
+    cdef np.ndarray[float] nseries
+    if abs(max_val - min_val) < 0.0001:
+        return np.asarray([1/len(series)for i in range(len(series))]).astype(np.float32)
+    else:
+        nseries = series + 2 * abs(max(series))
+        return (nseries/np.sum(nseries)).astype(np.float32)
+
+def allocate_volume(long volume, np.ndarray[float] ratio_series, np.ndarray[long] volume_series):
+    cdef long index = 0
+    cdef float ratio = 0.0
+    cdef long delta_volume = 0
+    cdef long expected_volume = 0
+    while volume != 0:
+        for (index, ), ratio in np.ndenumerate(ratio_series):
+            expected_volume = min(max(1, int(volume * ratio)), volume)
+            delta_volume = min(max(1, int(0.007 * volume_series[index])), expected_volume)
+            if volume >= delta_volume:
+                volume -= delta_volume
+                volume_series[index] -= delta_volume
+            if 0 == volume: break
     return volume_series
 
-def divide_according_position(np.ndarray[long] position_series, np.ndarray[long] volume_series, long total_volume, long now_position):
-    cdef long tmp_volume = 0
-    cdef np.ndarray[long] delta_position_series = now_position - position_series
-    cdef long total_position = np.sum(delta_position_series)
-    while total_volume != 0:
-        tmp_volume = total_volume
-        for (index, ), position in np.ndenumerate(delta_position_series):
-            expected_volume = max(1, long(tmp_volume * (position / total_position)))
-            if expected_volume > total_volume: expected_volume = total_volume
-            total_volume -= min(volume_series[index], expected_volume)
-            volume_series[index] = max(0, volume_series[index] - expected_volume)
-            if 0 == total_volume: break
-    return volume_series
+def divide_according_price(np.ndarray[float] price_series, np.ndarray[long] volume_series, long volume, float price):
+    cdef np.ndarray[float] delta_price_series = max_min_normalization(price - price_series)
+    cdef np.ndarray[float] volume_normalization_series = (volume_series / max(volume_series)).astype(np.float32)
+    cdef np.ndarray[float] delta_volume_series = max_min_normalization(volume_normalization_series)
+    cdef np.ndarray[float] ratio_series = postive_normalization(delta_price_series + delta_volume_series)
+    return allocate_volume(volume, ratio_series, volume_series)
+
+def divide_according_position(np.ndarray[long] position_series, np.ndarray[long] volume_series, long volume, long position):
+    cdef np.ndarray[float] delta_position_series = max_min_normalization((position - position_series).astype(np.float32))
+    cdef np.ndarray[float] volume_normalization_series = (volume_series / max(volume_series)).astype(np.float32)
+    cdef np.ndarray[float] delta_volume_series = max_min_normalization(volume_normalization_series)
+    cdef np.ndarray[float] ratio_series = postive_normalization(delta_position_series + delta_volume_series)
+    return allocate_volume(volume, ratio_series, volume_series)
 
 def number_of_days(np.ndarray[long] pre_pos, long pos):
     return pos - pre_pos
@@ -132,37 +109,11 @@ def divide_volume(long volume, long s_p_volume_total, long s_u_volume_total, lon
         s_p_volume = long(volume * (s_p_volume_total / volume_total))
         s_u_volume = long(volume * (s_u_volume_total / volume_total))
         l_u_volume = volume - s_p_volume - s_u_volume - l_p_volume
-
-    l_u_delta_volume = l_u_volume_total - l_u_volume
-    l_p_delta_volume = l_p_volume_total - l_p_volume
-    s_p_delta_volume = s_p_volume_total - s_p_volume
-    total_delta_volume = l_u_delta_volume + l_p_delta_volume + s_p_delta_volume
-    delta_volume = min(long(0.32 * s_u_volume), total_delta_volume)
-    if delta_volume == 0: return s_p_volume, s_u_volume, l_p_volume, l_u_volume
-    s_u_volume -= delta_volume
-    if l_p_delta_volume == max(l_p_delta_volume, l_u_delta_volume, s_p_delta_volume):
-        tmp_volume1 = long(delta_volume * s_p_delta_volume/total_delta_volume)
-        s_p_volume += tmp_volume1
-        tmp_volume2 = long(delta_volume * l_u_delta_volume/total_delta_volume)
-        l_u_volume += tmp_volume2
-        l_p_volume += delta_volume - tmp_volume1 - tmp_volume2
-    elif l_u_delta_volume == max(l_p_delta_volume, l_u_delta_volume, s_p_delta_volume):
-        tmp_volume1 = long(delta_volume * s_p_delta_volume/total_delta_volume)
-        s_p_volume += tmp_volume1
-        tmp_volume2 = long(delta_volume * l_p_delta_volume/total_delta_volume)
-        l_p_volume += tmp_volume2
-        l_u_volume += delta_volume - tmp_volume1 - tmp_volume2
-    else:
-        tmp_volume1 = long(delta_volume * l_u_delta_volume/total_delta_volume)
-        l_u_volume += tmp_volume1
-        tmp_volume2 = long(delta_volume * l_p_delta_volume/total_delta_volume)
-        l_p_volume += tmp_volume2
-        s_p_volume += delta_volume - tmp_volume1 - tmp_volume2
     return s_p_volume, s_u_volume, l_p_volume, l_u_volume
 
 def adjust_volume(np.ndarray mdata, long pos, long volume, float price, long pre_outstanding, long outstanding):
     if pre_outstanding != outstanding:
-        mdata['volume'] = evenly_distributed_new_chip(mdata['volume'], pre_outstanding, outstanding)
+        mdata['volume'] = evenly_distributed_chip(mdata['volume'], pre_outstanding, outstanding)
 
     cdef np.ndarray s_p_data, s_u_data, l_p_data, l_u_data
     s_p_data, s_u_data, l_p_data, l_u_data = divide_data(mdata, pos, price)
@@ -220,12 +171,6 @@ def compute_distribution(data):
             tdata = (index, cdate, cdate, aprice, volume, outstanding)
             t = np.array([tdata], dtype = DTYPE_LIST)
             tmp_arrary = np.concatenate((tmp_arrary, np.array(t)), axis=0)
-            print("KKKKKKKKKKKK01")
-            print(index)
-            print(len(tmp_arrary))
-            import time
-            time.sleep(0.1)
-            print("KKKKKKKKKKKK02")
         pre_outstanding = outstanding
         tmp_arrary = tmp_arrary[tmp_arrary['volume'] > 0]
         data_arrary = tmp_arrary.copy() if 0 == index else np.concatenate((data_arrary, tmp_arrary), axis = 0)
@@ -234,3 +179,59 @@ def compute_distribution(data):
     df.sdate = df.sdate.str.decode('utf-8')
     df.price = df.price.astype(float).round(2)
     return df
+
+def mac(data, int peried):
+    ulist = list()
+    for name, group in data.groupby(data.date):
+        if peried != 0 and len(group) > peried:
+            group = group.nlargest(peried, 'pos')
+        total_volume = group.volume.sum()
+        total_amount = group.price.dot(group.volume)
+        ulist.append(total_amount / total_volume)
+    return ulist
+
+def mac1(data, perieds):
+    cdef int peried
+    cdef str ndate
+    cdef char* cdate
+    cdef long total_volume = 0
+    cdef float total_amount = 0
+    cdef array.array ulist = array.array('f', [])
+    cdef array.array slist = array.array('f', [])
+    cdef array.array mlist = array.array('f', [])
+    cdef array.array llist = array.array('f', [])
+    cdef np.ndarray group, dist_data = data.to_records(index = False).astype(DTYPE_LIST)
+    for peried in perieds:
+        for cdate in np.unique(dist_data['date']):
+            ndate = cdate.decode('utf-8')
+            group = dist_data[np.where(np.char.decode(dist_data['date']) == ndate)]
+            if peried != 0 and len(group) > peried:
+                group = group[np.argpartition(group['pos'], -peried)][-peried:]
+            total_volume = group['volume'].sum()
+            total_amount = group['price'].dot(group['volume'])
+            if peried == 0:
+                ulist.append(total_amount / total_volume)
+            elif peried == 5:
+                slist.append(total_amount / total_volume)
+            elif peried == 13:
+                mlist.append(total_amount / total_volume)
+            else:
+                llist.append(total_amount / total_volume)
+    return ulist, slist, mlist, llist
+
+def divide_according_price1(np.ndarray[float] price_series, np.ndarray[long] volume_series, long total_volume, float price):
+    cdef np.ndarray[float] delta_price_series = np.abs(price - price_series)
+    cdef float total_delta_price = np.sum(delta_price_series)
+    cdef float ratio = 0
+    cdef long tmp_volume = 0
+    cdef long length = len(price_series)
+    while total_volume != 0:
+        tmp_volume = total_volume
+        for (index, ), delta_price in np.ndenumerate(delta_price_series):
+            ratio = tmp_volume / length if 0 == total_delta_price else delta_price / total_delta_price
+            expected_volume = max(1, int(tmp_volume * ratio))
+            if expected_volume > total_volume: expected_volume = total_volume
+            total_volume -= min(volume_series[index], expected_volume)
+            volume_series[index] = max(0, volume_series[index] - expected_volume)
+            if 0 == total_volume: break
+    return volume_series

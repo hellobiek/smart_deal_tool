@@ -50,8 +50,6 @@ class Trader:
         self.session_client = SessionClient(self.headers)
 
     def close(self):
-        import pdb
-        pdb.set_trace()
         extra_value = "fundAccount=%s; loginType=%s;" % (self.account, 'Z')
         ret, result = self.session_client.logout(LOGOUT_URL, extra_value)
         if ret != 0:
@@ -143,11 +141,11 @@ class Trader:
                 return ct.OTHER_ERROR, "other err"
         else:
             reg = re.compile('.*alert.*新股申购数量超出.*\[(\d{3,})\]')
-            match = reg.search(result.decode('gbk', "ignore"))
+            match = reg.search(result)
             if match: return ct.SHENGOU_LIMIT, match.group(1)
         #parse the deal id. if not exist return ""
         reg = re.compile(r'alert.*(\d{4})')
-        match = reg.search(result.decode("gbk", "ignore"))
+        match = reg.search(result)
         if match:
             return 0, match.group(1)
         else:

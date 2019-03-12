@@ -1,11 +1,7 @@
 #-*- coding: utf-8 -*-
 import array
 import numpy as np
-import pandas as pd
 from pandas import DataFrame
-def MA(data, peried):
-    return data.rolling(peried).mean()
-
 PRE_DAYS_NUM = 60
 DATA_COLUMS = ['date', 'open', 'high', 'close', 'preclose', 'low', 'volume', 'amount', 'outstanding', 'totals', 'adj', 'aprice', 'pchange', 'turnover', 'sai', 'sri', 'uprice', 'sprice', 'mprice', 'lprice', 'ppercent', 'npercent', 'base', 'ibase', 'breakup', 'ibreakup', 'pday', 'profit', 'gamekline']
 DTYPE_LIST = [('date', 'S10'),\

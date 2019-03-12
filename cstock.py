@@ -6,7 +6,6 @@ import os
 import time
 import _pickle
 import datetime
-import numpy as np
 import const as ct
 import pandas as pd
 import tushare as ts
@@ -16,10 +15,12 @@ from cinfluxdb import CInflux
 from datetime import datetime
 from functools import partial
 #from cpython.cstock import pro_nei_chip
-#from features import base_floating_profit
-from cpython.cchip import compute_distribution, compute_oneday_distribution,mac
-from cpython.cstock import compute_profit,base_floating_profit,pro_nei_chip
+#from cpython.cchip import mac
+#from cpython.features import base_floating_profit
+#from cpython.mchip import compute_distribution, compute_oneday_distribution
 from base.cobj import CMysqlObj
+from cpython.cchip import compute_distribution, compute_oneday_distribution, mac
+from cpython.cstock import compute_profit,base_floating_profit,pro_nei_chip
 from common import create_redis_obj, get_years_between, transfer_date_string_to_int, transfer_int_to_date_string, is_df_has_unexpected_data, concurrent_run
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -401,8 +402,6 @@ class CStock(CMysqlObj):
             return False
 
         #set chip distribution
-        import pdb
-        pdb.set_trace()
         dist_data = self.compute_distribution(df)
         if dist_data.empty:
             logger.error("%s is empty distribution." % self.code)
@@ -659,7 +658,8 @@ if __name__ == '__main__':
     from cindex import CIndex
     index_info = CIndex('000001').get_k_data(cdate)
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    cstock = CStock('002098')
+    #cstock = CStock('002098')
+    cstock = CStock('600536')
     logger.info("start compute")
     cstock.set_k_data(bonus_info, index_info)
     logger.info("enter set base floating profit")

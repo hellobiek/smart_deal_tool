@@ -12,16 +12,6 @@ from markdown_table import MarkdownTable
 from markdown_writer import MarkdownWriter
 from algotrade.broker.futu.fututrader import FutuTrader, MOrder, MDeal
 pd.options.mode.chained_assignment = None
-def main():
-    dirname = '/Volumes/data/quant/stock/data/docs/blog/hellobiek.github.io/source/_posts'
-    unlock_path_ = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/futu.json"
-    futuTrader = FutuTrader(host = ct.FUTU_HOST_LOCAL, port = ct.FUTU_PORT, trd_env = TrdEnv.REAL, market = ct.US_MARKET_SYMBOL, unlock_path = unlock_path_)
-    start = '2019-02-25' 
-    end   = '2019-03-01'
-    orders = futuTrader.get_history_orders(start = start, end = end)
-    date_arrary = get_dates_array(start, end, dformat = "%Y-%m-%d", asending = True)
-    generate(orders, date_arrary, dirname, start, end)
-
 def generate(orders, date_arrary, dirname, start, end):
     filename = 'form_%s_to_%s_tading_review.md' % (start, end) 
     os.makedirs(dirname, exist_ok = True)
@@ -41,10 +31,10 @@ def generate(orders, date_arrary, dirname, start, end):
         t_index.addRow(["全天行情", ""])
         t_index.addRow(["是否一致", ""])
         md.addTable(t_index)
-        t_index = MarkdownTable(headers = ["名称", "成交方向", "成交数量", "成交价格", "成交时间", "成交原因", "实际结果", "结果分析"])
+        t_index = MarkdownTable(headers = ["名称", "成交方向", "成交数量", "成交价格", "成交时间", "对错分析", "结果分析"])
         for index in range(len(order_info)):
             data_list = order_info.loc[index].tolist()
-            content_list = [data_list[0], data_list[1], int(data_list[2]), round(data_list[3], 2), data_list[4], '', '', '']
+            content_list = [data_list[0], data_list[1], int(data_list[2]), round(data_list[3], 2), data_list[4], '', '']
             content_list = [str(i) for i in content_list]
             t_index.addRow(content_list)
         md.addTable(t_index)
@@ -55,6 +45,16 @@ def generate(orders, date_arrary, dirname, start, end):
 
     with open(fullfilepath, "w+") as f:
         f.write(md.getStream())
+
+def main():
+    dirname = '/Volumes/data/quant/stock/data/docs/blog/hellobiek.github.io/source/_posts'
+    unlock_path_ = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/futu.json"
+    futuTrader = FutuTrader(host = ct.FUTU_HOST_LOCAL, port = ct.FUTU_PORT, trd_env = TrdEnv.REAL, market = ct.US_MARKET_SYMBOL, unlock_path = unlock_path_)
+    start = '2019-03-04' 
+    end   = '2019-03-08'
+    orders = futuTrader.get_history_orders(start = start, end = end)
+    date_arrary = get_dates_array(start, end, dformat = "%Y-%m-%d", asending = True)
+    generate(orders, date_arrary, dirname, start, end)
 
 if __name__ == "__main__": 
     main()

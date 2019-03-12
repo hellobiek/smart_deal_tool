@@ -137,7 +137,6 @@ class DataManager:
     def run(self, sleep_time):
         while True:
             try:
-                self.logger.debug("enter run")
                 if self.cal_client.is_trading_day():
                     if is_trading_time():
                         t_sleep_time = 1
@@ -527,8 +526,7 @@ if __name__ == '__main__':
 
     dm = DataManager()
     dm.logger.info("start compute!")
-    #dm.bootstrap(exec_date = '2019-01-25')
+    dm.bootstrap(exec_date = '2019-03-11')
     #mdate = datetime.now().strftime('%Y-%m-%d')
-    mdate = '2019-02-26'
-    dm.bootstrap(cdate = mdate, exec_date = mdate)
+    #mdate = '2019-02-26'
     dm.logger.info("end compute!")
