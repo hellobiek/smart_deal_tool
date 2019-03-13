@@ -9,7 +9,9 @@ from kdj import kdj
 from roc import roc
 from emv import emv
 from cci import cci
+from obv import obv 
 from boll import boll
+from admi import admi
 from force_index import force_index
 from cindex import CIndex
 import matplotlib.pyplot as plt
@@ -53,7 +55,7 @@ def plot_emv(data):
 
 def plot_roc(data):
     data = roc(data, 5)
-    plot(data, 'roc')
+    plot(data, ['roc'], 'roc')
 
 def plot_kdj(data):
     data = kdj(data)
@@ -78,6 +80,16 @@ def plot_macd(data):
     data = macd(data, nslow = 26, nfast = 12)
     plot(data, ["macd", 'ewma_%s' % 12, 'ewma_%s' % 26], "macd")
 
+def plot_obv(data):
+    data = obv(data, 5)
+    plot(data, ["obv_5"], "obv", True)
+
+def plot_admi(data):
+    data = admi(data, 6, 14)
+    import pdb
+    pdb.set_trace()
+    plot(data, ["adx_6_14"], "adx", True)
+
 if __name__ == '__main__':
     index_code = '000300'
     start = '2015-10-01'
@@ -87,8 +99,10 @@ if __name__ == '__main__':
     #plot_cci(data)
     #plot_force_index(data)
     #plot_emv(data)
-    #plot_roc(data)
+    plot_roc(data)
     #plot_boll(data)
     #plot_ewma(data)
     #plot_sma(data)
     #plot_macd(data)
+    #plot_obv(data)
+    #plot_admi(data)

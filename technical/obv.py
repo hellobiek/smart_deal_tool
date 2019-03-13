@@ -1,22 +1,22 @@
 #coding=utf-8
 import pandas as pd
-def on_balance_volume(df, n):
-    """Calculate On-Balance Volume for given data.
+def obv(df, n):
+    """calculate on balance volume for given data.
     :param df: pandas.DataFrame
     :param n: 
     :return: pandas.DataFrame
     """
     i = 0
-    OBV = [0]
+    obv = [0]
     while i < df.index[-1]:
-        if df.loc[i + 1, 'Close'] - df.loc[i, 'Close'] > 0:
-            OBV.append(df.loc[i + 1, 'Volume'])
-        if df.loc[i + 1, 'Close'] - df.loc[i, 'Close'] == 0:
-            OBV.append(0)
-        if df.loc[i + 1, 'Close'] - df.loc[i, 'Close'] < 0:
-            OBV.append(-df.loc[i + 1, 'Volume'])
+        if df.loc[i + 1, 'close'] - df.loc[i, 'close'] > 0:
+            obv.append(df.loc[i + 1, 'volume'])
+        if df.loc[i + 1, 'close'] - df.loc[i, 'close'] == 0:
+            obv.append(0)
+        if df.loc[i + 1, 'close'] - df.loc[i, 'close'] < 0:
+            obv.append(-df.loc[i + 1, 'volume'])
         i = i + 1
-    OBV = pd.Series(OBV)
-    OBV_ma = pd.Series(OBV.rolling(n, min_periods=n).mean(), name='OBV_' + str(n))
-    df = df.join(OBV_ma)
+    obv = pd.Series(obv)
+    obv_ma = pd.Series(obv.rolling(n, min_periods=n).mean(), name='obv_' + str(n))
+    df = df.join(obv_ma)
     return df
