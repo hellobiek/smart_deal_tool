@@ -1,4 +1,4 @@
-#coding=utf-8
+# -*- coding: utf-8 -*-
 import os
 import sys
 from os.path import abspath, dirname
@@ -12,8 +12,8 @@ from cci import cci
 from obv import obv 
 from boll import boll
 from admi import admi
-from force_index import force_index
 from cindex import CIndex
+from force_index import force_index
 import matplotlib.pyplot as plt
 COLORS = ['#F5DEB3', '#A0522D', '#1E90FF', '#FFE4C4', '#00FFFF', '#DAA520', '#3CB371', '#808080', '#ADFF2F', '#4B0082']
 def get_index_data(start_date, end_date, index_code):
@@ -86,8 +86,6 @@ def plot_obv(data):
 
 def plot_admi(data):
     data = admi(data, 6, 14)
-    import pdb
-    pdb.set_trace()
     plot(data, ["adx_6_14"], "adx", True)
 
 if __name__ == '__main__':

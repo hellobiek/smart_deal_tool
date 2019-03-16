@@ -231,26 +231,26 @@ def loads_jsonp(_jsonp):
     except:
         return None
 
-def process_concurrent_run(mfunc, all_list, process_name = 2, num = 10, max_retry_times = 10):
+def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, max_retry_times = 10, process_name = 'process'):
     jobs = list()
     d_list = list()
     todo_list = copy.deepcopy(all_list)
-    for x in range(process_name):
+    for x in range(process_num):
         filename = "%s_%s.json" % (ct.FAILED_INFO_FILE, x)
         if os.path.exists(filename):
             with open(filename, 'rt') as f: d_list.extend(json.loads(json.load(f)))
     if len(d_list) > 0: todo_list = d_list
-    if len(todo_list) < process_name:
-        return concurrent_run(mfunc, todo_list, num = process_name)
+    if len(todo_list) < process_num:
+        return concurrent_run(mfunc, todo_list, num = process_num)
     else:
-        av_num = int(len(todo_list) / process_name) + process_name
+        av_num = int(len(todo_list) / process_num) + process_num
         i_start = 0
         i_end = av_num
-        for x in range(process_name):
+        for x in range(process_num):
             z_list = todo_list[i_start:i_end]
             i_start = i_end
             i_end = min(i_start + av_num, len(todo_list))
-            p = Process(target = thread_concurrent_run, args=(mfunc, z_list), kwargs={'num': num, 'max_retry_times': max_retry_times, 'name': x})
+            p = Process(target = thread_concurrent_run, name = process_name, args=(mfunc, z_list), kwargs={'num': num, 'max_retry_times': max_retry_times, 'name': x})
             jobs.append(p)
 
         for j in jobs:

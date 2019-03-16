@@ -1,6 +1,4 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
-# forecast.py
 from __future__ import print_function
 import datetime
 import numpy as np
@@ -13,7 +11,6 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
 from sklearn.metrics import confusion_matrix
 from sklearn.svm import LinearSVC, SVC
-
 def get_vantage_client():
     VANTAGE_API_KEY = 'R4RZ079WZET1M0JB'
     return TimeSeries(key = VANTAGE_API_KEY, output_format = 'pandas')
@@ -81,7 +78,7 @@ if __name__ == "__main__":
    
     # Create the (parametrised) models
     print("Hit Rates/Confusion Matrices:\n")
-    models = [("LR", LogisticRegression()), ("LDA", LDA()), ("QDA", QDA()), ("LSVC", LinearSVC()),
+    models = [("LR", LogisticRegression(solver = 'lbfgs')), ("LDA", LDA()), ("QDA", QDA()), ("LSVC", LinearSVC()),
               ("RSVM", SVC(
               	C=1000000.0, cache_size=200, class_weight=None,
                 coef0=0.0, degree=3, gamma=0.0001, kernel='rbf',

@@ -343,7 +343,7 @@ class DataManager:
                 return (code_id, False)
         failed_list = self.stock_info_client.get().code.tolist()
         self.logger.info("%s stocks to be set" % len(failed_list))
-        return process_concurrent_run(_set_base_float_profit, failed_list, num = 500)
+        return process_concurrent_run(_set_base_float_profit, failed_list, num = 500, process_name = 'base_float_profit')
 
     def compute_base_float_profit(self):
         def _compute_base_float_profit(code_id):
@@ -381,11 +381,11 @@ class DataManager:
         self.logger.info("all code list length:%s" % len(failed_list))
         if cdate is None:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
-            return process_concurrent_run(cfunc, failed_list, num = 5)
+            return process_concurrent_run(cfunc, failed_list, num = 5, process_name = 'cstock')
         else:
             succeed = True
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
-            if not process_concurrent_run(cfunc, failed_list, num = 500):
+            if not process_concurrent_run(cfunc, failed_list, num = 500, process_name = 'cstock'):
                 succeed = False
             return succeed
             #start_date = get_day_nday_ago(cdate, num = 1, dformat = "%Y-%m-%d")
