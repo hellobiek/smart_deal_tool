@@ -11,6 +11,7 @@ from matplotlib import ticker as mticker
 from mpl_finance import candlestick2_ochl
 from cindex import CIndex
 from technical.ad import ad
+from datetime import datetime
 from technical.kdj import kdj
 from technical.roc import roc
 from technical.ma import ma, MACD
@@ -58,32 +59,39 @@ def create_data_series(symbol, start_date, end_date):
     #ts, meta = vc.get_intraday(symbol, interval='1min', outputsize='full')
     #ts = ts[ts.index.str.startswith('2019-03-14')]
     #ts = ts.rename(columns = {"1. open": "open", "2. high": "high", "3. low": "low", "4. close": "close", "5. volume": "volume"})
-    ts = get_index_data(start_date = '2014-01-01', end_date = '2019-02-01', index_code = '000300')
+    #plot(ts, ['k', 'd', 'j'], 'kdj')
+    #plot(ts, ['roc', 'roc_ma'], 'roc')
+    #plot(ts, ['ad_5', 'ad_10', 'ad_20'], 'ad')
+    ts = get_index_data(start_date = start_date, end_date = end_date, index_code = symbol)
+    ts['date'] = pd.to_datetime(ts['date'])
+    ts.set_index('date', inplace = True)
     ts = ma(ts, 5)
     ts = ma(ts, 10)
     ts = ma(ts, 20)
     ts = ad(ts, 5)
     ts = ad(ts, 10)
     ts = ad(ts, 20)
+    ts = kdj(ts)
     ts = roc(ts, 5, 10)
-    plot(ts, ['roc', 'roc_ma'], 'roc')
     ts = MACD.macd(ts)
     #create the new lagged dataFrame
     tslag = pd.DataFrame(index = ts.index)
-    tslag['roc'] = ts['roc']
-    tslag['roc_ma'] = ts['roc_ma']
-    tslag['dif'] = ts['dif']
-    tslag['dea'] = ts['dea']
+    tslag['k'] = ts['k']
+    tslag['d'] = ts['d']
+    tslag['j'] = ts['j']
     tslag['macd'] = ts['macd']
-    tslag['close'] = ts['close']
-    tslag['volume'] = ts['volume']
+    tslag['roc'] = ts['roc'] - ts['roc_ma']
+    tslag["ad_quick"]  = ts["ad_5"] - ts["ad_10"]
+    tslag["ad_slow"]   = ts["ad_5"] - ts["ad_20"]
 
     #create the shifted lag series of prior trading period close values
-    for i in [5, 10, 20]:
-        tslag["ma_%s" % i] = ts["close"] - ts["ma_%s" % i]
-        tslag["ad_%s" % i] = ts["ad_%s" % i]
+    tslag["ma_5"] = ts["close"] - ts["ma_5"]
+    tslag["ma_10"] = ts["close"] - ts["ma_10"]
 
-    tslag["today"] = tslag["close"].pct_change() * 100.0
+    tslag["today"] = ts["close"].pct_change() * 100.0
+    for i,x in enumerate(tslag["today"]):
+        if (abs(x) < 0.001): tslag["today"][i] = 0.0001
+    
     tslag['direction'] = np.sign(tslag["today"])
 
     #create the "direction" column (+1 or -1) indicating an up/down day
@@ -92,20 +100,22 @@ def create_data_series(symbol, start_date, end_date):
 
 if __name__ == "__main__":
     # create a lagged series of the S&P500 US stock market index
-    snpret = create_data_series("SPX", '2001-01-10', '2005-12-31')
-
+    snpret = create_data_series("000300", '2010-01-10', '2017-01-01')
+    snpret = snpret.dropna(how = 'any')
+    
     # use the prior two days of returns as predictor values, with direction as the response
-    X = snpret[["ma_5","ma_10"]]
+    X = snpret[["ma_5", "ma_10", "ad_quick", "ad_slow", "roc", "macd"]]
     y = snpret["direction"]
 
     # the test data is split into two parts: Before and after 1st Jan 2005.
-    start_test = '2005-01-01'
+    start_test = datetime.strptime('2016-01-01', '%Y-%m-%d')
+
     # create training and test sets
     X_train = X[X.index < start_test]
     X_test = X[X.index >= start_test]
     y_train = y[y.index < start_test]
     y_test = y[y.index >= start_test]
-   
+  
     # create the (parametrised) models
     print("hit rates/confusion matrices:\n")
     models = [("LR", LogisticRegression(solver = 'lbfgs')), ("LDA", LDA()), ("QDA", QDA()), ("LSVC", LinearSVC()),

@@ -320,3 +320,10 @@ def is_df_has_unexpected_data(df):
     if not df[pd.isnull(df).any(1)].empty:
         return True
     return False
+
+def resample(data, period = 'W-Mon'):
+    ohlc_dict = {'open':'first', 'high':'max', 'low':'min', 'close': 'last', 'volume': 'sum', 'amount': 'sum'}
+    data['date'] =  pd.to_datetime(data['date'])
+    data.set_index('date',inplace = True)
+    df = data.resample(period, closed = 'left', label = 'left').agg(ohlc_dict).dropna(how='any')
+    return df

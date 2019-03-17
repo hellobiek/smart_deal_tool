@@ -6,8 +6,7 @@ def ad(df, n):
     :param n: 
     :return: pandas.dataFrame
     """
-    ad = ((2 * df['close'] - df['high'] - df['low']) * df['volume']) / (df['high'] - df['low'])
-    roc = ad.diff(n - 1) / ad.shift(n - 1)
-    ad = pd.Series(roc, name = 'ad_%s' % n)
-    df = df.join(ad)
-    return df
+    clv = ((2 * df['close'] - df['high'] - df['low']) * df['volume']) / (df['high'] - df['low'])
+    clv = clv.fillna(0.0) # float division by zero
+    clv = clv.ewm(com = n, adjust = True).mean()
+    return df.join(pd.Series(clv, name = 'ad_%s' % n))
