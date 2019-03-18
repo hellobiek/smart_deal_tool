@@ -42,6 +42,7 @@ def generate(orders, date_arrary, dirname, start, end):
     md.addHeader("本周总结", 2)
     md.addHeader("优点", 3)
     md.addHeader("缺点", 3)
+    md.addHeader("心得", 3)
 
     with open(fullfilepath, "w+") as f:
         f.write(md.getStream())

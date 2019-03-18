@@ -5,7 +5,6 @@ import sys
 import json
 import time
 import copy
-import redis
 import signal
 import random
 import datetime
@@ -13,9 +12,12 @@ import const as ct
 import numpy as np
 import pandas as pd
 import tushare as ts
+from log import getLogger
+from base.credis import CRedis
 from gevent.pool import Pool
 from multiprocessing import Process
 from datetime import datetime, timedelta
+logger = getLogger(__name__)
 
 def trace_func(*dargs, **dkargs):
     def wrapper(func):
@@ -108,8 +110,7 @@ def is_trading_time(now_time = None):
     return (mor_open_time < now_time < mor_close_time) or (aft_open_time < now_time < aft_close_time)
 
 def create_redis_obj(host = ct.REDIS_HOST, port = ct.REDIS_PORT, decode_responses = False):
-    mpool = redis.ConnectionPool(host = host, port = port, decode_responses = decode_responses)
-    return redis.StrictRedis(connection_pool = mpool)
+    return CRedis(host = ct.REDIS_HOST, port = ct.REDIS_PORT, decode_responses = False) 
 
 def df_delta(pos_df, neg_df, subset_list, keep = False):
     pos_df = pos_df.append(neg_df)
@@ -231,7 +232,7 @@ def loads_jsonp(_jsonp):
     except:
         return None
 
-def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, max_retry_times = 10, process_name = 'process'):
+def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, max_retry_times = 10):
     jobs = list()
     d_list = list()
     todo_list = copy.deepcopy(all_list)
@@ -250,7 +251,7 @@ def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, max_retry
             z_list = todo_list[i_start:i_end]
             i_start = i_end
             i_end = min(i_start + av_num, len(todo_list))
-            p = Process(target = thread_concurrent_run, name = process_name, args=(mfunc, z_list), kwargs={'num': num, 'max_retry_times': max_retry_times, 'name': x})
+            p = Process(target = thread_concurrent_run, args=(mfunc, z_list), kwargs={'num': num, 'max_retry_times': max_retry_times, 'name': x})
             jobs.append(p)
 
         for j in jobs:
@@ -268,28 +269,34 @@ def thread_concurrent_run(mfunc, all_list, num = 10, max_retry_times = 10, name 
     todo_list = copy.deepcopy(all_list)
     remove_num = 0
     filename = "%s_%s.json" % (ct.FAILED_INFO_FILE, name)
-    while len(todo_list) > 0:
-        is_failed = False
-        for result in obj_pool.imap_unordered(mfunc, todo_list):
-            if True == result[1]: 
-                remove_num += 1
-                todo_list.remove(result[0])
-                if remove_num > 10:
+    try:
+        while len(todo_list) > 0:
+            is_failed = False
+            for result in obj_pool.imap_unordered(mfunc, todo_list):
+                if True == result[1]: 
+                    remove_num += 1
+                    todo_list.remove(result[0])
+                    if remove_num > 10:
+                        with open(filename, 'wt') as f: json.dump(json.dumps(todo_list), f)
+                        remove_num = 0
+                else:
+                    is_failed = True
+            if is_failed:
+                if failed_count > max_retry_times:
                     with open(filename, 'wt') as f: json.dump(json.dumps(todo_list), f)
-                    remove_num = 0
-            else:
-                is_failed = True
-        if is_failed:
-            if failed_count > max_retry_times:
-                with open(filename, 'wt') as f: json.dump(json.dumps(todo_list), f)
-                obj_pool.join(timeout = 10)
-                obj_pool.kill()
-                sys.exit(False)
-            failed_count += 1
-            time.sleep(3)
+                    obj_pool.join(timeout = 10)
+                    obj_pool.kill()
+                    logger.error("failed exit")
+                    sys.exit(False)
+                failed_count += 1
+                time.sleep(3)
+    except Exception as e:
+        logger.error("exception exit: %s" % e)
+        sys.exit(False)
     if os.path.exists(filename): os.remove(filename)
     obj_pool.join(timeout = 10)
     obj_pool.kill()
+    logger.debug("succeed exit")
     sys.exit(True)
 
 def concurrent_run(mfunc, all_list, num = 10, max_retry_times = 10):
