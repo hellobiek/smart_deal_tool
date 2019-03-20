@@ -232,10 +232,13 @@ def loads_jsonp(_jsonp):
     except:
         return None
 
+def remove_blacklist(redis_client, key, black_list):
+    if len(black_list) > 0: redis_client.srem(key, *set(black_list))
+
 def get_unfinished_workers(redis_client, key):
     return list(set(code.decode() for code in redis_client.smembers(key)))
 
-def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, max_retry_times = 10):
+def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, max_retry_times = 10, black_list = []):
     def init_unfinished_workers(redis_client, key, todo_list, overwrite = False):
         if not redis_client.exists(key):
             redis_client.sadd(key, *set(todo_list))
@@ -247,21 +250,22 @@ def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, max_retry
     redis_client = create_redis_obj()
     todo_list = init_unfinished_workers(redis_client, ct.UNFINISHED_WORKS, copy.deepcopy(all_list))
     if len(todo_list) == 0: return False
-    if len(todo_list) <= num:
-        return concurrent_run(mfunc, todo_list, num = process_num)
-    else:
-        jobs = list()
-        last_length = len(todo_list)
-        while len(todo_list) > 0:
-            for x in range(process_num):
-                p = Process(target = thread_concurrent_run, args=(mfunc, redis_client, ct.UNFINISHED_WORKS), kwargs={'num': num, 'name': x, 'process_num': process_num})
-                jobs.append(p)
-            for j in jobs: j.start()
-            for j in jobs: j.join()
-            todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
-            if len(todo_list) == last_length:
-                logger.info("left todo list length:%s" % todo_list)
-                return False
+    jobs = list()
+    last_length = len(todo_list)
+    while last_length > 0:
+        for x in range(process_num):
+            p = Process(target = thread_concurrent_run, args=(mfunc, redis_client, ct.UNFINISHED_WORKS), kwargs={'num': num, 'name': x, 'process_num': process_num})
+            jobs.append(p)
+        for j in jobs: j.start()
+        for j in jobs: j.join()
+        for j in jobs: j.terminate()
+        if len(black_list) > 0: remove_blacklist(redis_client, ct.UNFINISHED_WORKS, black_list)
+        todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
+        if len(todo_list) == last_length:
+            logger.info("left todo list length:%s" % todo_list)
+            return False
+        else:
+            last_length = len(todo_list)
     return True
 
 def thread_concurrent_run(mfunc, redis_client, key, num = 10, name = 0, process_num = 2):
