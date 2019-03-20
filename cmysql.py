@@ -290,8 +290,11 @@ class CMySQL:
             conn.commit()
             res = True
         except Exception as e:
-            if 'conn' in dir(): conn.rollback()
-            res = False
+            if e.args[0] == 1007 and e.args[1].endswith("database exists"):
+                res = True
+            else:
+                res = False
+                if 'conn' in dir(): conn.rollback()
         finally:
             if 'curosr' in dir(): cursor.close()
             if 'conn' in dir(): conn.close()
