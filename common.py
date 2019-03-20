@@ -232,72 +232,43 @@ def loads_jsonp(_jsonp):
     except:
         return None
 
+def get_unfinished_workers(redis_client, key):
+    return list(set(code.decode() for code in redis_client.smembers(key)))
+
 def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, max_retry_times = 10):
-    jobs = list()
-    d_list = list()
-    todo_list = copy.deepcopy(all_list)
-    for x in range(process_num):
-        filename = "%s_%s.json" % (ct.FAILED_INFO_FILE, x)
-        if os.path.exists(filename):
-            with open(filename, 'rt') as f: d_list.extend(json.loads(json.load(f)))
-    if len(d_list) > 0: todo_list = d_list
-    if len(todo_list) < process_num:
+    def init_unfinished_workers(redis_client, key, todo_list):
+        if not redis_client.exists(key):
+            redis_client.sadd(key, *set(todo_list))
+        return list(set(code.decode() for code in redis_client.smembers(key)))
+    redis_client = create_redis_obj()
+    todo_list = init_unfinished_workers(redis_client, ct.UNFINISHED_WORKS, copy.deepcopy(all_list))
+    if len(todo_list) == 0: return False
+    if len(todo_list) <= num:
         return concurrent_run(mfunc, todo_list, num = process_num)
     else:
-        av_num = int(len(todo_list) / process_num) + process_num
-        i_start = 0
-        i_end = av_num
-        for x in range(process_num):
-            z_list = todo_list[i_start:i_end]
-            i_start = i_end
-            i_end = min(i_start + av_num, len(todo_list))
-            p = Process(target = thread_concurrent_run, args=(mfunc, z_list), kwargs={'num': num, 'max_retry_times': max_retry_times, 'name': x})
-            jobs.append(p)
-
-        for j in jobs:
-            j.start()
-
-        init_res = True
-        for j in jobs:
-            j.join()
-            init_res = init_res & j.exitcode
-        return init_res
-
-def thread_concurrent_run(mfunc, all_list, num = 10, max_retry_times = 10, name = 0):
-    failed_count = 0
-    obj_pool = Pool(num)
-    todo_list = copy.deepcopy(all_list)
-    remove_num = 0
-    filename = "%s_%s.json" % (ct.FAILED_INFO_FILE, name)
-    try:
+        jobs = list()
         while len(todo_list) > 0:
-            is_failed = False
-            for result in obj_pool.imap_unordered(mfunc, todo_list):
-                if True == result[1]: 
-                    remove_num += 1
-                    todo_list.remove(result[0])
-                    if remove_num > 10:
-                        with open(filename, 'wt') as f: json.dump(json.dumps(todo_list), f)
-                        remove_num = 0
-                else:
-                    is_failed = True
-            if is_failed:
-                if failed_count > max_retry_times:
-                    with open(filename, 'wt') as f: json.dump(json.dumps(todo_list), f)
-                    obj_pool.join(timeout = 10)
-                    obj_pool.kill()
-                    logger.error("failed exit")
-                    sys.exit(False)
-                failed_count += 1
-                time.sleep(3)
-    except Exception as e:
-        logger.error("exception exit: %s" % e)
-        sys.exit(False)
-    if os.path.exists(filename): os.remove(filename)
+            for x in range(process_num):
+                p = Process(target = thread_concurrent_run, args=(mfunc, redis_client, ct.UNFINISHED_WORKS), kwargs={'num': num, 'name': x, 'process_num': process_num})
+                jobs.append(p)
+            for j in jobs: j.start()
+            for j in jobs: j.join()
+            todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
+            logger.info("left todo list length:%s" % len(todo_list))
+    return True
+
+def thread_concurrent_run(mfunc, redis_client, key, num = 10, name = 0, process_num = 2):
+    obj_pool = Pool(num)
+    all_list = get_unfinished_workers(redis_client, key)
+    av_num = int(len(all_list) / process_num) + process_num
+    i_start = name * av_num
+    i_end = i_start + av_num
+    todo_list = all_list[i_start:i_end]
+    for result in obj_pool.imap_unordered(mfunc, todo_list):
+        if True == result[1]: redis_client.srem(key, result[0])
     obj_pool.join(timeout = 10)
     obj_pool.kill()
-    logger.debug("succeed exit")
-    sys.exit(True)
+    sys.exit(True) if len(todo_list) == 0 else sys.exit(False)
 
 def concurrent_run(mfunc, all_list, num = 10, max_retry_times = 10):
     failed_count = 0

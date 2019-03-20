@@ -659,7 +659,7 @@ if __name__ == '__main__':
     index_info = CIndex('000001').get_k_data(cdate)
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
     #cstock = CStock('002098')
-    cstock = CStock('600536')
+    cstock = CStock('000532')
     logger.info("start compute")
     cstock.set_k_data(bonus_info, index_info)
     logger.info("enter set base floating profit")

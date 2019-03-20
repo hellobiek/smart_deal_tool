@@ -4441,6 +4441,8 @@ const.FAILED_INFO_FILE = "/data/failed_info"
 const.TODAY_ALL_STOCK = "TODAY_ALL_STOCK"
 const.TODAY_ALL_INDUSTRY = "TODAY_ALL_INDUSTRY"
 ##################################################
+const.UNFINISHED_WORKS = "UNFINISHED_WORKS"
+##################################################
 const.CHIP_COLUMNS = ['pos', 'sdate', 'date', 'price', 'volume', 'outstanding']
 ##################################################
 const.RESUME = 0 
