@@ -50,10 +50,9 @@ class CRedis:
                 return
             except (redis.exceptions.ConnectionError, redis.exceptions.BusyLoadingError) as e:
                 logger.debug(e)
-                time.sleep(3 * (i + 1))
             except Exception as e:
                 logger.debug(e)
-                time.sleep(4 * (i + 1))
+            time.sleep(i + 1)
 
     def exists(self, *args, **kwargs):
         return self.execute_command('exists', *args, **kwargs)

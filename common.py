@@ -110,7 +110,7 @@ def is_trading_time(now_time = None):
     return (mor_open_time < now_time < mor_close_time) or (aft_open_time < now_time < aft_close_time)
 
 def create_redis_obj(host = ct.REDIS_HOST, port = ct.REDIS_PORT, decode_responses = False):
-    return CRedis(host = ct.REDIS_HOST, port = ct.REDIS_PORT, decode_responses = False) 
+    return CRedis(host = host, port = port, decode_responses = decode_responses)
 
 def df_delta(pos_df, neg_df, subset_list, keep = False):
     pos_df = pos_df.append(neg_df)
