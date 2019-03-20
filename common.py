@@ -236,9 +236,13 @@ def get_unfinished_workers(redis_client, key):
     return list(set(code.decode() for code in redis_client.smembers(key)))
 
 def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, max_retry_times = 10):
-    def init_unfinished_workers(redis_client, key, todo_list):
+    def init_unfinished_workers(redis_client, key, todo_list, overwrite = False):
         if not redis_client.exists(key):
             redis_client.sadd(key, *set(todo_list))
+        else:
+            if overwrite:
+                redis_client.delete(key)
+                redis_client.sadd(key, *set(todo_list))
         return list(set(code.decode() for code in redis_client.smembers(key)))
     redis_client = create_redis_obj()
     todo_list = init_unfinished_workers(redis_client, ct.UNFINISHED_WORKS, copy.deepcopy(all_list))
@@ -247,6 +251,7 @@ def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, max_retry
         return concurrent_run(mfunc, todo_list, num = process_num)
     else:
         jobs = list()
+        last_length = len(todo_list)
         while len(todo_list) > 0:
             for x in range(process_num):
                 p = Process(target = thread_concurrent_run, args=(mfunc, redis_client, ct.UNFINISHED_WORKS), kwargs={'num': num, 'name': x, 'process_num': process_num})
@@ -254,7 +259,9 @@ def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, max_retry
             for j in jobs: j.start()
             for j in jobs: j.join()
             todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
-            logger.info("left todo list length:%s" % len(todo_list))
+            if len(todo_list) == last_length:
+                logger.info("left todo list length:%s" % todo_list)
+                return False
     return True
 
 def thread_concurrent_run(mfunc, redis_client, key, num = 10, name = 0, process_num = 2):
