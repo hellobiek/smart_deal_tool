@@ -271,6 +271,7 @@ def thread_concurrent_run(mfunc, redis_client, key, num = 10, name = 0, process_
     i_start = name * av_num
     i_end = i_start + av_num
     todo_list = all_list[i_start:i_end]
+    if 0 == len(todo_list): sys.exit(True)
     for result in obj_pool.imap_unordered(mfunc, todo_list):
         if True == result[1]: redis_client.srem(key, result[0])
     obj_pool.join(timeout = 10)
