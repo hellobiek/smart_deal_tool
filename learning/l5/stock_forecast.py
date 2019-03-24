@@ -17,6 +17,7 @@ from technical.roc import roc
 from technical.ma import ma, MACD
 from alpha_vantage.timeseries import TimeSeries
 from sklearn.svm import LinearSVC, SVC
+from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
@@ -118,7 +119,7 @@ if __name__ == "__main__":
   
     # create the (parametrised) models
     print("hit rates/confusion matrices:\n")
-    models = [("LR", LogisticRegression(solver = 'lbfgs')), ("LDA", LDA()), ("QDA", QDA()), ("LSVC", LinearSVC()),
+    models = [("LR", LogisticRegression(solver = 'lbfgs')), ("LDA", LDA()), ("QDA", QDA()), ("LSVC", LinearSVC(max_iter = -1)),
               ("RSVM", SVC(
               	C=1000000.0, cache_size=200, class_weight=None,
                 coef0=0.0, degree=3, gamma=0.0001, kernel='rbf',
@@ -136,7 +137,13 @@ if __name__ == "__main__":
     # iterate through the models
     for m in models:
         # train each of the models on the training set
-        m[1].fit(X_train, y_train)
+        if m[0] == "LSVC" or "RSVM":
+            standardScaler = StandardScaler()
+            standardScaler.fit(X_train)
+            X_standard = standardScaler.transform(X_train)
+            m[1].fit(X_standard, y_train)
+        else:
+            m[1].fit(X_train, y_train)
         # make an array of predictions on the test set
         pred = m[1].predict(X_test)
         # output the hit-rate and the confusion matrix for each model

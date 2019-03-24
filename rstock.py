@@ -131,12 +131,14 @@ class RIndexStock:
         df = _ioloop.run_sync(cfunc)
         return df
 
-    def generate_all_data(self, cdate):
+    def generate_all_data(self, cdate, black_list = ['300767', '603379', '603967']):
         from gevent.pool import Pool
         good_list = list()
         obj_pool = Pool(4000)
         all_df = pd.DataFrame()
         failed_list = CStockInfo(redis_host = self.redis_host).get(redis = self.redis).code.tolist()
+        if len(black_list) > 0:
+            failed_list = list(set(failed_list).difference(set(black_list)))
         cfunc = partial(self.get_stock_data, cdate)
         while len(failed_list) > 0:
             print("all stock list:%s, cdate:%s" % (len(failed_list),cdate))

@@ -62,16 +62,27 @@
         - SVM的基础学习
 ##2019-03-20
     - 交易
-        - 日常，周末复盘
+        - 日常，周末复盘(done)
     - 系统开发与维护
     - 量化实践
+        - MACD的背离开发
+        - 网格策略开发
+        - 沪深300的股指的回归和分类
+        - 利用回声神经网络来预测股价: https://towardsdatascience.com/predicting-stock-prices-with-echo-state-networks-f910809d23d4
+        - K线形态是否可以预测股价: http://mariofilho.com/can-machine-learning-model-predict-the-sp500-by-looking-at-candlesticks
+        - 配资对股市的影响：把创业板全部融资融券标的拉出来，单独算它的两融余额，拉出随时间变化的曲线，分别取一阶和二阶导数，然后再对创业板综指，求一阶和二阶导。两个导数差，会组成两个开口，然后拿15年上半年的数据回测对比。
+        - 股市是否符合markwic的资产投资组合理论
+        - 使用机器学习来预测股价：https://medium.com/analytics-vidhya/using-machine-learning-to-predict-stock-prices-c4d0b23b029a
+    - 机器学习
+        - 基础数学复习
+        - 线性回归(领回归,Laso)的学习和实践
         - LDA的学习和实践
-        - 随机深林完成，学习领回归和laso
-    - 量化基础学习用品
-        - 基础数学学习
-        - LDA的基础学习
-        - QDA的基础学习
-        - SVM的基础学习
+        - QDA的学习和实践
+        - SVM的学习和实践
+        - 随机深林的学习和实践
+        - XGboost和Adaboost的学习和实践
+        - HMM的学习和实践
+        - 遗传算法的学习和实践
 ##TODO
     - 技术提升：
         - 反汇编技术

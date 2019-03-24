@@ -101,6 +101,10 @@ class MACD:
         pre_area = abs(sum(pre_data))
         pre_prices = data['high'][indexs_list[1][0]:indexs_list[1][1]]
         pre_highest_price = max(pre_prices)
+
+        #无效的背离：小背离之间反复纠缠。
+        #差异性问题：两个背离之间的dif值，至少有一个比较大
+        #显著性问题：两个价格差构成的直线与diff差构成的直线，至少需要满足一定角度。
         return True if latest_area < pre_area and latest_highest_price > pre_highest_price else False
 
     @staticmethod
@@ -114,7 +118,7 @@ class MACD:
 
         # calculate current negative bar area
         latest_data = data['macd'][indexs_list[0][0]:indexs_list[0][1]]
-        latest_area = abs(sum(latest_data))
+        latest_dif = abs(sum(latest_data))
         latest_prices = data['low'][indexs_list[0][0]:indexs_list[0][1]]
         latest_lowest_price = min(latest_prices)
 
@@ -124,6 +128,27 @@ class MACD:
         pre_prices = data['low'][indexs_list[1][0]:indexs_list[1][1]]
         pre_lowest_price = min(pre_prices)
         return True if latest_area < pre_area and latest_lowest_price < pre_lowest_price else False
+
+    @staticmethod
+    def is_tangle_by_dea_and_dif(macd, pre_macd, macd_ser):
+        """
+        判断dif和dea是否纠缠, 解决DIF和DEA纠缠在一起的问题：要求两个背离点对应的macd值不能太小。
+        必须同时满足以下条件：
+            1)abs(macd/pre_macd)>0.3
+            2)max([abs(macd), abs(pre_macd)])/macd_max > 0.5
+        :param macd: 当前bar的MACD值
+        :param pre_macd: 前一个bar的MACD值
+        :param macd_ser: Series类型，MACD的时间序列数据
+        :return: 是-纠缠， 否-不纠缠
+        """
+        if abs(macd[MACD] / pre_macd[MACD]) <= 0.3:
+            log.debug(u'【%s, %s】MACD、MACD_PRE纠缠, %s, %s' % (macd.name, pre_macd.name, macd[MACD], pre_macd[MACD]))
+            return False
+        macd_max = abs(self.get_abs_max(macd_ser, 250)) * 0.5
+        if max([abs(macd[MACD]), abs(pre_macd[MACD])]) <= macd_max:
+            log.debug(u'【%s, %s】与最大值相比，发生纠缠, %s, %s, %s' % (macd.name, pre_macd.name, macd[MACD], pre_macd[MACD], macd_max))
+            return False
+        return True
 
     @staticmethod
     def is_macd_down(data, dtype = 'macd',  n = 3):
