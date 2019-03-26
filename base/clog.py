@@ -40,14 +40,14 @@ def getLogger(name, log_dir = '/tmp'):
         logger.addHandler(ch)
 
         # 创建一个StreamHandler,用于将Warning输出到stderr
-        ch = logging.StreamHandler(sys.stderr)
+        ch = logging.StreamHandler()
         ch.setLevel(logging.WARNING)
         ch.setFormatter(formatter)
         ch.addFilter(InfoFilter(logging.WARNING))
         logger.addHandler(ch)
 
         # 创建一个StreamHandler,用于将ERROR输出到stderr
-        ch = logging.StreamHandler(sys.stderr)
+        ch = logging.StreamHandler()
         ch.setLevel(logging.ERROR)
         ch.setFormatter(formatter)
         ch.addFilter(InfoFilter(logging.ERROR))
