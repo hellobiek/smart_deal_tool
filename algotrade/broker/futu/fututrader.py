@@ -2,7 +2,7 @@
 import json
 import threading
 import const as ct
-from log import getLogger
+from base.clog import getLogger
 from futu import OrderType, TrdSide, TrdEnv, OpenCNTradeContext, OpenUSTradeContext, OpenHKTradeContext
 logger = getLogger(__name__)
 class MDeal(object):

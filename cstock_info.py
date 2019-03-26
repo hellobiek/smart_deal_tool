@@ -8,7 +8,7 @@ import pandas as pd
 import const as ct
 import tushare as ts
 from cstock import CStock 
-from log import getLogger
+from base.clog import getLogger
 from common import create_redis_obj, concurrent_run, smart_get
 logger = getLogger(__name__)
 

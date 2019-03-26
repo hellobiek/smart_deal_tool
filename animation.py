@@ -7,7 +7,7 @@ import const as ct
 import pandas as pd
 from cindex import CIndex
 from cmysql import CMySQL
-from log import getLogger
+from base.clog import getLogger
 from common import create_redis_obj
 from combination import Combination 
 from combination_info import CombinationInfo

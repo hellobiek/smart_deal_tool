@@ -12,8 +12,8 @@ import const as ct
 import numpy as np
 import pandas as pd
 import tushare as ts
-from log import getLogger
 from base.credis import CRedis
+from base.clog import getLogger
 from gevent.pool import Pool
 from multiprocessing import Process
 from datetime import datetime, timedelta
@@ -257,8 +257,10 @@ def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, max_retry
             p = Process(target = thread_concurrent_run, args=(mfunc, redis_client, ct.UNFINISHED_WORKS), kwargs={'num': num, 'name': x, 'process_num': process_num})
             jobs.append(p)
         for j in jobs: j.start()
-        for j in jobs: j.join()
-        for j in jobs: j.terminate()
+        for j in jobs: 
+            j.join()
+            j.terminate()
+            time.sleep(3)
         if len(black_list) > 0: remove_blacklist(redis_client, ct.UNFINISHED_WORKS, black_list)
         todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
         if len(todo_list) == last_length:

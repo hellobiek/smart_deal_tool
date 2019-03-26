@@ -35,7 +35,7 @@ from sklearn.linear_model import Ridge
 from sklearn import cluster, covariance, manifold, preprocessing
 import ccalendar
 from common import create_redis_obj, get_dates_array
-from log import getLogger
+from base.clog import getLogger
 from hurst import compute_Hc
 import statsmodels.api as sm
 import statsmodels.tsa.stattools as ts

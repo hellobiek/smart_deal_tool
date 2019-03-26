@@ -1,7 +1,7 @@
 #coding=utf-8
 import const as ct
 import pandas as pd
-from log import getLogger
+from base.clog import getLogger
 from common import df_empty, number_of_days
 logger = getLogger(__name__)
 class Chip:

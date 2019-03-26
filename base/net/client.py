@@ -4,7 +4,7 @@ from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import ssl
 from urllib import parse 
-from log import getLogger
+from base.clog import getLogger
 from urllib import request
 from http import cookiejar
 class Client:

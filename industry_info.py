@@ -4,9 +4,9 @@ import _pickle
 import cmysql
 import const as ct
 import pandas as pd
-from log import getLogger
 from cindex import CIndex
 from pandas import DataFrame
+from base.clog import getLogger
 from common import create_redis_obj, concurrent_run
 logger = getLogger(__name__)
 class IndustryInfo:

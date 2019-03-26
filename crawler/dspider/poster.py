@@ -6,7 +6,7 @@ sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import pymysql
 import pymysql.cursors
 import const as ct
-from log import getLogger
+from base.clog import getLogger
 from twisted.enterprise import adbapi
 from hkex import HkexCrawler
 from investor import InvestorCrawler

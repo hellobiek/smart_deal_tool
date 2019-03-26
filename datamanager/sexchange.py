@@ -2,15 +2,13 @@
 import sys
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
-import re
 import time
-import json
 import requests
 import const as ct
 import pandas as pd
 from cmysql import CMySQL
-from log import getLogger
 from datetime import datetime
+from base.clog import getLogger
 from ccalendar import CCalendar
 from common import create_redis_obj, get_day_nday_ago, get_dates_array, smart_get, int_random, loads_jsonp, float_random
 class StockExchange(object):
@@ -100,7 +98,7 @@ class StockExchange(object):
                 return pd.DataFrame()
             json_result = loads_jsonp(response.text)
             if json_result is None:
-                self.logger.error("parse exchange data jsonp failed")
+                self.logger.error("parse exchange data jsonp failed for %s" % url)
                 return pd.DataFrame()
             datas = list()
             for json_obj in json_result['result']:

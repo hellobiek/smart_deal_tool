@@ -6,10 +6,10 @@ import copy
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import pandas as pd
-from log import getLogger
 from cstock import CStock
 from rstock import RIndexStock
 from rprofit import RProfit
+from base.clog import getLogger
 from common import get_day_nday_ago, get_chinese_font
 from functools import partial
 import matplotlib

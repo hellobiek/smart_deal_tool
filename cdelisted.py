@@ -8,7 +8,7 @@ import const as ct
 import numpy as np
 import pandas as pd
 import tushare as ts
-from log import getLogger
+from base.clog import getLogger
 from cmysql import CMySQL
 from common import trace_func, create_redis_obj, df_delta
 

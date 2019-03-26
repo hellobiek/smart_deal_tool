@@ -7,7 +7,7 @@ import copy
 import json
 import requests
 from urllib import parse 
-from log import getLogger
+from base.clog import getLogger
 from requests.exceptions import ReadTimeout, Timeout
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)

@@ -302,7 +302,7 @@ class CStock(CMysqlObj):
         now_date = transfer_date_string_to_int(cdate)
         p_index = price_change_info.date.index[-1]
         p_date = price_change_info.date[p_index]
-        logger.debug("%s is need reright for %s" % (self.code, cdate))
+        logger.debug("%s is need reright for %s, now_date:%s, p_date:%s" % (self.code, cdate, now_date, p_date))
         return now_date == p_date
 
     def relative_index_strength(self, df, index_df, cdate = None):

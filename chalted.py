@@ -7,9 +7,9 @@ import const as ct
 import numpy as np
 import pandas as pd
 import tushare as ts
-from log import getLogger
 import ccalendar
 from cmysql import CMySQL
+from base.clog import getLogger
 from cstock_info import CStockInfo
 from common import trace_func, is_trading_time, create_redis_obj, df_delta
 logger = getLogger(__name__)

@@ -9,7 +9,7 @@ from tornado import gen
 from tornado import ioloop
 from functools import partial
 from datetime import datetime
-from log import getLogger
+from base.clog import getLogger
 from cmysql import CMySQL
 from cstock import CStock
 from cstock_info import CStockInfo

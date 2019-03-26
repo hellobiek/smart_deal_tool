@@ -8,8 +8,8 @@ import time
 import random
 import string
 import const as ct
-from log import getLogger
 from common import get_market
+from base.clog import getLogger
 from base.net.client import Client
 from base.net.session import SessionClient
 from broker.changcheng.crack_bmp import CrackBmp

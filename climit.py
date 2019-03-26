@@ -9,8 +9,8 @@ import requests
 import const as ct
 import numpy as np
 import pandas as pd
-from log import getLogger
 from cmysql import CMySQL
+from base.clog import getLogger
 from ccalendar import CCalendar
 from common import create_redis_obj, get_day_nday_ago, get_dates_array
 from datetime import datetime

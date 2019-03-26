@@ -1,7 +1,7 @@
 #coding=utf-8
 import const as ct
 from cmysql import CMySQL
-from log import getLogger
+from base.clog import getLogger
 from common import create_redis_obj
 class Selecter(object):
     def __init__(self, code, dbinfo, redis_host):

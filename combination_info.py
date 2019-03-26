@@ -3,7 +3,7 @@ import _pickle
 import cmysql
 import const as ct
 import pandas as pd
-from log import getLogger
+from base.clog import getLogger
 from pandas import DataFrame
 from combination import Combination
 from pytdx.reader import CustomerBlockReader

@@ -1,5 +1,5 @@
 #encoding=utf-8
-from log import getLogger
+from base.clog import getLogger
 from common import create_redis_obj
 from influxdb import DataFrameClient
 from influxdb.exceptions import InfluxDBServerError

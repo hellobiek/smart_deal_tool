@@ -13,12 +13,12 @@ from matplotlib import style
 import matplotlib.dates as mdates
 import matplotlib.animation as animation
 from cdoc import CDoc
-from log import getLogger
 from climit import CLimit
 from cindex import CIndex
 from cmysql import CMySQL
 from datetime import datetime
 from rstock import RIndexStock
+from base.clog import getLogger
 import matplotlib.pyplot as plt
 from datamanager.margin import Margin
 from rindustry import RIndexIndustryInfo

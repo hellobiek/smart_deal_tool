@@ -13,8 +13,8 @@ import const as ct
 import pandas as pd
 from lxml import etree
 from cmysql import CMySQL
-from log import getLogger
 from common import is_trading_time
+from base.clog import getLogger
 from broker.changcheng.trader import Trader
 from pandas.compat import StringIO
 class CTrader:

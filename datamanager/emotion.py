@@ -7,10 +7,10 @@ import const as ct
 import pandas as pd
 from climit import CLimit
 from cmysql import CMySQL
-from log import getLogger
 from datetime import datetime
 from rstock import RIndexStock
 from ccalendar import CCalendar
+from base.clog import getLogger
 from common import create_redis_obj, get_day_nday_ago, get_dates_array
 class Emotion:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):

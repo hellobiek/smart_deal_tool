@@ -3,17 +3,15 @@ import sys
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import time
-import _pickle
 import const as ct
 import numpy as np
 import pandas as pd
-from log import getLogger
 from cmysql import CMySQL
 from datetime import datetime
 from ccalendar import CCalendar
 from collections import OrderedDict
 from common import get_day_nday_ago, create_redis_obj, get_dates_array, get_tushare_client, transfer_date_string_to_int, smart_get, delta_days
-from datamanager.hk_crawl import MCrawl 
+from base.clog import getLogger
 class Margin(object):
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.logger       = getLogger(__name__)

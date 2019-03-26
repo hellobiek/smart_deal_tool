@@ -9,9 +9,9 @@ import const as ct
 import numpy as np
 import pandas as pd
 from common import delta_days, create_redis_obj, get_day_nday_ago, get_dates_array
-from log import getLogger
 from cmysql import CMySQL
 from cindex import CIndex
+from base.clog import getLogger
 from ccalendar import CCalendar
 from collections import OrderedDict
 from industry_info import IndustryInfo

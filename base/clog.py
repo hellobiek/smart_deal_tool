@@ -16,7 +16,7 @@ def getLogger(name, log_dir = '/tmp'):
     name = init_name(name)
     # 文件的命名
     logname = os.path.join(log_dir, '%s.log' % name)
-    logger = logging.getLogger(logname)
+    logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
     logger.propagate = 0
     # 日志输出格式

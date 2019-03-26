@@ -2,11 +2,11 @@
 import time
 import const as ct 
 import pandas as pd
-from log import getLogger
 from common import smart_get
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from base.base import traditional2simplified
+from base.clog import getLogger
 from selenium.webdriver.chrome.options import Options
 class MSelenium:
     RETRY_TIME = 5

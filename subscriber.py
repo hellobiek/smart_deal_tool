@@ -2,7 +2,7 @@
 import queue
 import threading
 import const as ct
-from log import getLogger
+from base.clog import getLogger
 from threading import Lock
 from futu import OpenQuoteContext
 from futu.quote.quote_response_handler import OrderBookHandlerBase, TickerHandlerBase, StockQuoteHandlerBase

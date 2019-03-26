@@ -8,7 +8,7 @@ import random
 import datetime
 import threading
 import const as ct
-from log import getLogger
+from base.clog import getLogger
 from pyalgotrade import broker
 from base.base import get_today_time, localnow
 from algotrade.broker.futu.fututrader import FutuTrader, MOrder, MDeal

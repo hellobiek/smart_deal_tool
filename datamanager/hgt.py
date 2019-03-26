@@ -4,9 +4,9 @@ from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import const as ct
 from cmysql import CMySQL
-from log import getLogger
 from datetime import datetime
 from ccalendar import CCalendar
+from base.clog import getLogger
 from datamanager.hk_crawl import MCrawl
 from common import get_day_nday_ago, create_redis_obj, get_dates_array
 class StockConnect(object):

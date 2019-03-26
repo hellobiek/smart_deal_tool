@@ -2,10 +2,10 @@
 import _pickle
 import const as ct
 import pandas as pd
-from log import getLogger
 from cinfluxdb import CInflux
 from datetime import datetime
 from base.cobj import CMysqlObj
+from base.clog import getLogger
 from pytdx.reader import BlockReader
 # http://blog.sina.com.cn/s/blog_623d2d280102vt8y.html
 from common import float_random, is_df_has_unexpected_data, smart_get

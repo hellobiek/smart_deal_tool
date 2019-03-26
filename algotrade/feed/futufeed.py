@@ -12,7 +12,7 @@ from datetime import timedelta, datetime
 from base.base import PollingThread, localnow, get_today_time
 from pyalgotrade.dataseries import DEFAULT_MAX_LEN
 from subscriber import Subscriber, StockQuoteHandler, OrderBookHandler
-from log import getLogger
+from base.clog import getLogger
 logger = getLogger(__name__)
 class GetBarThread(PollingThread):
     ON_END  = 1
