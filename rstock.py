@@ -9,7 +9,7 @@ from tornado import gen
 from tornado import ioloop
 from functools import partial
 from datetime import datetime
-from log import getLogger
+from base.clog import getLogger
 from cmysql import CMySQL
 from cstock import CStock
 from ccalendar import CCalendar
@@ -187,4 +187,4 @@ class RIndexStock:
 
 if __name__ == '__main__':
     ris = RIndexStock(ct.OUT_DB_INFO, redis_host = '127.0.0.1')
-    ris.update(end_date = '2019-03-10', num = 6000)
+    ris.update(end_date = '2019-03-11', num = 6000)

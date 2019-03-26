@@ -3,7 +3,7 @@ from gevent import monkey
 monkey.patch_all()
 import time
 import const as ct
-from log import getLogger
+from base.clog import getLogger 
 from base.cthread import CThread
 from broker.ctrader import CTrader
 from data_manager import DataManager

@@ -28,6 +28,8 @@ class CBullRation():
     def get_index_data(self, start_date, end_date, index_code):
         iobj = CIndex(index_code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
         i_data = iobj.get_k_data_in_range(start_date, end_date)
+        i_data = i_data.sort_values(by=['date'], ascending=True)
+        i_data = i_data.reset_index(drop = True)
         i_data['time'] = i_data.index.tolist()
         i_data = i_data[['time', 'open', 'high', 'low', 'close', 'volume', 'amount', 'date']]
         return i_data
@@ -45,6 +47,8 @@ class CBullRation():
     def get_bull_ratios(self, index_code, start_date, end_date):
         obj = BullStockRatio(index_code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
         df = obj.get_k_data_between(start_date, end_date)
+        df = df.sort_values(by=['date'], ascending=True)
+        df = df.reset_index(drop = True)
         return df
 
     def plot(self, start_date, end_date, index_code):
@@ -61,8 +65,8 @@ class CBullRation():
         plt.show()
 
 if __name__ == '__main__':
-    start_date = '2000-01-01' 
-    end_date = '2019-02-25'
-    code = '000001'
+    start_date = '2017-06-25' 
+    end_date = '2019-03-11'
+    code = '880883'
     cbr = CBullRation()
     cbr.plot(start_date, end_date, code)

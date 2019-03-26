@@ -4,7 +4,7 @@ sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import const as ct
 import pandas as pd
 from cmysql import CMySQL
-from log import getLogger
+from base.clog import getLogger
 from datetime import datetime
 from rstock import RIndexStock
 from cindex import CIndex
@@ -22,6 +22,9 @@ class BullStockRatio:
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
         self.mysql_client = CMySQL(self.dbinfo, dbname = self.db_name, iredis = self.redis)
         if not self.create(): raise Exception("create emotion table failed")
+
+    def delete(self):
+        self.mysql_client.delete(self.bull_stock_ratio_table)
 
     def get_table_name(self):
         return "%s_%s" % (self.db_name, ct.BULLSTOCKRATIO_TABLE)
@@ -56,6 +59,9 @@ class BullStockRatio:
         start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
         succeed = True
         code_list = self.get_components(end_date)
+        if 0 == len(code_list):
+            self.logger.error("%s code_list for %s is empty" % (end_date, self.index_code))
+            return False
         for mdate in get_dates_array(start_date, end_date):
             if CCalendar.is_trading_day(mdate, redis = self.redis):
                 if not self.set_ratio(code_list, mdate):
@@ -69,7 +75,7 @@ class BullStockRatio:
 
     def set_ratio(self, now_code_list, cdate = datetime.now().strftime('%Y-%m-%d')):
         if self.is_date_exists(self.bull_stock_ratio_table, cdate):
-            self.logger.debug("existed table:%s, date:%s" % (self.bull_stock_ratio_table, cdate))
+            self.logger.debug("existed date:%s, date:%s" % (self.bull_stock_ratio_table, cdate))
             return True
         code_list = self.get_components(cdate)
         if len(code_list) == 0: code_list = now_code_list
@@ -88,6 +94,6 @@ class BullStockRatio:
         return False
 
 if __name__ == '__main__':
-    cdate = '2019-02-22'
+    cdate = '2019-03-10'
     bsr = BullStockRatio('880883')
-    bsr.update(end_date = cdate, num = 7001)
+    bsr.update(end_date = cdate, num = 6000)

@@ -9,7 +9,6 @@ import datetime
 import const as ct
 import pandas as pd
 import tushare as ts
-from log import getLogger
 from ticks import read_tick
 from cinfluxdb import CInflux
 from datetime import datetime
@@ -18,6 +17,7 @@ from functools import partial
 #from cpython.cchip import mac
 #from cpython.features import base_floating_profit
 #from cpython.mchip import compute_distribution, compute_oneday_distribution
+from base.clog import getLogger 
 from base.cobj import CMysqlObj
 from cpython.cchip import compute_distribution, compute_oneday_distribution, mac
 from cpython.cstock import compute_profit,base_floating_profit,pro_nei_chip

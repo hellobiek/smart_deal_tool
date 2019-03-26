@@ -9,10 +9,10 @@ import traceback
 import const as ct
 import numpy as np
 import pandas as pd
-from log import getLogger
 from cstock import CStock
 from cindex import CIndex, TdxFgIndex
 from climit import CLimit 
+from base.clog import getLogger 
 from functools import partial
 from datetime import datetime
 from rstock import RIndexStock
@@ -434,6 +434,7 @@ class DataManager:
 
     def get_concerned_index_codes(self):
         index_codes = list(ct.INDEX_DICT.keys())
+        #添加MSCI板块
         index_codes.append('880883')
         return index_codes
 
@@ -450,7 +451,9 @@ class DataManager:
 
     def set_bull_stock_ratio(self, cdate, num = 10):
         def _set_bull_stock_ratio(code_id):
-            return (code_id, BullStockRatio(code_id).update(cdate, num))
+            obj = BullStockRatio(code_id)
+            obj.delete()
+            return (code_id, obj.update(cdate, num))
         index_codes = self.get_concerned_index_codes()
         return concurrent_run(_set_bull_stock_ratio, index_codes, num = num)
 
@@ -517,16 +520,17 @@ if __name__ == '__main__':
     #import sys
     #sys.exit(0)
 
-    kill_process("google-chrome")
-    kill_process("renderer")
-    kill_process("Xvfb")
-    kill_process("zygote")
-    kill_process("defunct")
-    kill_process("show-component-extension-options")
+    #kill_process("google-chrome")
+    #kill_process("renderer")
+    #kill_process("Xvfb")
+    #kill_process("zygote")
+    #kill_process("defunct")
+    #kill_process("show-component-extension-options")
 
     dm = DataManager()
     dm.logger.info("start compute!")
-    dm.bootstrap(exec_date = '2019-03-11')
+    #dm.bootstrap(exec_date = '2019-03-11')
+    dm.set_bull_stock_ratio(cdate = '2019-03-11', num = 3000)
     #mdate = datetime.now().strftime('%Y-%m-%d')
     #mdate = '2019-02-26'
     dm.logger.info("end compute!")

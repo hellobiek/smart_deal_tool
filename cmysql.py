@@ -5,7 +5,7 @@ import sqlalchemy
 import const as ct
 import pandas as pd
 import MySQLdb as db
-from log import getLogger
+from base.clog import getLogger
 from common import create_redis_obj
 from warnings import filterwarnings
 from sqlalchemy import create_engine

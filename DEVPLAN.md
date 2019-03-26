@@ -64,8 +64,15 @@
     - 交易
         - 日常，周末复盘(done)
     - 系统开发与维护
+        - 板块牛熊股比(done)
+        - log的重复输出(done)
     - 量化实践
         - MACD的背离开发
+            - 掌握pyalgotrade框架
+            - 将macd和pyalgotrade框架相结合
+            - 策略：macd底背离买入，顶背离卖出
+            - 回测模型
+            - 分析结果
         - 网格策略开发
         - 沪深300的股指的回归和分类
         - 利用回声神经网络来预测股价: https://towardsdatascience.com/predicting-stock-prices-with-echo-state-networks-f910809d23d4

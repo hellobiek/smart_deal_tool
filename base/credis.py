@@ -5,7 +5,7 @@ from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import time
 import redis
-from log import getLogger
+from base.clog import getLogger
 logger = getLogger(__name__)
 class CRedis:
     def __init__(self, host, port, decode_responses):

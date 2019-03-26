@@ -16,7 +16,6 @@ from common import get_day_nday_ago, get_dates_array, create_redis_obj
 from pyalgotrade.technical import highlow, ma
 from pyalgotrade.stratanalyzer import returns
 from pyalgotrade import plotter, strategy, broker
-
 class PlateMomentumStrategy(strategy.BacktestingStrategy):
     def __init__(self, feed, instruments, brk, threshold):
         super(PlateMomentumStrategy, self).__init__(feed, brk)

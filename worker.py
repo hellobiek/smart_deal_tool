@@ -9,7 +9,7 @@ import _pickle
 import traceback
 import const as ct
 from common import create_redis_obj
-from log import getLogger
+from base.clog import getLogger
 log = getLogger(__name__)
 def worker(client_id, func_name, df, key, subset):
     worker = gear.Worker(client_id)

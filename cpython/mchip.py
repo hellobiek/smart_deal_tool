@@ -110,9 +110,7 @@ def adjust_volume(mdata, pos, volume, price, pre_outstanding, outstanding):
     l_p_volume_total = np.sum(l_p_data['volume'])
     l_u_volume_total = np.sum(l_u_data['volume'])
 
-    if s_p_volume_total + s_u_volume_total + l_p_volume_total + l_u_volume_total != outstanding:
-        import pdb
-        pdb.set_trace()
+    #if s_p_volume_total + s_u_volume_total + l_p_volume_total + l_u_volume_total != outstanding:
 
     s_p_volume, s_u_volume, l_p_volume, l_u_volume = divide_volume(volume, s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total, volume_total)
     if s_p_volume > 0:s_p_data['volume'] = divide_according_price(s_p_data['price'], s_p_data['volume'], s_p_volume, price)

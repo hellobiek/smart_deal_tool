@@ -4,9 +4,9 @@
 @desc:
     logging wrapper. default dir: "/tmp/", DEBUG level not print in term.
 """
-import sys
 import os
-import logging
+import sys
+import time, logging
 
 #logging.raiseExceptions = False
 
@@ -60,12 +60,6 @@ def getLogger(name, save_dir="/tmp/"):
     ch.setFormatter(formatter)
     ch.addFilter(InfoFilter(logging.ERROR))
     logger.addHandler(ch)
-
-    ## WARNING print stderr
-    #ch = logging.StreamHandler()
-    #ch.setLevel(logging.WARNING)
-    #ch.setFormatter(formatter)
-    #logger.addHandler(ch)
 
     logger.propagate = False # duplicate log
     return logger
