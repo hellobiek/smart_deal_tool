@@ -155,7 +155,7 @@ class RIndexStock:
         all_df = all_df.reset_index(drop = True)
         return all_df
 
-    def update(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 19):
+    def update(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 30):
         #if end_date == datetime.now().strftime('%Y-%m-%d'): end_date = get_day_nday_ago(end_date, num = 1, dformat = "%Y-%m-%d")
         start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
         date_array = get_dates_array(start_date, end_date)

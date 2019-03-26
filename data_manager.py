@@ -385,15 +385,16 @@ class DataManager:
         else:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
             succeed = True
-            if not process_concurrent_run(cfunc, failed_list, num = 500):
-                succeed = False
+            #if not process_concurrent_run(cfunc, failed_list, num = 500):
+            #    succeed = False
+            #return succeed
+            start_date = get_day_nday_ago(cdate, num = 30, dformat = "%Y-%m-%d")
+            for mdate in get_dates_array(start_date, cdate, asending = True):
+                if self.cal_client.is_trading_day(mdate):
+                    cfunc = partial(_set_stock_info, mdate, bonus_info, index_info)
+                    if not process_concurrent_run(cfunc, failed_list, num = 500):
+                        succeed = False
             return succeed
-            #start_date = get_day_nday_ago(cdate, num = 1, dformat = "%Y-%m-%d")
-            #for mdate in get_dates_array(start_date, cdate, asending = True):
-            #    if self.cal_client.is_trading_day(mdate):
-            #        cfunc = partial(_set_stock_info, mdate, bonus_info, index_info)
-            #        if not process_concurrent_run(cfunc, failed_list, num = 500):
-            #            succeed = False
 
     def init_industry_info(self, cdate):
         def _set_industry_info(cdate, code_id):
@@ -451,9 +452,7 @@ class DataManager:
 
     def set_bull_stock_ratio(self, cdate, num = 10):
         def _set_bull_stock_ratio(code_id):
-            obj = BullStockRatio(code_id)
-            obj.delete()
-            return (code_id, obj.update(cdate, num))
+            return (code_id, BullStockRatio(code_id).update(cdate, num))
         index_codes = self.get_concerned_index_codes()
         return concurrent_run(_set_bull_stock_ratio, index_codes, num = num)
 
@@ -520,17 +519,16 @@ if __name__ == '__main__':
     #import sys
     #sys.exit(0)
 
-    #kill_process("google-chrome")
-    #kill_process("renderer")
-    #kill_process("Xvfb")
-    #kill_process("zygote")
-    #kill_process("defunct")
-    #kill_process("show-component-extension-options")
+    kill_process("google-chrome")
+    kill_process("renderer")
+    kill_process("Xvfb")
+    kill_process("zygote")
+    kill_process("defunct")
+    kill_process("show-component-extension-options")
 
+    #mdate = '2019-02-26'
+    #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
     dm.logger.info("start compute!")
-    #dm.bootstrap(exec_date = '2019-03-11')
-    dm.set_bull_stock_ratio(cdate = '2019-03-11', num = 3000)
-    #mdate = datetime.now().strftime('%Y-%m-%d')
-    #mdate = '2019-02-26'
+    dm.bootstrap(cdate = '2019-03-26', exec_date = '2019-03-26')
     dm.logger.info("end compute!")

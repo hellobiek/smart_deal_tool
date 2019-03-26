@@ -82,6 +82,9 @@ const.INDEX_DICT = {'000001':'上证指数',
                     '399006':'创业板指'}
 const.TDX_SPECIAL_DICT = {'880011':'Ａ主总值',
                           '880012':'Ａ主流通',
+                          '880017':'Ａ主活筹',
+                          '880005':'涨跌家数',
+                          '880006':'停板家数',
                           '880883':'MSCI成分',
                           '880003':'平均股价'}
 const.TDX_INDEX_DICT = {**const.INDEX_DICT, **const.TDX_SPECIAL_DICT}

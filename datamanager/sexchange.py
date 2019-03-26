@@ -211,7 +211,7 @@ class StockExchange(object):
             return True
         return False
 
-    def update(self, end_date = None, num = 10):
+    def update(self, end_date = None, num = 30):
         if end_date is None: end_date = datetime.now().strftime('%Y-%m-%d')
         if end_date == datetime.now().strftime('%Y-%m-%d'): end_date = get_day_nday_ago(end_date, num = 1, dformat = "%Y-%m-%d")
         start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
