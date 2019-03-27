@@ -531,4 +531,5 @@ if __name__ == '__main__':
     dm = DataManager()
     dm.logger.info("start compute!")
     dm.bootstrap(cdate = '2019-03-26', exec_date = '2019-03-26')
+    #dm.bootstrap(exec_date = '2019-03-26')
     dm.logger.info("end compute!")

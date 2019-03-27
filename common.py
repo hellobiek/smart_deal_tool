@@ -238,7 +238,7 @@ def remove_blacklist(redis_client, key, black_list):
 def get_unfinished_workers(redis_client, key):
     return list(set(code.decode() for code in redis_client.smembers(key)))
 
-def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, max_retry_times = 10, black_list = []):
+def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, black_list = []):
     def init_unfinished_workers(redis_client, key, todo_list, overwrite = False):
         if not redis_client.exists(key):
             redis_client.sadd(key, *set(todo_list))
@@ -246,16 +246,20 @@ def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, max_retry
             if overwrite:
                 redis_client.delete(key)
                 redis_client.sadd(key, *set(todo_list))
-        return list(set(code.decode() for code in redis_client.smembers(key)))
     redis_client = create_redis_obj()
-    todo_list = init_unfinished_workers(redis_client, ct.UNFINISHED_WORKS, copy.deepcopy(all_list))
+    init_unfinished_workers(redis_client, ct.UNFINISHED_WORKS, copy.deepcopy(all_list))
+    todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
     if len(todo_list) == 0: return False
     jobs = list()
     last_length = len(todo_list)
     while last_length > 0:
+        i_start = 0
+        av_num = min(int(last_length / process_num), process_num)
         for x in range(process_num):
-            p = Process(target = thread_concurrent_run, args=(mfunc, redis_client, ct.UNFINISHED_WORKS), kwargs={'num': num, 'name': x, 'process_num': process_num})
+            i_end = min(i_start + av_num, last_length)
+            p = Process(target = thread_concurrent_run, args=(mfunc, todo_list[i_start:i_end], redis_client, ct.UNFINISHED_WORKS), kwargs={'num': num})
             jobs.append(p)
+            i_start = i_end
         for j in jobs: j.start()
         for j in jobs: 
             j.join()
@@ -264,25 +268,20 @@ def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, max_retry
         if len(black_list) > 0: remove_blacklist(redis_client, ct.UNFINISHED_WORKS, black_list)
         todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
         if len(todo_list) == last_length:
-            logger.info("left todo list length:%s" % todo_list)
+            logger.info("left todo list:%s" % todo_list)
             return False
         else:
             last_length = len(todo_list)
     return True
 
-def thread_concurrent_run(mfunc, redis_client, key, num = 10, name = 0, process_num = 2):
+def thread_concurrent_run(mfunc, todo_list, redis_client, key, num = 10):
     obj_pool = Pool(num)
-    all_list = get_unfinished_workers(redis_client, key)
-    av_num = int(len(all_list) / process_num) + process_num
-    i_start = name * av_num
-    i_end = i_start + av_num
-    todo_list = all_list[i_start:i_end]
     if 0 == len(todo_list): sys.exit(True)
     for result in obj_pool.imap_unordered(mfunc, todo_list):
         if True == result[1]: redis_client.srem(key, result[0])
     obj_pool.join(timeout = 10)
     obj_pool.kill()
-    sys.exit(True) if len(todo_list) == 0 else sys.exit(False)
+    sys.exit(True)
 
 def concurrent_run(mfunc, all_list, num = 10, max_retry_times = 10):
     failed_count = 0
