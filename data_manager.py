@@ -361,7 +361,7 @@ class DataManager:
         def _set_stock_info(_date, bonus_info, index_info, code_id):
             try:
                 if CStock(code_id).set_k_data(bonus_info, index_info, _date):
-                    self.logger.info("%s set k data success" % code_id)
+                    self.logger.info("%s set k data success for date:%s" % (code_id, cdate))
                     return (code_id, True)
                 else:
                     self.logger.error("%s set k data failed" % code_id)
@@ -378,7 +378,7 @@ class DataManager:
         if index_info is None or index_info.empty: return False
         df = self.stock_info_client.get()
         failed_list = df.code.tolist()
-        self.logger.info("all code list length:%s" % len(failed_list))
+        self.logger.info("all code list length:%s", len(failed_list))
         if cdate is None:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
             return process_concurrent_run(cfunc, failed_list, num = 5)
@@ -393,8 +393,9 @@ class DataManager:
                 if self.cal_client.is_trading_day(mdate):
                     cfunc = partial(_set_stock_info, mdate, bonus_info, index_info)
                     if not process_concurrent_run(cfunc, failed_list, num = 500):
-                        succeed = False
-            return succeed
+                        self.logger.error("compute stock info for %s failed", mdate)
+                        return False
+            return True
 
     def init_industry_info(self, cdate):
         def _set_industry_info(cdate, code_id):

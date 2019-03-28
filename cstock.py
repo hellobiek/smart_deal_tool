@@ -326,7 +326,7 @@ class CStock(CMysqlObj):
             df['sri'] = 100 * (s_pchange - i_pchange)
         return df 
 
-    def set_today_data(self, df, index_df, pre_date, cdate):
+    def set_oneday_data(self, df, index_df, pre_date, cdate):
         day_table = self.get_day_table()
         if self.is_date_exists(day_table, cdate):
             logger.debug("existed data for code:%s, date:%s" % (self.code, cdate))
@@ -475,7 +475,7 @@ class CStock(CMysqlObj):
             if pre_date is None:
                 return self.set_all_data(quantity_change_info, price_change_info, index_info)
             else:
-                return self.set_today_data(today_df, index_info, pre_date, cdate)
+                return self.set_oneday_data(today_df, index_info, pre_date, cdate)
 
     def get_chip_distribution(self, mdate = None):
         df = pd.DataFrame()

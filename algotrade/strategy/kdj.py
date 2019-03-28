@@ -4,23 +4,20 @@ ta-lib示例，示例包含使用原生talib,pyalgotrade自带talib，调用自�
 """
 import sys
 from os.path import abspath, dirname
-sys.path.insert(0, dirname(dirname(abspath(__file__))))
+sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
 import talib
 import traceback
+import const as ct
 import numpy as np
 import pandas as pd
-
-from cmysql import CMySQL
-from cindex import CIndex
 from cstock import CStock
-
+from cindex import CIndex
 from pyalgotrade import strategy, plotter
 from pyalgotrade.technical import ma, cross, macd
 from pyalgotrade.stratanalyzer import returns, sharpe
 from pyalgotrade.talibext import indicator
 from talib import MA_Type
 from algotrade.feed import dataFramefeed
-
 class KDJStrategy(strategy.BacktestingStrategy):
     def __init__(self, feed, instrument, param, df):
         strategy.BacktestingStrategy.__init__(self, feed)
@@ -38,7 +35,7 @@ class KDJStrategy(strategy.BacktestingStrategy):
 
     def onEnterOk(self, position):
         execInfo = position.getEntryOrder().getExecutionInfo()
-        self.info("BUY at ￥%.2f" % (execInfo.getPrice())
+        self.info("BUY at ￥%.2f" % (execInfo.getPrice()))
 
     def onEnterCanceled(self, position):
         self.__position = None
@@ -102,24 +99,24 @@ class KDJStrategy(strategy.BacktestingStrategy):
                 self.__position.exitMarket()
                 #print "SELL: ", self.__prices[-1], self.getBroker().getShares(self.__instrument), self.getBroker().getCash()
 
-def main(code = '601318'):
-    cstock_obj = CStock(code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
+def main(code = '000001'):
+    cstock_obj = CIndex(code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
     data = cstock_obj.get_k_data()
     data = data.set_index('date')
     feed = dataFramefeed.Feed()
-    feed.addBarsFromDataFrame("code", data)
+    feed.addBarsFromDataFrame(code, data)
     # broker setting
     # broker commission类设置
-    broker_commission = broker.backtesting.TradePercentage(0.002)
+    broker_commission = broker.backtesting.TradePercentage(0.01)
     # fill strategy设置
-    fill_stra = broker.fillstrategy.DefaultStrategy(volumeLimit = 1.0)
+    fill_stra = broker.fillstrategy.DefaultStrategy(volumeLimit = 0.001)
     sli_stra = broker.slippage.NoSlippage()
     fill_stra.setSlippageModel(sli_stra)
     # 完善broker类
     brk = broker.backtesting.Broker(threshold * len(instruments), feed, broker_commission)
     brk.setFillStrategy(fill_stra)
     # 设置strategy
-    myStrategy = KDJStrategy(feed, code, param = param, df=formular.KDJ(dat,14,3,3))
+    myStrategy = KDJStrategy(feed, code, param = param, df = formular.KDJ(dat,14,3,3))
     # Attach a returns analyzers to the strategy
     returnsAnalyzer = returns.Returns()
     myStrategy.attachAnalyzer(returnsAnalyzer)

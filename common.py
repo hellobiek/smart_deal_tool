@@ -239,36 +239,33 @@ def get_unfinished_workers(redis_client, key):
     return list(set(code.decode() for code in redis_client.smembers(key)))
 
 def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, black_list = []):
-    def init_unfinished_workers(redis_client, key, todo_list, overwrite = False):
-        if not redis_client.exists(key):
+    def init_unfinished_workers(redis_client, key, todo_list, overwrite = True):
+        if overwrite:
+            redis_client.delete(key)
             redis_client.sadd(key, *set(todo_list))
         else:
-            if overwrite:
-                redis_client.delete(key)
+            if not redis_client.exists(key):
                 redis_client.sadd(key, *set(todo_list))
     redis_client = create_redis_obj()
     init_unfinished_workers(redis_client, ct.UNFINISHED_WORKS, copy.deepcopy(all_list))
     todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
     if len(todo_list) == 0: return False
-    jobs = list()
     last_length = len(todo_list)
     while last_length > 0:
         i_start = 0
-        av_num = min(int(last_length / process_num), process_num)
+        jobs = list()
+        av_num = max(int(last_length / process_num), process_num)
         for x in range(process_num):
             i_end = min(i_start + av_num, last_length)
             p = Process(target = thread_concurrent_run, args=(mfunc, todo_list[i_start:i_end], redis_client, ct.UNFINISHED_WORKS), kwargs={'num': num})
             jobs.append(p)
             i_start = i_end
         for j in jobs: j.start()
-        for j in jobs: 
-            j.join()
-            j.terminate()
-            time.sleep(3)
+        for j in jobs: j.join()
         if len(black_list) > 0: remove_blacklist(redis_client, ct.UNFINISHED_WORKS, black_list)
         todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
         if len(todo_list) == last_length:
-            logger.info("left todo list:%s" % todo_list)
+            logger.error("left todo list:%s" % todo_list)
             return False
         else:
             last_length = len(todo_list)
