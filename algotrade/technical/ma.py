@@ -1,13 +1,13 @@
 #-*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
-def ma(df, n):
+def ma(df, n, key = 'close', name = 'ma'):
     """calculate the moving average for the given data.
     :param df: pandas.DataFrame
     :param n:
     :return: pandas.DataFrame
     """
-    ma = pd.Series(df['close'].rolling(n, min_periods=n).mean(), name = 'ma_' + str(n))
+    ma = pd.Series(df[key].rolling(n, min_periods=n).mean(), name = '%s_%s' % (name, str(n)))
     df = df.join(ma)
     return df
 

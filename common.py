@@ -239,7 +239,7 @@ def get_unfinished_workers(redis_client, key):
     return list(set(code.decode() for code in redis_client.smembers(key)))
 
 def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, black_list = []):
-    def init_unfinished_workers(redis_client, key, todo_list, overwrite = True):
+    def init_unfinished_workers(redis_client, key, todo_list, overwrite = False):
         if overwrite:
             redis_client.delete(key)
             redis_client.sadd(key, *set(todo_list))

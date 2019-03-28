@@ -446,21 +446,8 @@ class CStock(CMysqlObj):
         df['pday'] = 0
         df['profit'] = 0.0
         df = base_floating_profit(df)
-        return self.mysql_client.delsert(df, self.get_day_table())
-
-    def compute_floating_profit(self):
-        if not self.create_mysql_table(self.get_profit_table()): return False
-        df = self.get_k_data()
-        if df is None: return False
-        if df.empty: return True
-        df['base'] = 0.0
-        df['ibase'] = 0
-        df['breakup'] = 0
-        df['ibreakup'] = 0
-        df['pday'] = 0
-        df['profit'] = 0.0
-        df = compute_profit(df)
-        return self.mysql_client.delsert(df, self.get_profit_table())
+        #return self.mysql_client.delsert(df, self.get_day_table())
+        return self.mysql_client.upsert(df, self.get_day_table(), pri_keys = ['date'])
 
     def set_k_data(self, bonus_info, index_info, cdate = None):
         if not self.has_on_market(cdate):
@@ -658,8 +645,8 @@ if __name__ == '__main__':
     from cindex import CIndex
     index_info = CIndex('000001').get_k_data(cdate)
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    #cstock = CStock('002098')
-    cstock = CStock('000532')
+    #cstock = CStock('603317', should_create_influxdb = True, should_create_mysqldb = True)
+    cstock = CStock('002098')
     logger.info("start compute")
     cstock.set_k_data(bonus_info, index_info)
     logger.info("enter set base floating profit")

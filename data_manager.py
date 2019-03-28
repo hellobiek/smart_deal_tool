@@ -345,29 +345,17 @@ class DataManager:
         self.logger.info("%s stocks to be set" % len(failed_list))
         return process_concurrent_run(_set_base_float_profit, failed_list, num = 500)
 
-    def compute_base_float_profit(self):
-        def _compute_base_float_profit(code_id):
-            if CStock(code_id).compute_floating_profit():
-                self.logger.info("%s set base float profit success" % code_id)
-                return (code_id, True)
-            else:
-                self.logger.error("%s set base float profit failed" % code_id)
-                return (code_id, False)
-        failed_list = self.stock_info_client.get().code.tolist()
-        self.logger.info("%s stocks to be set" % len(failed_list))
-        return process_concurrent_run(_compute_base_float_profit, failed_list, num = 500)
-
     def init_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, index_info, code_id):
             try:
                 if CStock(code_id).set_k_data(bonus_info, index_info, _date):
-                    self.logger.info("%s set k data success for date:%s" % (code_id, cdate))
+                    self.logger.info("%s set k data success for date:%s", code_id, _date)
                     return (code_id, True)
                 else:
-                    self.logger.error("%s set k data failed" % code_id)
+                    self.logger.error("%s set k data failed for date:%s", code_id, _date)
                     return (code_id, False)
             except Exception as e:
-                self.logger.error("%s set k data exception:%s" % (code_id, e))
+                self.logger.error("%s set k data for date %s exception:%s", code_id, _date, e)
                 return (code_id, False)
 
         #get stock bonus info
@@ -391,6 +379,7 @@ class DataManager:
             start_date = get_day_nday_ago(cdate, num = 30, dformat = "%Y-%m-%d")
             for mdate in get_dates_array(start_date, cdate, asending = True):
                 if self.cal_client.is_trading_day(mdate):
+                    self.logger.info("start recording stock info: %s", mdate)
                     cfunc = partial(_set_stock_info, mdate, bonus_info, index_info)
                     if not process_concurrent_run(cfunc, failed_list, num = 500):
                         self.logger.error("compute stock info for %s failed", mdate)
