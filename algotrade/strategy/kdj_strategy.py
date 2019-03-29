@@ -183,5 +183,6 @@ def main():
 if __name__ == '__main__':
     try:
         main()
+        print("AAA")
     except Exception as e:
         traceback.print_exc()

@@ -263,7 +263,7 @@ class CDoc:
 
         bull_stock_num = len(all_marauder_data[all_marauder_data.profit >= 0])
         bear_stock_num = len(all_marauder_data[all_marauder_data.profit <  0])
-        md.addText("牛熊股比:%s" % (100 * bull_stock_num / bear_stock_num))
+        md.addText("牛熊股比:%s" % (100 * bull_stock_num / len(all_marauder_data)))
 
         #涨停分析
         md.addHeader("涨停跌停分析:", 3)

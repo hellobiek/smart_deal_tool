@@ -46,7 +46,7 @@ class CLimit:
 
     @staticmethod
     def get_table_name():
-        return ct.LIMIT_TABLE  
+        return ct.LIMIT_TABLE
 
     def get_useful_columns(self, dtype):
         if dtype == ct.LIMIT_UP or dtype == ct.LIMIT_DOWN:
@@ -98,19 +98,14 @@ class CLimit:
         cdate = datetime.strptime(cdate, "%Y-%m-%d").strftime("%Y%m%d")
         table = ct.LIMIT_UP if dtype == "UP" else ct.LIMIT_DOWN
         data = self.get_data_from_url(cdate, table)
-        if data is None:
-            return
-
+        if data is None: return
         limit_up_json_obj = self.convert_to_json(data)
-
         limit_up_df = pd.DataFrame(limit_up_json_obj, columns=self.get_columns(table))
         limit_up_df = limit_up_df[self.get_useful_columns(table)]
 
         intense_table = ct.LIMIT_UP_INTENSITY if dtype == "UP" else ct.LIMIT_DOWN_INTENSITY
         data = self.get_data_from_url(cdate, intense_table)
-        if data is None:
-            return
-
+        if data is None: return
         limit_up_intensity_json_obj = self.convert_to_json(data)
         limit_up_intensity_df = pd.DataFrame(limit_up_intensity_json_obj, columns=self.get_columns(intense_table))
         limit_up_intensity_df = limit_up_intensity_df[self.get_useful_columns(intense_table)]
@@ -131,16 +126,11 @@ class CLimit:
         df_up = self.gen_df("UP", cdate)
         df_down = self.gen_df("DOWN", cdate)
 
-        if df_up is None or df_down is None: 
-            return False
-        
+        if df_up is None or df_down is None: return False
         df = pd.concat([df_up, df_down], sort=True)
-
-        if df.empty: 
-            return False
-
+        if df.empty: return False
         df = df.reset_index(drop = True)
-        df.columns = ['code', 'price', 'pchange', 'prange', 'fcb', 'flb', 'fdmoney', 'concept', 'last_time', 'open_times', 'intensity', 'first_time']
+        df.columns = ['code', 'price', 'fdmoney', 'fcb', 'flb', 'open_times', 'intensity', 'concept', 'prange', 'last_time', 'pchange', 'first_time']
         df['date'] = cdate
         if self.mysql_client.set(df, self.table):
             return self.redis.sadd(self.table, cdate)
@@ -151,9 +141,9 @@ class CLimit:
             return cdate in set(tdate.decode() for tdate in self.redis.smembers(table_name))
         return False
 
-    def update(self, end_date = None):
+    def update(self, end_date = None, num = 30):
         if end_date is None: end_date = datetime.now().strftime('%Y-%m-%d')
-        start_date = get_day_nday_ago(end_date, num = 30, dformat = "%Y-%m-%d")
+        start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
         date_array = get_dates_array(start_date, end_date)
         succeed = True
         for mdate in date_array:
@@ -163,3 +153,8 @@ class CLimit:
                     self.logger.error("%s set failed" % mdate)
                     succeed = False
         return succeed
+
+if __name__ == '__main__':
+    cl = CLimit()
+    #cl.mysql_client.delete(cl.table)
+    cl.update(end_date = '2019-03-28')

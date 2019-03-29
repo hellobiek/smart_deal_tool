@@ -105,7 +105,7 @@ class CReivew:
         return df
 
     def update(self, cdate = datetime.now().strftime('%Y-%m-%d')):
-        start_date = get_day_nday_ago(cdate, 300, dformat = "%Y-%m-%d")
+        start_date = get_day_nday_ago(cdate, 200, dformat = "%Y-%m-%d")
         end_date   = cdate
         try:
             #market info
