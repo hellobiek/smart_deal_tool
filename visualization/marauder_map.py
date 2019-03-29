@@ -8,7 +8,6 @@ sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import pandas as pd
 from cstock import CStock
 from rstock import RIndexStock
-from rprofit import RProfit
 from base.clog import getLogger
 from common import get_day_nday_ago, get_chinese_font
 from functools import partial
@@ -16,11 +15,9 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-
 class MarauderMap():
     def __init__(self):
         self.ris = RIndexStock()
-        self.rp  = RProfit()
         self.logger = getLogger(__name__)
 
     def plot(self, cdate, fdir, fname):
@@ -53,8 +50,7 @@ class MarauderMap():
 
     def gen_animation(self, end_date, days):
         start_date = get_day_nday_ago(end_date, num = days, dformat = "%Y-%m-%d")
-        #df = self.ris.get_k_data_in_range(start_date, end_date)
-        df = self.rp.get_k_data_in_range(start_date, end_date)
+        df = self.ris.get_k_data_in_range(start_date, end_date)
         fig, ax = plt.subplots()
         #get min profit day
         min_pday = df.pday.values.min()

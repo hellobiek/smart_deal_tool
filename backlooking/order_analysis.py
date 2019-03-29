@@ -1,15 +1,16 @@
+#-*- coding: utf-8 -*-
 import os
 import sys
 from os.path import abspath, dirname
-sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
+sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import datetime
 import const as ct
 import pandas as pd
 from futu import TrdEnv
 from datetime import datetime
 from common import get_dates_array
-from markdown_table import MarkdownTable
-from markdown_writer import MarkdownWriter
+from tools.markdown_table import MarkdownTable
+from tools.markdown_writer import MarkdownWriter
 from algotrade.broker.futu.fututrader import FutuTrader, MOrder, MDeal
 pd.options.mode.chained_assignment = None
 def generate(orders, date_arrary, dirname, start, end):

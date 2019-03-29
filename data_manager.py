@@ -32,7 +32,7 @@ from rindustry import RIndexIndustryInfo
 from combination_info import CombinationInfo
 from futu.common.constant import SubType
 from crawler.dspider.hkex import HkexCrawler
-from crawler.dspider.run import start_spider
+from crawler.dspider.run import weekly_spider
 from subscriber import Subscriber, StockQuoteHandler, TickerHandler
 from common import is_trading_time, delta_days, create_redis_obj, add_prifix, add_index_prefix, kill_process, concurrent_run, get_day_nday_ago, get_dates_array, process_concurrent_run
 pd.options.mode.chained_assignment = None #default='warn'
@@ -366,25 +366,24 @@ class DataManager:
         if index_info is None or index_info.empty: return False
         df = self.stock_info_client.get()
         failed_list = df.code.tolist()
-        self.logger.info("all code list length:%s", len(failed_list))
         if cdate is None:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
             return process_concurrent_run(cfunc, failed_list, num = 5)
         else:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
             succeed = True
-            #if not process_concurrent_run(cfunc, failed_list, num = 500):
-            #    succeed = False
-            #return succeed
-            start_date = get_day_nday_ago(cdate, num = 30, dformat = "%Y-%m-%d")
-            for mdate in get_dates_array(start_date, cdate, asending = True):
-                if self.cal_client.is_trading_day(mdate):
-                    self.logger.info("start recording stock info: %s", mdate)
-                    cfunc = partial(_set_stock_info, mdate, bonus_info, index_info)
-                    if not process_concurrent_run(cfunc, failed_list, num = 500):
-                        self.logger.error("compute stock info for %s failed", mdate)
-                        return False
-            return True
+            if not process_concurrent_run(cfunc, failed_list, num = 500):
+                succeed = False
+            return succeed
+            #start_date = get_day_nday_ago(cdate, num = 4, dformat = "%Y-%m-%d")
+            #for mdate in get_dates_array(start_date, cdate, asending = True):
+            #    if self.cal_client.is_trading_day(mdate):
+            #        self.logger.info("start recording stock info: %s", mdate)
+            #        cfunc = partial(_set_stock_info, mdate, bonus_info, index_info)
+            #        if not process_concurrent_run(cfunc, failed_list, num = 500):
+            #            self.logger.error("compute stock info for %s failed", mdate)
+            #            return False
+            #return True
 
     def init_industry_info(self, cdate):
         def _set_industry_info(cdate, code_id):
@@ -486,7 +485,7 @@ class DataManager:
             return False
 
     def scrawler(self, sleep_time):
-        schedule.every().monday.do(start_spider)
+        schedule.every().monday.do(weekly_spider)
         while True:
             try:
                 schedule.run_pending()
@@ -520,6 +519,6 @@ if __name__ == '__main__':
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
     dm.logger.info("start compute!")
-    dm.bootstrap(cdate = '2019-03-26', exec_date = '2019-03-26')
+    dm.bootstrap(cdate = '2019-03-28', exec_date = '2019-03-28')
     #dm.bootstrap(exec_date = '2019-03-26')
     dm.logger.info("end compute!")

@@ -2,16 +2,20 @@
 import gevent
 from gevent import monkey
 monkey.patch_all(thread = True)
+import sys
+from os.path import abspath, dirname
+sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import os
 import datetime
 import traceback
 import matplotlib
+matplotlib.use('Agg')
 import const as ct
 import pandas as pd
-matplotlib.use('Agg')
-from matplotlib import style
+import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.animation as animation
+from matplotlib import style
 from cdoc import CDoc
 from climit import CLimit
 from cindex import CIndex
@@ -19,7 +23,6 @@ from cmysql import CMySQL
 from datetime import datetime
 from rstock import RIndexStock
 from base.clog import getLogger
-import matplotlib.pyplot as plt
 from datamanager.margin import Margin
 from rindustry import RIndexIndustryInfo
 from industry_info import IndustryInfo
@@ -182,4 +185,4 @@ class CReivew:
 
 if __name__ == '__main__':
     creview = CReivew(ct.DB_INFO)
-    data = creview.update('2019-02-28')
+    data = creview.update('2019-03-28')

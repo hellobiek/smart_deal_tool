@@ -14,7 +14,7 @@ def init():
     InvestorCrawler()
     SPledgeCrawler()
 
-def start_spider():
+def weekly_spider():
     init()
     settings = get_project_settings()
     myrunner = CrawlerRunner(settings)

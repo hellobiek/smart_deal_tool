@@ -56,7 +56,9 @@ class KDJStrategy(strategy.BacktestingStrategy):
         self.__position = None
         self.__param  = param
         self.__data = df
-        self.__price_ma = df[['ma_%s' % param['ma']]]
+        self.__price_ma_s = df[['ma_%s' % param['ma_s']]]
+        self.__price_ma_m = df[['ma_%s' % param['ma_m']]]
+        self.__price_ma_l = df[['ma_%s' % param['ma_l']]]
         self.__volume_ma = df[['ma_%s' % param['volume']]]
         self.__prices = self.__feed[self.__instrument].getCloseDataSeries()
 
@@ -69,12 +71,15 @@ class KDJStrategy(strategy.BacktestingStrategy):
 
     def onEnterOk(self, position):
         execInfo = position.getEntryOrder().getExecutionInfo()
-        self.info("BUY at ￥%.2f" % execInfo.getPrice())
+        self.info("%s buy at ￥%.2f" % (execInfo.getDateTime(), execInfo.getPrice()))
 
     def onExitOk(self, position):
         execInfo = position.getExitOrder().getExecutionInfo()
-        self.info("SELL at ￥%.2f" % execInfo.getPrice())
+        self.info("%s sell at ￥%.2f" % (execInfo.getDateTime(), execInfo.getPrice()))
         self.__position = None
+
+    def checkMA(self, bars):
+        pass
 
     def checkPrice(self, bars):
         signal = 0
@@ -94,7 +99,8 @@ class KDJStrategy(strategy.BacktestingStrategy):
         if len(k_value) < 2: return signal
         if cross.cross_above(k_value, d_value) > 0 and k_value[1] < self.__param['lthreshold'] and d_value[1] < self.__param['lthreshold']:
             signal = 1
-        elif k_value[1] > self.__param['hthreshold'] and d_value[1] > self.__param['hthreshold']:
+        #elif k_value[1] > self.__param['hthreshold'] and d_value[1] > self.__param['hthreshold']:
+        elif k_value[1] > self.__param['lthreshold'] and d_value[1] > self.__param['lthreshold']:
             signal = -1
         return signal
 
@@ -113,7 +119,7 @@ class KDJStrategy(strategy.BacktestingStrategy):
         kdj_signal = self.checkKDJ(bars)
         price_signal = self.checkPrice(bars)
         volume_signal = self.checkVolume(bars)
-        if kdj_signal == 1 and price_signal == 1:
+        if kdj_signal == 1:
             return 1
         if kdj_signal == -1:
             return -1
@@ -151,10 +157,12 @@ def main():
     brk = broker.backtesting.Broker(100000, feed, broker_commission)
     brk.setFillStrategy(fill_stra)
     # 设置strategy
-    param = {'lthreshold': 25, 'hthreshold': 75, 'unit': 'D', 'ma': 5, 'volume': 5}
+    param = {'lthreshold': 20, 'hthreshold': 80, 'unit': 'D', 'ma_s': 5, 'ma_m': 10, 'ma_l': 20, 'volume': 5}
     data.index = pd.to_datetime(data.index)
     data = kdj(data)
-    data = ma(data, param['ma'])
+    data = ma(data, param['ma_s'])
+    data = ma(data, param['ma_m'])
+    data = ma(data, param['ma_l'])
     data = ma(data, param['volume'], key = 'volume', name = 'volume_ma')
     data = data.dropna(how='any')
     myStrategy = KDJStrategy(feed, code, param, data)

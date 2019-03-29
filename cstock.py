@@ -623,14 +623,6 @@ class CStock(CMysqlObj):
         sql = "select * from %s where date between \"%s\" and \"%s\"" %(table_name, start_date, end_date)
         return self.mysql_client.get(sql)
 
-    def get_p_data(self, date = None, dtype = 9):
-        table_name = self.get_profit_table()
-        if date is not None:
-            sql = "select * from %s where date=\"%s\"" %(table_name, date)
-        else:
-            sql = "select * from %s" % table_name
-        return self.mysql_client.get(sql)
-
     def get_k_data(self, date = None, dtype = 9):
         table_name = self.get_day_table()
         if date is not None:

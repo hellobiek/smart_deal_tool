@@ -249,6 +249,7 @@ def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, black_lis
     redis_client = create_redis_obj()
     init_unfinished_workers(redis_client, ct.UNFINISHED_WORKS, copy.deepcopy(all_list))
     todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
+    logger.info("all code list length:%s", len(todo_list))
     if len(todo_list) == 0: return False
     last_length = len(todo_list)
     while last_length > 0:

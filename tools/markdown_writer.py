@@ -1,5 +1,9 @@
 #coding=utf-8
-from markdown_table import MarkdownTable
+import os
+import sys
+from os.path import abspath, dirname
+sys.path.insert(0, dirname(dirname(abspath(__file__))))
+from tools.markdown_table import MarkdownTable
 class MarkdownWriter():
     def __init__(self, stream=""):
         self.stream = stream
