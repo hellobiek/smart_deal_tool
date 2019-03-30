@@ -2,21 +2,19 @@
 import gevent
 from gevent import monkey
 monkey.patch_all(thread = True)
+import os
 import sys
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
-import os
 import datetime
-import traceback
 import matplotlib
 matplotlib.use('Agg')
 import const as ct
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-import matplotlib.animation as animation
+from backlooking.cdoc import CDoc
 from matplotlib import style
-from cdoc import CDoc
 from climit import CLimit
 from cindex import CIndex
 from cmysql import CMySQL
@@ -141,11 +139,13 @@ class CReivew:
             self.doc.generate(cdate, sh_df, sz_df, sh_rzrq_df, sz_rzrq_df, av_df, limit_info, stock_info, industry_info, index_info, all_stock_info)
             ##gen review animation
             #self.gen_animation()
+            return True
         except Exception as e:
             self.logger.error(e)
-            traceback.print_exc()
+            return False
 
     def gen_animation(self, sfile = None):
+        import matplotlib.animation as animation
         style.use('fivethirtyeight')
         Writer = animation.writers['ffmpeg']
         writer = Writer(fps=1, metadata=dict(artist='biek'), bitrate=1800)

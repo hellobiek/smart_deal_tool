@@ -1,12 +1,11 @@
 #coding=utf-8
+from gevent import monkey
+monkey.patch_all()
 import time
-import _pickle
 import datetime
 import const as ct
 import numpy as np
 import pandas as pd
-from tornado import gen
-from tornado import ioloop
 from functools import partial
 from datetime import datetime
 from base.clog import getLogger
@@ -15,7 +14,7 @@ from cstock import CStock
 from ccalendar import CCalendar
 from cstock_info import CStockInfo
 from collections import OrderedDict
-from common import delta_days, create_redis_obj, get_day_nday_ago, get_dates_array
+from common import delta_days, create_redis_obj, get_day_nday_ago, get_dates_array, queue_process_concurrent_run
 class RIndexStock:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
@@ -113,25 +112,13 @@ class RIndexStock:
     def get_stock_data(self, cdate, code):
         return (code, CStock(code).get_k_data(cdate))
 
-    @gen.coroutine
-    def run(self, cdate):
-        df = pd.DataFrame()
-        code_list = CStockInfo.get().code.tolist()
-        responses = yield [self.get_stock_data(cdate, code) for code in code_list]
-        for response in responses:
-            if response[1] is not None:
-                tem_df = response[1]
-                tem_df['code'] = response[0]
-                df = df.append(tem_df)
-        raise gen.Return(value=df)
+    def generate_all_data_1(self, cdate, black_list = list()):
+        failed_list = CStockInfo(redis_host = self.redis_host).get(redis = self.redis).code.tolist()
+        if len(black_list) > 0: failed_list = list(set(failed_list).difference(set(black_list)))
+        cfunc = partial(self.get_stock_data, cdate)
+        return queue_process_concurrent_run(cfunc, failed_list, redis_client = self.redis)
 
-    def generate_data(self, cdate):
-        _ioloop = ioloop.IOLoop.instance()
-        cfunc = partial(self.run, cdate)
-        df = _ioloop.run_sync(cfunc)
-        return df
-
-    def generate_all_data(self, cdate, black_list = ['300767', '603379', '603967']):
+    def generate_all_data(self, cdate, black_list = []):
         from gevent.pool import Pool
         good_list = list()
         obj_pool = Pool(4000)
@@ -141,7 +128,7 @@ class RIndexStock:
             failed_list = list(set(failed_list).difference(set(black_list)))
         cfunc = partial(self.get_stock_data, cdate)
         while len(failed_list) > 0:
-            print("all stock list:%s, cdate:%s" % (len(failed_list),cdate))
+            self.logger.info("all stock list:%s, cdate:%s", len(failed_list), cdate)
             for code_data in obj_pool.imap_unordered(cfunc, failed_list):
                 if code_data[1] is not None:
                     tem_df = code_data[1]
@@ -180,6 +167,7 @@ class RIndexStock:
             self.logger.debug("existed table:%s, date:%s" % (table_name, cdate))
             return True
         df = self.generate_all_data(cdate)
+        if df is None: return False
         if self.mysql_client.set(df, table_name):
             self.redis.sadd(table_name, cdate)
             return True
@@ -187,4 +175,7 @@ class RIndexStock:
 
 if __name__ == '__main__':
     ris = RIndexStock(ct.OUT_DB_INFO, redis_host = '127.0.0.1')
-    ris.update(end_date = '2019-03-16', num = 10)
+    #ris.update(end_date = '2019-03-16', num = 10)
+    df = ris.generate_all_data('2019-03-29')
+    import pdb
+    pdb.set_trace()

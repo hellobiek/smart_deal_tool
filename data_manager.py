@@ -28,6 +28,7 @@ from datamanager.emotion import Emotion
 from datamanager.bull_stock_ratio import BullStockRatio
 from datamanager.hgt import StockConnect
 from datamanager.sexchange import StockExchange
+from backlooking.creview import CReivew
 from rindustry import RIndexIndustryInfo
 from combination_info import CombinationInfo
 from futu.common.constant import SubType
@@ -47,6 +48,7 @@ class DataManager:
         self.combination_objs = dict()
         self.cal_client = CCalendar(dbinfo, redis_host)
         self.index_info_client = IndexInfo()
+        self.reviewer = CReivew(dbinfo, redis_host)
         self.comb_info_client = CombinationInfo(dbinfo, redis_host)
         self.stock_info_client = CStockInfo(dbinfo, redis_host)
         self.rindex_stock_data_client = RIndexStock(dbinfo, redis_host) 
@@ -296,6 +298,12 @@ class DataManager:
                 self.logger.error("bull ratio set failed")
                 return False
             self.set_update_info(19, exec_date, cdate)
+        
+        if finished_step < 20:
+            if not self.reviewer.update(cdate):
+                self.logger.error("generate review for %s failed", cdate)
+                return False
+            self.set_update_info(20, exec_date, cdate)
 
         self.logger.info("updating succeed")
         return True
@@ -315,13 +323,14 @@ class DataManager:
             try:
                 if self.cal_client.is_trading_day(): 
                     self.logger.info("is trading day. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                    if self.is_collecting_time() and not succeed:
-                        self.logger.info("is collecting time. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-                        self.clear_network_env()
-                        mdate = datetime.now().strftime('%Y-%m-%d')
-                        succeed = self.bootstrap(cdate = mdate, exec_date = mdate)
+                    if self.is_collecting_time():
+                        if not succeed:
+                            self.logger.info("is collecting time. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                            self.clear_network_env()
+                            mdate = datetime.now().strftime('%Y-%m-%d')
+                            succeed = self.bootstrap(cdate = mdate, exec_date = mdate)
                     else:
-                        if not self.is_collecting_time(): succeed = False
+                        succeed = False
                         gevent.sleep(sleep_time)
             except Exception as e:
                 time.sleep(1)
@@ -342,7 +351,6 @@ class DataManager:
                 self.logger.error("%s set base float profit failed" % code_id)
                 return (code_id, False)
         failed_list = self.stock_info_client.get().code.tolist()
-        self.logger.info("%s stocks to be set" % len(failed_list))
         return process_concurrent_run(_set_base_float_profit, failed_list, num = 500)
 
     def init_stock_info(self, cdate = None):
@@ -519,6 +527,6 @@ if __name__ == '__main__':
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
     dm.logger.info("start compute!")
-    dm.bootstrap(cdate = '2019-03-28', exec_date = '2019-03-28')
+    dm.bootstrap(cdate = '2019-03-29', exec_date = '2019-03-29')
     #dm.bootstrap(exec_date = '2019-03-26')
     dm.logger.info("end compute!")

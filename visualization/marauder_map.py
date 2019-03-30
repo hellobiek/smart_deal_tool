@@ -12,9 +12,7 @@ from base.clog import getLogger
 from common import get_day_nday_ago, get_chinese_font
 from functools import partial
 import matplotlib
-matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 class MarauderMap():
     def __init__(self):
         self.ris = RIndexStock()
@@ -49,6 +47,8 @@ class MarauderMap():
         plt.savefig('%s/%s.png' % (fdir, fname), dpi=1000)
 
     def gen_animation(self, end_date, days):
+        import matplotlib.animation as animation
+        matplotlib.use('Agg')
         start_date = get_day_nday_ago(end_date, num = days, dformat = "%Y-%m-%d")
         df = self.ris.get_k_data_in_range(start_date, end_date)
         fig, ax = plt.subplots()
@@ -100,6 +100,6 @@ if __name__ == '__main__':
     #cdate = "2019-01-22"
     #image_dir = "/code"
     #image_name = "test"
-    mmap_clinet = MarauderMap()
+    #mmap_clinet = MarauderMap()
     #mmap_clinet.plot(cdate, image_dir, image_name)
     mmap_clinet.gen_animation("2019-01-25", 100)

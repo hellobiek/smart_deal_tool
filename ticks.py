@@ -3,20 +3,20 @@ import warnings
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 import os
+import time
 import wget
-import requests
 import ctypes
 import struct
 import zipfile
+import datetime
+import requests
 import const as ct
 import numpy as np
 import pandas as pd
-import time
-import datetime
 from datetime import datetime, timedelta
 from base.clog import getLogger
-from common import get_security_exchange_name, get_day_nday_ago, get_dates_array
-from models import TickTradeDetail, TickDetailModel
+from datamanager.tick_models import TickTradeDetail, TickDetailModel
+from common import get_security_exchange_name, get_day_nday_ago
 logger = getLogger(__name__)
 pd.options.mode.chained_assignment = None #default='warn'
 pd.set_option('display.max_columns', None)

@@ -4445,6 +4445,7 @@ const.TODAY_ALL_STOCK = "TODAY_ALL_STOCK"
 const.TODAY_ALL_INDUSTRY = "TODAY_ALL_INDUSTRY"
 ##################################################
 const.UNFINISHED_WORKS = "UNFINISHED_WORKS"
+const.UNFINISHED_QUEUE_WORKS = "UNFINISHED_QUEUE_WORKS"
 ##################################################
 const.CHIP_COLUMNS = ['pos', 'sdate', 'date', 'price', 'volume', 'outstanding']
 ##################################################

@@ -71,15 +71,24 @@ class KDJStrategy(strategy.BacktestingStrategy):
 
     def onEnterOk(self, position):
         execInfo = position.getEntryOrder().getExecutionInfo()
-        self.info("%s buy at ￥%.2f" % (execInfo.getDateTime(), execInfo.getPrice()))
+        #self.info("%s buy at ￥%.2f" % (execInfo.getDateTime(), execInfo.getPrice()))
 
     def onExitOk(self, position):
         execInfo = position.getExitOrder().getExecutionInfo()
-        self.info("%s sell at ￥%.2f" % (execInfo.getDateTime(), execInfo.getPrice()))
+        #self.info("%s sell at ￥%.2f" % (execInfo.getDateTime(), execInfo.getPrice()))
         self.__position = None
 
     def checkMA(self, bars):
-        pass
+        signal = 0
+        data = self.__data
+        d_s = data['ma_5'][self.__data.index == bars.getDateTime()]
+        if len(d_s) <= 0: return signal
+        d_m = data['ma_10'][self.__data.index == bars.getDateTime()]
+        d_l = data['ma_20'][self.__data.index == bars.getDateTime()]
+        d_array = [abs(d_m - d_s), abs(d_l - d_s), abs(d_l - d_m)]
+        score = sum(abs(d_array - np.mean(d_array))) * np.std(d_array)
+        #self.debug("date %s ma score:%s" % (bars.getDateTime(), score))
+        return score
 
     def checkPrice(self, bars):
         signal = 0
@@ -98,6 +107,8 @@ class KDJStrategy(strategy.BacktestingStrategy):
         k_value, d_value = kd.k.values, kd.d.values
         if len(k_value) < 2: return signal
         if cross.cross_above(k_value, d_value) > 0 and k_value[1] < self.__param['lthreshold'] and d_value[1] < self.__param['lthreshold']:
+            ma_signal = self.checkMA(bars)
+            self.info("buy at ￥%s, K value %s, D value %s MA score %s" % (bars.getDateTime(), k_value[1], d_value[1], ma_signal))
             signal = 1
         #elif k_value[1] > self.__param['hthreshold'] and d_value[1] > self.__param['hthreshold']:
         elif k_value[1] > self.__param['lthreshold'] and d_value[1] > self.__param['lthreshold']:
@@ -183,6 +194,5 @@ def main():
 if __name__ == '__main__':
     try:
         main()
-        print("AAA")
     except Exception as e:
         traceback.print_exc()

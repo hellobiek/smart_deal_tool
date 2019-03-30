@@ -15,7 +15,7 @@ import tushare as ts
 from base.credis import CRedis
 from base.clog import getLogger
 from gevent.pool import Pool
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 from datetime import datetime, timedelta
 logger = getLogger(__name__)
 
@@ -238,15 +238,66 @@ def remove_blacklist(redis_client, key, black_list):
 def get_unfinished_workers(redis_client, key):
     return list(set(code.decode() for code in redis_client.smembers(key)))
 
-def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, black_list = []):
-    def init_unfinished_workers(redis_client, key, todo_list, overwrite = False):
-        if overwrite:
-            redis_client.delete(key)
+def init_unfinished_workers(redis_client, key, todo_list, overwrite = False):
+    if overwrite:
+        redis_client.delete(key)
+        redis_client.sadd(key, *set(todo_list))
+    else:
+        if not redis_client.exists(key):
             redis_client.sadd(key, *set(todo_list))
+
+def queue_process_concurrent_run(mfunc, all_list, redis_client = None, process_num = 2, num = 10, black_list = []):
+    if redis_client is None: redis_client = create_redis_obj()
+    init_unfinished_workers(redis_client, ct.UNFINISHED_QUEUE_WORKS, copy.deepcopy(all_list), overwrite = True)
+    todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_QUEUE_WORKS)
+    logger.info("all queue code list length:%s", len(todo_list))
+    if len(todo_list) == 0: return None
+    last_length = len(todo_list)
+    q = Queue(last_length)
+    all_df = pd.DataFrame()
+    while last_length > 0:
+        i_start = 0
+        jobs = list()
+        av_num = max(int(last_length / process_num), process_num)
+        for x in range(process_num):
+            i_end = min(i_start + av_num, last_length)
+            p = Process(target = queue_thread_concurrent_run, args=(mfunc, todo_list[i_start:i_end], redis_client, ct.UNFINISHED_QUEUE_WORKS, q), kwargs={'num': num})
+            jobs.append(p)
+            i_start = i_end
+
+        for j in jobs: j.start()
+
+        #for j in jobs: j.join()
+        liveprocs = jobs
+        while liveprocs:
+            while not q.empty():
+                all_df = all_df.append(q.get(False))
+                logger.info(len(all_df))
+            time.sleep(0.1)    # Give tasks a chance to put more data in
+            liveprocs = [p for p in jobs if p.is_alive()]
+        if len(black_list) > 0: remove_blacklist(redis_client, ct.UNFINISHED_QUEUE_WORKS, black_list)
+        todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_QUEUE_WORKS)
+        if len(todo_list) == last_length:
+            logger.error("left todo list:%s" % todo_list)
+            time.sleep(100)
+            return None
         else:
-            if not redis_client.exists(key):
-                redis_client.sadd(key, *set(todo_list))
-    redis_client = create_redis_obj()
+            last_length = len(todo_list)
+    return all_df 
+
+def queue_thread_concurrent_run(mfunc, todo_list, redis_client, key, q, num = 10):
+    obj_pool = Pool(num)
+    if 0 == len(todo_list): sys.exit(True)
+    for result in obj_pool.imap_unordered(mfunc, todo_list):
+        if result[1] is not None: 
+            tem_df = result[1]
+            tem_df['code'] = result[0]
+            q.put(tem_df)
+            redis_client.srem(key, result[0])
+    sys.exit(True)
+
+def process_concurrent_run(mfunc, all_list, redis_client = None, process_num = 2, num = 10, black_list = []):
+    if redis_client is None: redis_client = create_redis_obj()
     init_unfinished_workers(redis_client, ct.UNFINISHED_WORKS, copy.deepcopy(all_list))
     todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
     logger.info("all code list length:%s", len(todo_list))
@@ -266,6 +317,7 @@ def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, black_lis
         if len(black_list) > 0: remove_blacklist(redis_client, ct.UNFINISHED_WORKS, black_list)
         todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
         if len(todo_list) == last_length:
+            time.sleep(100)
             logger.error("left todo list:%s" % todo_list)
             return False
         else:
