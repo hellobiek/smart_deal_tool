@@ -1,6 +1,4 @@
 #coding=utf-8
-from gevent import monkey
-monkey.patch_all()
 import time
 import datetime
 import const as ct
@@ -175,7 +173,4 @@ class RIndexStock:
 
 if __name__ == '__main__':
     ris = RIndexStock(ct.OUT_DB_INFO, redis_host = '127.0.0.1')
-    #ris.update(end_date = '2019-03-16', num = 10)
-    df = ris.generate_all_data('2019-03-29')
-    import pdb
-    pdb.set_trace()
+    ris.update(end_date = '2019-03-16', num = 10000)

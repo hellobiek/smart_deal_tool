@@ -4,9 +4,9 @@ from gevent import monkey
 monkey.patch_all(subprocess=True)
 import json
 import gear
-import pandas as pd
 import _pickle
 import traceback
+import pandas as pd
 import const as ct
 from common import create_redis_obj
 from base.clog import getLogger
