@@ -35,7 +35,7 @@ from futu.common.constant import SubType
 from crawler.dspider.hkex import HkexCrawler
 from crawler.dspider.run import weekly_spider
 from subscriber import Subscriber, StockQuoteHandler, TickerHandler
-from common import is_trading_time, delta_days, create_redis_obj, add_prifix, add_index_prefix, kill_process, concurrent_run, get_day_nday_ago, get_dates_array, process_concurrent_run
+from common import is_trading_time, delta_days, create_redis_obj, add_prifix, add_index_prefix, kill_process, concurrent_run, get_day_nday_ago, get_dates_array, process_concurrent_run, transfer_date_string_to_int
 pd.options.mode.chained_assignment = None #default='warn'
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -66,13 +66,15 @@ class DataManager:
         self.sh_exchange_client = StockExchange(ct.SH_MARKET_SYMBOL)
         self.sz_exchange_client = StockExchange(ct.SZ_MARKET_SYMBOL)
 
-    def is_collecting_time(self, now_time = datetime.now()):
+    def is_collecting_time(self):
+        now_time = datetime.now()
         _date = now_time.strftime('%Y-%m-%d')
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
         aft_open_hour,aft_open_minute,aft_open_second = (18,30,00)
         aft_open_time = datetime(y,m,d,aft_open_hour,aft_open_minute,aft_open_second)
         aft_close_hour,aft_close_minute,aft_close_second = (23,59,59)
         aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
+        self.logger.info("collecting now time. open_time:%s < now_time:%s < close_time:%s" % (aft_open_time, now_time, aft_close_time))
         return aft_open_time < now_time < aft_close_time
 
     def is_morning_time(self, now_time = datetime.now()):
@@ -321,7 +323,7 @@ class DataManager:
         filepath = "/data/stockdatainfo.json"
         if not os.path.exists(filepath): return None
         with open(filepath) as f: infos = json.load(f)
-        return infos['uptime']
+        return int(infos['uptime'])
 
     def update(self, sleep_time):
         succeed = False
@@ -331,13 +333,13 @@ class DataManager:
                 if self.cal_client.is_trading_day(): 
                     self.logger.info("is trading day. %s, succeed:%s" % (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), succeed))
                     if self.is_collecting_time():
-                        self.logger.info("is collecting time. %s, succeed:%s" % (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), succeed))
+                        self.logger.info("enter collecting time. %s, succeed:%s" % (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), succeed))
                         if not succeed:
                             self.clear_network_env()
                             mdate = datetime.now().strftime('%Y-%m-%d')
                             ndate = self.get_latest_data_date()
                             if ndate is not None:
-                                if ndate >= mdate:
+                                if ndate >= transfer_date_string_to_int(mdate):
                                     if self.updating_date is None: self.updating_date = mdate
                                     succeed = self.bootstrap(cdate = self.updating_date, exec_date = self.updating_date)
                                     if succeed: self.updating_date = None
@@ -365,7 +367,7 @@ class DataManager:
                 self.logger.error("%s set base float profit failed" % code_id)
                 return (code_id, False)
         failed_list = self.stock_info_client.get().code.tolist()
-        return process_concurrent_run(_set_base_float_profit, failed_list, num = 500)
+        return process_concurrent_run(_set_base_float_profit, failed_list, num = 50)
 
     def init_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, index_info, code_id):
@@ -394,7 +396,7 @@ class DataManager:
         else:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
             succeed = True
-            if not process_concurrent_run(cfunc, failed_list, num = 500):
+            if not process_concurrent_run(cfunc, failed_list, num = 50):
                 succeed = False
             return succeed
             #start_date = get_day_nday_ago(cdate, num = 4, dformat = "%Y-%m-%d")

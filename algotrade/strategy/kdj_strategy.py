@@ -37,7 +37,6 @@ from pyalgotrade.technical import cross
 from pyalgotrade.optimizer import local
 from pyalgotrade import strategy, plotter, broker
 from pyalgotrade.stratanalyzer import returns, sharpe
-from cstock import CStock
 from cindex import CIndex
 #from algotrade.technical.ma import ma
 from algotrade.technical.kdj import kdj
@@ -177,6 +176,7 @@ def grid_search(code, start_date, end_date):
 
 def main(code, start_date, end_date):
     data = get_data(code, start_date, end_date)
+    if data is None: return
     feed = dataFramefeed.Feed()
     feed.addBarsFromDataFrame(code, data)
     # Set Strategy

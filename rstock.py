@@ -119,7 +119,7 @@ class RIndexStock:
     def generate_all_data(self, cdate, black_list = []):
         from gevent.pool import Pool
         good_list = list()
-        obj_pool = Pool(4000)
+        obj_pool = Pool(100)
         all_df = pd.DataFrame()
         failed_list = CStockInfo(redis_host = self.redis_host).get(redis = self.redis).code.tolist()
         if len(black_list) > 0:
