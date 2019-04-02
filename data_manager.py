@@ -475,12 +475,13 @@ class DataManager:
                 if code_id in self.index_objs:
                     _obj = self.index_objs[code_id] 
                 else:
-                    _obj = CIndex(code_id) if code_id in list(ct.INDEX_DICT.keys()) else TdxFgIndex(code_id)
+                    _obj = CIndex(code_id) if code_id in list(ct.TDX_INDEX_DICT.keys()) else TdxFgIndex(code_id)
                 return (code_id, _obj.set_k_data(cdate))
             except Exception as e:
                 self.logger.error(e)
                 return (code_id, False)
-        index_code_list = self.get_concerned_index_codes()
+        #index_code_list = self.get_concerned_index_codes()
+        index_code_list = list(ct.TDX_INDEX_DICT.keys())
         if cdate is None:
             cfunc = partial(_set_index_info, cdate)
             return concurrent_run(cfunc, index_code_list, num = 5)
@@ -532,11 +533,11 @@ if __name__ == '__main__':
     #import sys
     #sys.exit(0)
 
-    mdate = '2019-04-01'
+    mdate = '2019-04-02'
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
     dm.clear_network_env()
     dm.logger.info("start compute!")
-    #dm.bootstrap(cdate = mdate, exec_date = mdate)
-    dm.bootstrap(exec_date = '2019-03-26')
+    dm.bootstrap(cdate = mdate, exec_date = mdate)
+    #dm.bootstrap(exec_date = '2019-03-26')
     dm.logger.info("end compute!")

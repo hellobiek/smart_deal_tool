@@ -259,6 +259,7 @@ class CIndex(CMysqlObj):
         return False
 
 class TdxFgIndex(CIndex):
+    #通达信风格指数
     def __init__(self, code, dbinfo = ct.DB_INFO, redis_host = None, should_create_influxdb = False, should_create_mysqldb = False):
         self.name = self.get_fg_index_name(code)
         super(TdxFgIndex, self).__init__(code, dbinfo, redis_host, should_create_influxdb, should_create_mysqldb)

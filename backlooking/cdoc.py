@@ -363,7 +363,7 @@ class CDoc:
 
         amus = AntiMarketUpSelecter()
         amus_code_list = amus.choose(stock_info)
-        t_selector.addRow(['逆势上涨', json.dumps(stm_code_list)])
+        t_selector.addRow(['逆势上涨', json.dumps(amus_code_list)])
 
         lvhps = LowVolumeHighProfitSelecter()
         lvhps_code_list = lvhps.choose(stock_info)
