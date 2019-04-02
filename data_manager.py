@@ -45,6 +45,7 @@ class DataManager:
         self.logger = getLogger(__name__)
         self.index_objs = dict()
         self.stock_objs = dict()
+        self.updating_date = None
         self.combination_objs = dict()
         self.cal_client = CCalendar(dbinfo, redis_host)
         self.index_info_client = IndexInfo()
@@ -316,22 +317,35 @@ class DataManager:
         kill_process("defunct")
         kill_process("show-component-extension-options")
 
+    def get_latest_data_date(self):
+        filepath = "/data/stockdatainfo.json"
+        if not os.path.exists(filepath): return None
+        with open(filepath) as f: infos = json.load(f)
+        return infos['uptime']
+
     def update(self, sleep_time):
         succeed = False
         while True:
             self.logger.debug("enter daily update process. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             try:
                 if self.cal_client.is_trading_day(): 
-                    self.logger.info("is trading day. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                    self.logger.info("is trading day. %s, succeed:%s" % (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), succeed))
                     if self.is_collecting_time():
+                        self.logger.info("is collecting time. %s, succeed:%s" % (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), succeed))
                         if not succeed:
-                            self.logger.info("is collecting time. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                             self.clear_network_env()
                             mdate = datetime.now().strftime('%Y-%m-%d')
-                            succeed = self.bootstrap(cdate = mdate, exec_date = mdate)
+                            ndate = self.get_latest_data_date()
+                            if ndate is not None:
+                                if ndate >= mdate:
+                                    if self.updating_date is None: self.updating_date = mdate
+                                    succeed = self.bootstrap(cdate = self.updating_date, exec_date = self.updating_date)
+                                    if succeed: self.updating_date = None
+                                else:
+                                    self.logger.info("%s is older for %s" % (ndate, mdate))
                     else:
                         succeed = False
-                        gevent.sleep(sleep_time)
+                gevent.sleep(sleep_time)
             except Exception as e:
                 time.sleep(1)
                 self.logger.error(e)
@@ -516,17 +530,11 @@ if __name__ == '__main__':
     #import sys
     #sys.exit(0)
 
-    kill_process("google-chrome")
-    kill_process("renderer")
-    kill_process("Xvfb")
-    kill_process("zygote")
-    kill_process("defunct")
-    kill_process("show-component-extension-options")
-
-    #mdate = '2019-02-26'
+    mdate = '2019-04-01'
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
+    dm.clear_network_env()
     dm.logger.info("start compute!")
-    dm.bootstrap(cdate = '2019-03-29', exec_date = '2019-03-29')
-    #dm.bootstrap(exec_date = '2019-03-26')
+    #dm.bootstrap(cdate = mdate, exec_date = mdate)
+    dm.bootstrap(exec_date = '2019-03-26')
     dm.logger.info("end compute!")

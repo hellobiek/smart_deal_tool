@@ -70,13 +70,11 @@ class KDJStrategy(strategy.BacktestingStrategy):
 
     def onEnterOk(self, position):
         execInfo = position.getEntryOrder().getExecutionInfo()
-        self.info("SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS")
         self.info("%s buy at ￥%.2f" % (execInfo.getDateTime(), execInfo.getPrice()))
 
     def onExitOk(self, position):
         execInfo = position.getExitOrder().getExecutionInfo()
         self.info("%s sell at ￥%.2f" % (execInfo.getDateTime(), execInfo.getPrice()))
-        self.info("EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
         self.__position = None
 
     def checkVolume(self, bars):
@@ -97,8 +95,8 @@ class KDJStrategy(strategy.BacktestingStrategy):
 
     def checkSignal(self, bars):
         kdj_signal = self.checkKDJ(bars)
-        price_signal = self.checkPrice(bars)
-        volume_signal = self.checkVolume(bars)
+        #price_signal = self.checkPrice(bars)
+        #volume_signal = self.checkVolume(bars)
         #if kdj_signal == 1 and volume_signal == 1 and price_signal == 1:
         if kdj_signal == 1:
             return 1
@@ -159,8 +157,9 @@ def parameters_generator(code, brk, data):
     datas = [data]
     instrument = [code]
     lthreshold = [5  + x * 0.1 for x in range(0,31)]
-    hthreshold = [75 + x * 0.1 for x in range(0,21)]
-    max_loss = [-0.15 + x * 0.01 for x in range(0,11)]
+    #hthreshold = [75 + x * 0.1 for x in range(0,21)]
+    hthreshold = [100]
+    max_loss = [-0.20 + x * 0.01 for x in range(0,11)]
     min_profit = [0.1 + x * 0.1 for x in range(0,100)]
     volume_period = [5 + x for x in range(6)]
     price_period = [5 + x for x in range(6)]

@@ -74,7 +74,9 @@ class Margin(object):
 
     def get_data_between(self, start_date, end_date):
         #start_date and end_date should be in the same table
-        sql = "select * from %s where date between \"%s\" and \"%s\"" % (self.get_table_name(start_date), start_date, end_date)
+        table_name = self.get_table_name(start_date)
+        if not self.is_table_exists(table_name): return None
+        sql = "select * from %s where date between \"%s\" and \"%s\"" % (table_name, start_date, end_date)
         return self.mysql_client.get(sql)
 
     def get_data(self, cdate = datetime.now().strftime('%Y-%m-%d')):
