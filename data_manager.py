@@ -74,7 +74,7 @@ class DataManager:
         aft_open_time = datetime(y,m,d,aft_open_hour,aft_open_minute,aft_open_second)
         aft_close_hour,aft_close_minute,aft_close_second = (23,59,59)
         aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
-        self.logger.info("collecting now time. open_time:%s < now_time:%s < close_time:%s" % (aft_open_time, now_time, aft_close_time))
+        #self.logger.info("collecting now time. open_time:%s < now_time:%s < close_time:%s" % (aft_open_time, now_time, aft_close_time))
         return aft_open_time < now_time < aft_close_time
 
     def is_morning_time(self, now_time = datetime.now()):
@@ -231,13 +231,13 @@ class DataManager:
             self.set_update_info(7, exec_date, cdate)
 
         if finished_step < 8:
-            if not self.sh_exchange_client.update(exec_date, num = 30):
+            if not self.sh_exchange_client.update(exec_date, num = 10):
                 self.logger.error("sh exchange update failed")
                 return False
             self.set_update_info(8, exec_date, cdate)
 
         if finished_step < 9:
-            if not self.sz_exchange_client.update(exec_date, num = 30):
+            if not self.sz_exchange_client.update(exec_date, num = 10):
                 self.logger.error("sz exchange update failed")
                 return False
             self.set_update_info(9, exec_date, cdate)
@@ -291,13 +291,13 @@ class DataManager:
             self.set_update_info(17, exec_date, cdate)
 
         if finished_step < 18:
-            if not self.rindex_stock_data_client.update(exec_date, num = 30):
+            if not self.rindex_stock_data_client.update(exec_date, num = 10):
                 self.logger.error("rstock data set failed")
                 return False
             self.set_update_info(18, exec_date, cdate)
 
         if finished_step < 19:
-            if not self.set_bull_stock_ratio(exec_date, num = 30):
+            if not self.set_bull_stock_ratio(exec_date, num = 10):
                 self.logger.error("bull ratio set failed")
                 return False
             self.set_update_info(19, exec_date, cdate)
@@ -331,7 +331,7 @@ class DataManager:
             self.logger.debug("enter daily update process. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             try:
                 if self.cal_client.is_trading_day(): 
-                    self.logger.info("is trading day. %s, succeed:%s" % (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), succeed))
+                    #self.logger.info("is trading day. %s, succeed:%s" % (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), succeed))
                     if self.is_collecting_time():
                         self.logger.info("enter collecting time. %s, succeed:%s" % (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), succeed))
                         if not succeed:
@@ -418,7 +418,7 @@ class DataManager:
             return concurrent_run(cfunc, df.code.tolist(), num = 5)
         else:
             succeed = True
-            start_date = get_day_nday_ago(cdate, num = 30, dformat = "%Y-%m-%d")
+            start_date = get_day_nday_ago(cdate, num = 10, dformat = "%Y-%m-%d")
             for mdate in get_dates_array(start_date, cdate, asending = True):
                 if self.cal_client.is_trading_day(mdate):
                     cfunc = partial(_set_industry_info, mdate)
@@ -487,7 +487,7 @@ class DataManager:
             return concurrent_run(cfunc, index_code_list, num = 5)
         else:
             succeed = True
-            start_date = get_day_nday_ago(cdate, num = 30, dformat = "%Y-%m-%d")
+            start_date = get_day_nday_ago(cdate, num = 10, dformat = "%Y-%m-%d")
             for mdate in get_dates_array(start_date, cdate, asending = True):
                 if self.cal_client.is_trading_day(mdate):
                     cfunc = partial(_set_index_info, mdate)

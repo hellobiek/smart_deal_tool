@@ -141,7 +141,7 @@ class CLimit:
             return cdate in set(tdate.decode() for tdate in self.redis.smembers(table_name))
         return False
 
-    def update(self, end_date = None, num = 30):
+    def update(self, end_date = None, num = 10):
         if end_date is None: end_date = datetime.now().strftime('%Y-%m-%d')
         start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
         date_array = get_dates_array(start_date, end_date)

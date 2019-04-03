@@ -35,7 +35,7 @@ class IndustryInfo:
     def update(self):
         if self.init():
             df = self.get(redis = self.redis)
-            return concurrent_run(self.create_obj, df.code.tolist(), num = 100)
+            return concurrent_run(self.create_obj, df.code.tolist(), num = 30)
         return False
 
     @staticmethod

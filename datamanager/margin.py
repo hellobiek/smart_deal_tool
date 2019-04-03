@@ -85,7 +85,7 @@ class Margin(object):
 
     def update(self, end_date = None):
         if end_date is None: end_date = datetime.now().strftime('%Y-%m-%d')
-        start_date = get_day_nday_ago(end_date, num = 30, dformat = "%Y-%m-%d")
+        start_date = get_day_nday_ago(end_date, num = 10, dformat = "%Y-%m-%d")
         date_array = get_dates_array(start_date, end_date)
         succeed = True
         for mdate in date_array:

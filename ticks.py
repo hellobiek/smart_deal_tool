@@ -257,7 +257,7 @@ def exists(path):
     r = requests.head(path)
     return r.status_code == requests.codes.ok
 
-def download(output_directory, cdate, num = 50):
+def download(output_directory, cdate, num = 10):
     cdate = time.strftime("%Y%m%d", time.strptime(cdate, "%Y-%m-%d"))
     _date = get_day_nday_ago(cdate, num = num)
     start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(_date, "%Y%m%d"))
