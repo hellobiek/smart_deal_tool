@@ -32,12 +32,12 @@ import traceback
 import const as ct
 import numpy as np
 import pandas as pd
+from pyalgotrade.strategy import gen_broker, get_data
 from pyalgotrade.technical import ma
 from pyalgotrade.technical import cross 
 from pyalgotrade.optimizer import local
 from pyalgotrade import strategy, plotter, broker
 from pyalgotrade.stratanalyzer import returns, sharpe
-from cindex import CIndex
 #from algotrade.technical.ma import ma
 from algotrade.technical.kdj import kdj
 from algotrade.feed import dataFramefeed
@@ -124,32 +124,6 @@ class KDJStrategy(strategy.BacktestingStrategy):
         elif not self.__position.exitActive():
             if signal == -1:
                 self.__position.exitMarket()
-
-def gen_broker(feed, cash = 10000000, trade_percent = 0.01, volume_limit = 0.01):
-    # cash：初始资金
-    # trade_percent: 手续费, 每笔交易金额的百分比
-    # volume_limit: 每次交易能成交的量所能接受的最大比例
-    # Broker Setting
-    # Broker Commission类设置
-    broker_commission = broker.backtesting.TradePercentage(trade_percent)
-    # Fill Strategy设置
-    fill_stra = broker.fillstrategy.DefaultStrategy(volumeLimit = volume_limit)
-    sli_stra = broker.slippage.NoSlippage()
-    fill_stra.setSlippageModel(sli_stra)
-    # 完善Broker类
-    brk = broker.backtesting.Broker(cash, feed, broker_commission)
-    brk.setFillStrategy(fill_stra)
-    return brk
-
-def get_data(code, start_date, end_date):
-    cstock_obj = CIndex(code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
-    data = cstock_obj.get_k_data_in_range(start_date, end_date)
-    data = data.set_index('date')
-    if is_df_has_unexpected_data(data): return None
-    data.index = pd.to_datetime(data.index)
-    data = kdj(data)
-    data = data.dropna(how='any')
-    return data
 
 def parameters_generator(code, brk, data):
     brks = [brk]

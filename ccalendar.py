@@ -6,7 +6,8 @@ import pandas as pd
 from datetime import datetime
 from common import create_redis_obj, df_delta
 class CCalendar:
-    def __init__(self, dbinfo = ct.DB_INFO, without_init = False, redis_host = None):
+    def __init__(self, dbinfo = ct.DB_INFO, without_init = False, redis_host = None, filepath = '/conf/calAll.csv'):
+        self.fpath = filepath 
         self.table = ct.CALENDAR_TABLE
         self.trigger = ct.SYNCCAL2REDIS
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
@@ -23,7 +24,7 @@ class CCalendar:
         return True if self.trigger in self.mysql_client.get_all_triggers() else self.mysql_client.register(sql, self.trigger)
 
     def init(self):
-        df = pd.read_csv('/conf/calAll.csv')
+        df = pd.read_csv(self.fpath)
         return self.redis.set(ct.CALENDAR_INFO, _pickle.dumps(df, 2))
 
     @staticmethod

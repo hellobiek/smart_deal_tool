@@ -70,7 +70,7 @@ class DataManager:
         now_time = datetime.now()
         _date = now_time.strftime('%Y-%m-%d')
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
-        aft_open_hour,aft_open_minute,aft_open_second = (18,30,00)
+        aft_open_hour,aft_open_minute,aft_open_second = (17,30,00)
         aft_open_time = datetime(y,m,d,aft_open_hour,aft_open_minute,aft_open_second)
         aft_close_hour,aft_close_minute,aft_close_second = (23,59,59)
         aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
@@ -367,7 +367,7 @@ class DataManager:
                 self.logger.error("%s set base float profit failed" % code_id)
                 return (code_id, False)
         failed_list = self.stock_info_client.get().code.tolist()
-        return process_concurrent_run(_set_base_float_profit, failed_list, num = 50)
+        return process_concurrent_run(_set_base_float_profit, failed_list, num = 30)
 
     def init_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, index_info, code_id):
@@ -533,11 +533,11 @@ if __name__ == '__main__':
     #import sys
     #sys.exit(0)
 
-    mdate = '2019-04-02'
+    #mdate = '2019-04-02'
     #mdate = datetime.now().strftime('%Y-%m-%d')
-    dm = DataManager()
-    dm.clear_network_env()
-    dm.logger.info("start compute!")
-    dm.bootstrap(cdate = mdate, exec_date = mdate)
+    #dm = DataManager()
+    #dm.clear_network_env()
+    #dm.logger.info("start compute!")
+    #dm.bootstrap(cdate = mdate, exec_date = mdate)
     #dm.bootstrap(exec_date = '2019-03-26')
-    dm.logger.info("end compute!")
+    #dm.logger.info("end compute!")
