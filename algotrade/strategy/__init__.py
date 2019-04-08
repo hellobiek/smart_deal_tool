@@ -26,6 +26,5 @@ def get_data(code, start_date, end_date):
     data = data.set_index('date')
     if is_df_has_unexpected_data(data): return None
     data.index = pd.to_datetime(data.index)
-    data = kdj(data)
     data = data.dropna(how='any')
     return data

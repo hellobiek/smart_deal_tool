@@ -26,8 +26,8 @@ def ewma(data, ndays):
 class MACD:
     @staticmethod
     def macd(data, nfast = 12, nslow = 26, mid = 9):
-        data = ewma(data, nslow)
         data = ewma(data, nfast)
+        data = ewma(data, nslow)
         dif = pd.Series(data['ewma_%s' % nfast] - data['ewma_%s' % nslow], name = 'dif')
         dea = pd.Series(dif.ewm(span = mid, min_periods = mid).mean(), name = 'dea')
         macd = pd.Series((dif - dea) * 2, name = 'macd')

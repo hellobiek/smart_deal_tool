@@ -22,7 +22,7 @@ class DataPreparer:
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
         aft_open_hour,aft_open_minute,aft_open_second = (16,00,00)
         aft_open_time = datetime(y,m,d,aft_open_hour,aft_open_minute,aft_open_second)
-        aft_close_hour,aft_close_minute,aft_close_second = (16,30,00)
+        aft_close_hour,aft_close_minute,aft_close_second = (22,00,00)
         aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
         #self.logger.info("collecting now time. open_time:%s < now_time:%s < close_time:%s" % (aft_open_time, now_time, aft_close_time))
         return aft_open_time < now_time < aft_close_time
@@ -39,6 +39,7 @@ class DataPreparer:
         succeed = False
         while True:
             try:
+                self.logger.debug("enter update")
                 if self.cal_client.is_trading_day(): 
                     if self.is_collecting_time():
                         if not succeed:

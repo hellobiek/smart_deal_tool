@@ -19,8 +19,8 @@ from matplotlib.widgets import MultiCursor
 from matplotlib.dates import DateFormatter
 class CBullRation():
     def __init__(self):
-        self.ris = RIndexStock(dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
         self.base_color = '#e6daa6'
+        self.ris = RIndexStock(dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
         self.fig = plt.figure(facecolor = self.base_color, figsize = (24, 24))
         self.price_ax = plt.subplot2grid((12,12), (0,0), rowspan = 6, colspan = 12, facecolor = self.base_color, fig = self.fig)
         self.ratio_ax = plt.subplot2grid((12,12), (6,0), rowspan = 6, colspan = 12, facecolor = self.base_color, sharex = self.price_ax, fig = self.fig)
@@ -33,16 +33,6 @@ class CBullRation():
         i_data['time'] = i_data.index.tolist()
         i_data = i_data[['time', 'open', 'high', 'low', 'close', 'volume', 'amount', 'date']]
         return i_data
-
-    def get_components(self, code, cdate):
-        iobj = CIndex(code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
-        df = iobj.get_components_data(cdate)
-        if code == '000001': df = df[df.code.str.startswith('6')]
-        return df.code.tolist()
-
-    def get_profit_stocks(self, df):
-        data = df[df.profit >= 0]
-        return data.code.tolist()
 
     def get_bull_ratios(self, index_code, start_date, end_date):
         obj = BullStockRatio(index_code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
@@ -65,8 +55,8 @@ class CBullRation():
         plt.show()
 
 if __name__ == '__main__':
-    start_date = '2010-12-23' 
-    end_date = '2019-03-11'
+    start_date = '1998-08-14' 
+    end_date = '2019-04-10'
     code = '000001'
     cbr = CBullRation()
     cbr.plot(start_date, end_date, code)

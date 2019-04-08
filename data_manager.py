@@ -142,6 +142,7 @@ class DataManager:
     def run(self, sleep_time):
         while True:
             try:
+                self.logger.debug("enter run")
                 if self.cal_client.is_trading_day():
                     if is_trading_time():
                         t_sleep_time = 1
@@ -512,6 +513,7 @@ class DataManager:
     def scrawler(self, sleep_time):
         schedule.every().monday.do(weekly_spider)
         while True:
+            self.logger.debug("enter scrawler")
             try:
                 schedule.run_pending()
             except Exception as e:
@@ -533,11 +535,12 @@ if __name__ == '__main__':
     #import sys
     #sys.exit(0)
 
-    #mdate = '2019-04-02'
+    mdate = '2019-04-02'
     #mdate = datetime.now().strftime('%Y-%m-%d')
-    #dm = DataManager()
+    dm = DataManager()
     #dm.clear_network_env()
-    #dm.logger.info("start compute!")
+    dm.logger.info("start compute!")
+    dm.set_bull_stock_ratio(mdate, num = 10000)
     #dm.bootstrap(cdate = mdate, exec_date = mdate)
     #dm.bootstrap(exec_date = '2019-03-26')
-    #dm.logger.info("end compute!")
+    dm.logger.info("end compute!")
