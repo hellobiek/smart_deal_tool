@@ -32,11 +32,11 @@ import traceback
 import const as ct
 import numpy as np
 import pandas as pd
-from pyalgotrade.strategy import gen_broker, get_data
 from pyalgotrade.technical import ma
 from pyalgotrade.technical import cross 
 from pyalgotrade.optimizer import local
 from pyalgotrade import strategy, plotter, broker
+from pyalgotrade.strategy import gen_broker, get_data
 from pyalgotrade.stratanalyzer import returns, sharpe
 #from algotrade.technical.ma import ma
 from algotrade.technical.kdj import kdj

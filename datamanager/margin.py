@@ -83,9 +83,9 @@ class Margin(object):
         sql = "select * from %s where date=\"%s\"" % (self.get_table_name(cdate), cdate)
         return self.mysql_client.get(sql)
 
-    def update(self, end_date = None):
+    def update(self, end_date = None, num = 10):
         if end_date is None: end_date = datetime.now().strftime('%Y-%m-%d')
-        start_date = get_day_nday_ago(end_date, num = 10, dformat = "%Y-%m-%d")
+        start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
         date_array = get_dates_array(start_date, end_date)
         succeed = True
         for mdate in date_array:

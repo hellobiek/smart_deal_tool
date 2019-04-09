@@ -17,7 +17,7 @@ def main():
     threadList.append(CThread(dm.run, 600))
     threadList.append(CThread(dm.update, 1800))
     threadList.append(CThread(ctrader.buy_new_stock, 3600))
-    threadList.append(CThread(dm.scrawler, 36000))
+    threadList.append(CThread(dm.scrawler, 3600))
 
     for thread in threadList:
         thread.start()

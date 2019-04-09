@@ -186,7 +186,7 @@ class DataManager:
         if cdate not in step_info: return (0, exec_date)
         return (step_info[cdate]['step'], step_info[cdate]['date'])
 
-    def bootstrap(self, cdate = None, exec_date = datetime.now().strftime('%Y-%m-%d')):
+    def bootstrap(self, cdate = None, exec_date = datetime.now().strftime('%Y-%m-%d'), ndays = 2):
         finished_step, exec_date = self.get_update_info(cdate, exec_date)
         self.logger.info("enter updating.%s" % finished_step)
         if finished_step < 1:
@@ -220,25 +220,25 @@ class DataManager:
             self.set_update_info(5, exec_date, cdate)
 
         if finished_step < 6:
-            if not self.download_and_extract(exec_date):
+            if not self.download_and_extract(exec_date, num  = ndays):
                 self.logger.error("download and extract failed")
                 return False
             self.set_update_info(6, exec_date, cdate)
 
         if finished_step < 7:
-            if not self.init_tdx_index_info(cdate):
+            if not self.init_tdx_index_info(cdate, num = ndays):
                 self.logger.error("init tdx index info failed")
                 return False
             self.set_update_info(7, exec_date, cdate)
 
         if finished_step < 8:
-            if not self.sh_exchange_client.update(exec_date, num = 10):
+            if not self.sh_exchange_client.update(exec_date, num = ndays):
                 self.logger.error("sh exchange update failed")
                 return False
             self.set_update_info(8, exec_date, cdate)
 
         if finished_step < 9:
-            if not self.sz_exchange_client.update(exec_date, num = 10):
+            if not self.sz_exchange_client.update(exec_date, num = ndays):
                 self.logger.error("sz exchange update failed")
                 return False
             self.set_update_info(9, exec_date, cdate)
@@ -250,31 +250,31 @@ class DataManager:
             self.set_update_info(10, exec_date, cdate)
 
         if finished_step < 11:
-            if not self.init_industry_info(cdate):
+            if not self.init_industry_info(cdate, num = ndays):
                 self.logger.error("init industry info failed")
                 return False
             self.set_update_info(11, exec_date, cdate)
 
         if finished_step < 12:
-            if not self.rindustry_info_client.update(exec_date):
+            if not self.rindustry_info_client.update(exec_date, num = ndays):
                 self.logger.error("init %s rindustry info failed" % exec_date)
                 return False
             self.set_update_info(12, exec_date, cdate)
 
         if finished_step < 13:
-            if not self.limit_client.update(exec_date):
+            if not self.limit_client.update(exec_date, num = ndays):
                 self.logger.error("init limit info failed")
                 return False
             self.set_update_info(13, exec_date, cdate)
 
         if finished_step < 14:
-            if not self.init_yesterday_hk_info(exec_date):
+            if not self.init_yesterday_hk_info(exec_date, num = ndays):
                 self.logger.error("init yesterday hk info failed")
                 return False
             self.set_update_info(14, exec_date, cdate)
 
         if finished_step < 15:
-            if not self.margin_client.update(exec_date):
+            if not self.margin_client.update(exec_date, num = ndays):
                 self.logger.error("init yesterday margin failed")
                 return False
             self.set_update_info(15, exec_date, cdate)
@@ -292,13 +292,13 @@ class DataManager:
             self.set_update_info(17, exec_date, cdate)
 
         if finished_step < 18:
-            if not self.rindex_stock_data_client.update(exec_date, num = 10):
+            if not self.rindex_stock_data_client.update(exec_date, num = ndays):
                 self.logger.error("rstock data set failed")
                 return False
             self.set_update_info(18, exec_date, cdate)
 
         if finished_step < 19:
-            if not self.set_bull_stock_ratio(exec_date, num = 10):
+            if not self.set_bull_stock_ratio(exec_date, num = ndays):
                 self.logger.error("bull ratio set failed")
                 return False
             self.set_update_info(19, exec_date, cdate)
@@ -410,7 +410,7 @@ class DataManager:
             #            return False
             #return True
 
-    def init_industry_info(self, cdate):
+    def init_industry_info(self, cdate, num):
         def _set_industry_info(cdate, code_id):
             return (code_id, CIndex(code_id).set_k_data(cdate))
         df = self.industry_info_client.get()
@@ -419,7 +419,7 @@ class DataManager:
             return concurrent_run(cfunc, df.code.tolist(), num = 5)
         else:
             succeed = True
-            start_date = get_day_nday_ago(cdate, num = 10, dformat = "%Y-%m-%d")
+            start_date = get_day_nday_ago(cdate, num = num, dformat = "%Y-%m-%d")
             for mdate in get_dates_array(start_date, cdate, asending = True):
                 if self.cal_client.is_trading_day(mdate):
                     cfunc = partial(_set_industry_info, mdate)
@@ -427,7 +427,7 @@ class DataManager:
                         succeed = False
             return succeed
 
-    def init_yesterday_hk_info(self, cdate):
+    def init_yesterday_hk_info(self, cdate, num):
         succeed = True
         for data in ((ct.SH_MARKET_SYMBOL, ct.HK_MARKET_SYMBOL), (ct.SZ_MARKET_SYMBOL, ct.HK_MARKET_SYMBOL)):
             if not self.connect_client.set_market(data[0], data[1]):
@@ -435,7 +435,7 @@ class DataManager:
                 succeed = False
                 continue
 
-            if not self.connect_client.update(cdate):
+            if not self.connect_client.update(cdate, num = num):
                 succeed = False
 
             self.connect_client.close()
@@ -470,7 +470,7 @@ class DataManager:
         index_codes = self.get_concerned_index_codes()
         return concurrent_run(_set_bull_stock_ratio, index_codes, num = num)
 
-    def init_tdx_index_info(self, cdate = None):
+    def init_tdx_index_info(self, cdate = None, num = 10):
         def _set_index_info(cdate, code_id):
             try:
                 if code_id in self.index_objs:
@@ -488,7 +488,7 @@ class DataManager:
             return concurrent_run(cfunc, index_code_list, num = 5)
         else:
             succeed = True
-            start_date = get_day_nday_ago(cdate, num = 10, dformat = "%Y-%m-%d")
+            start_date = get_day_nday_ago(cdate, num = num, dformat = "%Y-%m-%d")
             for mdate in get_dates_array(start_date, cdate, asending = True):
                 if self.cal_client.is_trading_day(mdate):
                     cfunc = partial(_set_index_info, mdate)
@@ -496,9 +496,9 @@ class DataManager:
                         succeed = False
             return succeed
 
-    def download_and_extract(self, cdate):
+    def download_and_extract(self, cdate, num = 10):
         try:
-            if not download(ct.ZIP_DIR, cdate): return False
+            if not download(ct.ZIP_DIR, cdate, num): return False
             list_files = os.listdir(ct.ZIP_DIR)
             for filename in list_files:
                 if not filename.startswith('.'):
@@ -511,7 +511,7 @@ class DataManager:
             return False
 
     def scrawler(self, sleep_time):
-        schedule.every().monday.do(weekly_spider)
+        schedule.every().minutes.do(weekly_spider)
         while True:
             self.logger.debug("enter scrawler")
             try:
@@ -534,13 +534,12 @@ if __name__ == '__main__':
     #    mysql_client.delete_db('s%s' % code)
     #import sys
     #sys.exit(0)
-
-    mdate = '2019-04-02'
+    #weekly_spider()
+    #mdate = '2019-04-09'
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
-    #dm.clear_network_env()
+    dm.clear_network_env()
     dm.logger.info("start compute!")
-    dm.set_bull_stock_ratio(mdate, num = 10000)
-    #dm.bootstrap(cdate = mdate, exec_date = mdate)
+    dm.bootstrap(cdate = mdate, exec_date = mdate)
     #dm.bootstrap(exec_date = '2019-03-26')
     dm.logger.info("end compute!")

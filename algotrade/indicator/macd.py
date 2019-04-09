@@ -104,12 +104,11 @@ class EventBasedFilter(dataseries.SequenceDataSeries):
         opposite end. If None then dataseries.DEFAULT_MAX_LEN is used.
     :type maxLen: int.
     """
-
     def __init__(self, dataSeries, eventWindow, maxLen=None):
         super(EventBasedFilter, self).__init__(maxLen)
         self.__dataSeries = dataSeries
-        self.__dataSeries.getNewValueEvent().subscribe(self.__onNewValue)
         self.__eventWindow = eventWindow
+        self.__dataSeries.getNewValueEvent().subscribe(self.__onNewValue)
 
     def __onNewValue(self, dataSeries, dateTime, value):
         # Let the event window perform calculations.
@@ -124,21 +123,6 @@ class EventBasedFilter(dataseries.SequenceDataSeries):
 
     def getEventWindow(self):
         return self.__eventWindow
-
-class EMA(EventBasedFilter):
-    """Exponential Moving Average filter.
-
-    :param dataSeries: The DataSeries instance being filtered.
-    :type dataSeries: :class:`pyalgotrade.dataseries.DataSeries`.
-    :param period: The number of values to use to calculate the EMA. Must be an integer greater than 1.
-    :type period: int.
-    :param maxLen: The maximum number of values to hold.
-        Once a bounded length is full, when new items are added, a corresponding number of items are discarded from the
-        opposite end. If None then dataseries.DEFAULT_MAX_LEN is used.
-    :type maxLen: int.
-    """
-    def __init__(self, dataSeries, period, maxLen=None):
-        super(EMA, self).__init__(dataSeries, EMAEventWindow(period), maxLen)
 
 class CrossDetect:
     """
@@ -652,6 +636,9 @@ class Macd(dataseries.SequenceDataSeries):
             if self.__cross_signal[x] == pre_cross_type: return x
         return -1
 
+    def getDif(self):
+        return self
+
     def getDea(self):
         """Returns a :class:`pyalgotrade.dataseries.DataSeries` with the EMA over the MACD."""
         return self.__signal
@@ -702,7 +689,10 @@ class Macd(dataseries.SequenceDataSeries):
         else:
             macdValue = 2 * (diffValue - deaValue)
 
-        #print(dateTime, index, value, self.data['ewma_12'][index], fastValue,  self.data['ewma_26'][index], slowValue, self.data['dif'][index],  diffValue, self.data['macd'][index], macdValue)
+        index = len(self)
+        #print(dateTime, index, value, self.data['ewma_12'][index], fastValue, self.data['ewma_26'][index], slowValue, self.data['dif'][index], diffValue, self.data['dea'][index], deaValue, self.data['macd'][index], macdValue)
+        #import pdb
+        #pdb.set_trace()
 
         self.appendWithDateTime(dateTime, diffValue) #dif
         self.__signal.appendWithDateTime(dateTime, deaValue) #dea
@@ -730,9 +720,9 @@ class Macd(dataseries.SequenceDataSeries):
         self.__close_limit_index.appendWithDateTime(dateTime, close_limit_index)
         self.__macd_limit_index.appendWithDateTime(dateTime, macd_limit_index)
         self.updateDivergences()
-        if len(self.divergences) > 0:
-            print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA01")
-            for x in self.divergences: print(x.to_json())
-            print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA02")
-            import pdb
-            pdb.set_trace()
+        #if len(self.divergences) > 0:
+        #    print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA01")
+        #    for x in self.divergences: print(x.to_json())
+        #    print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA02")
+        #    import pdb
+        #    pdb.set_trace()

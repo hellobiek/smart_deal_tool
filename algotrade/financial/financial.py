@@ -2,12 +2,11 @@
 import os
 import sys
 from os.path import abspath, dirname
-sys.path.insert(0, dirname(dirname(abspath(__file__))))
+sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
 import pandas as pd
 from zipfile import ZipFile
 from struct import unpack, calcsize
 import matplotlib.pyplot as plt
-#from common import get_chinese_font
 from matplotlib.pylab import date2num
 from matplotlib import dates as mdates
 from matplotlib import ticker as mticker

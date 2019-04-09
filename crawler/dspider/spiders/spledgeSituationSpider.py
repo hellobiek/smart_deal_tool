@@ -18,12 +18,12 @@ class SPledgeSituationSpider(BasicSpider):
         formdata['queryDate'] = ''
         formdata['type'] = 'proportion'
         end_date = datetime.now().strftime('%Y.%m.%d')
-        start_date = self.get_nday_ago(end_date, 30, dformat = '%Y.%m.%d')
+        start_date = self.get_nday_ago(end_date, 100, dformat = '%Y.%m.%d')
         while start_date < end_date:
             start_date = self.get_next_date(sdate = start_date)
             formdata['queryDate'] = start_date
             yield FormRequest(url = self.start_urls[0], method = 'GET', formdata = formdata, callback = self.parse)
 
-    def parse(self, response): 
+    def parse(self, response):
         fname = response.headers['Content-Disposition'].decode().split('=')[1]
         yield SPledgeSituationItem(file_urls = [response.url], file_name = fname)

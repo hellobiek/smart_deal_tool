@@ -2,7 +2,7 @@
 import os
 import sys
 from os.path import abspath, dirname
-sys.path.insert(0, dirname(dirname(abspath(__file__))))
+sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
 import const as ct
 from ma import sma, ewma, macd
 from kdj import kdj
@@ -13,7 +13,6 @@ from obv import obv
 from boll import boll
 from admi import admi
 from cindex import CIndex
-from force_index import force_index
 import matplotlib.pyplot as plt
 COLORS = ['#F5DEB3', '#A0522D', '#1E90FF', '#FFE4C4', '#00FFFF', '#DAA520', '#3CB371', '#808080', '#ADFF2F', '#4B0082']
 def get_index_data(start_date, end_date, index_code):
@@ -78,7 +77,7 @@ def plot_sma(data):
 
 def plot_macd(data):
     data = macd(data, nslow = 26, nfast = 12)
-    plot(data, ["macd", 'ewma_%s' % 12, 'ewma_%s' % 26], "macd")
+    plot(data, ['dif', 'dea'], "macd")
 
 def plot_obv(data):
     data = obv(data, 5)
@@ -90,17 +89,17 @@ def plot_admi(data):
 
 if __name__ == '__main__':
     index_code = '000300'
-    start = '2015-10-01'
-    end = '2017-11-01'
+    start = '2005-01-04'
+    end = '2006-06-01'
     data = get_index_data(start, end, index_code)
     #plot_kdj(data)
     #plot_cci(data)
     #plot_force_index(data)
     #plot_emv(data)
-    plot_roc(data)
+    #plot_roc(data)
     #plot_boll(data)
     #plot_ewma(data)
     #plot_sma(data)
-    #plot_macd(data)
+    plot_macd(data)
     #plot_obv(data)
     #plot_admi(data)

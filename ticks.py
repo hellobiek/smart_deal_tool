@@ -257,11 +257,11 @@ def exists(path):
     r = requests.head(path)
     return r.status_code == requests.codes.ok
 
-def download(output_directory, cdate, num = 10):
+def download(output_directory, cdate, ndays):
     cdate = time.strftime("%Y%m%d", time.strptime(cdate, "%Y-%m-%d"))
-    _date = get_day_nday_ago(cdate, num = num)
+    _date = get_day_nday_ago(cdate, num = ndays)
     start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(_date, "%Y%m%d"))
-    data_times = pd.date_range(start_date_dmy_format, periods = num + 1, freq = 'D')
+    data_times = pd.date_range(start_date_dmy_format, periods = ndays + 1, freq = 'D')
     date_only_array = np.vectorize(lambda s: s.strftime('%Y%m%d'))(data_times.to_pydatetime())
     date_only_array = date_only_array[::-1]
     for _date in date_only_array:

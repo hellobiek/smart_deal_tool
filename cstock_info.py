@@ -11,7 +11,6 @@ from cstock import CStock
 from base.clog import getLogger
 from common import create_redis_obj, concurrent_run, smart_get
 logger = getLogger(__name__)
-
 class CStockInfo:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.table = ct.STOCK_INFO_TABLE
@@ -68,7 +67,7 @@ class CStockInfo:
     def init(self):
         df = smart_get(ts.get_stock_basics)
         if df is None: return False
-        df = df[~df.index.isin(ct.BLACK_LIST)]
+        #df = df[~df.index.isin()]
         df = df.reset_index(drop = False)
         return self.redis.set(ct.STOCK_INFO, _pickle.dumps(df, 2))
 

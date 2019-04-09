@@ -32,7 +32,7 @@ class CLimit:
                                                  price float,\
                                                  pchange float,\
                                                  prange float,\
-                                                 concept varchar(50),\
+                                                 concept varchar(200),\
                                                  fcb float,\
                                                  flb float,\
                                                  fdmoney float,\
