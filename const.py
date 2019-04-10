@@ -4487,8 +4487,7 @@ const.MARKET_DEAL_TIME_DICT = {
 }
 ###################################################
 const.ALL_CODE_LIST = []
-#const.BLACK_LIST = ['600680', '600401']
-const.BLACK_LIST = []
+const.BLACK_LIST = ['600680', '600401']
 ###################################################
 const.SZ_MARKET_DICT = {
     "深圳市场": "tab1",

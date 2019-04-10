@@ -296,7 +296,7 @@ def queue_thread_concurrent_run(mfunc, todo_list, redis_client, key, q, num = 10
             redis_client.srem(key, result[0])
     sys.exit(True)
 
-def process_concurrent_run(mfunc, all_list, redis_client = None, process_num = 2, num = 10, black_list = []):
+def process_concurrent_run(mfunc, all_list, redis_client = None, process_num = 2, num = 10, black_list = ct.BLACK_LIST):
     if redis_client is None: redis_client = create_redis_obj()
     init_unfinished_workers(redis_client, ct.UNFINISHED_WORKS, copy.deepcopy(all_list))
     todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
@@ -368,3 +368,9 @@ def resample(data, period = 'W-Mon'):
     data.set_index('date',inplace = True)
     df = data.resample(period, closed = 'left', label = 'left').agg(ohlc_dict).dropna(how='any')
     return df
+
+def get_latest_data_date():
+    filepath = "/data/stockdatainfo.json"
+    if not os.path.exists(filepath): return None
+    with open(filepath) as f: infos = json.load(f)
+    return int(infos['uptime'])

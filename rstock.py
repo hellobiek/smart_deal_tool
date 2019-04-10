@@ -116,10 +116,10 @@ class RIndexStock:
         cfunc = partial(self.get_stock_data, cdate)
         return queue_process_concurrent_run(cfunc, failed_list, redis_client = self.redis)
 
-    def generate_all_data(self, cdate, black_list = []):
+    def generate_all_data(self, cdate, black_list = ct.BLACK_LIST):
         from gevent.pool import Pool
         good_list = list()
-        obj_pool = Pool(100)
+        obj_pool = Pool(50)
         all_df = pd.DataFrame()
         failed_list = CStockInfo(redis_host = self.redis_host).get(redis = self.redis).code.tolist()
         if len(black_list) > 0:

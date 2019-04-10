@@ -32,7 +32,7 @@ from combination_info import CombinationInfo
 from futu.common.constant import SubType
 from crawler.dspider.hkex import HkexCrawler
 from subscriber import Subscriber, StockQuoteHandler, TickerHandler
-from common import is_trading_time, add_prifix, add_index_prefix, kill_process, concurrent_run, get_day_nday_ago, get_dates_array, process_concurrent_run, transfer_date_string_to_int
+from common import is_trading_time, add_prifix, add_index_prefix, kill_process, concurrent_run, get_day_nday_ago, get_dates_array, process_concurrent_run, transfer_date_string_to_int, get_latest_data_date
 pd.options.mode.chained_assignment = None #default='warn'
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -317,12 +317,6 @@ class DataManager:
         kill_process("defunct")
         kill_process("show-component-extension-options")
 
-    def get_latest_data_date(self):
-        filepath = "/data/stockdatainfo.json"
-        if not os.path.exists(filepath): return None
-        with open(filepath) as f: infos = json.load(f)
-        return int(infos['uptime'])
-
     def update(self, sleep_time):
         succeed = False
         while True:
@@ -335,7 +329,7 @@ class DataManager:
                         if not succeed:
                             self.clear_network_env()
                             mdate = datetime.now().strftime('%Y-%m-%d')
-                            ndate = self.get_latest_data_date()
+                            ndate = get_latest_data_date()
                             if ndate is not None:
                                 if ndate >= transfer_date_string_to_int(mdate):
                                     if self.updating_date is None: self.updating_date = mdate
@@ -365,7 +359,7 @@ class DataManager:
                 self.logger.error("%s set base float profit failed" % code_id)
                 return (code_id, False)
         failed_list = self.stock_info_client.get().code.tolist()
-        return process_concurrent_run(_set_base_float_profit, failed_list, num = 30)
+        return process_concurrent_run(_set_base_float_profit, failed_list, num = 10)
 
     def init_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, index_info, code_id):
@@ -431,7 +425,6 @@ class DataManager:
                 self.logger.error("connect_client for %s failed" % data)
                 succeed = False
                 continue
-
             if not self.connect_client.update(cdate, num = num):
                 succeed = False
 
@@ -521,11 +514,12 @@ if __name__ == '__main__':
     #    mysql_client.delete_db('s%s' % code)
     #import sys
     #sys.exit(0)
-    #mdate = '2019-04-09'
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
+    mdate = '2019-04-10'
     dm.clear_network_env()
     dm.logger.info("start compute!")
-    dm.bootstrap(cdate = mdate, exec_date = mdate)
+    dm.init_yesterday_hk_info(mdate, 2)
+    #dm.bootstrap(cdate = mdate, exec_date = mdate)
     #dm.bootstrap(exec_date = '2019-03-26')
     dm.logger.info("end compute!")
