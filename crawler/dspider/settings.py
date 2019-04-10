@@ -1,13 +1,8 @@
 # -*- coding: utf-8 -*-
-
-# Scrapy settings for dspider project
-#
-# For simplicity, this file contains only settings considered important or
-# commonly used. You can find more settings consulting the documentation:
-#
-#     https://doc.scrapy.org/en/latest/topics/settings.html
-#     https://doc.scrapy.org/en/latest/topics/downloader-middleware.html
-#     https://doc.scrapy.org/en/latest/topics/spider-middleware.html
+import sys
+from os.path import abspath, dirname
+sys.path.insert(0, dirname(abspath(__file__)))
+sys.path.insert(0, '/scode')
 
 BOT_NAME = 'dspider'
 

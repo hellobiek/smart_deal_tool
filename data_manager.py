@@ -3,11 +3,9 @@ import os
 import time
 import json
 import gevent
-import schedule
 import datetime
 import traceback
 import const as ct
-import numpy as np
 import pandas as pd
 from cstock import CStock
 from cindex import CIndex, TdxFgIndex
@@ -33,9 +31,8 @@ from rindustry import RIndexIndustryInfo
 from combination_info import CombinationInfo
 from futu.common.constant import SubType
 from crawler.dspider.hkex import HkexCrawler
-from crawler.dspider.run import weekly_spider
 from subscriber import Subscriber, StockQuoteHandler, TickerHandler
-from common import is_trading_time, delta_days, create_redis_obj, add_prifix, add_index_prefix, kill_process, concurrent_run, get_day_nday_ago, get_dates_array, process_concurrent_run, transfer_date_string_to_int
+from common import is_trading_time, add_prifix, add_index_prefix, kill_process, concurrent_run, get_day_nday_ago, get_dates_array, process_concurrent_run, transfer_date_string_to_int
 pd.options.mode.chained_assignment = None #default='warn'
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -509,16 +506,6 @@ class DataManager:
         except Exception as e:
             self.logger.error(e)
             return False
-
-    def scrawler(self, sleep_time):
-        schedule.every().minutes.do(weekly_spider)
-        while True:
-            self.logger.debug("enter scrawler")
-            try:
-                schedule.run_pending()
-            except Exception as e:
-                self.logger.info(e)
-            gevent.sleep(sleep_time)
  
 if __name__ == '__main__':
     #from cmysql import CMySQL
@@ -534,7 +521,6 @@ if __name__ == '__main__':
     #    mysql_client.delete_db('s%s' % code)
     #import sys
     #sys.exit(0)
-    #weekly_spider()
     #mdate = '2019-04-09'
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
