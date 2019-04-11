@@ -30,7 +30,6 @@ from backlooking.creview import CReivew
 from rindustry import RIndexIndustryInfo
 from combination_info import CombinationInfo
 from futu.common.constant import SubType
-from crawler.dspider.hkex import HkexCrawler
 from subscriber import Subscriber, StockQuoteHandler, TickerHandler
 from common import is_trading_time, add_prifix, add_index_prefix, kill_process, concurrent_run, get_day_nday_ago, get_dates_array, process_concurrent_run, transfer_date_string_to_int, get_latest_data_date
 pd.options.mode.chained_assignment = None #default='warn'
@@ -430,12 +429,7 @@ class DataManager:
 
             self.connect_client.close()
             self.connect_client.quit()
-        kill_process("zygote")
-        kill_process("defunct")
-        kill_process("show-component-extension-options")
-    
-        hc = HkexCrawler()
-        return hc.run() and succeed
+        return succeed
 
     def get_concerned_index_codes(self):
         index_codes = list(ct.INDEX_DICT.keys())

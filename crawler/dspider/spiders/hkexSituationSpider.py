@@ -20,8 +20,9 @@ class HkexSpider(BasicSpider):
         end_date = datetime.now().strftime('%Y.%m.%d')
         start_date = self.get_nday_ago(end_date, 10, dformat = '%Y.%m.%d')
         while start_date <= end_date:  # 自己控制下时间范围
-            cdate += timedelta(days=1)
-            url = matching_url.format(start_date.strftime('%Y%m%d'))
+            start_date = self.get_tomorrow_date(sdate = start_date)
+            url = matching_url.format(start_date.replace('.', ''))
+            print(url)
             yield scrapy.Request(url=url, callback=self.parse, errback=self.errback_httpbin, dont_filter=True)
 
     def parse(self, response):

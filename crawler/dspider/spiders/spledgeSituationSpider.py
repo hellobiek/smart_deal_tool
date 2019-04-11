@@ -18,7 +18,7 @@ class SPledgeSituationSpider(BasicSpider):
         formdata['queryDate'] = ''
         formdata['type'] = 'proportion'
         end_date = datetime.now().strftime('%Y.%m.%d')
-        start_date = self.get_nday_ago(end_date, 100, dformat = '%Y.%m.%d')
+        start_date = self.get_nday_ago(end_date, 60, dformat = '%Y.%m.%d')
         while start_date < end_date:
             start_date = self.get_next_date(sdate = start_date)
             formdata['queryDate'] = start_date

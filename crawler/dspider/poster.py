@@ -65,13 +65,11 @@ class HkexTradeOverviewPoster(Poster):
             # <class 'pymysql.err.DataError'> (1264, "Out of range value for column 'position_id' at row 2")
             # <class 'pymysql.err.InternalError'> (1292, "Incorrect date value: '1977-06-31' for column 'release_day' at row 26")
             logger.warn('MySQL: {} {} exception from item {}'.format(failure.type, args, item))
-            #self.store()
             return
         elif failure.type in [IntegrityError]:    
             # <class 'pymysql.err.IntegrityError'> (1048, "Column 'name' cannot be null") films 43894
             if failure.value.args[0] != 1062:
                 logger.warn('MySQL: {} {} exception from some items'.format(failure.type, args))
-                #self.store()
             return
         else:
             logger.error('MySQL: {} {} unhandled exception'.format(failure.type, args))
@@ -118,12 +116,10 @@ class HkexTradeTopTenItemPoster(Poster):
             # <class 'pymysql.err.InternalError'> (1292, "Incorrect date value: '1977-06-31' for column 'release_day' at row 26")
             if failure.value.args[0] != 1062:
                 logger.warn('MySQL: {} {} exception from item {}'.format(failure.type, args, item))
-                #self.store()
             return
         elif failure.type in [IntegrityError]:    
             # <class 'pymysql.err.IntegrityError'> (1048, "Column 'name' cannot be null") films 43894
             logger.warn('MySQL: {} {} exception from some items'.format(failure.type, args))
-            #self.store()
             return
         else:
             logger.error('MySQL: {} {} unhandled exception'.format(failure.type, args))

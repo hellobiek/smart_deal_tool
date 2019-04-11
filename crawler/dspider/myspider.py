@@ -23,3 +23,14 @@ class BasicSpider(Spider):
             sdate += oneday
         tdate = sdate.strftime("%Y.%m.%d")
         return tdate
+
+    def get_tomorrow_date(self, sdate):
+        #func: get next date
+        #sdate: str, example: '2017.01.01'
+        #tdate: str, example: '2017.01.06'
+        tdate = ''
+        oneday = timedelta(days = 1)
+        sdate = datetime.strptime(sdate, '%Y.%m.%d')
+        sdate += oneday
+        tdate = sdate.strftime("%Y.%m.%d")
+        return tdate
