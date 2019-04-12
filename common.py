@@ -369,8 +369,7 @@ def resample(data, period = 'W-Mon'):
     df = data.resample(period, closed = 'left', label = 'left').agg(ohlc_dict).dropna(how='any')
     return df
 
-def get_latest_data_date():
-    filepath = "/data/stockdatainfo.json"
-    if not os.path.exists(filepath): return None
+def get_latest_data_date(filepath = "/data/stockdatainfo.json"):
+    if not os.path.exists(filepath): return 30000000
     with open(filepath) as f: infos = json.load(f)
     return int(infos['uptime'])

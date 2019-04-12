@@ -9,7 +9,7 @@ class CInflux:
     def __init__(self, dbinfo, dbname, iredis = create_redis_obj()):
         self.redis  = iredis
         self.dbname = dbname
-        self.df_client = DataFrameClient(dbinfo['host'], dbinfo['port'], dbinfo['user'], dbinfo['password'], self.dbname)
+        self.df_client = DataFrameClient(dbinfo['host'], dbinfo['port'], dbinfo['user'], dbinfo['password'], self.dbname, timeout=5)
 
     def __del__(self):
         self.redis = None

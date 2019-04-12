@@ -387,7 +387,7 @@ class DataManager:
         else:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
             succeed = True
-            if not process_concurrent_run(cfunc, failed_list, num = 50):
+            if not process_concurrent_run(cfunc, failed_list, num = 5):
                 succeed = False
             return succeed
             #start_date = get_day_nday_ago(cdate, num = 4, dformat = "%Y-%m-%d")
@@ -510,10 +510,9 @@ if __name__ == '__main__':
     #sys.exit(0)
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
-    mdate = '2019-04-10'
+    mdate = '2019-04-11'
     dm.clear_network_env()
     dm.logger.info("start compute!")
-    dm.init_yesterday_hk_info(mdate, 2)
-    #dm.bootstrap(cdate = mdate, exec_date = mdate)
+    dm.bootstrap(cdate = mdate, exec_date = mdate)
     #dm.bootstrap(exec_date = '2019-03-26')
     dm.logger.info("end compute!")

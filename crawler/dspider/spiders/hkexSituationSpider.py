@@ -22,7 +22,6 @@ class HkexSpider(BasicSpider):
         while start_date <= end_date:  # 自己控制下时间范围
             start_date = self.get_tomorrow_date(sdate = start_date)
             url = matching_url.format(start_date.replace('.', ''))
-            print(url)
             yield scrapy.Request(url=url, callback=self.parse, errback=self.errback_httpbin, dont_filter=True)
 
     def parse(self, response):
@@ -72,6 +71,7 @@ class HkexSpider(BasicSpider):
         item['buy_trade_count'] = trade_overview_tr[4]["td"][0][0]
         item['sell_trade_count'] = trade_overview_tr[5]["td"][0][0]
         if need_parse_data["market"] == "SSE Northbound" or need_parse_data["market"] == "SZSE Northbound":
+            #使用额度总额和和使用额度总额比例
             item['dqb'] = trade_overview_tr[6]["td"][0][0]
             item['dqb_ratio'] = trade_overview_tr[7]["td"][0][0]
         else:

@@ -7,7 +7,9 @@ import const as ct
 import pandas as pd
 from cstock import CStock
 from cindex import CIndex
-from common import is_df_has_unexpected_data
+from rstock import RIndexStock
+from cstock_info import CStockInfo
+from common import is_df_has_unexpected_data, get_day_nday_ago
 from algotrade.feed import dataFramefeed
 from algotrade.technical.ma import macd
 from algotrade.indicator.macd import Macd
@@ -92,26 +94,41 @@ def main(start_date, end_date, maxLen = DIVERGENCE_DETECT_DIF_LIMIT_BAR_NUM, sig
     plt.plot()
 
 def get_blacklist():
-    black_list = ct.BLACK_DICT.tolist()
+    black_list = ct.BLACK_DICT.keys()
     return black_list
 
 def get_all_codelist():
-    all_code_list = self.stock_info_client.get().code.tolist()
-    return all_code_list
+    #返回不包含ST股票
+    stock_info_client = CStockInfo(dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
+    df = stock_info_client.get(redis_host = '127.0.0.1')
+    return df[~df.name.str.contains("ST")].code.tolist()
 
-def get_stock_pool():
+def get_stock_data(end_date, num):
+    ris = RIndexStock(ct.OUT_DB_INFO, redis_host = '127.0.0.1')
+    start_date = get_day_nday_ago(end_date, num, dformat = "%Y-%m-%d")
+    return ris.get_k_data_in_range(start_date, end_date)
+
+def get_stock_pool(end_date, num):
     '''
     更新股票池。该方法在收盘后调用。
-    1. 全市场的股票作为基础股票池
-    2. 在基础股票池的基础上剔除ST的股票作为股票池1
-    3. 在股票池1的基础上删除黑名单中的股票作为股票池2
-    4. 在股票池2的基础上剔除总市值最小的10%的股票作为股票池3
-    4. 在股票池3的基础上剔除PE < 0 或 PE > 100的股票作为股票池4
-    5. 在股票池4的基础上 取25日跌幅前10%的股票作为最终的股票池
+    1. 全市场(不包含ST)股票作为基础股票池
+    2. 剔除自制股票黑名单中的股票
+    3. 剔除过去200交易日总成交额中位数后25%的股票
+    4. 剔除总市值中位数在100亿以下的股票
+    5. 取25日跌幅前10%的股票作为最终的股票池
     '''
+    #黑名单股票
+    black_list = get_blacklist()
+    #所有单股票
     all_code_list = get_all_codelist()
-    all_black_list = get_blacklist()
-    return list()
+    all_code_list = list(set(all_code_list).difference(set(black_list)))
+    all_df = get_stock_data(end_date, num)
+    import pdb
+    pdb.set_trace()
+    for code, df in all_df.groupby('code'):
+        df = df.reset_index(drop = True)
+        import pdb
+        pdb.set_trace()
 
 def cross(short_mean,long_mean):
     '''
@@ -133,9 +150,10 @@ def cross(short_mean,long_mean):
 
 if __name__ == '__main__':
     try:
-        start_date = '2005-12-01'
-        end_date   = '2006-12-31'
-        codes = ['000300']  # 股票池
-        main(codes, start_date, end_date)
+        x = get_stock_pool(end_date = '2019-04-11', num = 186)
+        #start_date = '2005-12-01'
+        #end_date   = '2006-12-31'
+        #codes = ['000300']  # 股票池
+        #main(codes, start_date, end_date)
     except Exception as e:
         traceback.print_exc()

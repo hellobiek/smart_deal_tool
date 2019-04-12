@@ -75,8 +75,8 @@ class CStockInfo:
         return False 
 
     @staticmethod
-    def get(code = None, column = None, redis = None):
-        redis = create_redis_obj() if redis is None else redis
+    def get(code = None, column = None, redis = None, redis_host = None):
+        if redis is None: redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
         df_byte = redis.get(ct.STOCK_INFO)
         if df_byte is None: return pd.DataFrame()
         df = _pickle.loads(df_byte)
