@@ -6,26 +6,21 @@ import pandas as pd
 from enum import Enum
 from base.clog import getLogger
 from pyalgotrade import dataseries
+from pyalgotrade.utils import collections
 log = getLogger(__name__)
+GOLD = 'gold'  # 金叉
+DEATH = 'death'  # 死叉
+NOSIGNAL = 'nosignal' #无信号
 # 极值的调节因子。用于匹配多个近似的极值点。
 # 多个近似的极值点，取离当前交叉点最近的一个。
 LIMIT_DETECT_LIMIT_FACTOR = 0.99
 # 背离检测：最多使用DIVERGENCE_DETECT_MOST_LIMIT_NUM个相邻的极值点，两两组合检测背离
-DIVERGENCE_DETECT_MOST_LIMIT_NUM = 3
-
+DIVERGENCE_DETECT_MOST_LIMIT_NUM = 5
 # 背离检测：DIF涨跌幅的绝对值+价格涨跌幅的绝对值。用于判断是不是一个比较显著的背离。
 DIVERGENCE_DETECT_SIGNIFICANCE = 0.1
-
 # 背离检测：对背离点高度的要求。采用过去250个bar内极值的最大值作为参考，背离点中必须至少有一个极值小于最大值的【20%】。
 DIVERGENCE_DETECT_DIF_LIMIT_BAR_NUM = 250
 DIVERGENCE_DETECT_DIF_LIMIT_FACTOR = 0.35
-
-GOLD = 'gold'  # 金叉
-DEATH = 'death'  # 死叉
-NOSIGNAL = 'nosignal' #无信号
-
-from pyalgotrade import dataseries
-from pyalgotrade.utils import collections
 class EventWindow(object):
     """An EventWindow class is responsible for making calculation over a moving window of values.
 
@@ -39,7 +34,6 @@ class EventWindow(object):
     .. note::
         This is a base class and should not be used directly.
     """
-
     def __init__(self, windowSize, dtype=float, skipNone = False):
         assert(windowSize > 0)
         assert(isinstance(windowSize, int))
@@ -567,7 +561,7 @@ class MinLimitDetect:
         return cls.__get_min_limit_index_in(series, start_index, end_index, min_val)
 
 class Macd(dataseries.SequenceDataSeries):
-    def __init__(self, data, feed, fastEMA, slowEMA, signalEMA, maxLen, instrument):
+    def __init__(self, feed, fastEMA, slowEMA, signalEMA, maxLen, instrument):
         """Moving Average Convergence-Divergence indicator as described in http://stockcharts.com/school/doku.php?id=chart_school:technical_indicators:moving_average_convergence_divergence_macd.
         :param dataSeries: The DataSeries instance being filtered.
         :type dataSeries: :class:`pyalgotrade.dataseries.DataSeries`.
@@ -592,6 +586,7 @@ class Macd(dataseries.SequenceDataSeries):
         # I'M FORCING THIS BEHAVIOUR ONLY TO MAKE THIS FITLER MATCH TA-Lib MACD VALUES.
         self.__skipNum = max(fastEMA, slowEMA, signalEMA)
         #self.__fastEMASkip = slowEMA - fastEMA
+        self.__instrument = instrument
         self.__fastEMAWindow = EMAEventWindow(fastEMA)
         self.__slowEMAWindow = EMAEventWindow(slowEMA)
         self.__signalEMAWindow = EMAEventWindow(signalEMA)
@@ -602,7 +597,7 @@ class Macd(dataseries.SequenceDataSeries):
         self.__dif_limit_index = dataseries.SequenceDataSeries(maxLen)
         self.__macd_limit_index = dataseries.SequenceDataSeries(maxLen)
         self.__close_limit_index = dataseries.SequenceDataSeries(maxLen)
-        self.data = data
+        #self.data = data
         self.divergences = list()
         self.cross_detect = CrossDetect()
         self.max_limit_detect = MaxLimitDetect

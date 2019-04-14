@@ -358,7 +358,7 @@ class DataManager:
                 self.logger.error("%s set base float profit failed" % code_id)
                 return (code_id, False)
         failed_list = self.stock_info_client.get().code.tolist()
-        return process_concurrent_run(_set_base_float_profit, failed_list, num = 10)
+        return process_concurrent_run(_set_base_float_profit, failed_list, num = 5)
 
     def init_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, index_info, code_id):
@@ -510,9 +510,9 @@ if __name__ == '__main__':
     #sys.exit(0)
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
-    mdate = '2019-04-11'
-    dm.clear_network_env()
+    mdate = '2019-04-12'
     dm.logger.info("start compute!")
-    dm.bootstrap(cdate = mdate, exec_date = mdate)
-    #dm.bootstrap(exec_date = '2019-03-26')
+    dm.clear_network_env()
+    #dm.bootstrap(cdate = mdate, exec_date = mdate)
+    dm.bootstrap(exec_date = '2019-03-26')
     dm.logger.info("end compute!")

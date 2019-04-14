@@ -4,32 +4,37 @@ from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
 import traceback
 import const as ct
+import numpy as np
 import pandas as pd
 from cstock import CStock
 from cindex import CIndex
 from rstock import RIndexStock
 from cstock_info import CStockInfo
-from common import is_df_has_unexpected_data, get_day_nday_ago
+from common import is_df_has_unexpected_data, get_day_nday_ago, delta_days
 from algotrade.feed import dataFramefeed
-from algotrade.technical.ma import macd
-from algotrade.indicator.macd import Macd
+from algotrade.indicator.macd import Macd, DivergenceType
 from algotrade.strategy import gen_broker
-from pyalgotrade import strategy, plotter
+from algotrade.plotter import plotter
+from pyalgotrade import strategy
 from pyalgotrade.stratanalyzer import returns, sharpe
 class MACDStrategy(strategy.BacktestingStrategy):
-    def __init__(self, instruments, feeds, brk, signal_period_unit, fastEMA, slowEMA, signalEMA, maxLen):
+    def __init__(self, instrument, feed, brk, signal_period_unit, fastEMA, slowEMA, signalEMA, maxLen):
         strategy.BacktestingStrategy.__init__(self, feed, brk)
+        self.counter = 0
         self.__position = None
-        self.__instrument = instruments
-        self.__signal_period_unit = signal_period_unit
-        self.__macd = Macd(feeds, fastEMA, slowEMA, signalEMA, maxLen, instruments)
+        self.__instrument = instrument
+        self.__checkPeriod = signal_period_unit
+        self.macd = Macd(feed, fastEMA, slowEMA, signalEMA, maxLen, instrument)
         self.setUseAdjustedValues(False)
 
+    def getInstrument(self):
+        return self.__instrument
+
     def getDif(self):
-        return self.__macd.getDif()
+        return self.macd.getDif()
 
     def getDea(self):
-        return self.__macd.getDea()
+        return self.macd.getDea()
 
     def onEnterCanceled(self, position):
         self.__position = None
@@ -47,51 +52,78 @@ class MACDStrategy(strategy.BacktestingStrategy):
         self.info("%s sell at ￥%.2f" % (execInfo.getDateTime(), execInfo.getPrice()))
         self.__position = None
 
-    def onBars(self, bars):
-        pass
+    def checkSignal(self, bars):
+        if self.counter % self.__checkPeriod != 0:
+            self.counter += 1
+            return 0
+        self.counter = 0
+        if len(self.macd.divergences) == 0: return 0
+        flag = 0
+        for divergence in self.macd.divergences:
+            self.info("%s: divergence:%s" % (self.getInstrument(), divergence.to_json()))
+            if divergence.divergence_type == DivergenceType.Top:
+                flag -= 1
+            else:
+                flag += 1
+        return flag
 
-def get_feed(codes, start_date, end_date, peried):
+    def onBars(self, bars):
+        if self.__position is None or not self.__position.isOpen():
+            if self.checkSignal(bars) > 0:
+                shares = int(self.getBroker().getCash() * 0.9 / bars[self.__instrument].getPrice())
+                self.__position = self.enterLong(self.__instrument, shares, True)
+        elif not self.__position.exitActive():
+            if self.checkSignal(bars) < 0:
+                self.__position.exitMarket()
+
+def get_feed(all_df, code, start_date, end_date, peried):
     feed = dataFramefeed.Feed()
-    for code in codes:
-        #cindex_obj = CIndex(code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
-        cstock_obj = CStock(code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
-        data = cstock_obj.get_k_data_in_range(start_date, end_date)
-        data = data.set_index('date')
-        if is_df_has_unexpected_data(data): return None, None
-        data.index = pd.to_datetime(data.index)
-        data = data.dropna(how='any')
-        feed.addBarsFromDataFrame(code, data)
+    #cindex_obj = CIndex(code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
+    #cstock_obj = CStock(code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
+    #data = cstock_obj.get_k_data_in_range(start_date, end_date)
+    #data = data.set_index('date')
+    data = all_df.loc[all_df.code == code]
+    data = data.sort_values(by=['date'], ascending = True)
+    data = data.reset_index(drop = True)
+    data = data.set_index('date')
+    if is_df_has_unexpected_data(data): return None, None
+    data.index = pd.to_datetime(data.index)
+    data = data.dropna(how='any')
+    feed.addBarsFromDataFrame(code, data)
     return feed
 
+MID   = 9
 SHORT = 12
 LONG  = 26
-MID   = 9
+SIGNAL_PERIOD_UNIT = 30 #检测信号的时间间隔。与信号检测的周期保持一致。
 DIVERGENCE_DETECT_DIF_LIMIT_BAR_NUM = 250
-def main(start_date, end_date, maxLen = DIVERGENCE_DETECT_DIF_LIMIT_BAR_NUM, signal_period_unit = 5, peried = 'D'):
+def main(start_date, end_date, maxLen = DIVERGENCE_DETECT_DIF_LIMIT_BAR_NUM, peried = 'D'):
     '''
     count: 采用过去count个bar内极值的最大值作为参考。
-    signal_period_unit: 检测信号的时间间隔。与信号检测的周期保持一致。
     '''
-    codes = get_stock_pool()
-    feeds = get_feed(codes, start_date, end_date, peried)
-    if feeds is None: return
-    brk = gen_broker(feeds)
-    myStrategy = MACDStrategy(feeds, codes, brk, signal_period_unit, SHORT, LONG, MID, maxLen)
-    # Attach a returns analyzers to the strategy
-    returnsAnalyzer = returns.Returns()
-    myStrategy.attachAnalyzer(returnsAnalyzer)
-    # Attach a sharpe ratio analyzers to the strategy
-    sharpeRatioAnalyzer = sharpe.SharpeRatio()
-    myStrategy.attachAnalyzer(sharpeRatioAnalyzer)
-    # Attach the plotter to the strategy
-    plt = plotter.StrategyPlotter(myStrategy, True, True, True)
-    plt.getOrCreateSubplot("returns").addDataSeries("Simple returns", returnsAnalyzer.getReturns())
-    plt.getOrCreateSubplot("Macd").addDataSeries("dif", myStrategy.getDif())
-    plt.getOrCreateSubplot("Macd").addDataSeries("dea", myStrategy.getDea())
-    # Run Strategy
-    myStrategy.run()
-    myStrategy.info("Final portfolio value: $%.2f" % myStrategy.getResult())
-    plt.plot()
+    all_df = get_stock_pool(start_date, end_date)
+    codes  = list(set(all_df.code.tolist()))
+    strategys = dict()
+    for code in codes:
+        feed = get_feed(all_df, code, start_date, end_date, peried)
+        if feed is None: return False
+        brk = gen_broker(feed)
+        strategys[code] = MACDStrategy(code, feed, brk, SIGNAL_PERIOD_UNIT, SHORT, LONG, MID, maxLen)
+        # Attach a returns analyzers to the strategy
+        returnsAnalyzer = returns.Returns()
+        strategys[code].attachAnalyzer(returnsAnalyzer)
+        # Attach a sharpe ratio analyzers to the strategy
+        sharpeRatioAnalyzer = sharpe.SharpeRatio()
+        strategys[code].attachAnalyzer(sharpeRatioAnalyzer)
+        # Attach the plotter to the strategy
+        plt = plotter.StrategyPlotter(strategys[code], True, True, True)
+        plt.getOrCreateSubplot("returns").addDataSeries("Simple returns", returnsAnalyzer.getReturns())
+        plt.getOrCreateSubplot("Macd").addDataSeries("dif", strategys[code].getDif())
+        plt.getOrCreateSubplot("Macd").addDataSeries("dea", strategys[code].getDea())
+        # Run Strategy
+        strategys[code].run()
+        strategys[code].info("Final portfolio value: $%.2f" % strategys[code].getResult())
+        plt.plot()
 
 def get_blacklist():
     black_list = ct.BLACK_DICT.keys()
@@ -103,32 +135,63 @@ def get_all_codelist():
     df = stock_info_client.get(redis_host = '127.0.0.1')
     return df[~df.name.str.contains("ST")].code.tolist()
 
-def get_stock_data(end_date, num):
+def get_stock_data(start_date, end_date, num):
     ris = RIndexStock(ct.OUT_DB_INFO, redis_host = '127.0.0.1')
-    start_date = get_day_nday_ago(end_date, num, dformat = "%Y-%m-%d")
     return ris.get_k_data_in_range(start_date, end_date)
 
-def get_stock_pool(end_date, num):
+def get_stock_pool(start_date, end_date):
     '''
     更新股票池。该方法在收盘后调用。
     1. 全市场(不包含ST)股票作为基础股票池
     2. 剔除自制股票黑名单中的股票
-    3. 剔除过去200交易日总成交额中位数后25%的股票
+    3. 剔除成交额小于1个亿的股票
     4. 剔除总市值中位数在100亿以下的股票
     5. 取25日跌幅前10%的股票作为最终的股票池
     '''
+    #获取所有股票数据
+    num = delta_days(start_date, end_date)
+    all_df = get_stock_data(start_date, end_date, num)
     #黑名单股票
     black_list = get_blacklist()
     #所有单股票
     all_code_list = get_all_codelist()
     all_code_list = list(set(all_code_list).difference(set(black_list)))
-    all_df = get_stock_data(end_date, num)
-    import pdb
-    pdb.set_trace()
+    all_df = all_df.loc[all_df.code.isin(all_code_list)]
+    #获取开盘天数大于30%的股票的数量
+    codes = list()
+    amounts = list()
+    outstandings = list()
+    pchanges = list()
     for code, df in all_df.groupby('code'):
+        df = df.sort_values(by=['date'], ascending = True)
         df = df.reset_index(drop = True)
-        import pdb
-        pdb.set_trace()
+        if len(df) > int(num * 0.5):
+            codes.append(code)
+            amounts.append(np.median(df.amount))
+            close = np.median(df.close)
+            open_ = df['open'][0] 
+            close_ = df['close'][len(df) - 1]
+            pchange = (close_ - open_) / open_
+            pchanges.append(pchange)
+            totals = np.median(df.totals)
+            outstandings.append(close * totals)
+    all_df = all_df.loc[all_df.code.isin(codes)]
+    info = {'code': codes, 'amount': amounts, 'outstanding': outstandings, 'pchange': pchanges}
+    stock_df = pd.DataFrame(info)
+    stock_df = stock_df.reset_index(drop = True)
+    #总市值大于100亿的股票的列表
+    stock_df = stock_df.sort_values(by=['outstanding'], ascending = False)
+    biglist = stock_df.loc[stock_df.outstanding > 1e10].code.tolist()
+    all_df = all_df.loc[all_df.code.isin(biglist)]
+    #获取成交额大于1个亿的股票
+    stock_df = stock_df.sort_values(by=['amount'], ascending = False)
+    code_list = stock_df.loc[stock_df.amount > 1e8].code.tolist()
+    all_df = all_df.loc[all_df.code.isin(code_list)]
+    #取25日跌幅前10%的股票
+    stock_df = stock_df.sort_values(by=['pchange'], ascending = True)
+    code_list = stock_df.head(int(len(stock_df) * 0.1)).code.tolist()
+    all_df = all_df.loc[all_df.code.isin(code_list)]
+    return all_df
 
 def cross(short_mean,long_mean):
     '''
@@ -150,10 +213,8 @@ def cross(short_mean,long_mean):
 
 if __name__ == '__main__':
     try:
-        x = get_stock_pool(end_date = '2019-04-11', num = 186)
-        #start_date = '2005-12-01'
-        #end_date   = '2006-12-31'
-        #codes = ['000300']  # 股票池
-        #main(codes, start_date, end_date)
+        start_date = '2017-04-12'
+        end_date   = '2019-04-12'
+        main(start_date, end_date)
     except Exception as e:
         traceback.print_exc()
