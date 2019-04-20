@@ -4,7 +4,7 @@ sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
 from cindex import CIndex
 from pyalgotrade import broker
 from common import is_df_has_unexpected_data
-def gen_broker(feed, cash = 10000000, trade_percent = 0.01, volume_limit = 0.01):
+def gen_broker(feed, cash = 100000, trade_percent = 0.01, volume_limit = 0.01):
     # cash：初始资金
     # trade_percent: 手续费, 每笔交易金额的百分比
     # volume_limit: 每次交易能成交的量所能接受的最大比例

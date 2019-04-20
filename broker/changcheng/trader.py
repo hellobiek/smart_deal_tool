@@ -149,6 +149,7 @@ class Trader:
         if match:
             return 0, match.group(1)
         else:
+            self.log.debug("reslut:%s" % result)
             return -5, "err happened need check."
 
     def cancel(self, order_id):
@@ -217,6 +218,7 @@ class Trader:
             stock_info = response.json()
             return int(stock_info[0]['errorCode']), int(stock_info[0]['maxstkqty'])
         except:
+            self.log.warn("stock info can not be json.")
             return -6, "stock info can not be json."
 
 if '__main__' == __name__:

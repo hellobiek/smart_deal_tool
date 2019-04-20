@@ -17,18 +17,14 @@
 """
 .. moduleauthor:: Gabriel Martin Becedillas Ruiz <gabriel.becedillas@gmail.com>
 """
-
 import six
 import collections
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import ticker
 from matplotlib.ticker import Formatter
-
 from pyalgotrade import broker
 from pyalgotrade import warninghelpers
-
-
 def get_last_value(dataSeries):
     ret = None
     try:
@@ -36,7 +32,6 @@ def get_last_value(dataSeries):
     except IndexError:
         pass
     return ret
-
 
 def _filter_datetimes(dateTimes, fromDate=None, toDate=None):
     class DateTimeFilter(object):
@@ -53,7 +48,6 @@ def _filter_datetimes(dateTimes, fromDate=None, toDate=None):
 
     dateTimeFilter = DateTimeFilter(fromDate, toDate)
     return [x for x in dateTimes if dateTimeFilter.includeDateTime(x)]
-
 
 def _post_plot_fun(subPlot, mplSubplot):
     # Legend
@@ -104,7 +98,7 @@ class Series(object):
 
 class BuyMarker(Series):
     def getColor(self):
-        return 'g'
+        return 'r'
 
     def getMarker(self):
         return "^"
@@ -112,17 +106,15 @@ class BuyMarker(Series):
     def needColor(self):
         return True
 
-
 class SellMarker(Series):
     def getColor(self):
-        return 'r'
+        return 'g'
 
     def getMarker(self):
         return "v"
 
     def needColor(self):
         return True
-
 
 class CustomMarker(Series):
     def __init__(self):
@@ -321,7 +313,6 @@ class InstrumentSubplot(Subplot):
                 self.getSeries("Buy", BuyMarker).addValue(execInfo.getDateTime(), execInfo.getPrice())
             elif action in [broker.Order.Action.SELL, broker.Order.Action.SELL_SHORT]:
                 self.getSeries("Sell", SellMarker).addValue(execInfo.getDateTime(), execInfo.getPrice())
-
 
 class StrategyPlotter(object):
     """Class responsible for plotting a strategy execution.

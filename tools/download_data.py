@@ -12,7 +12,8 @@ from datetime import datetime
 from ccalendar import CCalendar
 from base.clog import getLogger
 from common import get_latest_data_date, transfer_date_string_to_int
-DATA_PROCESS_SCRIPT = '/Users/hellobiek/Documents/workspace/golang/bin/tdx'
+SCRIPT1 = 'python3 /Users/hellobiek/Documents/workspace/python/quant/DTGear/cli.py update report'
+SCRIPT2 = '/Users/hellobiek/Documents/workspace/golang/bin/tdx'
 class DataPreparer:
     def __init__(self):
         self.logger = getLogger(__name__)
@@ -29,13 +30,14 @@ class DataPreparer:
         #self.logger.info("collecting now time. open_time:%s < now_time:%s < close_time:%s" % (aft_open_time, now_time, aft_close_time))
         return aft_open_time < now_time < aft_close_time
 
-    def prepare_data(self, cmd, timeout = 2400):
+    def prepare_data(self, cmds, timeout = 2700):
         kill = lambda process: process.kill()
-        download = subprocess.Popen(cmd)
-        my_timer = Timer(timeout, kill, [download])
+        cmd_list = list()
+        for cmd in cmds: cmd_list.append(subprocess.Popen(cmd, shell=True))
+        my_timer = Timer(timeout, kill, cmd_list)
         try:
             my_timer.start()
-            download.communicate()
+            for cmd in cmd_list: cmd.communicate()
         finally:
             my_timer.cancel()
 
@@ -47,7 +49,7 @@ class DataPreparer:
                     if self.is_collecting_time():
                         ndate = get_latest_data_date(filepath = "/Volumes/data/quant/stock/data/stockdatainfo.json")
                         mdate = transfer_date_string_to_int(datetime.now().strftime('%Y-%m-%d'))
-                        if ndate < mdate: self.prepare_data(DATA_PROCESS_SCRIPT)
+                        if ndate < mdate: self.prepare_data([SCRIPT1, SCRIPT2])
             except Exception as e:
                 self.logger.error(e)
             time.sleep(sleep_time)

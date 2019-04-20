@@ -362,14 +362,14 @@ def is_df_has_unexpected_data(df):
         return True
     return False
 
+def get_latest_data_date(filepath = "/data/stockdatainfo.json"):
+    if not os.path.exists(filepath): return 30000000
+    with open(filepath) as f: infos = json.load(f)
+    return int(infos['uptime'])
+
 def resample(data, period = 'W-Mon'):
     ohlc_dict = {'open':'first', 'high':'max', 'low':'min', 'close': 'last', 'volume': 'sum', 'amount': 'sum'}
     data['date'] =  pd.to_datetime(data['date'])
     data.set_index('date',inplace = True)
     df = data.resample(period, closed = 'left', label = 'left').agg(ohlc_dict).dropna(how='any')
     return df
-
-def get_latest_data_date(filepath = "/data/stockdatainfo.json"):
-    if not os.path.exists(filepath): return 30000000
-    with open(filepath) as f: infos = json.load(f)
-    return int(infos['uptime'])

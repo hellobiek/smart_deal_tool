@@ -2,7 +2,6 @@
 import sys
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
-import traceback
 import const as ct
 import numpy as np
 import pandas as pd
@@ -20,7 +19,6 @@ from pyalgotrade.stratanalyzer import returns, sharpe
 class MACDStrategy(strategy.BacktestingStrategy):
     def __init__(self, instrument, feed, brk, signal_period_unit, fastEMA, slowEMA, signalEMA, maxLen):
         strategy.BacktestingStrategy.__init__(self, feed, brk)
-        self.counter = 0
         self.__position = None
         self.__instrument = instrument
         self.__checkPeriod = signal_period_unit
@@ -37,10 +35,12 @@ class MACDStrategy(strategy.BacktestingStrategy):
         return self.macd.getDea()
 
     def onEnterCanceled(self, position):
+        self.info("enter onEnterCanceled")
         self.__position = None
 
     def onExitCanceled(self, position):
         # If the exit was canceled, re-submit it.
+        self.info("enter onExitCanceled")
         self.__position.exitMarket()
 
     def onEnterOk(self, position):
@@ -53,27 +53,27 @@ class MACDStrategy(strategy.BacktestingStrategy):
         self.__position = None
 
     def checkSignal(self, bars):
-        if self.counter % self.__checkPeriod != 0:
-            self.counter += 1
-            return 0
-        self.counter = 0
         if len(self.macd.divergences) == 0: return 0
         flag = 0
+        self.info("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA01")
         for divergence in self.macd.divergences:
-            self.info("%s: divergence:%s" % (self.getInstrument(), divergence.to_json()))
-            if divergence.divergence_type == DivergenceType.Top:
+            self.info("%s: divergence:%s, date:%s" % (self.getInstrument(), divergence.to_json(), bars.getDateTime()))
+            if divergence.type == DivergenceType.Top:
                 flag -= 1
             else:
                 flag += 1
+        self.info("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA02")
         return flag
 
     def onBars(self, bars):
-        if self.__position is None or not self.__position.isOpen():
-            if self.checkSignal(bars) > 0:
+        signal = self.checkSignal(bars)
+        if 0 == signal: return
+        if self.__position is None:
+            if signal > 0:
                 shares = int(self.getBroker().getCash() * 0.9 / bars[self.__instrument].getPrice())
                 self.__position = self.enterLong(self.__instrument, shares, True)
-        elif not self.__position.exitActive():
-            if self.checkSignal(bars) < 0:
+        else:
+            if signal < 0:
                 self.__position.exitMarket()
 
 def get_feed(all_df, code, start_date, end_date, peried):
@@ -95,7 +95,7 @@ def get_feed(all_df, code, start_date, end_date, peried):
 MID   = 9
 SHORT = 12
 LONG  = 26
-SIGNAL_PERIOD_UNIT = 30 #检测信号的时间间隔。与信号检测的周期保持一致。
+SIGNAL_PERIOD_UNIT = 29 #检测信号的时间间隔。与信号检测的周期保持一致。
 DIVERGENCE_DETECT_DIF_LIMIT_BAR_NUM = 250
 def main(start_date, end_date, maxLen = DIVERGENCE_DETECT_DIF_LIMIT_BAR_NUM, peried = 'D'):
     '''
@@ -217,4 +217,4 @@ if __name__ == '__main__':
         end_date   = '2019-04-12'
         main(start_date, end_date)
     except Exception as e:
-        traceback.print_exc()
+        print(e)

@@ -50,7 +50,7 @@ class CTrader:
                                 self.logger.info("no new stock for %s." % _today)
                                 self.buy_succeed_date = _today
                             else:
-                                if not self.init(): raise Exception("rader login failed")
+                                if not self.init(): raise Exception("trader login failed")
                                 succeed = True
                                 for stock in n_list:
                                     for i in range(len(self.traders)):
@@ -58,14 +58,17 @@ class CTrader:
                                         if 0 != ret: 
                                             succeed = False
                                         else:
-                                            ret, msg = self.traders[i].deal(stock[0], stock[1], amount, "B")
-                                            if ret != 0 and ret != ct.ALREADY_BUY:
-                                                self.logger.error("buy new stock:%s amount:%s for %s error, msg:%s, ret:%s" % (stock, amount, _today, msg, ret))
-                                                succeed = False
-                                            elif ret == 0:
-                                                self.logger.info("buy new stock:%s amount:%s for %s succeed." % (stock, amount, _today))
-                                            elif ret == ct.ALREADY_BUY:
-                                                self.logger.info("already buy new stock:%s amount:%s for %s, no use to buy more." % (stock, amount, _today))
+                                            if amount == 0:
+                                                self.logger.info("new stock:%s max amount is:%s for %s succeed." % (stock, amount, _today))
+                                            else:
+                                                ret, msg = self.traders[i].deal(stock[0], stock[1], amount, "B")
+                                                if ret != 0 and ret != ct.ALREADY_BUY:
+                                                    self.logger.error("buy new stock:%s amount:%s for %s error, msg:%s, ret:%s" % (stock, amount, _today, msg, ret))
+                                                    succeed = False
+                                                elif ret == 0:
+                                                    self.logger.info("buy new stock:%s amount:%s for %s succeed." % (stock, amount, _today))
+                                                elif ret == ct.ALREADY_BUY:
+                                                    self.logger.info("already buy new stock:%s amount:%s for %s, no use to buy more." % (stock, amount, _today))
                                 if succeed:
                                     if self.close(): self.buy_succeed_date = _today
             except Exception as e:
