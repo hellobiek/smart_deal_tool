@@ -14,6 +14,7 @@ from algotrade.feed import dataFramefeed
 from algotrade.indicator.macd import Macd, DivergenceType
 from algotrade.strategy import gen_broker
 from algotrade.plotter import plotter
+from algotrade.technical.ma import macd
 from pyalgotrade import strategy
 from pyalgotrade.stratanalyzer import returns, sharpe
 class MACDStrategy(strategy.BacktestingStrategy):
@@ -213,8 +214,8 @@ def cross(short_mean,long_mean):
 
 if __name__ == '__main__':
     try:
-        start_date = '2017-04-12'
-        end_date   = '2019-04-12'
+        start_date = '2017-01-01'
+        end_date   = '2019-04-19'
         main(start_date, end_date)
     except Exception as e:
         print(e)

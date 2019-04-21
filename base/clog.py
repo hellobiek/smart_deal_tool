@@ -46,7 +46,7 @@ def getLogger(name, log_dir = '/tmp'):
         ch.addFilter(InfoFilter(logging.WARNING))
         logger.addHandler(ch)
 
-        # 创建一个StreamHandler,用于将ERROR输出到stderr
+        # 创建一个StreamHandler,用于将Error输出到stderr
         ch = logging.StreamHandler()
         ch.setLevel(logging.ERROR)
         ch.setFormatter(formatter)

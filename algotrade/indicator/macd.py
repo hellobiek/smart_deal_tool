@@ -37,13 +37,13 @@ class EventWindow(object):
     def __init__(self, windowSize, dtype=float, skipNone = False):
         assert(windowSize > 0)
         assert(isinstance(windowSize, int))
-        self.__multiplier = (2.0 / (windowSize + 1))
+        #self.__multiplier = (2.0 / (windowSize + 1))
         self.__values  = collections.NumPyDeque(windowSize, dtype)
-        self.__weights = collections.NumPyDeque(windowSize, dtype)
+        #self.__weights = collections.NumPyDeque(windowSize, dtype)
         self.__windowSize = windowSize
         self.__skipNone = skipNone
-        self.initWeights()
-        self.__weightsSum = self.__weights.data().sum()
+        #self.initWeights()
+        #self.__weightsSum = self.__weights.data().sum()
 
     def initWeights(self):
         for i in range(self.__windowSize):
@@ -72,21 +72,32 @@ class EventWindow(object):
         raise NotImplementedError()
 
 class EMAEventWindow(EventWindow):
-    def __init__(self, period, skipNone = False):
+    def __init__(self, period, skipNone = True):
         assert(period > 1)
         super(EMAEventWindow, self).__init__(period, skipNone = skipNone)
         self.__value = None
+        self.__multiplier = 2 / (period + 1)
 
     def onNewValue(self, dateTime, value):
         super(EMAEventWindow, self).onNewValue(dateTime, value)
+        #if value is not None and self.windowFull():
+        #    self.__value = self.getWeightedValue()
+        # Formula from http://stockcharts.com/school/doku.php?id=chart_school:technical_indicators:moving_averages
         if value is not None and self.windowFull():
-            self.__value = self.getWeightedValue() 
+            if self.__value is None:
+                x = self.__value
+                self.__value = self.getValues().mean()
+            else:
+                y = self.__value
+                z = self.__multiplier
+                self.__value = self.__value * (1 - self.__multiplier) + value * self.__multiplier
 
     def getValue(self):
         return self.__value
 
 class EventBasedFilter(dataseries.SequenceDataSeries):
-    """An EventBasedFilter class is responsible for capturing new values in a :class:`pyalgotrade.dataseries.DataSeries`
+    """
+    An EventBasedFilter class is responsible for capturing new values in a :class:`pyalgotrade.dataseries.DataSeries`
     and using an :class:`EventWindow` to calculate new values.
 
     :param dataSeries: The DataSeries instance being filtered.
@@ -141,10 +152,11 @@ class GoldCross:
     """
     定义金叉
     """
-    def __init__(self, cdate, dif, dif_date, macd, macd_date, close, close_date):
+    def __init__(self, cdate, dif, area, dif_date, macd, macd_date, close, close_date):
         self.type       = GOLD
         self.cdate      = cdate 
         self.dif        = dif 
+        self.area       = area
         self.dif_date   = dif_date
         self.macd       = macd
         self.macd_date  = macd_date
@@ -165,10 +177,11 @@ class DeathCross:
     """
     定义死叉
     """
-    def __init__(self, cdate, dif, dif_date, macd, macd_date, close, close_date):
+    def __init__(self, cdate, dif, area, dif_date, macd, macd_date, close, close_date):
         self.type       = DEATH
         self.cdate      = cdate
-        self.dif        = dif 
+        self.dif        = dif
+        self.area       = area
         self.dif_date   = dif_date
         self.macd       = macd
         self.macd_date  = macd_date
@@ -269,7 +282,7 @@ class DivergenceDetect:
         """
         pass
 
-    def is_valid_by_close_and_dif(self, close, pre_close, dif, pre_dif):
+    def is_valid_by_close_and_dif(self, close, pre_close, dif, pre_dif, area, pre_area):
         """
         验证两个极值点的dif和close，是否满足背离要求。具体的验证方法由子类实现
         :param close:
@@ -303,7 +316,7 @@ class DivergenceDetect:
             return divergences
 
         now_cross = crosses[current_index]
-        current_date, dif, macd, close = now_cross.cdate, now_cross.dif, now_cross.macd, now_cross.close
+        current_date, dif, area, macd, close = now_cross.cdate, now_cross.dif, now_cross.area, now_cross.macd, now_cross.close
         if dif is None or close is None or macd is None:
             log.debug("类型:%s, 日期:%s, dif:%s, dif date:%s, macd:%s, macd date:%s, close:%s, close date:%s diff 没有意义" %\
                 (now_cross.type, now_cross.cdate, now_cross.dif, now_cross.dif_date, now_cross.macd, now_cross.macd_date, now_cross.close, now_cross.close_date))
@@ -311,17 +324,17 @@ class DivergenceDetect:
 
         for index in range(len(pre_cross_lists) - 1, -1, -1):
             pre_cross = crosses[pre_cross_lists[index]]
-            pre_date, pre_dif, pre_close, pre_macd = pre_cross.cdate, pre_cross.dif, pre_cross.close, pre_cross.macd
+            pre_date, pre_dif, pre_area, pre_close, pre_macd = pre_cross.cdate, pre_cross.dif, pre_cross.area, pre_cross.close, pre_cross.macd
             log.debug("begin computing pre date:%s, current date:%s, " % (pre_date, current_date))
-            if pre_dif is None or pre_close is None or pre_macd is None:
+            if pre_dif is None or pre_area is None or pre_close is None or pre_macd is None:
                 log.debug("类型:%s, 日期:%s, dif:%s, dif date:%s, macd:%s, macd date:%s, close:%s, close date:%s 前极值点没有意义" %\
                 (pre_cross.type, pre_cross.cdate, pre_cross.dif, pre_cross.dif_date, pre_cross.macd, pre_cross.macd_date, pre_cross.close, pre_cross.close_date))
                 continue
 
-            # 分别对比两个点的价格以及dif的高低关系.顶背离：价格创新高，dif没有创新高，底背离：价格创新低，dif没有创新低
-            if not self.is_valid_by_close_and_dif(close, pre_close, dif, pre_dif):
-                log.debug("极值点价格和dif分别比较, type=%s, pre_date:%s, pre_dif=%s, pre_close=%s, date:%s, dif=%s, close=%s" % \
-                                                    (self.cross_type, pre_date, pre_dif, pre_close, current_date, dif, close))
+            # 分别对比两个点的价格以及dif的高低关系.顶背离：价格创新高，dif和area都没有创新高，底背离：价格创新低，dif和area没有创新低
+            if not self.is_valid_by_close_and_dif(close, pre_close, dif, pre_dif, area, pre_area):
+                log.debug("极值点价格和dif分别比较, type=%s, pre_date:%s, pre_dif=%s, pre_area:%s, pre_close=%s, date:%s, dif=%s, area:%s, close=%s" % \
+                                                    (self.cross_type, pre_date, pre_dif, pre_area, pre_close, current_date, dif, area, close))
                 continue
 
             # 解决DIF和DEA纠缠的问题：要求两个背离点对应的macd值不能太小。
@@ -393,7 +406,7 @@ class DivergenceDetect:
         :return: 是-纠缠， 否-不纠缠
         """
         if abs(macd / pre_macd) <= 0.3:
-            log.debug('MACD:%s 与 MACD_PRE:%s纠缠' % (macd, pre_macd))
+            log.debug('macd:%s 与 macd_pre:%s纠缠' % (macd, pre_macd))
             return False
 
         macd_max = abs(self.get_abs_max(macd_ser, self.dif_limit_bar_num)) * 0.5
@@ -439,7 +452,7 @@ class TopDivergenceDetect(DivergenceDetect):
         """
         return dif > 0 and pre_dif > 0
 
-    def is_valid_by_close_and_dif(self, close, pre_close, dif, pre_dif):
+    def is_valid_by_close_and_dif(self, close, pre_close, dif, pre_dif, area, pre_area):
         """
         判断是否满足价格创新高， DIF没有创新高。
         :param close:
@@ -448,7 +461,7 @@ class TopDivergenceDetect(DivergenceDetect):
         :param pre_dif:
         :return:
         """
-        return pre_close < close and pre_dif > dif
+        return pre_close < close and pre_dif > dif and pre_area > area
 
     def _larger_than(self, val1, val2):
         """
@@ -477,7 +490,7 @@ class BottomDivergenceDetect(DivergenceDetect):
         """
         return dif < 0 and pre_dif < 0
 
-    def is_valid_by_close_and_dif(self, close, pre_close, dif, pre_dif):
+    def is_valid_by_close_and_dif(self, close, pre_close, dif, pre_dif, area, pre_area):
         """
         判断是否满足价格创新低， DIF没有创新低。
         :param close:
@@ -486,7 +499,7 @@ class BottomDivergenceDetect(DivergenceDetect):
         :param pre_dif:
         :return:
         """
-        return pre_close > close and pre_dif < dif
+        return pre_close > close and pre_dif < dif and pre_area < area
 
     def _larger_than(self, val1, val2):
         """判断val1是不是低于val2"""
@@ -504,6 +517,23 @@ class Detect:
         for index in range(len(cdates) -1, -1, -1):
             if cdates[index] == cdate: return index
         return -1
+
+    @staticmethod
+    def get_sum_val_in(series, start_index, end_index):
+        total_sum = 0
+        for index in range(start_index, end_index):
+            value = series[index]
+            if value is not None: total_sum += value
+        return total_sum
+
+    @classmethod
+    def get_sum_info_in(cls, series, start_date, end_date):
+        if start_date == end_date: raise Exception("Detect avg unexpected start_date:%s and end_date:%s" % (start_date, end_date))
+        start_index = cls.get_index_by_date(series, start_date)
+        end_index   = cls.get_index_by_date(series, end_date)
+        if end_index == -1: Exception("unexpected end_date:%s" % end_date)
+        if start_index == -1: return None
+        return cls.get_sum_val_in(series, start_index, end_index)
 
 class MaxLimitDetect(Detect):
     """
@@ -642,11 +672,11 @@ class Macd(dataseries.SequenceDataSeries):
         self.bottom_divergence_detect = BottomDivergenceDetect()
         self.__close_prices.getNewValueEvent().subscribe(self.__onNewValue)
 
-    def newCross(self, cross_type, cross_date, limit_dif, limit_dif_date, macd, macd_date, close, close_date):
+    def newCross(self, cross_type, cross_date, limit_dif, area, limit_dif_date, macd, macd_date, close, close_date):
         if cross_type == GOLD:
-            return GoldCross(cross_date, limit_dif, limit_dif_date, macd, macd_date, close, close_date) 
+            return GoldCross(cross_date, limit_dif, area, limit_dif_date, macd, macd_date, close, close_date) 
         else:
-            return DeathCross(cross_date, limit_dif, limit_dif_date, macd, macd_date, close, close_date)
+            return DeathCross(cross_date, limit_dif, area, limit_dif_date, macd, macd_date, close, close_date)
 
     def createNewCross(self, current_date, pre_cross_type, current_cross_type, detect):
         """
@@ -658,11 +688,12 @@ class Macd(dataseries.SequenceDataSeries):
         :return: new class
         """
         pre_cross_signal_date = self.getPreSignalDate(pre_cross_type)
-        if pre_cross_signal_date is None: return self.newCross(current_cross_type, current_date, None, None, None, None, None, None)
+        if pre_cross_signal_date is None: return self.newCross(current_cross_type, current_date, None, None, None, None, None, None, None)
         dif, dif_date = detect.get_limit_info_in(self, pre_cross_signal_date, current_date)
         close, close_date = detect.get_close_limit_info_in(self.__close_prices, pre_cross_signal_date, current_date)
         macd, macd_date = detect.get_limit_info_in(self.__histogram, pre_cross_signal_date, current_date)
-        return self.newCross(current_cross_type, current_date, dif, dif_date, macd, macd_date, close, close_date)
+        area = detect.get_sum_info_in(self.__histogram, pre_cross_signal_date, current_date)
+        return self.newCross(current_cross_type, current_date, dif, area, dif_date, macd, macd_date, close, close_date)
 
     def getPreSignalDate(self, pre_cross_type):
         """
@@ -698,8 +729,8 @@ class Macd(dataseries.SequenceDataSeries):
         self.divergences += self.bottom_divergence_detect.get_divergences(self.__cross, self, self.__histogram)
 
     def __onNewValue(self, dataSeries, dateTime, value):
-        self.__slowEMAWindow.onNewValue(dateTime, value)
         self.__fastEMAWindow.onNewValue(dateTime, value)
+        self.__slowEMAWindow.onNewValue(dateTime, value)
         fastValue = self.__fastEMAWindow.getValue()
         slowValue = self.__slowEMAWindow.getValue()
         if fastValue is None or slowValue is None:
@@ -707,39 +738,34 @@ class Macd(dataseries.SequenceDataSeries):
         else:
             diffValue = fastValue - slowValue
 
-        # Make the first MACD value available as soon as the first signal value is available.
-        # I'M FORCING THIS BEHAVIOUR ONLY TO MAKE THIS FITLER MATCH TA-Lib MACD VALUES.
         self.__signalEMAWindow.onNewValue(dateTime, diffValue)
         deaValue = self.__signalEMAWindow.getValue()
         if diffValue is None or deaValue is None:
             macdValue = None
         else:
             macdValue = 2 * (diffValue - deaValue)
-
+       
+        #row = self.data.loc[self.data.index == dateTime].to_dict('list')
+        #log.debug("%s, ctime:%s, eclose:%s, aclose:%s, esewma:%s, asewma:%s, elewma:%s, alewma:%s, edif:%s, adif:%s, edea:%s, adea:%s, emacd:%s, amacd:%s"
+        #       %(self.__instrument, dateTime, row['close'][0], value, row['ewma_12'][0], fastValue, row['ewma_26'][0], slowValue, row['dif'][0], diffValue, row['dea'][0], deaValue, row['macd'][0], macdValue))
+        #log.debug("%s, ctime:%s, close:%s, sewma:%s, lewma:%s, dif:%s, dea:%s, macd:%s" % (self.__instrument, dateTime, value, fastValue, slowValue, diffValue, deaValue, macdValue))
         self.appendWithDateTime(dateTime, diffValue) #dif
         self.__signal.appendWithDateTime(dateTime, deaValue) #dea
         self.__histogram.appendWithDateTime(dateTime, macdValue) #macd
-
-        #import datetime
-        #if dateTime == datetime.datetime(2017, 11, 29, 0, 0, 0):
-        #    import pdb
-        #    pdb.set_trace()
-        
         if len(self) >= self.__skipNum:
             preMacdValue = self.__histogram[-2]
             if self.cross_detect.is_cross(preMacdValue, macdValue, GoldCross):
                 cross = self.createNewCross(dateTime, DEATH, GOLD, self.min_limit_detect)
-                log.debug("code:%s 类型:%s, 日期:%s, dif:%s, dif date:%s, macd:%s, macd date:%s, close:%s, close date:%s" %\
-                (self.__instrument, cross.type, cross.cdate, cross.dif, cross.dif_date, cross.macd, cross.macd_date, cross.close, cross.close_date))
+                log.debug("code:%s 类型:%s, 日期:%s, dif:%s, area:%s, dif date:%s, macd:%s, macd date:%s, close:%s, close date:%s" %\
+                (self.__instrument, cross.type, cross.cdate, cross.dif, cross.area, cross.dif_date, cross.macd, cross.macd_date, cross.close, cross.close_date))
                 self.__cross.appendWithDateTime(dateTime, cross)
             elif self.cross_detect.is_cross(preMacdValue, macdValue, DeathCross):
                 cross = self.createNewCross(dateTime, GOLD, DEATH, self.max_limit_detect)
-                log.debug("code:%s 类型:%s, 日期:%s, dif:%s, dif date:%s, macd:%s, macd date:%s, close:%s, close date:%s" %\
-                (self.__instrument, cross.type, cross.cdate, cross.dif, cross.dif_date, cross.macd, cross.macd_date, cross.close, cross.close_date))
+                log.debug("code:%s 类型:%s, 日期:%s, dif:%s, area:%s, dif date:%s, macd:%s, macd date:%s, close:%s, close date:%s" %\
+                (self.__instrument, cross.type, cross.cdate, cross.dif, cross.area, cross.dif_date, cross.macd, cross.macd_date, cross.close, cross.close_date))
                 self.__cross.appendWithDateTime(dateTime, cross)
             else:
                 log.debug("%s 没有信号" % dateTime)
         else:
             log.debug("%s 还需要skip" % dateTime)
-        
         self.updateDivergences()
