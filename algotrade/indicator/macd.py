@@ -11,6 +11,8 @@ log = getLogger(__name__)
 GOLD = 'gold'  # 金叉
 DEATH = 'death'  # 死叉
 NOSIGNAL = 'nosignal' #无信号
+DIVERGENCE = 'divergence'
+DOUBLE_DIVERGENCE = 'double_divergence'
 # 极值的调节因子。用于匹配多个近似的极值点。
 # 多个近似的极值点，取离当前交叉点最近的一个。
 LIMIT_DETECT_LIMIT_FACTOR = 0.99
@@ -148,57 +150,7 @@ class CrossDetect:
         log.debug('%s 穿过, pre_val=%s, now_val=%s' % (cross, pre_val, now_val))
         return True
 
-class GoldCross:
-    """
-    定义金叉
-    """
-    def __init__(self, cdate, dif, area, dif_date, macd, macd_date, close, close_date):
-        self.type       = GOLD
-        self.cdate      = cdate 
-        self.dif        = dif 
-        self.area       = area
-        self.dif_date   = dif_date
-        self.macd       = macd
-        self.macd_date  = macd_date
-        self.close      = close
-        self.close_date = close_date
-
-    @staticmethod
-    def is_cross(pre_macd, macd):
-        """
-        判断是否金叉
-        :param pre_macd: 前一个bar的macd
-        :param macd: 当前bar的macd
-        :return:
-        """
-        return pre_macd <= 0 < macd
-
-class DeathCross:
-    """
-    定义死叉
-    """
-    def __init__(self, cdate, dif, area, dif_date, macd, macd_date, close, close_date):
-        self.type       = DEATH
-        self.cdate      = cdate
-        self.dif        = dif
-        self.area       = area
-        self.dif_date   = dif_date
-        self.macd       = macd
-        self.macd_date  = macd_date
-        self.close      = close
-        self.close_date = close_date
-
-    @staticmethod
-    def is_cross(pre_macd, macd):
-        """
-        判断是否死叉
-        :param pre_macd: 前一个bar的macd
-        :param macd: 当前bar的macd
-        :return:
-        """
-        return pre_macd >= 0 > macd
-
-class TOSTR:
+class TOSTR(object):
     """将实例转换成字符串，以方便输出到日志显示"""
     def get_attr(self):
         """
@@ -228,6 +180,65 @@ class TOSTR:
                 dl.append(None)
         return dl
 
+class Cross(TOSTR):
+    def __init__(self, ctype, cdate, dif, area, dif_date, macd, macd_date, close, close_date):
+        self.type       = ctype
+        self.cdate      = cdate 
+        self.dif        = dif 
+        self.area       = area
+        self.dif_date   = dif_date
+        self.macd       = macd
+        self.macd_date  = macd_date
+        self.close      = close
+        self.close_date = close_date
+   
+    def to_json(self):
+        return {
+            'type': self.type,
+            'date': str(self.cdate),
+            'dif': self.dif,
+            'area': self.area,
+            'dif_date': str(self.dif_date),
+            'macd': self.macd,
+            'macd_date': str(self.macd_date),
+            'close': self.close,
+            'close_date': str(self.close_date)
+        }
+
+class GoldCross(Cross):
+    """
+    定义金叉
+    """
+    def __init__(self, cdate, dif, area, dif_date, macd, macd_date, close, close_date):
+        super(GoldCross, self).__init__(GOLD, cdate, dif, area, dif_date, macd, macd_date, close, close_date)
+
+    @staticmethod
+    def is_cross(pre_macd, macd):
+        """
+        判断是否金叉
+        :param pre_macd: 前一个bar的macd
+        :param macd: 当前bar的macd
+        :return:
+        """
+        return pre_macd <= 0 < macd
+
+class DeathCross(Cross):
+    """
+    定义死叉
+    """
+    def __init__(self, cdate, dif, area, dif_date, macd, macd_date, close, close_date):
+        super(DeathCross, self).__init__(DEATH, cdate, dif, area, dif_date, macd, macd_date, close, close_date)
+
+    @staticmethod
+    def is_cross(pre_macd, macd):
+        """
+        判断是否死叉
+        :param pre_macd: 前一个bar的macd
+        :param macd: 当前bar的macd
+        :return:
+        """
+        return pre_macd >= 0 > macd
+
 class DivergenceType(Enum):
     """
     定义背离的类型
@@ -235,30 +246,47 @@ class DivergenceType(Enum):
     Top = 'TOP'  # 顶背离
     Bottom = 'BOTTOM'  # 底背离
 
+class DoubleDivergence(TOSTR):
+    def __init__(self, dtype, first_cross, second_cross, third_cross):
+        self.type = dtype
+        self.first_cross  = first_cross
+        self.second_cross = second_cross
+        self.third_cross  = third_cross
+
+    def to_json(self):
+        return {
+            'type': self.type,
+            'first_cross':  str(self.first_cross.to_json()),
+            'second_cross': str(self.second_cross.to_json()),
+            'third_cross':  str(self.third_cross.to_json())
+        }
+
 class Divergence(TOSTR):
     """
     背离
     """
-    def __init__(self, dtype, dif, close, cross_date, pre_dif, pre_close, pre_cross_date, significance):
+    def __init__(self, dtype, dif, close, area, cross_date, pre_dif, pre_close, pre_area, pre_cross_date):
         self.type = dtype
         self.dif = dif
         self.close = close
+        self.area = area
         self.cross_date = cross_date
         self.pre_dif = pre_dif
         self.pre_close = pre_close
+        self.pre_area = pre_area
         self.pre_cross_date = pre_cross_date
-        self.significance = significance  # 背离的可见度
 
     def to_json(self):
         return {
             'type': self.type,
             'dif':  self.dif,
             'close': self.close,
+            'area': self.area,
             'cross_date': str(self.cross_date),
             'pre_dif': self.pre_dif,
             'pre_close': self.pre_close,
-            'pre_cross_date': str(self.pre_cross_date),
-            'significance': self.significance
+            'pre_area': self.pre_area,
+            'pre_cross_date': str(self.pre_cross_date)
         }
 
 class DivergenceDetect:
@@ -293,74 +321,117 @@ class DivergenceDetect:
         """
         pass
 
+    def is_diergenced(self, pre_cross, now_cross, dif_series, macd_series):
+        log.debug("begin computing pre cross:%s and now cross:%s。" % (pre_cross.to_json(), now_cross.to_json()))
+        if not self.is_cross_valid(pre_cross): return False
+
+        now_date, now_dif, now_area, now_close, now_macd = now_cross.cdate, now_cross.dif, now_cross.area, now_cross.close, now_cross.macd
+        pre_date, pre_dif, pre_area, pre_close, pre_macd = pre_cross.cdate, pre_cross.dif, pre_cross.area, pre_cross.close, pre_cross.macd
+
+        # 分别对比两个点的价格以及dif的高低关系.顶背离：价格创新高，dif和area都没有创新高，底背离：价格创新低，dif和area没有创新低
+        if not self.is_valid_by_close_and_dif(now_close, pre_close, now_dif, pre_dif, now_area, pre_area):
+            log.debug("极值点价格和dif分别比较, type=%s, pre_date:%s, pre_dif=%s, pre_area:%s, pre_close=%s, date:%s, dif=%s, area:%s, close=%s"
+                        % (self.cross_type, pre_date, pre_dif, pre_area, pre_close, now_date, now_dif, now_area, now_close))
+            return False
+
+        # 解决DIF和DEA纠缠的问题：要求两个背离点对应的macd值不能太小。
+        if not self.is_tangle_by_dea_and_dif(now_macd, pre_macd, macd_series):
+            log.debug("dif和dea发生纠缠, type:%s, pre_date:%s, pre_dif=%s, pre_macd=%s, now_date:%s, now_dif=%s, now_macd=%s"
+                        % (self.cross_type, pre_date, pre_dif, pre_macd, now_date, now_dif, now_macd))
+            return False
+
+        # 对背离点高度的要求：
+        if not self.is_valid_by_dif_max(now_dif, pre_dif, dif_series):
+            log.debug("背离点高度检测, type:%s, pre_date:%s, pre_dif=%s, date:%s, dif=%s"
+                        % (self.cross_type, pre_date, pre_dif, now_date, now_dif))
+            return False
+
+        # dif和价格的差，至少有一个比较显著才能算显著背离。
+        # 判断方法：(dif极值涨跌幅的绝对值+价格极值涨跌幅的绝对值) > self.significance
+        significance = self.calc_significance_of_divergence(now_dif, now_close, pre_dif, pre_close)
+        if self.significance is not None and significance <= self.significance:
+            log.debug("显著背离检测, type:%s, pre_date:%s, pre_dif=%s, date:%s, dif=%s, significance=%s"
+                        % (self.cross_type, pre_date, pre_dif, now_date, now_dif, significance))
+            return False
+
+        log.debug("找到新背离，type:%s, dif:%s, close:%s, now_date:%s pre_dif:%s, pre_close:%s, pre_date:%s, significance:%s"
+                        % (self.divergence_type, now_dif, now_close, now_date, pre_dif, pre_close, pre_date, significance))
+        return True
+    
+    def get_pre_cross_list(self, crosses):
+        clists = list()
+        if len(crosses) < 2:
+            log.debug("交叉点<2个")
+            return clists
+
+        current_index = len(crosses) - 1
+        if crosses[current_index].type != self.cross_type:
+            log.debug("交叉类型：%s和本地类型：%s不一致" % (crosses[current_index].type, self.cross_type))
+            return clists
+
+        num = self.most_limit_num
+        for index in range(current_index - 1, -1, -1):
+            if crosses[index].type == self.cross_type: clists.append(index)
+            if len(clists) >= num: break
+        return clists 
+
+    def is_cross_valid(self, cross):
+        if cross.dif is None or cross.area is None or cross.macd is None or cross.close is None:
+            log.debug("类型:%s, 日期:%s, dif:%s, area:%s, dif date:%s, macd:%s, macd date:%s, close:%s, close date:%s diff 没有意义" %
+            (cross.type, cross.cdate, cross.dif, cross.area, cross.dif_date, cross.macd, cross.macd_date, cross.close, cross.close_date))
+            return False
+        return True 
+
     def get_divergences(self, crosses, dif_series, macd_series):
         """
         检测最近一个bar是否发生背离
         :param: cross: 所有金叉和死叉的信号
-        :return: divergences list
+        :return: divergences_list
         """
         divergences = list()
-        if len(crosses) < 2: return divergences
 
-        current_index = len(crosses) - 1
-        if crosses[current_index].type != self.cross_type: return divergences
-
-        pre_cross_lists = list()
-        for index in range(current_index - 1, -1, -1):
-            if crosses[index].type == self.cross_type: pre_cross_lists.append(index)
-            if len(pre_cross_lists) >= self.most_limit_num: break
+        pre_cross_lists = self.get_pre_cross_list(crosses)
+        if len(pre_cross_lists) < 1:
+            log.debug("少于1个%s极值点" % self.cross_type)
+            return divergences
         log.debug("pre_cross_lists:%s" % pre_cross_lists)
 
-        if len(pre_cross_lists) < 1:
-            log.debug("只有一个%s极值点" % self.cross_type)
-            return divergences
-
-        now_cross = crosses[current_index]
-        current_date, dif, area, macd, close = now_cross.cdate, now_cross.dif, now_cross.area, now_cross.macd, now_cross.close
-        if dif is None or close is None or macd is None:
-            log.debug("类型:%s, 日期:%s, dif:%s, dif date:%s, macd:%s, macd date:%s, close:%s, close date:%s diff 没有意义" %\
-                (now_cross.type, now_cross.cdate, now_cross.dif, now_cross.dif_date, now_cross.macd, now_cross.macd_date, now_cross.close, now_cross.close_date))
+        now_cross = crosses[len(crosses) - 1]
+        if not self.is_cross_valid(now_cross):
             return divergences
 
         for index in range(len(pre_cross_lists) - 1, -1, -1):
             pre_cross = crosses[pre_cross_lists[index]]
-            pre_date, pre_dif, pre_area, pre_close, pre_macd = pre_cross.cdate, pre_cross.dif, pre_cross.area, pre_cross.close, pre_cross.macd
-            log.debug("begin computing pre date:%s, current date:%s, " % (pre_date, current_date))
-            if pre_dif is None or pre_area is None or pre_close is None or pre_macd is None:
-                log.debug("类型:%s, 日期:%s, dif:%s, dif date:%s, macd:%s, macd date:%s, close:%s, close date:%s 前极值点没有意义" %\
-                (pre_cross.type, pre_cross.cdate, pre_cross.dif, pre_cross.dif_date, pre_cross.macd, pre_cross.macd_date, pre_cross.close, pre_cross.close_date))
-                continue
-
-            # 分别对比两个点的价格以及dif的高低关系.顶背离：价格创新高，dif和area都没有创新高，底背离：价格创新低，dif和area没有创新低
-            if not self.is_valid_by_close_and_dif(close, pre_close, dif, pre_dif, area, pre_area):
-                log.debug("极值点价格和dif分别比较, type=%s, pre_date:%s, pre_dif=%s, pre_area:%s, pre_close=%s, date:%s, dif=%s, area:%s, close=%s" % \
-                                                    (self.cross_type, pre_date, pre_dif, pre_area, pre_close, current_date, dif, area, close))
-                continue
-
-            # 解决DIF和DEA纠缠的问题：要求两个背离点对应的macd值不能太小。
-            if not self.is_tangle_by_dea_and_dif(macd, pre_macd, macd_series):
-                log.debug('dif和dea发生纠缠, type:%s, pre_date:%s, pre_dif=%s, pre_macd=%s, date:%s, dif=%s, macd=%s' % \
-                                            (self.cross_type, pre_date, pre_dif, pre_macd, current_date, dif, macd))
-                continue
-
-            # 对背离点高度的要求：
-            if not self.is_valid_by_dif_max(dif, pre_dif, dif_series):
-                log.debug('背离点高度检测, type:%s, pre_date:%s, pre_dif=%s, date:%s, dif=%s' % \
-                                        (self.cross_type, pre_date, pre_dif, current_date, dif))
-                continue
-
-            # dif和价格的差，至少有一个比较显著才能算显著背离。
-            # 判断方法：(dif极值涨跌幅的绝对值+价格极值涨跌幅的绝对值) > self.significance
-            significance = self.calc_significance_of_divergence(dif, close, pre_dif, pre_close)
-            if self.significance is not None and significance <= self.significance:
-                log.debug('显著背离检测, type:%s, pre_date:%s, pre_dif=%s, date:%s, dif=%s, significance=%s' % \
-                                    (self.cross_type, pre_date, pre_dif, current_date, dif, significance))
-                continue
-
-            log.debug('找到新背离，type:%s, dif:%s. close:%s, current_date:%sm pre_dif:%s, pre_close:%s, pre_date:%s, significance:%s'%\
-                                        (self.divergence_type, dif, close, current_date, pre_dif, pre_close, pre_date, significance))
-            divergences.append(Divergence(self.divergence_type, dif, close, current_date, pre_dif, pre_close, pre_date, significance))
+            if self.is_diergenced(pre_cross, now_cross, dif_series, macd_series):
+                now_date, now_dif, now_area, now_close = now_cross.cdate, now_cross.dif, now_cross.area, now_cross.close
+                pre_date, pre_dif, pre_area, pre_close = pre_cross.cdate, pre_cross.dif, pre_cross.area, pre_cross.close
+                divergences.append(Divergence(self.divergence_type, now_dif, now_close, now_area, now_date, pre_dif, pre_close, pre_area, pre_date))
         return divergences
+
+    def get_double_divergences(self, crosses, dif_series, macd_series):
+        double_divergences = list()
+        pre_cross_lists = self.get_pre_cross_list(crosses)
+        if len(pre_cross_lists) < 2:
+            log.debug("%s少于2个极值点" % self.cross_type)
+            return double_divergences 
+    
+        third_cross = crosses[len(crosses) - 1]
+        if not self.is_cross_valid(third_cross):
+            return double_divergences
+       
+        total_length = len(pre_cross_lists)
+        for from_index in range(total_length):
+            second_cross = crosses[pre_cross_lists[from_index]]
+            if self.is_diergenced(second_cross, third_cross, dif_series, macd_series):
+                log.debug("second cross %s 与 third cross %s 发生背离" % (second_cross.to_json(), third_cross.to_json()))
+                for to_index in range(from_index + 1, total_length):
+                    first_cross = crosses[pre_cross_lists[to_index]]
+                    if self.is_diergenced(first_cross, second_cross, dif_series, macd_series):
+                        log.debug("first cross %s 与 second cross %s 发生背离" % (first_cross.to_json(), second_cross.to_json()))
+                        double_divergence = DoubleDivergence(self.divergence_type, first_cross, second_cross, third_cross)
+                        log.debug("找到连续背离, %s" % double_divergence.to_json())
+                        double_divergences.append(double_divergence)
+        return double_divergences
 
     def is_valid_by_dif_max(self, dif, pre_dif, dif_series):
         """
@@ -652,9 +723,6 @@ class Macd(dataseries.SequenceDataSeries):
         assert(fastEMA < slowEMA)
         assert(signalEMA > 0)
         super(Macd, self).__init__(maxLen)
-        # We need to skip some values when calculating the fast EMA in order for both EMA
-        # to calculate their first values at the same time.
-        # I'M FORCING THIS BEHAVIOUR ONLY TO MAKE THIS FITLER MATCH TA-Lib MACD VALUES.
         self.__skipNum = max(fastEMA, slowEMA, signalEMA)
         self.__instrument = instrument
         self.__fastEMAWindow = EMAEventWindow(fastEMA)
@@ -664,7 +732,10 @@ class Macd(dataseries.SequenceDataSeries):
         self.__histogram = dataseries.SequenceDataSeries(maxLen) #macd
         self.__close_prices = feed[instrument].getPriceDataSeries()
         self.__cross = dataseries.SequenceDataSeries(maxLen) #dead cross signals and gold cross signals
-        self.divergences = list()
+        self.top_divergences = list()
+        self.double_top_divergences = list()
+        self.bottom_divergences = list()
+        self.double_bottom_divergences = list()
         self.cross_detect = CrossDetect()
         self.max_limit_detect = MaxLimitDetect
         self.min_limit_detect = MinLimitDetect
@@ -718,16 +789,6 @@ class Macd(dataseries.SequenceDataSeries):
         """Returns a :class:`pyalgotrade.dataseries.DataSeries` with the histogram (the difference between the MACD and the Signal)."""
         return self.__histogram
 
-    def updateDivergences(self):
-        """
-        更新缓存中的背离信息。只缓存最近一根bar产生的背离
-        :param code:股票代码
-        :return:
-        """
-        # 检测背离, 记录当前点产生的所有的背离[同一个极值点的末端，可能检测到多个起始点不同的背离]
-        self.divergences  = self.top_divergence_detect.get_divergences(self.__cross, self, self.__histogram)
-        self.divergences += self.bottom_divergence_detect.get_divergences(self.__cross, self, self.__histogram)
-
     def __onNewValue(self, dataSeries, dateTime, value):
         self.__fastEMAWindow.onNewValue(dateTime, value)
         self.__slowEMAWindow.onNewValue(dateTime, value)
@@ -745,10 +806,6 @@ class Macd(dataseries.SequenceDataSeries):
         else:
             macdValue = 2 * (diffValue - deaValue)
        
-        #row = self.data.loc[self.data.index == dateTime].to_dict('list')
-        #log.debug("%s, ctime:%s, eclose:%s, aclose:%s, esewma:%s, asewma:%s, elewma:%s, alewma:%s, edif:%s, adif:%s, edea:%s, adea:%s, emacd:%s, amacd:%s"
-        #       %(self.__instrument, dateTime, row['close'][0], value, row['ewma_12'][0], fastValue, row['ewma_26'][0], slowValue, row['dif'][0], diffValue, row['dea'][0], deaValue, row['macd'][0], macdValue))
-        #log.debug("%s, ctime:%s, close:%s, sewma:%s, lewma:%s, dif:%s, dea:%s, macd:%s" % (self.__instrument, dateTime, value, fastValue, slowValue, diffValue, deaValue, macdValue))
         self.appendWithDateTime(dateTime, diffValue) #dif
         self.__signal.appendWithDateTime(dateTime, deaValue) #dea
         self.__histogram.appendWithDateTime(dateTime, macdValue) #macd
@@ -759,13 +816,16 @@ class Macd(dataseries.SequenceDataSeries):
                 log.debug("code:%s 类型:%s, 日期:%s, dif:%s, area:%s, dif date:%s, macd:%s, macd date:%s, close:%s, close date:%s" %\
                 (self.__instrument, cross.type, cross.cdate, cross.dif, cross.area, cross.dif_date, cross.macd, cross.macd_date, cross.close, cross.close_date))
                 self.__cross.appendWithDateTime(dateTime, cross)
+                #self.bottom_divergences = self.bottom_divergence_detect.get_divergences(self.__cross, self, self.__histogram)
+                self.double_bottom_divergences = self.bottom_divergence_detect.get_double_divergences(self.__cross, self, self.__histogram)
             elif self.cross_detect.is_cross(preMacdValue, macdValue, DeathCross):
                 cross = self.createNewCross(dateTime, GOLD, DEATH, self.max_limit_detect)
                 log.debug("code:%s 类型:%s, 日期:%s, dif:%s, area:%s, dif date:%s, macd:%s, macd date:%s, close:%s, close date:%s" %\
                 (self.__instrument, cross.type, cross.cdate, cross.dif, cross.area, cross.dif_date, cross.macd, cross.macd_date, cross.close, cross.close_date))
                 self.__cross.appendWithDateTime(dateTime, cross)
+                #self.top_divergences = self.top_divergence_detect.get_divergences(self.__cross, self, self.__histogram)
+                self.double_top_divergences = self.top_divergence_detect.get_double_divergences(self.__cross, self, self.__histogram)
             else:
                 log.debug("%s 没有信号" % dateTime)
         else:
             log.debug("%s 还需要skip" % dateTime)
-        self.updateDivergences()

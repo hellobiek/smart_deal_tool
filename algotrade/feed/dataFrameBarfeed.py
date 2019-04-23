@@ -255,10 +255,10 @@ class TickFeed(tickfeed.BaseBarFeed):
     def setBarFilter(self, barFilter):
         self.__barFilter = barFilter
 
-    def addBarsFromDataFrame(self, instrument, rowParser,df):
+    def addBarsFromDataFrame(self, instrument, rowParser, df):
         loadedBars = []
-        for id,row in df.iterrows():
-            bar_ = rowParser.parseTickBar(id,row)
+        for id_,row in df.iterrows():
+            bar_ = rowParser.parseTickBar(id_,row)
             if bar_ is not None and (self.__barFilter is None or self.__barFilter.includeBar(bar_)):
                 loadedBars.append(bar_)
         self.addBarsFromSequence(instrument, loadedBars)

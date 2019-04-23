@@ -15,14 +15,14 @@ from algotrade.indicator.macd import Macd, DivergenceType
 from algotrade.strategy import gen_broker
 from algotrade.plotter import plotter
 from algotrade.technical.ma import macd
+from algotrade.technical.atr import atr
 from pyalgotrade import strategy
 from pyalgotrade.stratanalyzer import returns, sharpe
 class MACDStrategy(strategy.BacktestingStrategy):
-    def __init__(self, instrument, feed, brk, signal_period_unit, fastEMA, slowEMA, signalEMA, maxLen):
+    def __init__(self, instrument, feed, brk, fastEMA, slowEMA, signalEMA, maxLen):
         strategy.BacktestingStrategy.__init__(self, feed, brk)
         self.__position = None
         self.__instrument = instrument
-        self.__checkPeriod = signal_period_unit
         self.macd = Macd(feed, fastEMA, slowEMA, signalEMA, maxLen, instrument)
         self.setUseAdjustedValues(False)
 
@@ -54,20 +54,35 @@ class MACDStrategy(strategy.BacktestingStrategy):
         self.__position = None
 
     def checkSignal(self, bars):
-        if len(self.macd.divergences) == 0: return 0
         flag = 0
+        if len(self.macd.bottom_divergences) == 0 and len(self.macd.top_divergences) == 0: return flag
         self.info("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA01")
-        for divergence in self.macd.divergences:
-            self.info("%s: divergence:%s, date:%s" % (self.getInstrument(), divergence.to_json(), bars.getDateTime()))
-            if divergence.type == DivergenceType.Top:
-                flag -= 1
-            else:
-                flag += 1
+        for divergence in self.macd.top_divergences:
+            self.info("date:%s, %s: top divergence:%s" % (bars.getDateTime(), self.getInstrument(), divergence.to_json()))
+            flag -= 1
+        for divergence in self.macd.bottom_divergences:
+            self.info("date:%s, %s: bottom divergence:%s" % (bars.getDateTime(), self.getInstrument(), divergence.to_json()))
+            flag += 1
+        self.info("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA02")
+        return flag
+
+    def checkSignal1(self, bars):
+        flag = 0
+        if len(self.macd.double_bottom_divergences) == 0 and len(self.macd.double_top_divergences) == 0: return flag
+        self.info("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA01")
+        for double_divergence in self.macd.double_top_divergences:
+            self.info("date:%s, %s: double top divergence:%s" % (bars.getDateTime(), self.getInstrument(), double_divergence.to_json()))
+            flag -= 1
+        for double_divergence in self.macd.double_bottom_divergences:
+            self.info("date:%s, %s: double bottom divergence:%s" % (bars.getDateTime(), self.getInstrument(), double_divergence.to_json()))
+            flag += 1
         self.info("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA02")
         return flag
 
     def onBars(self, bars):
-        signal = self.checkSignal(bars)
+        import pdb
+        pdb.set_trace()
+        signal = self.checkSignal1(bars)
         if 0 == signal: return
         if self.__position is None:
             if signal > 0:
@@ -90,13 +105,17 @@ def get_feed(all_df, code, start_date, end_date, peried):
     if is_df_has_unexpected_data(data): return None, None
     data.index = pd.to_datetime(data.index)
     data = data.dropna(how='any')
+    data = atr(data)
     feed.addBarsFromDataFrame(code, data)
     return feed
 
 MID   = 9
 SHORT = 12
 LONG  = 26
-SIGNAL_PERIOD_UNIT = 29 #检测信号的时间间隔。与信号检测的周期保持一致。
+# 计算ATR时的窗口大小
+ATR_WINDOW = 20
+# 跟踪止损的ATR倍数，即买入后，从最高价回撤该倍数的ATR后止损
+TRAILING_STOP_LOSS_ATR = 7
 DIVERGENCE_DETECT_DIF_LIMIT_BAR_NUM = 250
 def main(start_date, end_date, maxLen = DIVERGENCE_DETECT_DIF_LIMIT_BAR_NUM, peried = 'D'):
     '''
@@ -109,7 +128,7 @@ def main(start_date, end_date, maxLen = DIVERGENCE_DETECT_DIF_LIMIT_BAR_NUM, per
         feed = get_feed(all_df, code, start_date, end_date, peried)
         if feed is None: return False
         brk = gen_broker(feed)
-        strategys[code] = MACDStrategy(code, feed, brk, SIGNAL_PERIOD_UNIT, SHORT, LONG, MID, maxLen)
+        strategys[code] = MACDStrategy(code, feed, brk, SHORT, LONG, MID, maxLen)
         # Attach a returns analyzers to the strategy
         returnsAnalyzer = returns.Returns()
         strategys[code].attachAnalyzer(returnsAnalyzer)
@@ -177,40 +196,22 @@ def get_stock_pool(start_date, end_date):
             totals = np.median(df.totals)
             outstandings.append(close * totals)
     all_df = all_df.loc[all_df.code.isin(codes)]
-    info = {'code': codes, 'amount': amounts, 'outstanding': outstandings, 'pchange': pchanges}
-    stock_df = pd.DataFrame(info)
-    stock_df = stock_df.reset_index(drop = True)
-    #总市值大于100亿的股票的列表
-    stock_df = stock_df.sort_values(by=['outstanding'], ascending = False)
-    biglist = stock_df.loc[stock_df.outstanding > 1e10].code.tolist()
-    all_df = all_df.loc[all_df.code.isin(biglist)]
-    #获取成交额大于1个亿的股票
-    stock_df = stock_df.sort_values(by=['amount'], ascending = False)
-    code_list = stock_df.loc[stock_df.amount > 1e8].code.tolist()
-    all_df = all_df.loc[all_df.code.isin(code_list)]
+    #info = {'code': codes, 'amount': amounts, 'outstanding': outstandings, 'pchange': pchanges}
+    #stock_df = pd.DataFrame(info)
+    #stock_df = stock_df.reset_index(drop = True)
+    ##总市值大于100亿的股票的列表
+    #stock_df = stock_df.sort_values(by=['outstanding'], ascending = False)
+    #biglist = stock_df.loc[stock_df.outstanding > 1e10].code.tolist()
+    #all_df = all_df.loc[all_df.code.isin(biglist)]
+    ##获取成交额大于1个亿的股票
+    #stock_df = stock_df.sort_values(by=['amount'], ascending = False)
+    #code_list = stock_df.loc[stock_df.amount > 1e8].code.tolist()
+    #all_df = all_df.loc[all_df.code.isin(code_list)]
     #取25日跌幅前10%的股票
-    stock_df = stock_df.sort_values(by=['pchange'], ascending = True)
-    code_list = stock_df.head(int(len(stock_df) * 0.1)).code.tolist()
-    all_df = all_df.loc[all_df.code.isin(code_list)]
+    #stock_df = stock_df.sort_values(by=['pchange'], ascending = True)
+    #code_list = stock_df.head(int(len(stock_df) * 0.5)).code.tolist()
+    #all_df = all_df.loc[all_df.code.isin(code_list)]
     return all_df
-
-def cross(short_mean,long_mean):
-    '''
-    判断短时均线和长时均线的关系。
-    Args:
-        short_mean 短时均线，长度不应小于3
-        long_mean  长时均线，长度不应小于3。
-    Returns:
-         1 短时均线上穿长时均线
-         0 短时均线和长时均线未发生交叉
-        -1 短时均线下穿长时均线
-    '''
-    delta = short_mean[-3:] - long_mean[-3:]
-    if (delta[-1] > 0) and ((delta[-2] < 0) or ((delta[-2] == 0) and (delta[-3] < 0))):
-        return 1
-    elif (delta[-1] < 0) and ((delta[-2] > 0) or ((delta[-2] == 0) and (delta[-3] > 0))):
-        return -1
-    return 0
 
 if __name__ == '__main__':
     try:

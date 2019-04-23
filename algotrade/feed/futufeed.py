@@ -11,7 +11,7 @@ import dataFramefeed
 from datetime import timedelta, datetime
 from base.base import PollingThread, localnow, get_today_time
 from pyalgotrade.dataseries import DEFAULT_MAX_LEN
-from subscriber import Subscriber, StockQuoteHandler, OrderBookHandler
+from algotrade.broker.futu.subscriber import Subscriber, StockQuoteHandler, OrderBookHandler
 from base.clog import getLogger
 logger = getLogger(__name__)
 class GetBarThread(PollingThread):

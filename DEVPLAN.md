@@ -200,10 +200,12 @@
             - https://mp.weixin.qq.com/s/jJbQtOkG4Quxb8hu8rDzkA
             - 基础：Plotly和Cufflinks
             - 进阶：D3.js
-        - 完成复盘的热力图。
-        - 完成复盘添加牛熊比的数据图形。
         - 复盘视频的添加。
+        - 完成复盘的热力图。
         - Docker For Mac网络问题解决。
+        - 完成复盘添加牛熊比的数据图形。
+        - 回测框架支持如果开盘涨停则不买入
+        - 回测框架支持数据resample，从5分钟线resample到30分钟，60分钟
     - 量化策略开发
         - KDJ模型（done, 但还需要优化）。
         - 网格模型开发(done，但是还需要优化)

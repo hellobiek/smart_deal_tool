@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import datetime
+import numpy as np
 from algotrade.feed import bar
 from algotrade.feed import dataFrameBarfeed
 
@@ -123,17 +124,16 @@ class RowParser(dataFrameBarfeed.RowParser):
         volume      = float(row[1]['volume'])
         adjClose    = float(row[1]['close'])
         pchange     = float(row[1]['pchange'])
-        #preclose    = float(row[1]['preclose'])
-        #aprice      = float(row[1]['aprice'])
-        #uprice      = float(row[1]['uprice'])
-        #npercent    = float(row[1]['npercent'])
-        #outstanding = float(row[1]['outstanding'])
-        #sri         = float(row[1]['sri'])
-        
+        preclose    = float(row[1]['preclose'])
         if self.__sanitize:
             open_, high, low, close = common.sanitize_ohlc(open_, high, low, close)
-
-        return bar.BasicBar(dateTime, open_, high, low, close, volume, adjClose, self.__frequency, extra = {"pchange":pchange})
+        key_dict = dict()
+        key_dict['pchange'] = pchange
+        key_dict['preclose'] = preclose
+        if 'atr' in row[1].keys():
+            atr = None if np.isnan(row[1]['atr']) else float(row[1]['atr'])
+            key_dict['atr'] = atr
+        return bar.BasicBar(dateTime, open_, high, low, close, volume, adjClose, self.__frequency, extra = key_dict)
 
 class Feed(dataFrameBarfeed.BarFeed):
     """

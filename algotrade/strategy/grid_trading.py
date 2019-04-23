@@ -43,7 +43,8 @@ class GridSearchStrategy(strategy.BacktestingStrategy):
         price = bars[self.__instrument].getClose() 
         if expect_position > actial_position:
             cash = self.getBroker().getEquity() * (expect_position - actial_position)
-            return 1, self.__instrument, int((cash * 0.91) / price)
+            #return 1, self.__instrument, int((cash * 0.91) / price)
+            return 1, self.__instrument, int(cash * 3 / price)
         elif expect_position < actial_position:
             cash = self.getBroker().getEquity() * (actial_position - expect_position)
             return -1, self.__instrument, int(cash / price) 
@@ -53,7 +54,7 @@ class GridSearchStrategy(strategy.BacktestingStrategy):
     def onBars(self, bars):
         if self.__sma_prices[-1] is None: return
         action, instrument, shares = self.getAction(bars)
-        if action != 0: self.marketOrder(instrument, action * shares)
+        if action != 0: self.marketOrder(instrument, action * shares, allOrNone = True)
 
 def getData(code, start_date, end_date):
     cstock_obj = CIndex(code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')

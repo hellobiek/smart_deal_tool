@@ -30,7 +30,7 @@ from backlooking.creview import CReivew
 from rindustry import RIndexIndustryInfo
 from combination_info import CombinationInfo
 from futu.common.constant import SubType
-from subscriber import Subscriber, StockQuoteHandler, TickerHandler
+from algotrade.broker.futu.subscriber import Subscriber, StockQuoteHandler, TickerHandler
 from common import is_trading_time, add_prifix, add_index_prefix, kill_process, concurrent_run, get_day_nday_ago, get_dates_array, process_concurrent_run, transfer_date_string_to_int, get_latest_data_date
 pd.options.mode.chained_assignment = None #default='warn'
 pd.set_option('display.max_columns', None)
@@ -138,7 +138,7 @@ class DataManager:
     def run(self, sleep_time):
         while True:
             try:
-                self.logger.debug("enter run")
+                self.logger.info("enter run")
                 if self.cal_client.is_trading_day():
                     if is_trading_time():
                         t_sleep_time = 1
@@ -319,7 +319,7 @@ class DataManager:
     def update(self, sleep_time):
         succeed = False
         while True:
-            self.logger.debug("enter daily update process. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            self.logger.info("enter daily update process. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             try:
                 if self.cal_client.is_trading_day(): 
                     #self.logger.info("is trading day. %s, succeed:%s" % (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), succeed))
