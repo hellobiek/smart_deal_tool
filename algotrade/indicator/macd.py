@@ -1,12 +1,11 @@
 import sys
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
-import numpy as np
-import pandas as pd
 from enum import Enum
 from base.clog import getLogger
-from pyalgotrade import dataseries
-from pyalgotrade.utils import collections
+from pyalgotrade.technical.macd import MACD
+from pyalgotrade.technical.ma import EMAEventWindow
+from pyalgotrade.dataseries import SequenceDataSeries
 log = getLogger(__name__)
 GOLD = 'gold'  # 金叉
 DEATH = 'death'  # 死叉
@@ -23,114 +22,6 @@ DIVERGENCE_DETECT_SIGNIFICANCE = 0.35
 # 背离检测：对背离点高度的要求。采用过去250个bar内极值的最大值作为参考，背离点中必须至少有一个极值小于最大值的【20%】。
 DIVERGENCE_DETECT_DIF_LIMIT_BAR_NUM = 250
 DIVERGENCE_DETECT_DIF_LIMIT_FACTOR = 0.5
-class EventWindow(object):
-    """An EventWindow class is responsible for making calculation over a moving window of values.
-
-    :param windowSize: The size of the window. Must be greater than 0.
-    :type windowSize: int.
-    :param dtype: The desired data-type for the array.
-    :type dtype: data-type.
-    :param skipNone: True if None values should not be included in the window.
-    :type skipNone: boolean.
-
-    .. note::
-        This is a base class and should not be used directly.
-    """
-    def __init__(self, windowSize, dtype=float, skipNone = False):
-        assert(windowSize > 0)
-        assert(isinstance(windowSize, int))
-        #self.__multiplier = (2.0 / (windowSize + 1))
-        self.__values  = collections.NumPyDeque(windowSize, dtype)
-        #self.__weights = collections.NumPyDeque(windowSize, dtype)
-        self.__windowSize = windowSize
-        self.__skipNone = skipNone
-        #self.initWeights()
-        #self.__weightsSum = self.__weights.data().sum()
-
-    def initWeights(self):
-        for i in range(self.__windowSize):
-            self.__weights.append((1 - self.__multiplier) ** (self.__windowSize - i - 1))
-
-    def getWeightedValue(self):
-        return np.dot(self.__values.data(), self.__weights.data()) / self.__weightsSum
-
-    def onNewValue(self, dateTime, value):
-        if value is not None or not self.__skipNone:
-            self.__values.append(value)
-
-    def getValues(self):
-        """Returns a numpy.array with the values in the window."""
-        return self.__values.data()
-
-    def getWindowSize(self):
-        """Returns the window size."""
-        return self.__windowSize
-
-    def windowFull(self):
-        return len(self.__values) == self.__windowSize
-
-    def getValue(self):
-        """Override to calculate a value using the values in the window."""
-        raise NotImplementedError()
-
-class EMAEventWindow(EventWindow):
-    def __init__(self, period, skipNone = True):
-        assert(period > 1)
-        super(EMAEventWindow, self).__init__(period, skipNone = skipNone)
-        self.__value = None
-        self.__multiplier = 2 / (period + 1)
-
-    def onNewValue(self, dateTime, value):
-        super(EMAEventWindow, self).onNewValue(dateTime, value)
-        #if value is not None and self.windowFull():
-        #    self.__value = self.getWeightedValue()
-        # Formula from http://stockcharts.com/school/doku.php?id=chart_school:technical_indicators:moving_averages
-        if value is not None and self.windowFull():
-            if self.__value is None:
-                x = self.__value
-                self.__value = self.getValues().mean()
-            else:
-                y = self.__value
-                z = self.__multiplier
-                self.__value = self.__value * (1 - self.__multiplier) + value * self.__multiplier
-
-    def getValue(self):
-        return self.__value
-
-class EventBasedFilter(dataseries.SequenceDataSeries):
-    """
-    An EventBasedFilter class is responsible for capturing new values in a :class:`pyalgotrade.dataseries.DataSeries`
-    and using an :class:`EventWindow` to calculate new values.
-
-    :param dataSeries: The DataSeries instance being filtered.
-    :type dataSeries: :class:`pyalgotrade.dataseries.DataSeries`.
-    :param eventWindow: The EventWindow instance to use to calculate new values.
-    :type eventWindow: :class:`EventWindow`.
-    :param maxLen: The maximum number of values to hold.
-        Once a bounded length is full, when new items are added, a corresponding number of items are discarded from the
-        opposite end. If None then dataseries.DEFAULT_MAX_LEN is used.
-    :type maxLen: int.
-    """
-    def __init__(self, dataSeries, eventWindow, maxLen=None):
-        super(EventBasedFilter, self).__init__(maxLen)
-        self.__dataSeries = dataSeries
-        self.__eventWindow = eventWindow
-        self.__dataSeries.getNewValueEvent().subscribe(self.__onNewValue)
-
-    def __onNewValue(self, dataSeries, dateTime, value):
-        # Let the event window perform calculations.
-        self.__eventWindow.onNewValue(dateTime, value)
-        # Get the resulting value
-        newValue = self.__eventWindow.getValue()
-        # Add the new value.
-        self.appendWithDateTime(dateTime, newValue)
-
-    def getDataSeries(self):
-        return self.__dataSeries
-
-    def getEventWindow(self):
-        return self.__eventWindow
-
 class CrossDetect:
     """
     检测金叉死叉
@@ -702,36 +593,22 @@ class MinLimitDetect(Detect):
         min_val = cls.__get_min_val_in(series, start_index, end_index)
         return cls.__get_min_limit_info_in(series, start_index, end_index, min_val)
 
-class Macd(dataseries.SequenceDataSeries):
-    def __init__(self, feed, fastEMA, slowEMA, signalEMA, maxLen, instrument):
-        """Moving Average Convergence-Divergence indicator as described in http://stockcharts.com/school/doku.php?id=chart_school:technical_indicators:moving_average_convergence_divergence_macd.
-        :param dataSeries: The DataSeries instance being filtered.
-        :type dataSeries: :class:`pyalgotrade.dataseries.DataSeries`.
-        :param fastEMA: The number of values to use to calculate the fast EMA.
-        :type fastEMA: int.
-        :param slowEMA: The number of values to use to calculate the slow EMA.
-        :type slowEMA: int.
-        :param signalEMA: The number of values to use to calculate the signal EMA.
-        :type signalEMA: int.
-        :param maxLen: The maximum number of values to hold.
-            Once a bounded length is full, when new items are added, a corresponding number of items are discarded from the
-            opposite end. If None then dataseries.DEFAULT_MAX_LEN is used.
-        :type maxLen: int.
-        """
+class Macd(SequenceDataSeries):
+    def __init__(self, instrument, dataSeries, fastEMA, slowEMA, signalEMA, maxLen = None):
         assert(fastEMA > 0)
         assert(slowEMA > 0)
         assert(fastEMA < slowEMA)
         assert(signalEMA > 0)
         super(Macd, self).__init__(maxLen)
-        self.__skipNum = max(fastEMA, slowEMA, signalEMA)
         self.__instrument = instrument
+        self.__skipNum = max(fastEMA, slowEMA, signalEMA)
         self.__fastEMAWindow = EMAEventWindow(fastEMA)
         self.__slowEMAWindow = EMAEventWindow(slowEMA)
         self.__signalEMAWindow = EMAEventWindow(signalEMA)
-        self.__signal = dataseries.SequenceDataSeries(maxLen) #dea
-        self.__histogram = dataseries.SequenceDataSeries(maxLen) #macd
-        self.__close_prices = feed[instrument].getPriceDataSeries()
-        self.__cross = dataseries.SequenceDataSeries(maxLen) #dead cross signals and gold cross signals
+        self.__signal = SequenceDataSeries(maxLen) #dea
+        self.__histogram = SequenceDataSeries(maxLen) #macd
+        self.__cross = SequenceDataSeries(maxLen) #dead cross signals and gold cross signals
+        self.__close_prices = dataSeries.getPriceDataSeries()
         self.top_divergences = list()
         self.double_top_divergences = list()
         self.bottom_divergences = list()
@@ -805,7 +682,7 @@ class Macd(dataseries.SequenceDataSeries):
             macdValue = None
         else:
             macdValue = 2 * (diffValue - deaValue)
-       
+
         self.appendWithDateTime(dateTime, diffValue) #dif
         self.__signal.appendWithDateTime(dateTime, deaValue) #dea
         self.__histogram.appendWithDateTime(dateTime, macdValue) #macd

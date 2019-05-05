@@ -58,4 +58,5 @@ if __name__ == "__main__":
     logger = getLogger(__name__)
     logger.debug("debug...")
     logger.info("info...")
+    logger.info("中文")
     logger.error("this is error")

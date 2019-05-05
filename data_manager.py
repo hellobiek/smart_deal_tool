@@ -138,7 +138,7 @@ class DataManager:
     def run(self, sleep_time):
         while True:
             try:
-                self.logger.info("enter run")
+                self.logger.debug("enter run")
                 if self.cal_client.is_trading_day():
                     if is_trading_time():
                         t_sleep_time = 1
@@ -319,12 +319,12 @@ class DataManager:
     def update(self, sleep_time):
         succeed = False
         while True:
-            self.logger.info("enter daily update process. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            self.logger.debug("enter daily update process. %s" % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             try:
                 if self.cal_client.is_trading_day(): 
                     #self.logger.info("is trading day. %s, succeed:%s" % (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), succeed))
                     if self.is_collecting_time():
-                        self.logger.info("enter collecting time. %s, succeed:%s" % (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), succeed))
+                        self.logger.debug("enter collecting time. %s, succeed:%s" % (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), succeed))
                         if not succeed:
                             self.clear_network_env()
                             mdate = datetime.now().strftime('%Y-%m-%d')
@@ -335,7 +335,7 @@ class DataManager:
                                     succeed = self.bootstrap(cdate = self.updating_date, exec_date = self.updating_date)
                                     if succeed: self.updating_date = None
                                 else:
-                                    self.logger.info("%s is older for %s" % (ndate, mdate))
+                                    self.logger.debug("%s is older for %s" % (ndate, mdate))
                     else:
                         succeed = False
                 gevent.sleep(sleep_time)
@@ -358,7 +358,7 @@ class DataManager:
                 self.logger.error("%s set base float profit failed" % code_id)
                 return (code_id, False)
         failed_list = self.stock_info_client.get().code.tolist()
-        return process_concurrent_run(_set_base_float_profit, failed_list, num = 3)
+        return process_concurrent_run(_set_base_float_profit, failed_list, num = 50)
 
     def init_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, index_info, code_id):
@@ -510,7 +510,7 @@ if __name__ == '__main__':
     #sys.exit(0)
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
-    mdate = '2019-04-16' 
+    mdate = '2019-04-30' 
     dm.logger.info("start compute!")
     #dm.clear_network_env()
     #dm.init_stock_info(mdate)

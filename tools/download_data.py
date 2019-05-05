@@ -12,8 +12,8 @@ from datetime import datetime
 from ccalendar import CCalendar
 from base.clog import getLogger
 from common import get_latest_data_date, transfer_date_string_to_int
-SCRIPT1 = 'python3 /Users/hellobiek/Documents/workspace/python/quant/DTGear/cli.py update report'
-SCRIPT2 = '/Users/hellobiek/Documents/workspace/golang/bin/tdx'
+SCRIPT1 = ['python3', '/Users/hellobiek/Documents/workspace/python/quant/DTGear/cli.py', 'update', 'report']
+SCRIPT2 = ['/Users/hellobiek/Documents/workspace/golang/bin/tdx']
 class DataPreparer:
     def __init__(self):
         self.logger = getLogger(__name__)
@@ -30,16 +30,15 @@ class DataPreparer:
         #self.logger.info("collecting now time. open_time:%s < now_time:%s < close_time:%s" % (aft_open_time, now_time, aft_close_time))
         return aft_open_time < now_time < aft_close_time
 
-    def prepare_data(self, cmds, timeout = 2700):
-        kill = lambda process: process.kill()
-        cmd_list = list()
-        for cmd in cmds: cmd_list.append(subprocess.Popen(cmd, shell=True))
-        my_timer = Timer(timeout, kill, cmd_list)
+    def run(self, cmd, timeout):
+        proc = subprocess.Popen(cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        timer = Timer(timeout, proc.kill)
         try:
-            my_timer.start()
-            for cmd in cmd_list: cmd.communicate()
+            timer.start()
+            stdout, stderr = proc.communicate()
+            self.logger.debug("run cmd %s stdout:%s, stderr:%s" % (cmd, stdout.decode(), stderr.decode()))
         finally:
-            my_timer.cancel()
+            timer.cancel()
 
     def update(self, sleep_time):
         while True:
@@ -49,7 +48,9 @@ class DataPreparer:
                     if self.is_collecting_time():
                         ndate = get_latest_data_date(filepath = "/Volumes/data/quant/stock/data/stockdatainfo.json")
                         mdate = transfer_date_string_to_int(datetime.now().strftime('%Y-%m-%d'))
-                        if ndate < mdate: self.prepare_data([SCRIPT1, SCRIPT2])
+                        if ndate < mdate:
+                            self.run(SCRIPT1, timeout = 600)
+                            self.run(SCRIPT2, timeout = 2700)
             except Exception as e:
                 self.logger.error(e)
             time.sleep(sleep_time)

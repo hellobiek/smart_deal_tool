@@ -118,14 +118,14 @@ class RIndexStock:
 
     def generate_all_data(self, cdate, black_list = ct.BLACK_LIST):
         from gevent.pool import Pool
-        good_list = list()
-        obj_pool = Pool(50)
-        all_df = pd.DataFrame()
+        obj_pool = Pool(500)
         failed_list = CStockInfo(redis_host = self.redis_host).get(redis = self.redis).code.tolist()
         if len(black_list) > 0:
             failed_list = list(set(failed_list).difference(set(black_list)))
+        all_df = pd.DataFrame()
+        last_length = len(failed_list)
         cfunc = partial(self.get_stock_data, cdate)
-        while len(failed_list) > 0:
+        while last_length > 0:
             self.logger.info("all stock list:%s, cdate:%s", len(failed_list), cdate)
             for code_data in obj_pool.imap_unordered(cfunc, failed_list):
                 if code_data[1] is not None:
@@ -133,6 +133,9 @@ class RIndexStock:
                     tem_df['code'] = code_data[0]
                     all_df = all_df.append(tem_df)
                     failed_list.remove(code_data[0])
+            if len(failed_list) != last_length:
+                last_length = len(failed_list)
+                if last_length > 0: time.sleep(300)
         obj_pool.join(timeout = 5)
         obj_pool.kill()
         all_df = all_df.drop_duplicates()

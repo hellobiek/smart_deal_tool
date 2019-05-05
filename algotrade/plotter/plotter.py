@@ -197,7 +197,6 @@ class HistogramMarker(Series):
                 colors.append(self.getColorForValue(value, color))
         mplSubplot.bar(validDateTimes, values, color=colors)
 
-
 class MACDMarker(HistogramMarker):
     def getColorForValue(self, value, default):
         ret = default
@@ -206,7 +205,6 @@ class MACDMarker(HistogramMarker):
         else:
             ret = "r"
         return ret
-
 
 class Subplot(object):
     """ """
@@ -284,7 +282,6 @@ class Subplot(object):
             series.plot(mplSubplot, dateTimes, color)
 
         postPlotFun(self, mplSubplot)
-
 
 class InstrumentSubplot(Subplot):
     """A Subplot responsible for plotting an instrument."""

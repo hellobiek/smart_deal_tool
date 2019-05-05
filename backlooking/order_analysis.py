@@ -11,16 +11,31 @@ from datetime import datetime
 from common import get_dates_array
 from tools.markdown_table import MarkdownTable
 from tools.markdown_writer import MarkdownWriter
-from algotrade.broker.futu.fututrader import FutuTrader, MOrder, MDeal
+from algotrade.broker.futu.fututrader import FutuTrader
 pd.options.mode.chained_assignment = None
+
+def get_total_profit(orders):
+    buy_orders  = orders.loc[orders.trd_side == 'BUY']
+    buy_orders  = buy_orders.reset_index(drop = True)
+    sell_orders = orders.loc[orders.trd_side == 'SELL']
+    sell_orders = sell_orders.reset_index(drop = True)
+    total_sell_value = (sell_orders['dealt_qty'] * sell_orders['dealt_avg_price']).sum()
+    total_buy_value  = (buy_orders['dealt_qty'] * buy_orders['dealt_avg_price']).sum()
+    return total_sell_value - total_buy_value
+
 def generate(orders, date_arrary, dirname, start, end):
     filename = 'form_%s_to_%s_tading_review.md' % (start, end) 
     os.makedirs(dirname, exist_ok = True)
     fullfilepath = os.path.join(dirname, filename)
     orders = orders[['code', 'trd_side', 'dealt_qty', 'dealt_avg_price', 'create_time']]
+    total_profit = get_total_profit(orders)
     md = MarkdownWriter()
     md.addTitle("%s_%s_交割单" % (start, end), passwd = '909897')
     md.addHeader("交割单分析", 1)
+    md.addHeader("总收益分析", 2)
+    t_index = MarkdownTable(headers = ["总收益"])
+    t_index.addRow(["%s" % total_profit])
+    md.addTable(t_index)
     md.addHeader("交割单复盘", 2)
     for cdate in date_arrary:
         md.addHeader("%s_交割单" % cdate, 3)
@@ -52,8 +67,8 @@ def main():
     dirname = '/Volumes/data/quant/stock/data/docs/blog/hellobiek.github.io/source/_posts'
     unlock_path_ = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/futu.json"
     futuTrader = FutuTrader(host = ct.FUTU_HOST_LOCAL, port = ct.FUTU_PORT, trd_env = TrdEnv.REAL, market = ct.US_MARKET_SYMBOL, unlock_path = unlock_path_)
-    start = '2019-04-15'
-    end   = '2019-04-19'
+    start = '2019-04-29'
+    end   = '2019-05-03'
     orders = futuTrader.get_history_orders(start = start, end = end)
     date_arrary = get_dates_array(start, end, dformat = "%Y-%m-%d", asending = True)
     generate(orders, date_arrary, dirname, start, end)

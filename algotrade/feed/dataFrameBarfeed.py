@@ -65,7 +65,7 @@ class BarFeed(barfeed.BaseBarFeed):
        This is a base class and should not be used directly.
     """
     def __init__(self, frequency, maxLen = DEFAULT_MAX_LEN):
-        barfeed.BaseBarFeed.__init__(self, frequency, maxLen)
+        super(BarFeed, self).__init__(frequency, maxLen)
         self.__bars = dict()
         self.__nextPos = dict()
         self.__started = False

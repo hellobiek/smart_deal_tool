@@ -116,23 +116,23 @@ class RowParser(dataFrameBarfeed.RowParser):
                 dateTime = parse_date(row[0])
         else:
             dateTime =row[0]
-        
+       
         open_       = float(row[1]['open'])
         high        = float(row[1]['high'])
         low         = float(row[1]['low'])
         close       = float(row[1]['close'])
         volume      = float(row[1]['volume'])
         adjClose    = float(row[1]['close'])
-        pchange     = float(row[1]['pchange'])
-        preclose    = float(row[1]['preclose'])
         if self.__sanitize:
             open_, high, low, close = common.sanitize_ohlc(open_, high, low, close)
+        
         key_dict = dict()
-        key_dict['pchange'] = pchange
-        key_dict['preclose'] = preclose
-        if 'atr' in row[1].keys():
-            atr = None if np.isnan(row[1]['atr']) else float(row[1]['atr'])
-            key_dict['atr'] = atr
+        origin_keys = row[1].keys()
+        normal_keys = ['open', 'high', 'low', 'close', 'volume', 'code']
+        special_keys = list(set(origin_keys).difference(set(normal_keys)))
+        for sitem in special_keys:
+            value = None if np.isnan(row[1][sitem]) else float(row[1][sitem])
+            key_dict[sitem] = value
         return bar.BasicBar(dateTime, open_, high, low, close, volume, adjClose, self.__frequency, extra = key_dict)
 
 class Feed(dataFrameBarfeed.BarFeed):
@@ -155,7 +155,7 @@ class Feed(dataFrameBarfeed.BarFeed):
         if frequency not in [bar.Frequency.DAY, bar.Frequency.WEEK, bar.Frequency.MINUTE]:
             raise Exception("Invalid frequency.")
 
-        dataFrameBarfeed.BarFeed.__init__(self, frequency, maxLen)
+        super(Feed, self).__init__(frequency, maxLen)
         self.__timezone = timezone
         self.__sanitizeBars = False
 

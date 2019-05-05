@@ -41,7 +41,7 @@ class CTrader:
     def buy_new_stock(self, sleep_time):
         while True:
             try:
-                self.logger.info("enter buy_new_stock")
+                self.logger.debug("enter buy_new_stock")
                 if self.cal_client.is_trading_day():
                     if is_trading_time():
                         _today = datetime.now().strftime('%Y-%m-%d')
