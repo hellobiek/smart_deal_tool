@@ -29,23 +29,7 @@ class CDoc:
     COLORS = ['#F5DEB3', '#A0522D', '#1E90FF', '#FFE4C4', '#00FFFF', '#DAA520', '#3CB371', '#808080', '#ADFF2F', '#4B0082']
     def __init__(self):
         self.sdir = '/data/docs/blog/hellobiek.github.io/source/_posts'
-
-    def emotion_plot(self, df, dir_name, file_name):
-        fig = plt.figure()
-        x = df.date.tolist()
-        xn = range(len(x))
-        y = df.score.tolist()
-        plt.plot(xn, y)
-        for xi, yi in zip(xn, y):
-            plt.plot((xi,), (yi,), 'ro')
-            plt.text(xi, yi, '%s' % yi)
-        plt.scatter(xn, y, label='score', color='k', s=25, marker="o")
-        plt.xticks(xn, x)
-        plt.xlabel('时间', fontproperties = get_chinese_font())
-        plt.ylabel('分数', fontproperties = get_chinese_font())
-        plt.title('股市情绪', fontproperties = get_chinese_font())
-        fig.autofmt_xdate()
-        plt.savefig('%s/%s.png' % (dir_name, file_name), dpi=1000)
+        self.base_color = '#e6daa6'
 
     def industry_plot(self, dir_name, industry_info):
         industry_info.amount = industry_info.amount / 10000000000
@@ -196,10 +180,33 @@ class CDoc:
         fig.autofmt_xdate()
         plt.savefig('%s/%s.png' % (dir_name, file_name), dpi=1000)
 
-    def generate(self, cdate, sh_df, sz_df, sh_rzrq_df, sz_rzrq_df, av_df, limit_info, stock_info, industry_info, index_info, all_stock_info):
+    def plot_bullration(self, df, dir_name, file_name):
+        def _format_date(i, pos = None):
+            if i < 0 or i > len(date_list) - 1: return ''
+            return date_list[int(i)]
+        fig, ax = plt.subplots()
+        date_list = df['date'].tolist()
+        ratio_list = df['ratio'].tolist()
+        xn = range(len(date_list))
+        ax.plot(xn, ratio_list)
+        num = 0
+        for xi, yi in zip(xn, ratio_list):
+            if num % 11 == 0 or num == len(ratio_list) - 1:
+                plt.plot((xi,), (yi,), 'ro')
+                plt.text(xi, yi, '%.2f' % yi)
+            num += 1
+        plt.xlabel('时间', fontproperties = get_chinese_font())
+        plt.ylabel('牛股比例', fontproperties = get_chinese_font())
+        plt.title('牛熊股比', fontproperties = get_chinese_font())
+        plt.gca().xaxis.set_major_locator(mticker.MultipleLocator(19))
+        plt.gca().xaxis.set_major_formatter(mticker.FuncFormatter(_format_date))
+        fig.autofmt_xdate()
+        fig.savefig('%s/%s.png' % (dir_name, file_name), dpi=1000)
+
+    def generate(self, cdate, sh_df, sz_df, sh_rzrq_df, sz_rzrq_df, av_df, limit_info, stock_info, industry_info, index_info, all_stock_info, bull_ration_df):
         image_dir = os.path.join(self.sdir, "%s-StockReView" % cdate)
         file_name = "%s.md" % image_dir
-        if os.path.exists(file_name): return True
+        #if os.path.exists(file_name): return True
         os.makedirs(image_dir, exist_ok = True)
 
         md = MarkdownWriter()
@@ -259,11 +266,8 @@ class CDoc:
 
         #牛熊股比
         md.addHeader("牛熊股比:", 3)
-        all_marauder_data = mmap_clinet.ris.get_data(cdate)
-
-        bull_stock_num = len(all_marauder_data[all_marauder_data.profit >= 0])
-        bear_stock_num = len(all_marauder_data[all_marauder_data.profit <  0])
-        md.addText("牛熊股比:%s" % (100 * bull_stock_num / len(all_marauder_data)))
+        self.plot_bullration(bull_ration_df, image_dir, 'bull_ration')
+        md.addImage("bull_ration.png", imageTitle = "牛熊股比")
 
         #涨停分析
         md.addHeader("涨停跌停分析:", 3)

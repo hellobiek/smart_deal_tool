@@ -512,8 +512,9 @@ if __name__ == '__main__':
     dm = DataManager()
     mdate = '2019-04-30' 
     dm.logger.info("start compute!")
-    #dm.clear_network_env()
+    dm.clear_network_env()
+    dm.init_base_float_profit()
     #dm.init_stock_info(mdate)
     #dm.bootstrap(exec_date = '2019-03-26')
-    dm.bootstrap(cdate = mdate, exec_date = mdate)
+    #dm.bootstrap(cdate = mdate, exec_date = mdate)
     dm.logger.info("end compute!")

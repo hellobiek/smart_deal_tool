@@ -7,6 +7,7 @@ import sys
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import datetime
+import traceback
 import matplotlib
 matplotlib.use('Agg')
 import const as ct
@@ -26,6 +27,7 @@ from rindustry import RIndexIndustryInfo
 from industry_info import IndustryInfo
 from datamanager.emotion import Emotion
 from datamanager.sexchange import StockExchange
+from visualization.bull_ratio_plot import CBullRation
 from common import create_redis_obj, get_chinese_font, get_tushare_client, get_day_nday_ago
 class CReivew:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
@@ -40,6 +42,7 @@ class CReivew:
         self.sh_market_client   = StockExchange(ct.SH_MARKET_SYMBOL)
         self.sz_market_client   = StockExchange(ct.SZ_MARKET_SYMBOL)
         self.emotion_client     = Emotion()
+        self.bullration_client  = CBullRation(dbinfo, redis_host)
 
     def get_industry_data(self, cdate):
         ri = RIndexIndustryInfo()
@@ -135,12 +138,16 @@ class CReivew:
             industry_info = self.get_industry_data(cdate)
             #all stock info 
             all_stock_info = self.rstock_client.get_k_data_in_range(start_date, end_date)
+            #get bull ration data
+            bull_ration_df = self.bullration_client.get_bull_ratios('000001', start_date, end_date)
             #gen review file and make dir for new data
-            self.doc.generate(cdate, sh_df, sz_df, sh_rzrq_df, sz_rzrq_df, av_df, limit_info, stock_info, industry_info, index_info, all_stock_info)
+            self.doc.generate(cdate, sh_df, sz_df, sh_rzrq_df, sz_rzrq_df, av_df, limit_info, 
+                        stock_info, industry_info, index_info, all_stock_info, bull_ration_df)
             ##gen review animation
             #self.gen_animation()
             return True
         except Exception as e:
+            traceback.print_exc()
             self.logger.error(e)
             return False
 
@@ -185,4 +192,4 @@ class CReivew:
 
 if __name__ == '__main__':
     creview = CReivew(ct.DB_INFO)
-    data = creview.update('2019-04-02')
+    data = creview.update('2019-05-06')
