@@ -206,7 +206,7 @@ class CDoc:
     def generate(self, cdate, sh_df, sz_df, sh_rzrq_df, sz_rzrq_df, av_df, limit_info, stock_info, industry_info, index_info, all_stock_info, bull_ration_df):
         image_dir = os.path.join(self.sdir, "%s-StockReView" % cdate)
         file_name = "%s.md" % image_dir
-        #if os.path.exists(file_name): return True
+        if os.path.exists(file_name): return True
         os.makedirs(image_dir, exist_ok = True)
 
         md = MarkdownWriter()
