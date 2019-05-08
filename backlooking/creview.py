@@ -109,6 +109,7 @@ class CReivew:
         start_date = get_day_nday_ago(cdate, 200, dformat = "%Y-%m-%d")
         end_date   = cdate
         try:
+            self.doc.move_old_files()
             #market info
             sh_df = self.get_market_data(ct.SH_MARKET_SYMBOL, start_date, end_date)
             sz_df = self.get_market_data(ct.SZ_MARKET_SYMBOL, start_date, end_date)
@@ -192,4 +193,4 @@ class CReivew:
 
 if __name__ == '__main__':
     creview = CReivew(ct.DB_INFO)
-    data = creview.update('2019-05-06')
+    data = creview.update('2019-05-07')

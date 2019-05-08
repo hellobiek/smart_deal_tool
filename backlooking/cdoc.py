@@ -2,6 +2,7 @@
 import os
 import time
 import json
+import shutil
 import matplotlib
 import const as ct
 import numpy as np
@@ -29,6 +30,7 @@ class CDoc:
     COLORS = ['#F5DEB3', '#A0522D', '#1E90FF', '#FFE4C4', '#00FFFF', '#DAA520', '#3CB371', '#808080', '#ADFF2F', '#4B0082']
     def __init__(self):
         self.sdir = '/data/docs/blog/hellobiek.github.io/source/_posts'
+        self.bdir = '/data/docs/backup'
         self.base_color = '#e6daa6'
 
     def industry_plot(self, dir_name, industry_info):
@@ -202,6 +204,17 @@ class CDoc:
         plt.gca().xaxis.set_major_formatter(mticker.FuncFormatter(_format_date))
         fig.autofmt_xdate()
         fig.savefig('%s/%s.png' % (dir_name, file_name), dpi=1000)
+
+    def move_old_files(self):
+        #backup no use files
+        mfiles = [mfile for mfile in os.listdir(self.sdir) if mfile.endswith('StockReView')]
+        if len(mfiles) < 10: return
+        mfiles.sort(reverse = True)
+        for mfile in mfiles[10:]:
+            for zfile in [mfile, "%s.md" % mfile]:
+                src = "%s/%s" % (self.sdir, zfile)
+                dst = "%s/%s" % (self.bdir, zfile)
+                shutil.move(src, dst)
 
     def generate(self, cdate, sh_df, sz_df, sh_rzrq_df, sz_rzrq_df, av_df, limit_info, stock_info, industry_info, index_info, all_stock_info, bull_ration_df):
         image_dir = os.path.join(self.sdir, "%s-StockReView" % cdate)
