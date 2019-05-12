@@ -3,6 +3,7 @@ import sys
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(abspath(__file__)))
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
+import json
 import pymysql
 import pymysql.cursors
 import const as ct
@@ -11,9 +12,7 @@ from twisted.enterprise import adbapi
 from hkex import HkexCrawler
 from investor import InvestorCrawler
 from pymysql.err import OperationalError, InterfaceError, DataError, InternalError, IntegrityError
-
 logger = getLogger(__name__)
-
 class Poster(object):
     def __init__(self, item):
         self.item = item
@@ -23,8 +22,14 @@ class Poster(object):
         insert_sql, params = item.get_insert_sql(self.table)
         cursor.execute(insert_sql, params)
 
+    def check(self):
+        if not ct.SPIDERMON_VALIDATION_ERRORS_FIELD in self.item: return True
+        errors = self.item[ct.SPIDERMON_VALIDATION_ERRORS_FIELD]
+        logger.error("%s check failed:%s" % (self.__class__, json.dumps(errors, indent=4)))
+        return False
+
     def store(self):
-        pass
+        raise NotImplementedError()
 
 def get_hk_dbname(market, direction):
     dbname = ''

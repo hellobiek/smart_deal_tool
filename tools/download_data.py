@@ -12,7 +12,7 @@ from datetime import datetime
 from ccalendar import CCalendar
 from base.clog import getLogger
 from common import get_latest_data_date, transfer_date_string_to_int
-SCRIPT1 = ['python3', '/Users/hellobiek/Documents/workspace/python/quant/DTGear/cli.py', 'update', 'report']
+SCRIPT1 = ['python3', '-B', '/Users/hellobiek/Documents/workspace/python/quant/DTGear/cli.py', 'update', 'report']
 SCRIPT2 = ['/Users/hellobiek/Documents/workspace/golang/bin/tdx']
 class DataPreparer:
     def __init__(self):

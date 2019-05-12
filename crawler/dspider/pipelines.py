@@ -10,7 +10,7 @@ import dspider.poster as poster
 from scrapy.exceptions import DropItem
 from scrapy.pipelines.files import FilesPipeline
 
-post_router={
+post_router = {
     items.SPledgeSituationItem:poster.SPledgeSituationItemPoster,
     items.InvestorSituationItem:poster.InvestorSituationItemPoster,
     items.HkexTradeOverviewItem:poster.HkexTradeOverviewPoster,
@@ -19,7 +19,9 @@ post_router={
 
 class DspiderPipeline(object):
     def process_item(self, item, spider):
-        post_router[item.__class__](item).store()
+        obj = post_router[item.__class__](item)
+        if obj.check():
+            obj.store()
         return item
 
 class SPledgePipline(FilesPipeline):

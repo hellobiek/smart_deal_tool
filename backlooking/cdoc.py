@@ -84,12 +84,11 @@ class CDoc:
             plt.plot(xn, y, label = ylabel)
             num = 0
             for xi, yi in zip(xn, y):
-                if num % 7 == 0 or num == len(x) - 1:
+                if num % 11 == 0 or num == len(x) - 1:
                     plt.plot((xi,), (yi,), 'ro')
-                    plt.text(xi, yi, '%s' % yi, fontsize = 7, rotation = 60)
+                    plt.text(xi, yi, '%.2f' % yi, fontsize = 5, rotation = 60)
                 num += 1
-            plt.scatter(xn, y, color = self.COLORS[i], s = 5, marker = "o")
-
+            #plt.scatter(xn, y, color = self.COLORS[i], s = 5, marker = "o")
         fig.autofmt_xdate()
         plt.legend(prop = get_chinese_font())
         plt.savefig('%s/%s.png' % (dir_name, filename), dpi=1000)
@@ -210,7 +209,7 @@ class CDoc:
         mfiles = [mfile for mfile in os.listdir(self.sdir) if mfile.endswith('StockReView')]
         if len(mfiles) < 10: return
         mfiles.sort(reverse = True)
-        for mfile in mfiles[10:]:
+        for mfile in mfiles[1:]:
             for zfile in [mfile, "%s.md" % mfile]:
                 src = "%s/%s" % (self.sdir, zfile)
                 dst = "%s/%s" % (self.bdir, zfile)

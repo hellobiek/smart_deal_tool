@@ -36,6 +36,7 @@ const.FUTU_PORT = 11111
 const.FUTU_PATH = "/scode/configure/futu.json"
 const.TRADING_FILE = "/scode/configure/trading.json"
 const.USER_FILE = "/scode/configure/user.json"
+const.WECHAT_FILE = "/scode/configure/wechat"
 const.TUSHAE_FILE = "/scode/configure/tushare.json"
 const.SLEEP_TIME = 3
 const.SHORT_SLEEP_TIME = 1
@@ -4456,6 +4457,10 @@ const.REAL_TRADING = 2
 const.ROLLING_UP = 1
 const.ROLLING_DOWN = -1
 ##################################################
+const.SPIDERMON_VALIDATION_ERRORS_FIELD = 'validation'
+const.SPIDERMON_EXPECTED_FINISH_REASONS = ['finished']
+const.DEFAULT_ERROR_CODES = {code: 5 for code in [400, 403, 404, 407, 408, 500, 502, 503, 504, 523, 540, 541]}
+##################################################
 const.KL = "亢龙"
 const.QL = "潜龙"
 const.JL = "见龙"
@@ -4697,7 +4702,8 @@ const.WHITE_DICT = {
     "601887": "正泰电器",
     "601318": "中国平安",
     "300760": "迈瑞医疗",
-    "300357": "我武生物"
+    "300357": "我武生物",
+    "300750": "宁德时代"
 }
 ####################################################
 const.BLACK_DICT = {
@@ -5277,5 +5283,8 @@ const.BLACK_DICT = {
     "002357": "富临运业:汽车客运站服务，控股股东全额质押，频繁折腾收购，15年营收开始下滑，重大交通事故子公司高管被刑拘，套路停牌半年躲避下跌，连续下跌导致控股股东开始卖壳",
     "000782": "美达股份:化纤企业，锦纶纺织生产销售，营收13年开始不断下滑，净利一年好一年亏，经营现金流是不是为负，控股股东高比例质押，二股东清仓式减持",
     "601155": "新城控股:上交所16问后暴露的隐藏负债技巧",
+    "002470": "金正大:财报被更新为保留意见，是个垃圾",
+    "600775": "南京熊猫:大股东违规减持",
+    "002796": "世嘉科技:董秘大幅度减持买学区房，傻逼公司",
     "300413": "芒果超媒:湖南电视台，百亿整合迷雾重重，有诸多财务疑点"
 }

@@ -66,7 +66,3 @@ class HkexCrawler(object):
         d.addBoth(lambda _: reactor.stop())
         reactor.run() #the script will block here until the crawling is finished
         return True
-
-if __name__ == '__main__':
-    hc = HkexCrawler()
-    hc.run()

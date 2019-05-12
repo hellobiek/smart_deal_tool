@@ -134,8 +134,9 @@ class RIndexStock:
                     all_df = all_df.append(tem_df)
                     failed_list.remove(code_data[0])
             if len(failed_list) != last_length:
+                self.logger.debug("last failed list:%s, current failed list:%s" % (last_length, len(failed_list)))
                 last_length = len(failed_list)
-                if last_length > 0: time.sleep(300)
+                if last_length > 0: time.sleep(600)
         obj_pool.join(timeout = 5)
         obj_pool.kill()
         all_df = all_df.drop_duplicates()

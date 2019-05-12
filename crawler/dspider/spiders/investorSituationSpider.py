@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
 import datetime
+import const as ct
 from datetime import datetime
 from scrapy import FormRequest
 from dspider.utils import datetime_to_str
@@ -20,9 +21,24 @@ investor_count_to_path = {
 class InvestorSituationSpider(BasicSpider):
     name = 'investorSituationSpider'
     custom_settings = {
+        'ROBOTSTXT_OBEY': False,
+        'SPIDERMON_ENABLED': True,
+        'SPIDERMON_VALIDATION_ADD_ERRORS_TO_ITEMS': True,
+        'SPIDERMON_VALIDATION_ERRORS_FIELD': ct.SPIDERMON_VALIDATION_ERRORS_FIELD,
+        'EXTENSIONS': {
+            'spidermon.contrib.scrapy.extensions.Spidermon': 500,
+        },
         'ITEM_PIPELINES': {
-            'dspider.pipelines.DspiderPipeline': 2
-        }
+            'spidermon.contrib.scrapy.pipelines.ItemValidationPipeline': 100,
+            'dspider.pipelines.DspiderPipeline': 200
+        },
+        'SPIDERMON_UNWANTED_HTTP_CODES': ct.DEFAULT_ERROR_CODES,
+        'SPIDERMON_VALIDATION_MODELS': {
+            InvestorSituationItem: 'dspider.validators.InvestorSituationModel',
+        },
+        'SPIDERMON_SPIDER_CLOSE_MONITORS': (
+            'dspider.monitors.SpiderCloseMonitorSuite',
+        )
     }
     allowed_domains = ['www.chinaclear.cn']
     start_urls = ['http://www.chinaclear.cn/cms-search/view.action']
@@ -39,14 +55,21 @@ class InvestorSituationSpider(BasicSpider):
 
     def parse(self, response):
         patten = re.compile(r'[（](.*?)[）]', re.S)
-        investor_situation_item = InvestorSituationItem()
+        item = InvestorSituationItem()
+        tmpStr = response.xpath("/html[1]/body[1]/div[2]/div[1]/font[1]").extract_first()
+        if tmpStr is not None and tmpStr.find('没有找到相关信息，请检查查询条件') == -1: return
+        tmpStr = response.xpath(investor_count_to_path['unit']).extract_first().strip()
+        unit = '万' if tmpStr is not None and tmpStr.find('万') != -1 else None
         for k in investor_count_to_path:
             if k == "date":
-                tmpstr = response.xpath(investor_count_to_path[k]).extract_first()
+                tmpstr = response.xpath(investor_count_to_path[k]).extract_first().strip()
                 if tmpstr == '搜索结果': return
                 mdate = re.findall(patten, tmpstr)[0].split('-')[1].strip()
                 mdate = mdate.replace('.', '-')
-                investor_situation_item[k] = mdate 
+                item[k] = mdate
+            elif k == 'unit':
+                item[k] = unit
             else:
-                investor_situation_item[k] = response.xpath(investor_count_to_path[k]).extract_first().strip()
-        yield investor_situation_item
+                value_str = response.xpath(investor_count_to_path[k]).extract_first().strip()
+                item[k] = item.convert_unit(value_str, unit, float)
+        yield item

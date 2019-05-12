@@ -253,12 +253,15 @@
         - 中股复盘: 日复盘(done)
         - 美股复盘: 日复盘(done)
     - 系统开发与维护
-        - Docker For Mac网络问题解决(part done)。
         - 完成PE，PB的估值带图形(doing)。
             - 爬虫
                 - 爬虫监控
                     - 监控爬虫
+                        - 了解了slack，很好，(done但是目前用不到)
+                        - Email的样本搞懂(done)
+                        - 修改为方糖的微信版本(done)
                     - message到微信
+                        - 将已有的爬虫添加报警和失败报微信
                 - 国债爬虫
                     - 记录无风险收益率
                 - 同花顺爬虫
@@ -277,8 +280,9 @@
                 - Grafana显示数据
                     - https://cuiqingcai.com/6217.html/comment-page-1
                     - https://blog.csdn.net/Jailman/article/details/78913824
+        - Docker For Mac网络问题解决(doing)。
         - 完成复盘添加牛熊比的数据图形(done)。
-        - 回测框架支持如果开盘涨停则不买入(doing)。
+        - 回测框架支持如果开盘涨停则不买入。
         - 复盘视频的添加。
         - 完成复盘的热力图。
     - 量化策略开发
