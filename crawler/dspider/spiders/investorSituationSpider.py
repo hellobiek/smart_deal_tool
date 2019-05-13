@@ -54,10 +54,10 @@ class InvestorSituationSpider(BasicSpider):
             yield FormRequest(url = self.start_urls[0], method = 'GET', formdata = formdata, callback = self.parse)
 
     def parse(self, response):
-        patten = re.compile(r'[（](.*?)[）]', re.S)
+        patten = re.compile(r'[（|(](.*?)[)|）]', re.S)
         item = InvestorSituationItem()
         tmpStr = response.xpath("/html[1]/body[1]/div[2]/div[1]/font[1]").extract_first()
-        if tmpStr is not None and tmpStr.find('没有找到相关信息，请检查查询条件') == -1: return
+        if tmpStr is not None and tmpStr.find('没有找到相关信息，请检查查询条件') != -1: return
         tmpStr = response.xpath(investor_count_to_path['unit']).extract_first().strip()
         unit = '万' if tmpStr is not None and tmpStr.find('万') != -1 else None
         for k in investor_count_to_path:

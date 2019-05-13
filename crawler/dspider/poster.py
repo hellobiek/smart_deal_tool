@@ -11,6 +11,7 @@ from base.clog import getLogger
 from twisted.enterprise import adbapi
 from hkex import HkexCrawler
 from investor import InvestorCrawler
+from investor import MonthInvestorCrawler
 from pymysql.err import OperationalError, InterfaceError, DataError, InternalError, IntegrityError
 logger = getLogger(__name__)
 class Poster(object):
@@ -152,6 +153,21 @@ class InvestorSituationItemPoster(Poster):
         super(InvestorSituationItemPoster, self).__init__(item)
         self.dbname = InvestorCrawler.get_dbname()
         self.table = InvestorCrawler.get_table_name()
+        self.dbpool = adbapi.ConnectionPool("pymysql", host = dbinfo['host'], db = self.dbname, user = dbinfo['user'], password = dbinfo['password'], charset = "utf8", cursorclass = pymysql.cursors.DictCursor, use_unicode = True)
+
+    def on_error(self, failure):
+        if not (failure.type == IntegrityError and failure.value.args[0] == 1062):
+            logger.error(failure.type, failure.value, failure.getTraceback())
+
+    def store(self):
+        query = self.dbpool.runInteraction(self.do_insert, self.item)
+        query.addErrback(self.on_error)
+
+class MonthInvestorSituationItemPoster(Poster):
+    def __init__(self, item, dbinfo = ct.DB_INFO):
+        super(MonthInvestorSituationItemPoster, self).__init__(item)
+        self.dbname = MonthInvestorCrawler.get_dbname()
+        self.table = MonthInvestorCrawler.get_table_name()
         self.dbpool = adbapi.ConnectionPool("pymysql", host = dbinfo['host'], db = self.dbname, user = dbinfo['user'], password = dbinfo['password'], charset = "utf8", cursorclass = pymysql.cursors.DictCursor, use_unicode = True)
 
     def on_error(self, failure):

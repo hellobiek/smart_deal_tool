@@ -1,6 +1,27 @@
 #coding=utf-8
 from schematics.models import Model
 from schematics.types import URLType, StringType, ListType, FloatType, IntType
+
+class MonthInvestorSituationModel(Model):
+    date = StringType(required=True)
+    unit = StringType(required=True)
+    new_investor = FloatType(required=True)
+    new_natural_person = FloatType(required=True)
+    new_non_natural_person = FloatType(required=True)
+    final_investor = FloatType(required=True)
+    final_natural_person = FloatType(required=True)
+    final_natural_a_person = FloatType(required=True)
+    final_natural_b_person = FloatType(required=True)
+    final_non_natural_person = FloatType(required=True)
+    final_non_natural_a_person = FloatType(required=True)
+    final_non_natural_b_person = FloatType(required=True)
+    final_hold_investor = FloatType(required=True)
+    final_a_hold_investor = FloatType(required=True)
+    final_b_hold_investor = FloatType(required=True)
+    trading_investor = FloatType(required=True)
+    trading_a_investor = FloatType(required=True)
+    trading_b_investor = FloatType(required=True)
+
 class InvestorSituationModel(Model):
     date = StringType(required=True)
     new_investor = FloatType(required=True)

@@ -11,10 +11,11 @@ from scrapy.exceptions import DropItem
 from scrapy.pipelines.files import FilesPipeline
 
 post_router = {
+    items.HkexTradeTopTenItem:poster.HkexTradeTopTenItemPoster,
+    items.HkexTradeOverviewItem:poster.HkexTradeOverviewPoster,
     items.SPledgeSituationItem:poster.SPledgeSituationItemPoster,
     items.InvestorSituationItem:poster.InvestorSituationItemPoster,
-    items.HkexTradeOverviewItem:poster.HkexTradeOverviewPoster,
-    items.HkexTradeTopTenItem:poster.HkexTradeTopTenItemPoster,
+    items.MonthInvestorSituationItem:poster.MonthInvestorSituationItemPoster,
 }
 
 class DspiderPipeline(object):
