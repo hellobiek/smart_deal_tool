@@ -12,16 +12,16 @@ class BasicSpider(Spider):
         _date = datetime(y, m, d) - timedelta(num)
         return _date.strftime(dformat) 
 
-    def get_next_date(self, sdate = datetime.now().strftime('%Y.%m.%d'), target_day = calendar.FRIDAY):
+    def get_next_date(self, sdate, target_day = calendar.FRIDAY, dformat = '%Y.%m.%d'):
         #func: get next date
         #sdate: str, example: '2017-01-01'
         #tdate: str, example: '2017-01-06'
         oneday = timedelta(days = 1)
-        sdate = datetime.strptime(sdate, '%Y.%m.%d')
+        sdate = datetime.strptime(sdate, dformat)
         if sdate.weekday() == target_day: sdate += oneday
         while sdate.weekday() != target_day: 
             sdate += oneday
-        tdate = sdate.strftime("%Y.%m.%d")
+        tdate = sdate.strftime(dformat)
         return tdate
 
     def get_next_month(self, smonth):
@@ -38,12 +38,12 @@ class BasicSpider(Spider):
         tmonth = smonth.strftime(dformat)
         return tmonth
 
-    def get_tomorrow_date(self, sdate):
+    def get_tomorrow_date(self, sdate, dformat = '%Y.%m.%d'):
         #func: get next date
         #sdate: str, example: '2017.01.01'
         #tdate: str, example: '2017.01.06'
         oneday = timedelta(days = 1)
-        sdate = datetime.strptime(sdate, '%Y.%m.%d')
+        sdate = datetime.strptime(sdate, dformat)
         sdate += oneday
-        tdate = sdate.strftime("%Y.%m.%d")
+        tdate = sdate.strftime(dformat)
         return tdate

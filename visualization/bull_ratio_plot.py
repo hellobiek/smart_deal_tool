@@ -57,7 +57,7 @@ class CBullRation():
         plt.show()
 
 if __name__ == '__main__':
-    start_date = '2019-01-01' 
+    start_date = '2000-01-01' 
     end_date = '2019-05-07'
     code = '000001'
     cbr = CBullRation(ct.OUT_DB_INFO, '127.0.0.1')

@@ -52,6 +52,7 @@ class CDoc:
         fig.autofmt_xdate()
         plt.legend(loc = 'upper right', prop = get_chinese_font())
         plt.savefig('%s/industry.png' % dir_name, dpi=1000)
+        plt.close(fig)
 
     def market_plot(self, sh_df, sz_df, x_dict, ycolumn, dir_name = '/code/figs'):
         y_dict = dict()
@@ -92,6 +93,7 @@ class CDoc:
         fig.autofmt_xdate()
         plt.legend(prop = get_chinese_font())
         plt.savefig('%s/%s.png' % (dir_name, filename), dpi=1000)
+        plt.close(fig)
 
     def scatter_plot(x_data, y_data, x_label="", y_label="", title="", color = "r", yscale_log=False):
         # Create the plot object
@@ -122,6 +124,7 @@ class CDoc:
         ax.grid(True, color = 'k', linestyle = '--')
         fig.autofmt_xdate()
         plt.savefig('%s/%s.png' % (dir_name, filename), dpi=1000)
+        plt.close(fig)
 
     def plot_pie(self, df, column, title, xtuple, dir_name, filename, ctype = None):
         def xfunc(pct, allvals):
@@ -143,6 +146,7 @@ class CDoc:
             plt.setp(texts, size = 8, color = 'b')
         fig.autofmt_xdate()
         plt.savefig('%s/%s.png' % (dir_name, filename), dpi = 1000)
+        plt.close(fig)
 
     def static_plot(self, stock_info, limit_info,  dir_name, file_name):
         limit_up_list   = limit_info[(limit_info.pchange > 0) & (limit_info.prange != 0)].reset_index(drop = True).code.tolist()
@@ -180,6 +184,7 @@ class CDoc:
         plt.xticks(range(1, len(num_list) + 1), name_list, fontproperties = get_chinese_font())
         fig.autofmt_xdate()
         plt.savefig('%s/%s.png' % (dir_name, file_name), dpi=1000)
+        plt.close(fig)
 
     def plot_bullration(self, df, dir_name, file_name):
         def _format_date(i, pos = None):
@@ -203,6 +208,7 @@ class CDoc:
         plt.gca().xaxis.set_major_formatter(mticker.FuncFormatter(_format_date))
         fig.autofmt_xdate()
         fig.savefig('%s/%s.png' % (dir_name, file_name), dpi=1000)
+        plt.close(fig)
 
     def move_old_files(self):
         #backup no use files

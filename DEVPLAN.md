@@ -265,12 +265,13 @@
                 - 中国结算的数据
                     - monthly获取数据
                         - 投资者统计(done)
-                        - 证券登记业务统计
-                        - 证券存管业务统计
-                        - 股份转让业务统计
-                        - 其他业务统计
+                        - 证券登记业务统计(no need)
+                        - 证券存管业务统计(no need)
+                        - 股份转让业务统计(no need)
+                        - 其他业务统计(no need)
                 - 指数，行业和个股的PE，PB，股息获取
-                    - daily获取数据
+                    - 主要板块市盈率
+                        - http://115.29.210.20/syl/bk20130101.zip
                 - 国债爬虫
                     - 记录无风险收益率
                 - 同花顺爬虫
@@ -285,10 +286,12 @@
                 - Grafana显示数据
                     - https://cuiqingcai.com/6217.html/comment-page-1
                     - https://blog.csdn.net/Jailman/article/details/78913824
-        - DcokerForMac的服务和futu放到一起。
-        - 回测框架支持如果开盘涨停则不买入。
+        - DcokerForMac的服务和futu放到一起(doing)
         - 复盘视频的添加。
         - 完成复盘的热力图。
+        - 回测框架支持如果开盘涨停则不买入。
+        - 指数贡献点数的计算
+            - （个股上涨|下跌金额*个股总股数/上交所全体股票总市值）* 上证指数
         - Docker For Mac网络问题解决(done)。
         - 完成复盘添加牛熊比的数据图形(done)。
     - CTA量化策略开发

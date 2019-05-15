@@ -144,6 +144,10 @@ class HkexTradeTopTenItemPoster(Poster):
         except Exception as e:
             logger.debug(e)
 
+class PlatePERatioSpider(Poster):
+    def __init__(self, item):
+        super(PlatePERatioSpider, self).__init__(item)
+
 class SPledgeSituationItemPoster(Poster):
     def __init__(self, item):
         super(SPledgeSituationItemPoster, self).__init__(item)

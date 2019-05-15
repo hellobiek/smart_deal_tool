@@ -11,6 +11,7 @@ class SPledgeSituationSpider(BasicSpider):
     custom_settings = {
         'ROBOTSTXT_OBEY': False,
         'SPIDERMON_ENABLED': True,
+        'FILES_STORE': '/data/tdx/history/weeks/pledge',
         'SPIDERMON_EXPECTED_FINISH_REASONS': ct.SPIDERMON_EXPECTED_FINISH_REASONS,
         'EXTENSIONS': {
             'spidermon.contrib.scrapy.extensions.Spidermon': 500,

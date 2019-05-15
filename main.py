@@ -14,7 +14,7 @@ def main():
     dm = DataManager(ct.DB_INFO)
     ctrader = CTrader(ct.DB_INFO)
     log.info("init succeed")
-    threadList.append(CThread(dm.run, 600))
+    #threadList.append(CThread(dm.run, 600))
     threadList.append(CThread(dm.update, 1800))
     threadList.append(CThread(ctrader.buy_new_stock, 3600))
 

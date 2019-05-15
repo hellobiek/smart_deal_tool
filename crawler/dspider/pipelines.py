@@ -14,6 +14,7 @@ post_router = {
     items.HkexTradeTopTenItem:poster.HkexTradeTopTenItemPoster,
     items.HkexTradeOverviewItem:poster.HkexTradeOverviewPoster,
     items.SPledgeSituationItem:poster.SPledgeSituationItemPoster,
+    items.MyDownloadItem:poster.PlatePERatioSpider,
     items.InvestorSituationItem:poster.InvestorSituationItemPoster,
     items.MonthInvestorSituationItem:poster.MonthInvestorSituationItemPoster,
 }
@@ -25,7 +26,7 @@ class DspiderPipeline(object):
             obj.store()
         return item
 
-class SPledgePipline(FilesPipeline):
+class MyFilePipline(FilesPipeline):
     """
     继承FilesPipeline，更改其存储文件的方式
     """
@@ -40,8 +41,19 @@ class SPledgePipline(FilesPipeline):
     def item_completed(self, results, item, info):
         file_urls = [x['path'] for ok, x in results if ok]
         if not file_urls: raise DropItem("Item contains no files")
-        item['file_urls'] = file_urls
+        item['file_name'] = file_urls
         return item
+
+class PlatePERatioPipline(MyFilePipline):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def file_path(self, request, response = None, info=None):
+        return request.meta['item']['file_name'].strip('";')
+
+class SPledgePipline(MyFilePipline):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def file_path(self, request, response = None, info=None):
         return request.meta['item']['file_name'].replace('gpzyhgmx_', '')

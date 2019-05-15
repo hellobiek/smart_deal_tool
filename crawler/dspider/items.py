@@ -23,7 +23,11 @@ class DspiderItem(scrapy.Item):
         elif direction == 'north':
             return code.zfill(6)
 
-class SPledgeSituationItem(DspiderItem):
+class MyDownloadItem(DspiderItem):
+    file_urls = scrapy.Field()
+    file_name = scrapy.Field()
+
+class SPledgeSituationItem(MyDownloadItem):
     files = scrapy.Field()
     file_urls = scrapy.Field()
     file_name = scrapy.Field()

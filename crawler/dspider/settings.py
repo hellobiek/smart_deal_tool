@@ -63,7 +63,7 @@ ROBOTSTXT_OBEY = True
 #    'dspider.pipelines.DspiderPipeline': 3,
 #}
 
-FILES_STORE = '/data/tdx/history/weeks/pledge'
+#FILES_STORE = '/data/tdx/history/weeks/pledge'
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://doc.scrapy.org/en/latest/topics/autothrottle.html

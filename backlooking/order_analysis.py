@@ -67,8 +67,8 @@ def main():
     dirname = '/Volumes/data/quant/stock/data/docs/blog/hellobiek.github.io/source/_posts'
     unlock_path_ = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/futu.json"
     futuTrader = FutuTrader(host = ct.FUTU_HOST_LOCAL, port = ct.FUTU_PORT, trd_env = TrdEnv.REAL, market = ct.US_MARKET_SYMBOL, unlock_path = unlock_path_)
-    start = '2019-04-29'
-    end   = '2019-05-03'
+    start = '2019-05-06'
+    end   = '2019-05-10'
     orders = futuTrader.get_history_orders(start = start, end = end)
     date_arrary = get_dates_array(start, end, dformat = "%Y-%m-%d", asending = True)
     generate(orders, date_arrary, dirname, start, end)

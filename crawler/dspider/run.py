@@ -8,8 +8,10 @@ from scrapy.crawler import CrawlerRunner
 from dspider.hkex import HkexCrawler
 from dspider.spledge import SPledgeCrawler
 from dspider.investor import InvestorCrawler
+from dspider.plate_peratio import PlatePERatioCrawler
 from dspider.investor import MonthInvestorCrawler
 from scrapy.utils.project import get_project_settings
+from dspider.spiders.platePERatio import PlatePERatioSpider
 from dspider.spiders.hkexSituationSpider import HkexSpider
 from dspider.spiders.spledgeSituationSpider import SPledgeSituationSpider
 from dspider.spiders.investorSituationSpider import InvestorSituationSpider
@@ -18,7 +20,9 @@ def init():
     #HkexCrawler()
     #SPledgeCrawler()
     #InvestorCrawler()
-    MonthInvestorCrawler()
+    #MonthInvestorCrawler()
+    #PlatePERatioCrawler()
+    pass
 
 def weekly_spider():
     init()
@@ -27,7 +31,8 @@ def weekly_spider():
     #myrunner.crawl(HkexSpider)
     #myrunner.crawl(SPledgeSituationSpider)
     #myrunner.crawl(InvestorSituationSpider)
-    myrunner.crawl(MonthInvestorSituationSpider)
+    #myrunner.crawl(MonthInvestorSituationSpider)
+    myrunner.crawl(PlatePERatioSpider)
     d = myrunner.join()
     d.addBoth(lambda _: reactor.stop())
     reactor.run() #the script will block here until the crawling is finished
