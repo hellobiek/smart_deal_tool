@@ -10,6 +10,7 @@ import const as ct
 from base.clog import getLogger
 from twisted.enterprise import adbapi
 from hkex import HkexCrawler
+from plate_valuation import PlateValuationCrawler
 from investor import InvestorCrawler
 from investor import MonthInvestorCrawler
 from pymysql.err import OperationalError, InterfaceError, DataError, InternalError, IntegrityError
@@ -144,13 +145,35 @@ class HkexTradeTopTenItemPoster(Poster):
         except Exception as e:
             logger.debug(e)
 
-class PlatePERatioSpider(Poster):
+class MyDownloadItemPoster(Poster):
     def __init__(self, item):
-        super(PlatePERatioSpider, self).__init__(item)
+        super(MyDownloadItemPoster, self).__init__(item)
 
 class SPledgeSituationItemPoster(Poster):
     def __init__(self, item):
         super(SPledgeSituationItemPoster, self).__init__(item)
+
+class PlateValuationPoster(Poster):
+    def __init__(self, item, dbinfo = ct.DB_INFO):
+        super(PlateValuationPoster, self).__init__(item)
+        self.dbname = PlateValuationCrawler.get_dbname()
+        self.table = PlateValuationCrawler.get_tablename()
+        self.connect = pymysql.connect(host=dbinfo['host'], port=dbinfo['port'], db=self.dbname, user=dbinfo['user'], passwd=dbinfo['password'], charset=ct.UTF8)
+        self.cursor = self.connect.cursor()
+        #self.dbpool = adbapi.ConnectionPool("pymysql", host = dbinfo['host'], db = self.dbname, user = dbinfo['user'], password = dbinfo['password'], charset = "utf8", cursorclass = pymysql.cursors.DictCursor, use_unicode = True)
+
+    def store(self):
+        try:
+            insert_sql, params = self.item.get_insert_sql(self.table)
+            if insert_sql == None and params == None: return
+            self.cursor.execute(insert_sql, params)
+            self.connect.commit()
+        except Exception as e:
+            logger.debug(e)
+
+    def on_error(self, failure):
+        if not (failure.type == IntegrityError and failure.value.args[0] == 1062):
+            logger.error(failure.type, failure.value, failure.getTraceback())
 
 class InvestorSituationItemPoster(Poster):
     def __init__(self, item, dbinfo = ct.DB_INFO):

@@ -303,5 +303,11 @@ class CMySQL:
         return res
 
 if __name__ == '__main__':
-    cmy = CMySQL(ct.DB_INFO)
-    print(cmy._get_all_databses())
+    cmy = CMySQL(ct.DB_INFO, dbname = 'plate')
+    sql = 'select * from valuation;'
+    df = cmy.get(sql)
+    for cdate, data in df.groupby(df.date):
+        if len(data) != 6: print(cdate)
+
+    import pdb
+    pdb.set_trace()

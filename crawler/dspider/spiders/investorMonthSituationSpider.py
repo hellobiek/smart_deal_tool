@@ -40,7 +40,7 @@ class MonthInvestorSituationSpider(BasicSpider):
         },
         'ITEM_PIPELINES': {
             'spidermon.contrib.scrapy.pipelines.ItemValidationPipeline': 100,
-            'dspider.pipelines.DspiderPipeline': 200
+            'dspider.pipelines.DspiderPipeline': 200,
         },
         'SPIDERMON_UNWANTED_HTTP_CODES': ct.DEFAULT_ERROR_CODES,
         'SPIDERMON_VALIDATION_MODELS': {

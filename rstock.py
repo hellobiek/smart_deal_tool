@@ -118,7 +118,7 @@ class RIndexStock:
 
     def generate_all_data(self, cdate, black_list = ct.BLACK_LIST):
         from gevent.pool import Pool
-        obj_pool = Pool(500)
+        obj_pool = Pool(5000)
         failed_list = CStockInfo(redis_host = self.redis_host).get(redis = self.redis).code.tolist()
         if len(black_list) > 0:
             failed_list = list(set(failed_list).difference(set(black_list)))
@@ -136,6 +136,7 @@ class RIndexStock:
             if len(failed_list) != last_length:
                 self.logger.debug("last failed list:%s, current failed list:%s" % (last_length, len(failed_list)))
                 last_length = len(failed_list)
+            else:
                 if last_length > 0: time.sleep(600)
         obj_pool.join(timeout = 5)
         obj_pool.kill()

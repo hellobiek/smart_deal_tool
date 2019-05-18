@@ -19,8 +19,8 @@ class HkexSpider(BasicSpider):
             'spidermon.contrib.scrapy.extensions.Spidermon': 500,
         },
         'ITEM_PIPELINES': {
-            'spidermon.contrib.scrapy.pipelines.ItemValidationPipeline': 100,
-            'dspider.pipelines.DspiderPipeline': 200,
+            'spidermon.contrib.scrapy.pipelines.ItemValidationPipeline': 200,
+            'dspider.pipelines.DspiderPipeline': 300,
         },
         'SPIDERMON_UNWANTED_HTTP_CODES': ct.DEFAULT_ERROR_CODES,
         'SPIDERMON_VALIDATION_MODELS': {

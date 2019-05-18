@@ -317,7 +317,7 @@ def process_concurrent_run(mfunc, all_list, redis_client = None, process_num = 2
         if len(black_list) > 0: remove_blacklist(redis_client, ct.UNFINISHED_WORKS, black_list)
         todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
         if len(todo_list) == last_length:
-            time.sleep(300)
+            time.sleep(600)
             logger.error("left todo list:%s" % todo_list)
             return False
         else:

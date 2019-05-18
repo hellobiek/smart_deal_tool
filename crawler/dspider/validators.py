@@ -22,6 +22,15 @@ class MonthInvestorSituationModel(Model):
     trading_a_investor = FloatType(required=True)
     trading_b_investor = FloatType(required=True)
 
+class PlateValuationModel(Model):
+    date = StringType(required=True)
+    code = StringType(required=True)
+    name = StringType(required=True)
+    pe = FloatType(required=True)
+    ttm = FloatType(required=True)
+    pb = FloatType(required=True)
+    dividend = FloatType(required=True)
+
 class InvestorSituationModel(Model):
     date = StringType(required=True)
     new_investor = FloatType(required=True)

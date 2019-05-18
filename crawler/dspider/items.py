@@ -4,7 +4,6 @@
 # See documentation in:
 # https://doc.scrapy.org/en/latest/topics/items.html
 import scrapy
-from datetime import datetime
 class DspiderItem(scrapy.Item):
     # define the fields for your item here like:
     def convert(self, cstr, ctype = float):
@@ -27,6 +26,20 @@ class MyDownloadItem(DspiderItem):
     file_urls = scrapy.Field()
     file_name = scrapy.Field()
 
+class PlateValuationItem(DspiderItem):
+    date = scrapy.Field()
+    code = scrapy.Field()
+    name = scrapy.Field()
+    pe = scrapy.Field()
+    ttm = scrapy.Field()
+    pb = scrapy.Field()
+    dividend = scrapy.Field()
+    def get_insert_sql(self, table):
+        dc = dict(self)
+        params = (dc['date'], dc['code'], dc['name'], dc['pe'], dc['ttm'], dc['pb'], dc['dividend'])
+        insert_sql = "insert into {}(date,code,name,pe,ttm,pb,dividend) VALUES (%s,%s,%s,%s,%s,%s,%s);".format(table)
+        return insert_sql, params
+    
 class SPledgeSituationItem(MyDownloadItem):
     files = scrapy.Field()
     file_urls = scrapy.Field()
