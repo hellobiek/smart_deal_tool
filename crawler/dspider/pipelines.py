@@ -13,6 +13,7 @@ import dspider.poster as poster
 from dspider import items
 from scrapy import Request
 from scrapy.exceptions import DropItem
+from tempfile import TemporaryDirectory
 from scrapy.pipelines.files import FilesPipeline
 
 post_router = {
@@ -37,14 +38,12 @@ class PlateValuationHandlePipeline(object):
         fnames = item['file_name']
         fdir = ct.PLATE_VALUATION_PATH
         for fname in fnames:
-            f = zipfile.ZipFile(os.path.join(fdir, fname))
-            dirpath = tempfile.mkdtemp()
-            for mfile in f.namelist():
-                f.extract(mfile, dirpath)
-                item_list = self.create_item(dirpath, mfile)
-                for mitem in item_list: self.store(mitem)
-            shutil.rmtree(dirpath)
-            f.close()
+            with zipfile.ZipFile(os.path.join(fdir, fname)) as f:
+                with TemporaryDirectory() as dirpath:
+                    for mfile in f.namelist():
+                        f.extract(mfile, dirpath)
+                        item_list = self.create_item(dirpath, mfile)
+                        for mitem in item_list: self.store(mitem)
         return item
        
     def store(self, item):
@@ -55,7 +54,10 @@ class PlateValuationHandlePipeline(object):
         cdict = ct.PLATE_DICT
         fpath = os.path.join(fdir, fname)
         cdate = "%s-%s-%s" % (fname[2:6], fname[6:8], fname[8:10])
-        wb = xlrd.open_workbook(fpath, encoding_override="cp1252")
+        try:
+            wb = xlrd.open_workbook(fpath, encoding_override="cp1252")
+        except Exception as e:
+            return list()
         static_pe_sheet = wb.sheet_by_name('板块静态市盈率')
         rolling_pe_sheet = wb.sheet_by_name('板块滚动市盈率')
         pb_sheet = wb.sheet_by_name('板块市净率')
