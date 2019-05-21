@@ -18,131 +18,133 @@ from algotrade.strategy import gen_broker
 from algotrade.plotter import plotter
 from algotrade.technical.ma import macd
 from algotrade.technical.atr import atr
-from algotrade.technical.arf import arf
 from pyalgotrade import strategy
 from pyalgotrade.technical import ma
-from pyalgotrade.stratanalyzer import returns, sharpe
+from pyalgotrade.stratanalyzer import sharpe, drawdown
 class MACDStrategy(strategy.BacktestingStrategy):
     def __init__(self, total_risk, instruments, feed, cash, fastEMA, slowEMA, signalEMA, maxLen, stockNum, duaration):
-        self.__total_risk = total_risk
-        self.__total_num = stockNum
-        self.__duaration = duaration
-        brk = gen_broker(feed, cash * stockNum)
-        strategy.BacktestingStrategy.__init__(self, feed, brk)
-        self.__instruments = instruments
-        self.__high_dict = dict()
-        self.__sma_dict = dict()
-        self.__macd_dict = dict()
-        self.__duaration_dict = dict()
+        self.total_risk = total_risk
+        self.total_num = stockNum
+        self.duaration = duaration
+        strategy.BacktestingStrategy.__init__(self, feed, gen_broker(feed, cash * stockNum))
+        self.instruments = instruments
+        self.duaration_dict = dict()
+        self.dealprice_dict = dict()
+        self.high_dict = dict()
+        self.add_count_dict = {}
+        self.sma_dict = dict()
+        self.macd_dict = dict()
         for instrument in instruments:
-            self.__sma_dict[instrument] = ma.SMA(feed[instrument].getPriceDataSeries(), duaration)
-            self.__macd_dict[instrument] = Macd(instrument, feed[instrument], fastEMA, slowEMA, signalEMA, maxLen)
+            self.sma_dict[instrument] = ma.SMA(feed[instrument].getPriceDataSeries(), duaration)
+            self.macd_dict[instrument] = Macd(instrument, feed[instrument], fastEMA, slowEMA, signalEMA, maxLen)
         self.setUseAdjustedValues(False)
 
     def getInstruments(self):
-        return self.__instruments
+        return self.instruments
 
     def getDif(self, instrument):
-        return self.__macd_dict[instrument].getDif()
+        return self.macd_dict[instrument].getDif()
 
     def getDea(self, instrument):
-        return self.__macd_dict[instrument].getDea()
+        return self.macd_dict[instrument].getDea()
 
-    def getHighestPrice(self, instrument):
-        if instrument not in self.__high_dict: return None
-        return self.__high_dict[instrument]
+    def getDealPrice(self, instrument):
+        if instrument not in self.dealprice_dict: return None
+        return self.dealprice_dict[instrument]
 
-    def updateHighestPrice(self, bars):
-        for instrument in self.getActualPostion():
-            highPrice = self.getHighestPrice(instrument)
-            if highPrice is not None and instrument in bars.keys():
-                highPrice = max(bars[instrument].getHigh(), highPrice)
-                self.__high_dict[instrument] = highPrice
-
-    def setHighestPriceAndSubmitDateTime(self, order):
+    def setDealPriceAndSubmitDateTime(self, order):
         if order.isFilled():
             instrument = order.getInstrument()
-            if instrument not in self.__high_dict:
-                self.__high_dict[instrument] = order.getAvgFillPrice()
-                self.__duaration_dict[instrument] = order.getSubmitDateTime()
+            if order.isBuy():
+                self.dealprice_dict[instrument] = order.getAvgFillPrice()
+                self.duaration_dict[instrument] = order.getSubmitDateTime()
+                if instrument not in self.add_count_dict:
+                    self.add_count_dict[instrument] = 0
+                else:
+                    self.add_count_dict[instrument] += 1
+            elif order.isSell():
+                if instrument in self.dealprice_dict: del self.dealprice_dict[instrument]
+                if instrument in self.duaration_dict: del self.duaration_dict[instrument]
+                if instrument in self.add_count_dict: del self.add_count_dict[instrument]
 
     def isInstrumentTimeout(self, instrument, bar):
-        if instrument not in self.__duaration_dict: return False
-        if bar.getDateTime() > self.__duaration_dict[instrument] + timedelta(days = self.__duaration):
+        if instrument not in self.duaration_dict: return False
+        if bar.getDateTime() > self.duaration_dict[instrument] + timedelta(days = self.duaration):
             return True
         return False
 
     def onOrderUpdated(self, order):
-        self.setHighestPriceAndSubmitDateTime(order)
+        self.setDealPriceAndSubmitDateTime(order)
 
-    def getExpectdShares(self, risk_adjust_factor, sigma, position_sigma = 5):
-        #成交量获取到的单位是手，所以这里转换为手（1手=100股）
+    def getExpectdShares(self, price, atr):
+        #成交量获取到的单位是股
         total_asserts = self.getBroker().getEquity()
-        return int(total_asserts * self.__total_risk * risk_adjust_factor / ((position_sigma * sigma) * 100)) * 100
+        return 100 * int(total_asserts * self.total_risk / (atr * 100 * price))
 
     def getActualPostion(self):
         return self.getBroker().getPositions()
 
-    def shouldStopAndLoss(self, instrument, bars):
+    def shouldAddPosition(self, instrument, bars):
         if instrument in bars.keys():
             atr = bars[instrument].getExtraColumns()['atr']
-            highPrice = self.getHighestPrice(instrument)
+            dealPrice = self.getDealPrice(instrument)
             closePrice = bars[instrument].getPrice()
-            if atr is None: return 0
-            if highPrice is None: return 0
-            if closePrice <= highPrice - atr * TRAILING_STOP_LOSS_ATR:
-                # 当前价格小于等于最高价回撤 TRAILING_STOP_LOSS_ATR 倍ATR，进行止盈止损卖出
-                self.info("%s should sell now, price:%s, result:%s" % (instrument, closePrice, highPrice - atr * TRAILING_STOP_LOSS_ATR))
-                return 1
-            if self.isInstrumentTimeout(instrument, bars[instrument]):
-                self.info("%s should sell now for timeout" % instrument)
-                return 1
-        return 0
+            if atr is None: return False
+            if dealPrice is None: return False
+            if closePrice > dealPrice + atr * 0.5:
+                if instrument in self.add_count_dict and self.add_count_dict[instrument] >= MAX_ADD_POSITION: return False
+                self.info("%s add position, price:%s, result:%s" % (instrument, closePrice, dealPrice + 0.5 * atr))
+                return True
+        return False
+
+    def shouldStopLoss(self, instrument, bars):
+        atr = bars[instrument].getExtraColumns()['atr']
+        dealPrice = self.getDealPrice(instrument)
+        closePrice = bars[instrument].getPrice()
+        if atr is None: return False
+        if dealPrice is None: return False
+        if dealPrice <= closePrice - atr * STOP_LOSS_ATR:
+            # 当前价格小于等于最高价回撤 STOP_LOSS_ATR 倍ATR，进行止损卖出
+            self.info("%s stop loss, price:%s, result:%s" % (instrument, closePrice, dealPrice - atr * STOP_LOSS_ATR))
+            return True
+        return False
 
     def getAdjustSignal(self, bars):
         actualPostion = self.getActualPostion()
         adjustSignalList = list()
         for instrument in actualPostion:
-            if instrument in self.__instruments and instrument in bars.keys():
-                if self.shouldStopAndLoss(instrument, bars):
+            if instrument in self.instruments and instrument in bars.keys():
+                if self.shouldStopLoss(instrument, bars):
                     newPosition = dict()
                     newPosition[instrument] = -1 * actualPostion[instrument]
                     adjustSignalList.append(newPosition)
-                else:
-                    expectPosition = dict()
-                    sigma = bars[instrument].getExtraColumns()['sigma']
-                    risk_adjust_factor = bars[instrument].getExtraColumns()['arf']
-                    expectPosition[instrument] = self.getExpectdShares(risk_adjust_factor, sigma)
-                    deltaShares = expectPosition[instrument] - actualPostion[instrument]
-                    if deltaShares != 0:
-                        deltaPosition = dict()
-                        deltaPosition[instrument] = expectPosition[instrument] - actualPostion[instrument]
-                        adjustSignalList.append(deltaPosition)
-            else:#todo
-                pass
+                if self.shouldAddPosition(instrument, bars):
+                    newPosition = dict()
+                    atr = bars[instrument].getExtraColumns()['atr']
+                    price = bars[instrument].getPrice()
+                    newPosition[instrument] = self.getExpectdShares(price, atr)
+                    adjustSignalList.append(newPosition)
         return adjustSignalList
 
     def getNewSignal(self, bars):
+        position = dict()
         signalList = list()
-        for instrument in self.__instruments:
-            position = dict()
-            actualPostions = self.getActualPostion()
-            for instrument in actualPostions:
-                if bars[instrument].getClose() < self.__sma_dict[instrument]:
-                    #self.info("sell for double top divergence date:%s, %s: double top divergence:%s" % (bars.getDateTime(), instrument, double_divergence.to_json()))
-                    self.info("sell for double top divergence date:%s, instrument:%s" % (bars.getDateTime(), instrument))
-                    position[instrument] = -1 * actualPostions[instrument]
-                    signalList.append(position)
-            for double_divergence in self.__macd_dict[instrument].double_bottom_divergences:
-                #self.info("buy for double bottom divergence date:%s, %s: double top divergence:%s" % (bars.getDateTime(), instrument, double_divergence.to_json()))
-                if instrument not in self.getActualPostion() and len(actualPostions) < self.__total_num:
-                    self.info("buy for double bottom divergence date:%s, instrument:%s" % (bars.getDateTime(), instrument))
-                    import pdb
-                    pdb.set_trace()
-                    sigma = bars[instrument].getExtraColumns()['sigma']
-                    risk_adjust_factor = bars[instrument].getExtraColumns()['arf']
-                    position[instrument] = self.getExpectdShares(risk_adjust_factor, sigma)
-                    signalList.append(position)
+        actualPostions = self.getActualPostion()
+        for instrument in actualPostions:
+            if instrument not in bars.keys(): continue
+            if len(self.macd_dict[instrument].double_top_divergences) > 0:
+                self.info("sell for double top divergence date:%s, instrument:%s" % (bars.getDateTime(), instrument))
+                position[instrument] = -1 * actualPostions[instrument]
+                signalList.append(position)
+
+        for instrument in self.instruments:
+            #self.info("buy for double bottom divergence date:%s, %s: double top divergence:%s" % (bars.getDateTime(), instrument, double_divergence.to_json()))
+            if len(self.macd_dict[instrument].double_bottom_divergences) > 0 and instrument not in actualPostions and len(actualPostions) < self.total_num:
+                self.info("buy for double bottom divergence date:%s, instrument:%s" % (bars.getDateTime(), instrument))
+                atr = bars[instrument].getExtraColumns()['atr']
+                price = bars[instrument].getPrice()
+                position[instrument] = self.getExpectdShares(price, atr)
+                signalList.append(position)
         return signalList 
 
     def getSignalDict(self, bars):
@@ -152,13 +154,12 @@ class MACDStrategy(strategy.BacktestingStrategy):
         return adjustSignalList
 
     def onBars(self, bars):
-        self.updateHighestPrice(bars)
         signalList = self.getSignalDict(bars)
         for info in signalList:
             for instrument, shares in info.items():
                 self.marketOrder(instrument, shares, allOrNone = True)
             
-def get_feed(all_df, codes, start_date, end_date, peried):
+def get_feed(all_df, codes, start_date, end_date, peried, duaration):
     feed = dataFramefeed.Feed()
     for code in codes:
         data = all_df.loc[all_df.code == code]
@@ -168,43 +169,43 @@ def get_feed(all_df, codes, start_date, end_date, peried):
         if is_df_has_unexpected_data(data): return None, None
         data.index = pd.to_datetime(data.index)
         data = data.dropna(how='any')
-        data = atr(data)
-        data = arf(data)
+        data = atr(data, ndays = duaration)
         feed.addBarsFromDataFrame(code, data)
     return feed
 
 MID   = 9
 SHORT = 12
 LONG  = 26
-# 跟踪止损的ATR倍数，即买入后，从最高价回撤该倍数的ATR后止损
-TRAILING_STOP_LOSS_ATR = 7
-DIVERGENCE_DETECT_DIF_LIMIT_BAR_NUM = 250
-def main(start_date, end_date, maxLen = DIVERGENCE_DETECT_DIF_LIMIT_BAR_NUM, peried = 'D'):
+# 跟踪止损的ATR倍数，即买入后，从成交价回撤该倍数的ATR后止损
+STOP_LOSS_ATR = 10
+MAX_BAR_NUM = 250
+MAX_ADD_POSITION = 4
+def main(start_date, end_date, maxLen = MAX_BAR_NUM, peried = 'D'):
     all_df = get_stock_pool(start_date, end_date)
     codes = list(set(all_df.code.tolist()))
-    feed = get_feed(all_df, codes, start_date, end_date, peried)
-    if feed is None: return False
     #每只股票可投资的金额
     cash = 100000
     stockNum = 10
-    totalRisk = 0.1
+    totalRisk = 0.01
     duaration = 10 #调仓周期
+
+    feed = get_feed(all_df, codes, start_date, end_date, peried, duaration)
+    if feed is None: return False
+
     macdStrategy = MACDStrategy(totalRisk, codes, feed, cash, SHORT, LONG, MID, maxLen, stockNum, duaration)
-    # Attach a returns analyzers to the strategy
-    returnsAnalyzer = returns.Returns()
-    macdStrategy.attachAnalyzer(returnsAnalyzer)
+    # Attach a drawdown analyzer to the strategy
+    drawdownAnalyzer = drawdown.DrawDown()
+    macdStrategy.attachAnalyzer(drawdownAnalyzer)
     # Attach a sharpe ratio analyzers to the strategy
     sharpeRatioAnalyzer = sharpe.SharpeRatio()
     macdStrategy.attachAnalyzer(sharpeRatioAnalyzer)
     # Attach the plotter to the strategy
     plt = plotter.StrategyPlotter(macdStrategy, False, True, True)
-    plt.getOrCreateSubplot("returns").addDataSeries("returns", returnsAnalyzer.getReturns())
     plt.getOrCreateSubplot("sharpRatio").addDataSeries("sharpRatio", sharpeRatioAnalyzer.getReturns())
-    #plt.getOrCreateSubplot("Macd").addDataSeries("dif", strategys[code].getDif())
-    #plt.getOrCreateSubplot("Macd").addDataSeries("dea", strategys[code].getDea())
     # Run Strategy
     macdStrategy.run()
-    macdStrategy.info("Final portfolio value: $%.2f" % macdStrategy.getResult())
+    macdStrategy.info("Get Max Downdown: %.2f" % drawdownAnalyzer.getMaxDrawDown())
+    macdStrategy.info("Final portfolio value: %.2f" % macdStrategy.getResult())
     plt.plot()
 
 def get_blacklist():
@@ -276,8 +277,8 @@ def get_stock_pool(start_date, end_date):
 
 if __name__ == '__main__':
     try:
-        start_date = '2018-01-01'
-        end_date   = '2019-05-17'
+        start_date = '2013-01-01'
+        end_date = '2015-10-12'
         main(start_date, end_date)
     except Exception as e:
         print(e)
