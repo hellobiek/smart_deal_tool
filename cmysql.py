@@ -308,6 +308,3 @@ if __name__ == '__main__':
     df = cmy.get(sql)
     for cdate, data in df.groupby(df.date):
         if len(data) != 6: print(cdate)
-
-    import pdb
-    pdb.set_trace()

@@ -137,8 +137,6 @@ class MACDStrategy(strategy.BacktestingStrategy):
                 #self.info("buy for double bottom divergence date:%s, %s: double top divergence:%s" % (bars.getDateTime(), instrument, double_divergence.to_json()))
                 if instrument not in self.getActualPostion() and len(actualPostions) < self.__total_num:
                     self.info("buy for double bottom divergence date:%s, instrument:%s" % (bars.getDateTime(), instrument))
-                    import pdb
-                    pdb.set_trace()
                     sigma = bars[instrument].getExtraColumns()['sigma']
                     risk_adjust_factor = bars[instrument].getExtraColumns()['arf']
                     position[instrument] = self.getExpectdShares(risk_adjust_factor, sigma)

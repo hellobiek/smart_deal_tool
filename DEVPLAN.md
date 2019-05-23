@@ -273,6 +273,7 @@
                     - 主要板块PE，PB和股息率(done)
                         - http://115.29.210.20/syl/bk20130101.zip
                     - 中证行业PE，PB和股息率
+                        - http://115.29.210.20/syl/csi20190402.zip
                         - http://www.csindex.com.cn/zh-CN/downloads/industry-price-earnings-ratio?type=zz1&date=2019-04-02
                     - 证监会行业PE，PB和股息率
                         - http://115.29.210.20/syl/bk20130101.zip

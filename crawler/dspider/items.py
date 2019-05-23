@@ -25,7 +25,7 @@ class DspiderItem(scrapy.Item):
 class MyDownloadItem(DspiderItem):
     file_urls = scrapy.Field()
     file_name = scrapy.Field()
-
+ 
 class PlateValuationItem(DspiderItem):
     date = scrapy.Field()
     code = scrapy.Field()
@@ -39,7 +39,13 @@ class PlateValuationItem(DspiderItem):
         params = (dc['date'], dc['code'], dc['name'], dc['pe'], dc['ttm'], dc['pb'], dc['dividend'])
         insert_sql = "insert into {}(date,code,name,pe,ttm,pb,dividend) VALUES (%s,%s,%s,%s,%s,%s,%s);".format(table)
         return insert_sql, params
-    
+
+class ChinaSecurityIndustryValuationItem(PlateValuationItem):
+    def empty(self):
+        if (self['dividend'] == 0 and self['pb'] == 0 and self['ttm'] == 0 and self['pe'] == 0):
+            return True
+        return False
+
 class SPledgeSituationItem(MyDownloadItem):
     files = scrapy.Field()
     file_urls = scrapy.Field()

@@ -4509,6 +4509,10 @@ const.SZ_MARKET_DICT = {
 }
 ###################################################
 const.PLATE_VALUATION_PATH = '/data/crawler/plate_valuation'
+const.CHINA_SECURITY_INDUSTRY_VALUATION_PATH = '/data/crawler/china_security_industry_valuation'
+const.CHINA_SECURITY_INDUSTRY_VALUATION_STOCK_PATH = '/data/crawler/china_security_industry_valuation/stock'
+const.CHINA_SECURITY_INDUSTRY_VALUATION_INDUSTRY_PATH = '/data/crawler/china_security_industry_valuation/industry'
+const.SECURITY_EXCHANGE_COMMISSION_INDUSTRY_VALUATION_PATH = '/data/crawler/security_exchange_commission_industry_valuation'
 ###################################################
 const.SELECTERS_DICT = {
     "StrongerThanMarketSelecter" : "S000001",
