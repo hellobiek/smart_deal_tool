@@ -248,7 +248,7 @@ def init_unfinished_workers(redis_client, key, todo_list, overwrite = False):
 
 def queue_process_concurrent_run(mfunc, all_list, redis_client = None, process_num = 2, num = 10, black_list = []):
     if redis_client is None: redis_client = create_redis_obj()
-    init_unfinished_workers(redis_client, ct.UNFINISHED_QUEUE_WORKS, copy.deepcopy(all_list), overwrite = True)
+    init_unfinished_workers(redis_client, ct.UNFINISHED_QUEUE_WORKS, copy.deepcopy(all_list))
     todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_QUEUE_WORKS)
     logger.info("all queue code list length:%s", len(todo_list))
     if len(todo_list) == 0: return None
@@ -258,9 +258,9 @@ def queue_process_concurrent_run(mfunc, all_list, redis_client = None, process_n
     while last_length > 0:
         i_start = 0
         jobs = list()
-        av_num = max(int(last_length / process_num), process_num)
+        #av_num = max(int(last_length / process_num), process_num)
         for x in range(process_num):
-            i_end = min(i_start + av_num, last_length)
+            i_end = min(i_start + num, last_length)
             p = Process(target = queue_thread_concurrent_run, args=(mfunc, todo_list[i_start:i_end], redis_client, ct.UNFINISHED_QUEUE_WORKS, q), kwargs={'num': num})
             jobs.append(p)
             i_start = i_end
@@ -283,6 +283,7 @@ def queue_process_concurrent_run(mfunc, all_list, redis_client = None, process_n
             return None
         else:
             last_length = len(todo_list)
+            time.sleep(3)
     return all_df 
 
 def queue_thread_concurrent_run(mfunc, todo_list, redis_client, key, q, num = 10):
@@ -298,7 +299,7 @@ def queue_thread_concurrent_run(mfunc, todo_list, redis_client, key, q, num = 10
 
 def process_concurrent_run(mfunc, all_list, redis_client = None, process_num = 2, num = 10, black_list = ct.BLACK_LIST):
     if redis_client is None: redis_client = create_redis_obj()
-    init_unfinished_workers(redis_client, ct.UNFINISHED_WORKS, copy.deepcopy(all_list))
+    init_unfinished_workers(redis_client, ct.UNFINISHED_WORKS, copy.deepcopy(all_list), overwrite = True)
     todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
     logger.info("all code list length:%s", len(todo_list))
     if len(todo_list) == 0: return False
@@ -306,31 +307,36 @@ def process_concurrent_run(mfunc, all_list, redis_client = None, process_num = 2
     while last_length > 0:
         i_start = 0
         jobs = list()
-        av_num = max(int(last_length / process_num), process_num)
+        #av_num = max(int(last_length / process_num), process_num)
         for x in range(process_num):
-            i_end = min(i_start + av_num, last_length)
+            i_end = min(i_start + num, last_length)
             p = Process(target = thread_concurrent_run, args=(mfunc, todo_list[i_start:i_end], redis_client, ct.UNFINISHED_WORKS), kwargs={'num': num})
             jobs.append(p)
             i_start = i_end
         for j in jobs: j.start()
         for j in jobs: j.join()
-        if len(black_list) > 0: remove_blacklist(redis_client, ct.UNFINISHED_WORKS, black_list)
+        if len(black_list) > 0: 
+            remove_blacklist(redis_client, ct.UNFINISHED_WORKS, black_list)
+            black_list = list()
         todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
         if len(todo_list) == last_length:
+            logger.error("left todo length:%s" % len(todo_list))
             time.sleep(600)
-            logger.error("left todo list:%s" % todo_list)
             return False
         else:
             last_length = len(todo_list)
             logger.debug("failed list count:%s" % last_length)
-            if last_length > 0: time.sleep(600)
+            time.sleep(1)
     return True
 
 def thread_concurrent_run(mfunc, todo_list, redis_client, key, num = 10):
     obj_pool = Pool(num)
     if 0 == len(todo_list): sys.exit(True)
     for result in obj_pool.imap_unordered(mfunc, todo_list):
-        if True == result[1]: redis_client.srem(key, result[0])
+        if result[1]:
+            redis_client.srem(key, result[0])
+        else:
+            time.sleep(0.1)
     obj_pool.join(timeout = 10)
     obj_pool.kill()
     sys.exit(True)

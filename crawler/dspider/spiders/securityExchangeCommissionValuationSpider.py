@@ -4,29 +4,27 @@ import const as ct
 from datetime import datetime
 from scrapy import FormRequest
 from dspider.myspider import BasicSpider
-from dspider.items import MyDownloadItem, ChinaSecurityIndustryValuationItem
-class ChinaSecurityIndustryValuationSpider(BasicSpider):
-    name = 'chinaSecurityIndustryValuationSpider'
+from dspider.items import MyDownloadItem
+class SecurityExchangeCommissionValuationSpider(BasicSpider):
+    name = 'securityExchangeCommissionValuationSpider'
     custom_settings = {
         'ROBOTSTXT_OBEY': False,
         'SPIDERMON_ENABLED': True,
+        'RANDOMIZE_DOWNLOAD_DELAY': False,
         'DOWNLOAD_DELAY': 1.0,
         'CONCURRENT_REQUESTS_PER_IP': 10,
         'CONCURRENT_REQUESTS_PER_DOMAIN': 1,
         'RANDOMIZE_DOWNLOAD_DELAY': False,
-        'FILES_STORE': ct.CHINA_SECURITY_INDUSTRY_VALUATION_PATH,
+        'FILES_STORE': ct.SECURITY_EXCHANGE_COMMISSION_INDUSTRY_VALUATION_ZIP_PATH,
         'SPIDERMON_VALIDATION_ADD_ERRORS_TO_ITEMS': True,
         'SPIDERMON_VALIDATION_ERRORS_FIELD': ct.SPIDERMON_VALIDATION_ERRORS_FIELD,
         'SPIDERMON_EXPECTED_FINISH_REASONS': ct.SPIDERMON_EXPECTED_FINISH_REASONS,
-        'SPIDERMON_VALIDATION_MODELS': {
-            ChinaSecurityIndustryValuationItem: 'dspider.validators.PlateValuationModel',
-        },
         'EXTENSIONS': {
             'spidermon.contrib.scrapy.extensions.Spidermon': 500,
         },
         'ITEM_PIPELINES': {
             'dspider.pipelines.PlateValuationDownloadPipeline': 100,
-            'dspider.pipelines.ChinaSecurityIndustryValuationHandlePipeline': 200,
+            'dspider.pipelines.SecurityExchangeCommissionValuationPipeline': 200,
         },
         'SPIDERMON_UNWANTED_HTTP_CODES': ct.DEFAULT_ERROR_CODES,
         'SPIDERMON_SPIDER_CLOSE_MONITORS': (
@@ -36,9 +34,9 @@ class ChinaSecurityIndustryValuationSpider(BasicSpider):
     allowed_domains = ['115.29.210.20']
     start_url = 'http://115.29.210.20/syl/'
     def start_requests(self):
-        mformat = 'csi%Y%m%d.zip'
+        mformat = '%Y%m%d.zip'
         end_date = datetime.now().strftime(mformat)
-        start_date = self.get_nday_ago(end_date, 3000, dformat = mformat)
+        start_date = self.get_nday_ago(end_date, 10, dformat = mformat)
         while start_date < end_date:
             furl =  self.start_url + start_date
             yield FormRequest(url = furl, method = 'GET', callback = self.parse)

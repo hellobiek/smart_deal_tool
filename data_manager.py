@@ -357,8 +357,10 @@ class DataManager:
             else:
                 self.logger.error("%s set base float profit failed" % code_id)
                 return (code_id, False)
-        failed_list = self.stock_info_client.get().code.tolist()
-        return process_concurrent_run(_set_base_float_profit, failed_list, num = 50)
+        df = self.stock_info_client.get()
+        if df.empty: return False
+        failed_list = df.code.tolist()
+        return process_concurrent_run(_set_base_float_profit, failed_list, num = 5)
 
     def init_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, index_info, code_id):
@@ -380,6 +382,7 @@ class DataManager:
         index_info = CIndex('000001').get_k_data()
         if index_info is None or index_info.empty: return False
         df = self.stock_info_client.get()
+        if df.empty: return False
         failed_list = df.code.tolist()
         if cdate is None:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
@@ -510,7 +513,7 @@ if __name__ == '__main__':
     #sys.exit(0)
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
-    mdate = '2019-05-15' 
+    mdate = '2019-05-23' 
     dm.logger.info("start compute!")
     #dm.clear_network_env()
     #dm.init_base_float_profit()

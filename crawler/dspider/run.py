@@ -11,6 +11,7 @@ from dspider.spledge import SPledgeCrawler
 from dspider.investor import InvestorCrawler
 from dspider.plate_valuation import PlateValuationCrawler
 from dspider.china_security_industry_valuation import ChinaSecurityIndustryValuationCrawler
+from dspider.security_exchange_commission_valuation import SecurityExchangeCommissionValuationCrawler
 from dspider.investor import MonthInvestorCrawler
 from scrapy.utils.project import get_project_settings
 from dspider.spiders.hkexSituationSpider import HkexSpider
@@ -19,6 +20,7 @@ from dspider.spiders.spledgeSituationSpider import SPledgeSituationSpider
 from dspider.spiders.investorSituationSpider import InvestorSituationSpider
 from dspider.spiders.investorMonthSituationSpider import MonthInvestorSituationSpider
 from dspider.spiders.chinaSecurityIndustryValuationSpider import ChinaSecurityIndustryValuationSpider
+from dspider.spiders.securityExchangeCommissionValuationSpider import SecurityExchangeCommissionValuationSpider
 
 def init():
     #HkexCrawler()
@@ -26,7 +28,8 @@ def init():
     #InvestorCrawler()
     #MonthInvestorCrawler()
     #PlateValuationCrawler()
-    ChinaSecurityIndustryValuationCrawler()
+    #ChinaSecurityIndustryValuationCrawler()
+    pass
 
 def weekly_spider():
     try:
@@ -38,7 +41,8 @@ def weekly_spider():
         #myrunner.crawl(InvestorSituationSpider)
         #myrunner.crawl(MonthInvestorSituationSpider)
         #myrunner.crawl(PlateValuationSpider)
-        myrunner.crawl(ChinaSecurityIndustryValuationSpider)
+        #myrunner.crawl(ChinaSecurityIndustryValuationSpider)
+        myrunner.crawl(SecurityExchangeCommissionValuationSpider)
         d = myrunner.join()
         d.addBoth(lambda _: reactor.stop())
         reactor.run() #the script will block here until the crawling is finished

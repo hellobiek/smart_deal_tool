@@ -23,7 +23,6 @@ post_router = {
     items.SPledgeSituationItem:poster.SPledgeSituationItemPoster,
     items.InvestorSituationItem:poster.InvestorSituationItemPoster,
     items.MonthInvestorSituationItem:poster.MonthInvestorSituationItemPoster,
-    items.ChinaSecurityIndustryValuationItem:poster.ChinaSecurityIndustryValuationPoster,
 }
 
 class DspiderPipeline(object):
@@ -32,6 +31,68 @@ class DspiderPipeline(object):
         if obj.check():
             obj.store()
         return item
+
+class SecurityExchangeCommissionValuationPipeline(object):
+    def process_item(self, item, spider):
+        fnames = item['file_name']
+        fdir = ct.SECURITY_EXCHANGE_COMMISSION_INDUSTRY_VALUATION_ZIP_PATH
+        for fname in fnames:
+            with zipfile.ZipFile(os.path.join(fdir, fname)) as f:
+                with TemporaryDirectory() as dirpath:
+                    for mfile in f.namelist():
+                        f.extract(mfile, dirpath)
+                        i_df, s_df = self.create_dataframe(dirpath, mfile)
+                        self.store_df(s_df, ct.SECURITY_EXCHANGE_COMMISSION_INDUSTRY_VALUATION_STOCK_PATH)
+                        self.store_df(i_df, ct.SECURITY_EXCHANGE_COMMISSION_INDUSTRY_VALUATION_INDUSTRY_PATH)
+        return item
+
+    def create_dataframe(self, fdir, fname):
+        fpath = os.path.join(fdir, fname)
+        cdate = "%s-%s-%s" % (fname[0:4], fname[4:6], fname[6:8])
+        try:
+            wb = xlrd.open_workbook(fpath, encoding_override="cp1252")
+            stock_df = self.get_stock_df(wb, cdate)
+            industry_df = self.get_industry_df(wb, cdate)
+        except Exception as e:
+            return pd.DataFrame(), pd.DataFrame()
+        return industry_df, stock_df
+
+    def store_df(self, df, fdir):
+        if df.empty: return
+        cdate = set(df.date.tolist()).pop()
+        fname = '%s.csv' % cdate
+        fpath = os.path.join(fdir, fname)
+        df.to_csv(fpath)
+
+    def get_stock_df(self, wb, cdate):
+        name_list = ['code', 'name', 'mind_code', 'mind_name', 'dind_code', 'dind_name', 'pe', 'ttm', 'pb', 'dividend']
+        df = pd.read_excel(wb, sheet_name = '个股数据', engine = 'xlrd', header = 0, names = name_list)
+        if df.empty: return df
+        df['date'] = cdate
+        df['code'] = df['code'].map(lambda x : str(x).zfill(6))
+        df['dind_code'] = df['dind_code'].map(lambda x : str(x).zfill(4))
+        for col in ['pe', 'ttm', 'pb', 'dividend']:
+            df[col] = df[col].apply(lambda x: float(x) if x != '-' else 0.0)
+        return df
+
+    def get_industry_df(self, wb, cdate):
+        item_list = list()
+        pb_sheet = wb.sheet_by_name('证监会行业市净率')
+        static_pe_sheet = wb.sheet_by_name('证监会行业静态市盈率')
+        rolling_pe_sheet = wb.sheet_by_name('证监会行业滚动市盈率')
+        dividend_yield_sheet = wb.sheet_by_name('证监会行业股息率')
+        for row in range(1, static_pe_sheet.nrows):
+            item = items.SecurityExchangeCommissionValuationItem()
+            item['date'] = cdate
+            item['code'] = static_pe_sheet.cell(row, 0).value
+            item['name'] = static_pe_sheet.cell(row, 1).value
+            item['pe'] = item.convert(static_pe_sheet.cell(row, 2).value)
+            item['ttm'] = item.convert(rolling_pe_sheet.cell(row, 2).value)
+            item['pb'] = item.convert(pb_sheet.cell(row, 2).value)
+            item['dividend'] = item.convert(dividend_yield_sheet.cell(row, 2).value)
+            if not item.empty(): item_list.append(item)
+        df = pd.DataFrame(item_list)
+        return df
 
 class ChinaSecurityIndustryValuationHandlePipeline(object):
     def process_item(self, item, spider):

@@ -46,6 +46,9 @@ class ChinaSecurityIndustryValuationItem(PlateValuationItem):
             return True
         return False
 
+class SecurityExchangeCommissionValuationItem(ChinaSecurityIndustryValuationItem):
+    pass
+
 class SPledgeSituationItem(MyDownloadItem):
     files = scrapy.Field()
     file_urls = scrapy.Field()
