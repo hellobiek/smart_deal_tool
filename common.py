@@ -275,7 +275,9 @@ def queue_process_concurrent_run(mfunc, all_list, redis_client = None, process_n
             time.sleep(0.1)    # Give tasks a chance to put more data in
             liveprocs = [p for p in jobs if p.is_alive()]
 
-        if len(black_list) > 0: remove_blacklist(redis_client, ct.UNFINISHED_QUEUE_WORKS, black_list)
+        if len(black_list) > 0:
+            remove_blacklist(redis_client, ct.UNFINISHED_QUEUE_WORKS, black_list)
+            black_list = list()
         todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_QUEUE_WORKS)
         if len(todo_list) == last_length:
             logger.error("left todo list:%s" % todo_list)

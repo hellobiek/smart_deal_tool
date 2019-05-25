@@ -23,6 +23,7 @@ post_router = {
     items.SPledgeSituationItem:poster.SPledgeSituationItemPoster,
     items.InvestorSituationItem:poster.InvestorSituationItemPoster,
     items.MonthInvestorSituationItem:poster.MonthInvestorSituationItemPoster,
+    items.ChinaTreasuryRateItem:poster.ChinaTreasuryRateItemPoster,
 }
 
 class DspiderPipeline(object):

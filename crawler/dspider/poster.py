@@ -13,6 +13,7 @@ from hkex import HkexCrawler
 from investor import InvestorCrawler
 from investor import MonthInvestorCrawler
 from plate_valuation import PlateValuationCrawler
+from china_treasury_rate import ChinaTreasuryRateCrawler
 from china_security_industry_valuation import ChinaSecurityIndustryValuationCrawler
 from pymysql.err import OperationalError, InterfaceError, DataError, InternalError, IntegrityError
 logger = getLogger(__name__)
@@ -175,6 +176,27 @@ class ChinaSecurityIndustryValuationPoster(Poster):
         if not (failure.type == IntegrityError and failure.value.args[0] == 1062):
             logger.error(failure.type, failure.value, failure.getTraceback())
 
+class ChinaTreasuryRateItemPoster(Poster):
+    def __init__(self, item, dbinfo = ct.DB_INFO, redis_host = None):
+        super(ChinaTreasuryRateItemPoster, self).__init__(item)
+        self.dbname = ChinaTreasuryRateCrawler.get_dbname()
+        self.table = ChinaTreasuryRateCrawler.get_tablename()
+        self.connect = pymysql.connect(host=dbinfo['host'], port=dbinfo['port'], db=self.dbname, user=dbinfo['user'], passwd=dbinfo['password'], charset=ct.UTF8)
+        self.cursor = self.connect.cursor()
+
+    def store(self):
+        try:
+            insert_sql, params = self.item.get_insert_sql(self.table)
+            if insert_sql == None and params == None: return
+            self.cursor.execute(insert_sql, params)
+            self.connect.commit()
+        except Exception as e:
+            logger.debug(e)
+
+    def on_error(self, failure):
+        if not (failure.type == IntegrityError and failure.value.args[0] == 1062):
+            logger.error(failure.type, failure.value, failure.getTraceback())
+
 class PlateValuationPoster(Poster):
     def __init__(self, item, dbinfo = ct.DB_INFO):
         super(PlateValuationPoster, self).__init__(item)
@@ -190,7 +212,7 @@ class PlateValuationPoster(Poster):
             self.cursor.execute(insert_sql, params)
             self.connect.commit()
         except Exception as e:
-            logger.debug(e)
+            logger.error(e)
 
     def on_error(self, failure):
         if not (failure.type == IntegrityError and failure.value.args[0] == 1062):

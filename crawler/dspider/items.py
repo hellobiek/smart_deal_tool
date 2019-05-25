@@ -20,7 +20,7 @@ class DspiderItem(scrapy.Item):
         if direction == 'south':
             return code.zfill(5)
         elif direction == 'north':
-            return code.zfill(6)
+            return code.zfill(6)    
 
 class MyDownloadItem(DspiderItem):
     file_urls = scrapy.Field()
@@ -39,6 +39,28 @@ class PlateValuationItem(DspiderItem):
         params = (dc['date'], dc['code'], dc['name'], dc['pe'], dc['ttm'], dc['pb'], dc['dividend'])
         insert_sql = "insert into {}(date,code,name,pe,ttm,pb,dividend) VALUES (%s,%s,%s,%s,%s,%s,%s);".format(table)
         return insert_sql, params
+
+class ChinaTreasuryRateItem(scrapy.Item):
+    date   = scrapy.Field()
+    name   = scrapy.Field()
+    month3 = scrapy.Field()
+    month6 = scrapy.Field()
+    year1  = scrapy.Field()
+    year3  = scrapy.Field()
+    year5  = scrapy.Field()
+    year7  = scrapy.Field()
+    year10 = scrapy.Field()
+    year30 = scrapy.Field()
+    def get_insert_sql(self, table):
+        dc = dict(self)
+        params = (dc['date'], dc['name'], dc['month3'], dc['month6'], dc['year1'], dc['year3'], dc['year5'], dc['year7'], dc['year10'], dc['year30'])
+        insert_sql = "insert into {}(date,name,month3,month6,year1,year3,year5,year7,year10,year30) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);".format(table)
+        return insert_sql, params
+
+    def empty(self):
+        for key in ['month3', 'month6', 'year1', 'year3', 'year5', 'year7', 'year10', 'year30']:
+            if self[key] is not None: return False
+        return True
 
 class ChinaSecurityIndustryValuationItem(PlateValuationItem):
     def empty(self):

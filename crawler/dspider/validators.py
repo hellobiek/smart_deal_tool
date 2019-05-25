@@ -31,6 +31,18 @@ class PlateValuationModel(Model):
     pb = FloatType(required=True)
     dividend = FloatType(required=True)
 
+class ChinaTreasuryRateModel(Model):
+    date = StringType(required=True)
+    name = StringType(required=True)
+    month3 = FloatType(required=True)
+    month6 = FloatType(required=True)
+    year1 = FloatType(required=True)
+    year3 = FloatType(required=True)
+    year5 = FloatType(required=True)
+    year7 = FloatType(required=True)
+    year10 = FloatType(required=True)
+    year30 = FloatType(required=True)
+    
 class InvestorSituationModel(Model):
     date = StringType(required=True)
     new_investor = FloatType(required=True)

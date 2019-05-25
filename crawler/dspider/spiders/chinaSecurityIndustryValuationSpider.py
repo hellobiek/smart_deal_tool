@@ -38,7 +38,7 @@ class ChinaSecurityIndustryValuationSpider(BasicSpider):
     def start_requests(self):
         mformat = 'csi%Y%m%d.zip'
         end_date = datetime.now().strftime(mformat)
-        start_date = self.get_nday_ago(end_date, 3000, dformat = mformat)
+        start_date = self.get_nday_ago(end_date, 4000, dformat = mformat)
         while start_date < end_date:
             furl =  self.start_url + start_date
             yield FormRequest(url = furl, method = 'GET', callback = self.parse)

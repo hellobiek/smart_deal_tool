@@ -11,6 +11,10 @@ class SPledgeSituationSpider(BasicSpider):
     custom_settings = {
         'ROBOTSTXT_OBEY': False,
         'SPIDERMON_ENABLED': True,
+        'DOWNLOAD_DELAY': 1.0,
+        'CONCURRENT_REQUESTS_PER_IP': 10,
+        'CONCURRENT_REQUESTS_PER_DOMAIN': 1,
+        'RANDOMIZE_DOWNLOAD_DELAY': False,
         'FILES_STORE': '/data/tdx/history/weeks/pledge',
         'SPIDERMON_EXPECTED_FINISH_REASONS': ct.SPIDERMON_EXPECTED_FINISH_REASONS,
         'EXTENSIONS': {

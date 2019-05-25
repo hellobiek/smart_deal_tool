@@ -255,28 +255,28 @@
     - 系统开发与维护
         - 完成PE，PB的估值带图形(doing)。
             - 爬虫
-                - 爬虫监控和报警
+                - 爬虫监控和报警(done)
                     - 监控爬虫
                         - 了解了slack(done但是目前用不到)
                         - Email的样本搞懂(done)
                         - 修改为方糖的微信版本(done)
                     - message到微信
                         - 将已有的爬虫添加报警和失败报微信(done)
-                - 中国结算的数据
+                - 中国结算的数据(done)
                     - monthly获取数据
                         - 投资者统计(done)
                         - 证券登记业务统计(no need)
                         - 证券存管业务统计(no need)
                         - 股份转让业务统计(no need)
                         - 其他业务统计(no need)
-                - 指数，行业和个股的PE，PB，股息获取
+                - 指数，行业和个股的PE，PB，股息获取(done)
                     - 主要板块PE，PB和股息率(done)
                         - http://115.29.210.20/syl/bk20130101.zip
                     - 中证行业PE，PB和股息率(done)
                         - http://115.29.210.20/syl/csi20190402.zip
-                    - 证监会行业PE，PB和股息率
+                    - 证监会行业PE，PB和股息率(done)
                         - http://115.29.210.20/syl/20190520.zip
-                - 国债爬虫
+                - 国债爬虫(done)
                     - 记录无风险收益率
                 - 同花顺爬虫
                     - 同步财报更新数据 
@@ -290,7 +290,6 @@
                 - Grafana显示数据
                     - https://cuiqingcai.com/6217.html/comment-page-1
                     - https://blog.csdn.net/Jailman/article/details/78913824
-        - DcokerForMac的服务和futu放到一起(doing)
         - 复盘视频的添加。
         - 完成复盘的热力图。
         - 回测框架支持如果开盘涨停则不买入。
@@ -299,6 +298,7 @@
         - Docker For Mac网络问题解决(done)。
             - 这个问题的根本在于docker本身，等docker官方来解决。
         - 完成复盘添加牛熊比的数据图形(done)。
+        - DcokerForMac的服务和futu放到一起(done)
     - CTA量化策略开发
         - 策略开发
             - 趋势策略

@@ -10,6 +10,10 @@ class PlateValuationSpider(BasicSpider):
     custom_settings = {
         'ROBOTSTXT_OBEY': False,
         'SPIDERMON_ENABLED': True,
+        'DOWNLOAD_DELAY': 1.0,
+        'CONCURRENT_REQUESTS_PER_IP': 10,
+        'CONCURRENT_REQUESTS_PER_DOMAIN': 1,
+        'RANDOMIZE_DOWNLOAD_DELAY': False,
         'FILES_STORE': ct.PLATE_VALUATION_PATH,
         'SPIDERMON_VALIDATION_ADD_ERRORS_TO_ITEMS': True,
         'SPIDERMON_VALIDATION_ERRORS_FIELD': ct.SPIDERMON_VALIDATION_ERRORS_FIELD,
@@ -34,7 +38,7 @@ class PlateValuationSpider(BasicSpider):
     def start_requests(self):
         mformat = 'bk%Y%m%d.zip'
         end_date = datetime.now().strftime(mformat)
-        start_date = self.get_nday_ago(end_date, 30, dformat = mformat)
+        start_date = self.get_nday_ago(end_date, 10, dformat = mformat)
         while start_date < end_date:
             furl =  self.start_url + start_date
             yield FormRequest(url = furl, method = 'GET', callback = self.parse)

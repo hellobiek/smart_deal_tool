@@ -10,7 +10,6 @@ class SecurityExchangeCommissionValuationSpider(BasicSpider):
     custom_settings = {
         'ROBOTSTXT_OBEY': False,
         'SPIDERMON_ENABLED': True,
-        'RANDOMIZE_DOWNLOAD_DELAY': False,
         'DOWNLOAD_DELAY': 1.0,
         'CONCURRENT_REQUESTS_PER_IP': 10,
         'CONCURRENT_REQUESTS_PER_DOMAIN': 1,
