@@ -236,7 +236,14 @@ def remove_blacklist(redis_client, key, black_list):
     if len(black_list) > 0: redis_client.srem(key, *set(black_list))
 
 def get_unfinished_workers(redis_client, key):
-    return list(set(code.decode() for code in redis_client.smembers(key)))
+    index = 0
+    result_list = list(set(code.decode() for code in redis_client.smembers(key)))
+    while len(result_list) == 0 and index < 3:
+        if index > 0: logger.info("get list length is 0")
+        index = index + 1
+        time.sleep(19 * index)
+        result_list = list(set(code.decode() for code in redis_client.smembers(key)))
+    return result_list
 
 def init_unfinished_workers(redis_client, key, todo_list, overwrite = False):
     if overwrite:
@@ -303,7 +310,7 @@ def process_concurrent_run(mfunc, all_list, redis_client = None, process_num = 2
     if redis_client is None: redis_client = create_redis_obj()
     init_unfinished_workers(redis_client, ct.UNFINISHED_WORKS, copy.deepcopy(all_list), overwrite = True)
     todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
-    logger.info("all code list length:%s", len(todo_list))
+    logger.info("all code list length:%s, all length:%s" % (len(todo_list), len(all_list)))
     if len(todo_list) == 0: return False
     last_length = len(todo_list)
     while last_length > 0:

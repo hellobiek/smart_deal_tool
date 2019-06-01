@@ -172,3 +172,9 @@ class MonthInvestorSituationItem(DspiderItem):
                                     final_non_natural_b_person, final_hold_investor, final_a_hold_investor,\
                                     final_b_hold_investor, trading_investor, trading_a_investor, trading_b_investor) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);".format(table)
         return insert_sql, params
+
+class StockFinancialDisclosureTimeItem(DspiderItem):
+    code    = scrapy.Field()
+    first   = scrapy.Field()
+    changed = scrapy.Field()
+    actual  = scrapy.Field()

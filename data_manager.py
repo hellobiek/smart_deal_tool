@@ -513,7 +513,7 @@ if __name__ == '__main__':
     #sys.exit(0)
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
-    mdate = '2019-05-23' 
+    mdate = '2019-05-31' 
     dm.logger.info("start compute!")
     #dm.clear_network_env()
     #dm.init_base_float_profit()

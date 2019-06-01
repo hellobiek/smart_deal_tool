@@ -45,5 +45,6 @@ class BasicSpider(Spider):
         oneday = timedelta(days = 1)
         sdate = datetime.strptime(sdate, dformat)
         sdate += oneday
+        while sdate.weekday(): sdate += oneday 
         tdate = sdate.strftime(dformat)
         return tdate

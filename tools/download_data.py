@@ -35,9 +35,11 @@ class DataPreparer:
         timer = Timer(timeout, proc.kill)
         try:
             timer.start()
-            stdout, stderr = proc.communicate()
-            self.logger.debug("run cmd %s stdout:%s, stderr:%s" % (cmd, stdout.decode(), stderr.decode()))
+            proc.communicate()
+            #stdout, stderr = proc.communicate()
+            #self.logger.debug("run cmd %s stdout:%s, stderr:%s" % (cmd, stdout.decode(), stderr.decode()))
         finally:
+            self.logger.error("kill process, cmd:%s, pid:%s" % (cmd, proc.pid))
             timer.cancel()
 
     def update(self, sleep_time):
