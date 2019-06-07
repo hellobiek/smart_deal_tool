@@ -83,7 +83,7 @@ class StockExchange(object):
             return "B股"
         elif '12' == dtype:
             return "上海市场"
-        elif '90' == dtype:
+        elif '90' == dtype or '46' == dtype or '37' == dtype or '43' == dtype:
             return "科创板"
         else:
             return None

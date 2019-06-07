@@ -455,7 +455,7 @@ class DataManager:
         def _set_bull_stock_ratio(code_id):
             return (code_id, BullStockRatio(code_id).update(cdate, num))
         index_codes = self.get_concerned_index_codes()
-        return concurrent_run(_set_bull_stock_ratio, index_codes, num = num)
+        return concurrent_run(_set_bull_stock_ratio, index_codes)
 
     def init_tdx_index_info(self, cdate = None, num = 10):
         def _set_index_info(cdate, code_id):
@@ -513,8 +513,9 @@ if __name__ == '__main__':
     #sys.exit(0)
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
-    mdate = '2019-05-31' 
+    mdate = '2019-06-05' 
     dm.logger.info("start compute!")
+    #dm.set_bull_stock_ratio(mdate, num = 10)
     #dm.clear_network_env()
     #dm.init_base_float_profit()
     #dm.init_stock_info(mdate)

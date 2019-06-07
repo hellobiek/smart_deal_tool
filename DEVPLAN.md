@@ -278,7 +278,7 @@
                         - http://115.29.210.20/syl/20190520.zip
                 - 国债爬虫(done)
                     - 记录无风险收益率
-                - 同花顺爬虫
+                - 同花顺爬虫(done)
                     - 同步财报更新数据 
             - 转换
                 - 计算股息率, PE, PB, ROE
@@ -291,6 +291,7 @@
                     - https://cuiqingcai.com/6217.html/comment-page-1
                     - https://blog.csdn.net/Jailman/article/details/78913824
         - 复盘视频的添加。
+        - ratio的数据重复bugfix。
         - 完成复盘的热力图。
         - 回测框架支持如果开盘涨停则不买入。
         - 指数贡献点数的计算
