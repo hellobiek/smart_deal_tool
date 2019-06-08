@@ -41,6 +41,7 @@ class PlateValuationSpider(BasicSpider):
         start_date = self.get_nday_ago(end_date, 5000, dformat = mformat)
         while start_date <= end_date:
             furl =  self.start_url + start_date
+            print(furl)
             yield FormRequest(url = furl, method = 'GET', callback = self.parse, errback=self.errback_httpbin)
             start_date = self.get_tomorrow_date(sdate = start_date, dformat = mformat)
 
