@@ -2,14 +2,17 @@
 import gevent
 from gevent import monkey
 monkey.patch_all(subprocess=True)
+import sys
+from os.path import abspath, dirname
+sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import json
 import gear
 import _pickle
 import traceback
 import pandas as pd
 import const as ct
-from common import create_redis_obj
 from base.clog import getLogger
+from common import create_redis_obj
 log = getLogger(__name__)
 def worker(client_id, func_name, df, key, subset):
     worker = gear.Worker(client_id)

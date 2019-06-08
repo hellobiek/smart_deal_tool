@@ -163,7 +163,7 @@ const.BULLSTOCKRATIO_TABLE = 'bull_stock_ratio'
 #############################
 const.REDIS_HOST = 'redis-container'
 const.REDIS_PORT = 6379
-const.GEARMAND_HOST = 'gearmand-container'
+const.GEARMAND_HOST = 'gearman-container'
 const.GEARMAND_PORT = 4730
 #############################
 const.TONG_DA_XIN_INDUSTRY_PATH = "/tongdaxin/incon.dat"

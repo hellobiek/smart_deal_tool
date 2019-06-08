@@ -17,15 +17,15 @@ from rstock import RIndexStock
 from ccalendar import CCalendar
 from animation import CAnimation
 from index_info import IndexInfo
-from ticks import download, unzip
 from cstock_info import CStockInfo
 from combination import Combination
 from industry_info import IndustryInfo
 from datamanager.margin  import Margin
 from datamanager.emotion import Emotion
-from datamanager.bull_stock_ratio import BullStockRatio
 from datamanager.hgt import StockConnect
+from datamanager.ticks import download, unzip
 from datamanager.sexchange import StockExchange
+from datamanager.bull_stock_ratio import BullStockRatio
 from backlooking.creview import CReivew
 from rindustry import RIndexIndustryInfo
 from combination_info import CombinationInfo

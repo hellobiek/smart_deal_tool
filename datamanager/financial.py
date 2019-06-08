@@ -1,25 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
-import sys
-from os.path import abspath, dirname
-sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
 import pandas as pd
 from zipfile import ZipFile
 from struct import unpack, calcsize
-import matplotlib.pyplot as plt
-from matplotlib.pylab import date2num
-from matplotlib import dates as mdates
-from matplotlib import ticker as mticker
-from mpl_finance import candlestick_ohlc
-from matplotlib.widgets import MultiCursor
-from matplotlib.dates import DateFormatter
-PROJECT_ROOT = '/Volumes/data/quant/stock/data/tdx/report'
 class FinancialAnalysis():
-    def __init__(self):
-        self.base_color = '#e6daa6'
-        self.fig = plt.figure(facecolor = self.base_color, figsize = (24, 24))
-        self.ax = plt.subplot2grid((12,12), (0,0), rowspan = 12, colspan = 12, facecolor = self.base_color, fig = self.fig)
-
+    def __init__(fpath = '/Volumes/data/quant/stock/data/tdx/report'):
+        self.fpath = fpath
+        
     def to_df(self, data):
         if len(data) == 0: return None
         total_lengh = len(data[0])
@@ -29,14 +16,6 @@ class FinancialAnalysis():
             col.append("col" + str(i + 1))
         return pd.DataFrame(data = data, columns = col)
 
-    def plot(self, df):
-        for code in df.code.tolist():
-            净资产收益率 = df.loc[df.code == code, 'col197']
-            应收账款周转率 = df.loc[df.code == code, 'col213']
-            self.ax.scatter(净资产收益率, 应收账款周转率, color = 'blue', s = 1)
-            self.ax.set_title("map")
-        plt.show()
-
     def parse(self, cdate):
         """
         获取指定日期的所有股票的财报信息
@@ -45,7 +24,7 @@ class FinancialAnalysis():
         """
         item_all_list = []
         file_name = 'gpcw%s' % cdate.replace('-', '')
-        file_path = "%s/%s.zip" % (PROJECT_ROOT, file_name)
+        file_path = "%s/%s.zip" % (self.fpath, file_name)
         if not os.path.isfile(file_path): return None
         header_pack_format = "<1hI1H3L"
         with ZipFile(file_path) as myzip:
@@ -388,41 +367,10 @@ class FinancialAnalysis():
         286.--业绩预告：本期净利润同比增幅上限%
         """
         all_date_list = []   # 所有财报日期
-        file_list = os.listdir(PROJECT_ROOT)
+        file_list = os.listdir(self.fpath)
         for file_name in file_list:
             if file_name.startswith("."): continue
             file_name = file_name.split('.')[0]
             ymd_str = file_name[4:]
             all_date_list.append("%d-%02d-%02d" % (int(ymd_str) / 10000, int(ymd_str) % 10000 / 100, int(ymd_str) % 100))
         return None if cdate not in all_date_list else self.parse(cdate)
-
-if __name__ == "__main__":
-    filepath = "/Volumes/data/quant/stock/data/tdx/history/weeks/pledge/20190210_20190216.xls"
-    index_list = [1, 2, 3, 4, 5, 6, 7, 8]
-    name_list = ['date', 'code', 'name', 'counts', 'unlimited', 'limited', 'total', 'ratio'] 
-    pledge_df = pd.read_excel(filepath, sheet_name = 0, skiprows = 2, header = 0, usecols = index_list, names = name_list)
-    pledge_df.code = pledge_df.code.astype(str).str.zfill(6)
-
-    fa = FinancialAnalysis()
-    results = fa.report_list(cdate = '2018-09-30')
-    df = fa.to_df(results)
-
-    df = df[['code', 'col11', 'col13', 'col24', 'col74', 'col197', 'col210', 'col213']]
-    df['应收账款率'] = 100 * (df['col11'] + df['col13']) / df['col74']
-    df = df[(df['col197'] > 10) & (df['col213'] < 30) & (df['col213'] > 0) & (df['应收账款率'] < 30) & (df['col210'] < 30)]
-    df = df.reset_index(drop = True)
-    xdf_codelist = df.code.tolist()
-    ydf = pledge_df[pledge_df['ratio'] < 15]
-    ydf_codelist = ydf.code.tolist()
-    code_list = list(set(xdf_codelist).intersection(set(ydf_codelist)))
-
-    #净资产收益率 = df.loc[df.code == code, 'col197']
-    #应收账款周转率 = df.loc[df.code == code, 'col172']
-    #11.--应收账款
-    #13.--其他应收款
-    #24.--长期应收款
-    #74.--其中：营业收入
-    #197.--净资产收益率
-    #210.--资产负债率(%)
-    #213.--存货比率(非金融类指标)
-    #fa.plot(df)

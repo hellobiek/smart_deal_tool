@@ -9,7 +9,6 @@ import datetime
 import const as ct
 import pandas as pd
 import tushare as ts
-from ticks import read_tick
 from cinfluxdb import CInflux
 from datetime import datetime
 from functools import partial
@@ -19,6 +18,7 @@ from functools import partial
 #from cpython.mchip import compute_distribution, compute_oneday_distribution
 from base.clog import getLogger 
 from base.cobj import CMysqlObj
+from datamanager.ticks import read_tick
 from cpython.cchip import compute_distribution, compute_oneday_distribution, mac
 from cpython.cstock import compute_profit,base_floating_profit,pro_nei_chip
 from common import create_redis_obj, get_years_between, transfer_date_string_to_int, transfer_int_to_date_string, is_df_has_unexpected_data, concurrent_run

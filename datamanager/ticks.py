@@ -1,4 +1,7 @@
-# coding=utf-8
+#-*- coding: utf-8 -*-
+import sys
+from os.path import abspath, dirname
+sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import warnings
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
@@ -13,10 +16,10 @@ import requests
 import const as ct
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
 from base.clog import getLogger
-from datamanager.tick_models import TickTradeDetail, TickDetailModel
+from datetime import datetime, timedelta
 from common import get_security_exchange_name, get_day_nday_ago
+from datamanager.tick_models import TickTradeDetail, TickDetailModel
 logger = getLogger(__name__)
 pd.options.mode.chained_assignment = None #default='warn'
 pd.set_option('display.max_columns', None)
