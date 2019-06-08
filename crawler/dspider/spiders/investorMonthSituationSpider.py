@@ -61,7 +61,7 @@ class MonthInvestorSituationSpider(BasicSpider):
         formdata['channelIdStr'] = '08ce523457dd47d2aad6b41246964535'
         formdata['channelFidStr'] = '4f8a220e5ca04a388ca4bae0d1226d0d'
         end_month = datetime.now().strftime('%Y年%m月')
-        start_month = self.get_nmonth_ago(end_month, 2)
+        start_month = self.get_nmonth_ago(end_month, 3)
         while start_month < end_month:
             formdata['riqi'] = start_month
             yield FormRequest(url = self.start_url, method = 'POST', formdata = formdata, callback = self.parse)
