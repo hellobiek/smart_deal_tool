@@ -35,7 +35,7 @@ class SecurityExchangeCommissionValuationSpider(BasicSpider):
     def start_requests(self):
         mformat = '%Y%m%d.zip'
         end_date = datetime.now().strftime(mformat)
-        start_date = self.get_nday_ago(end_date, 5000, dformat = mformat)
+        start_date = self.get_nday_ago(end_date, 10, dformat = mformat)
         while start_date <= end_date:
             furl =  self.start_url + start_date
             yield FormRequest(url = furl, method = 'GET', callback = self.parse, errback=self.errback_httpbin)

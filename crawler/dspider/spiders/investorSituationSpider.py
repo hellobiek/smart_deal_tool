@@ -51,7 +51,7 @@ class InvestorSituationSpider(BasicSpider):
         formdata['dateType'] = ''
         formdata['channelIdStr'] = '6ac54ce22db4474abc234d6edbe53ae7'
         end_date = datetime.now().strftime('%Y.%m.%d')
-        start_date = self.get_nday_ago(end_date, 60, dformat = '%Y.%m.%d')
+        start_date = self.get_nday_ago(end_date, 30, dformat = '%Y.%m.%d')
         while start_date < end_date:
             start_date = self.get_next_date(sdate = start_date)
             formdata['dateStr'] = start_date
