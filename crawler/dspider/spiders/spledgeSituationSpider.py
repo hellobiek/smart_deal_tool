@@ -40,7 +40,7 @@ class SPledgeSituationSpider(BasicSpider):
             start_date = self.get_next_date(sdate = start_date, target_day = calendar.SATURDAY)
             if start_date > end_date: continue
             formdata['queryDate'] = start_date
-            yield FormRequest(url = self.start_urls[0], method = 'GET', formdata = formdata, callback = self.parse)
+            yield FormRequest(url = self.start_urls[0], method = 'GET', formdata = formdata, callback = self.parse, errback=self.errback_httpbin)
 
     def parse(self, response):
         fname = response.headers['Content-Disposition'].decode().split('=')[1]

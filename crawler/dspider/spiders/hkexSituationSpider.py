@@ -4,9 +4,6 @@ import const as ct
 from scrapy import Request
 from datetime import datetime
 from dspider.myspider import BasicSpider
-from twisted.internet.error import TimeoutError
-from twisted.internet.error import DNSLookupError
-from scrapy.spidermiddlewares.httperror import HttpError
 from dspider.items import HkexTradeOverviewItem, HkexTradeTopTenItem
 class HkexSpider(BasicSpider):
     name = 'hkexSpider'
@@ -42,7 +39,7 @@ class HkexSpider(BasicSpider):
         while start_date <= end_date:
             start_date = self.get_tomorrow_date(sdate = start_date)
             url = matching_url.format(start_date.replace('.', ''))
-            yield Request(url=url, callback=self.parse, errback=self.errback_httpbin, dont_filter=True)
+            yield Request(url=url, callback=self.parse, errback=self.errback_httpbin)
 
     def parse(self, response):
         try:
@@ -115,16 +112,3 @@ class HkexSpider(BasicSpider):
             item['total_turnover'] = item.convert(trade_top_ten_tr[i]["td"][0][5], float)
             items.append(item)
         return items
-
-    def errback_httpbin(self, failure):
-        # log all errback failures, in case you want to do something special for some errors, you may need the failure's type
-        #print(repr(failure))
-        if failure.check(HttpError):
-            response = failure.value.response
-            #print('HttpError on %s', response.url)
-        elif failure.check(DNSLookupError):
-            request = failure.request
-            #print('DNSLookupError on %s', request.url)
-        elif failure.check(TimeoutError):
-            request = failure.request
-            #print('TimeoutError on %s', request.url)

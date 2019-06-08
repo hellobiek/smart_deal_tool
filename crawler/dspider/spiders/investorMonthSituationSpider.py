@@ -64,7 +64,7 @@ class MonthInvestorSituationSpider(BasicSpider):
         start_month = self.get_nmonth_ago(end_month, 3)
         while start_month < end_month:
             formdata['riqi'] = start_month
-            yield FormRequest(url = self.start_url, method = 'POST', formdata = formdata, callback = self.parse)
+            yield FormRequest(url = self.start_url, method = 'POST', formdata = formdata, callback = self.parse, errback=self.errback_httpbin)
             start_month = self.get_next_month(smonth = start_month)
 
     def parse(self, response):

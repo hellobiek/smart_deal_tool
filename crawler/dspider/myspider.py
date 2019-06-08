@@ -5,6 +5,9 @@ import datetime
 from scrapy import Spider
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
+from twisted.internet.error import TimeoutError
+from twisted.internet.error import DNSLookupError
+from scrapy.spidermiddlewares.httperror import HttpError
 class BasicSpider(Spider):
     def get_nday_ago(self, mdate, num, dformat = "%Y.%m.%d"):
         t = time.strptime(mdate, dformat)
@@ -45,6 +48,20 @@ class BasicSpider(Spider):
         oneday = timedelta(days = 1)
         sdate = datetime.strptime(sdate, dformat)
         sdate += oneday
-        while sdate.weekday(): sdate += oneday 
+        while sdate.weekday() > 4: sdate += oneday 
         tdate = sdate.strftime(dformat)
         return tdate
+
+    def errback_httpbin(self, failure):
+        if failure.check(HttpError):
+            response = failure.value.response
+            print('HttpError on %s', response.url)
+        elif failure.check(DNSLookupError):
+            request = failure.request
+            print('DNSLookupError on %s', request.url)
+        elif failure.check(TimeoutError):
+            request = failure.request
+            print('TimeoutError on %s', request.url)
+        else:
+            request = failure.request
+            print('UnknownError on %s', request.url)

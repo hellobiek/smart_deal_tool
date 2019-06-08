@@ -55,7 +55,7 @@ class InvestorSituationSpider(BasicSpider):
         while start_date < end_date:
             start_date = self.get_next_date(sdate = start_date)
             formdata['dateStr'] = start_date
-            yield FormRequest(url = self.start_urls[0], method = 'GET', formdata = formdata, callback = self.parse)
+            yield FormRequest(url = self.start_urls[0], method = 'GET', formdata = formdata, callback = self.parse, errback=self.errback_httpbin)
 
     def parse(self, response):
         patten = re.compile(r'[（|(](.*?)[)|）]', re.S)

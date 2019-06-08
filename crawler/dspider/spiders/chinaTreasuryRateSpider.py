@@ -52,12 +52,11 @@ class ChinaTreasuryRateSpider(BasicSpider):
         formdata = dict()
         formdata['locale'] = 'cn_ZH'
         end_date = datetime.now().strftime(mformat)
-        #start_date = self.get_nday_ago(end_date, 4835, dformat = mformat)
         start_date = self.get_nday_ago(end_date, 10, dformat = mformat)
         while start_date < end_date:
-            start_date = self.get_tomorrow_date(sdate = start_date, dformat = mformat)
             formdata['workTime'] = start_date
-            yield FormRequest(url = self.start_url, method = 'GET', formdata = formdata, callback = self.parse)
+            yield FormRequest(url = self.start_url, method = 'GET', formdata = formdata, callback = self.parse, errback=self.errback_httpbin)
+            start_date = self.get_tomorrow_date(sdate = start_date, dformat = mformat)
 
     def parse(self, response):
         item = ChinaTreasuryRateItem()
