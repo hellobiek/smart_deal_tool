@@ -19,9 +19,10 @@ from functools import partial
 from base.clog import getLogger 
 from base.cobj import CMysqlObj
 from datamanager.ticks import read_tick
+from cpython.cstock import compute_profit, base_floating_profit,pro_nei_chip
+from common import create_redis_obj, is_df_has_unexpected_data, concurrent_run
 from cpython.cchip import compute_distribution, compute_oneday_distribution, mac
-from cpython.cstock import compute_profit,base_floating_profit,pro_nei_chip
-from common import create_redis_obj, get_years_between, transfer_date_string_to_int, transfer_int_to_date_string, is_df_has_unexpected_data, concurrent_run
+from base.cdate import get_years_between, transfer_date_string_to_int, transfer_int_to_date_string
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 logger = getLogger(__name__)
@@ -42,6 +43,19 @@ class CStock(CMysqlObj):
     @staticmethod
     def get_redis_name(code):
         return "realtime_s%s" % code
+
+    @staticmethod
+    def get_market(code):
+        if code.startswith("6") or code.startswith("500") or code.startswith("550") or code.startswith("510") or code.startswith("7"):
+            return ct.MARKET_SH
+        elif code.startswith("00") or code.startswith("30") or code.startswith("150") or code.startswith("159"):
+            return ct.MARKET_SZ
+        else:
+            return ct.MARKET_OTHER
+
+    @staticmethod
+    def get_pre_str(code):
+        return "1" if CStock.get_market(code) == ct.MARKET_SH else "0"
 
     def adjust_share(self, data, info):
         data['outstanding'] = 0
@@ -128,7 +142,7 @@ class CStock(CMysqlObj):
 
     def create(self, should_create_influxdb, should_create_mysqldb):
         influxdb_flag = self.create_influx_db() if should_create_influxdb else True
-        mysql_flag    = self.create_db(self.dbname) and self.create_mysql_table(self.get_day_table()) if should_create_mysqldb else True
+        mysql_flag = self.create_db(self.dbname) and self.create_mysql_table(self.get_day_table()) if should_create_mysqldb else True
         return influxdb_flag and mysql_flag
 
     def create_influx_db(self):
@@ -204,14 +218,6 @@ class CStock(CMysqlObj):
             dlist = list(ex.index)
         return df
 
-    def get_market(self):
-        if self.code.startswith("6") or self.code.startswith("500") or self.code.startswith("550") or self.code.startswith("510") or self.code.startswith("7"):
-            return ct.MARKET_SH
-        elif self.code.startswith("00") or self.code.startswith("30") or self.code.startswith("150") or self.code.startswith("159"):
-            return ct.MARKET_SZ
-        else:
-            return ct.MARKET_OTHER
-
     def get_chip_distribution_table(self, cdate):
         cdates = cdate.split('-')
         return "chip_%s_%s" % (self.dbname, cdates[0])
@@ -236,15 +242,13 @@ class CStock(CMysqlObj):
                                              PRIMARY KEY (pos, sdate, date, price, volume, outstanding))' % table
         return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
 
-    def get_pre_str(self):
-        return "1" if self.get_market() == ct.MARKET_SH else "0"
-
     def read(self, cdate = None, fpath = "/data/tdx/history/days/%s%s.csv"):
-        prestr = self.get_pre_str()
+        prestr = self.get_pre_str(self.code)
         filename = fpath % (prestr, self.code)
         if not os.path.exists(filename): return pd.DataFrame(), None
         dheaders = ['date', 'open', 'high', 'close', 'low', 'amount', 'volume']
-        df = pd.read_csv(filename, sep = ',', usecols = dheaders)
+        dtypes = {'date': 'int', 'open': 'float', 'high': 'float', 'close': 'float', 'low': 'float', 'amount': 'float', 'volume': 'int'}
+        df = pd.read_csv(filename, sep = ',', usecols = dheaders, dtype = dtypes)
         df = df[(df['volume'] > 0) & (df['amount'] > 0)]
         df = df.drop_duplicates(subset=['date'], keep='first')
         df = df.sort_values(by = 'date', ascending= True)
@@ -469,8 +473,9 @@ class CStock(CMysqlObj):
         if mdate is not None:
             table = self.get_chip_distribution_table(mdate)
             if self.is_table_exists(table):
-                df = self.mysql_client.get("select * from %s" % table)
-                return df.loc[df.date == mdate]
+                df = self.mysql_client.get("select * from %s where date=\"%s\"" % (table, mdate))
+                df = df.reset_index(drop = True)
+                return df
         else:
             time2Market = self.get('timeToMarket')
             start_year  = int(time2Market / 10000)
@@ -630,6 +635,28 @@ class CStock(CMysqlObj):
         else:
             sql = "select * from %s" % table_name
         return self.mysql_client.get(sql)
+
+    def get_val_filename(self):
+        return "%s_val.csv" % self.dbname
+
+    def get_val_data(self, mdate):
+        import pdb
+        pdb.set_trace()
+        stock_val_path = os.path.join("/data/valuation/stocks", self.get_val_filename())
+        #dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int}
+        df = pd.read_csv(stock_val_path)
+        if mdate is None:
+            return df
+        else:
+            return df.loc[df.date == mdate]
+
+    def set_val_data(self, df, mdate = None):
+        stock_val_path = os.path.join("/data/valuation/stocks", self.get_val_filename())
+        if mdate is None:
+            df.to_csv(stock_val_path, index=False, header=True, mode='w', encoding='utf8')
+        else:
+            df.to_csv(stock_val_path, index=False, header=False, mode='a+', encoding='utf8')
+        return True
 
 if __name__ == '__main__':
     cdate = None

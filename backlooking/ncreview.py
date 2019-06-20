@@ -14,7 +14,6 @@ import const as ct
 import numpy as np
 import pandas as pd
 import matplotlib
-#matplotlib.use('Agg')
 from matplotlib import style
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines

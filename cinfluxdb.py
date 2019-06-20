@@ -24,7 +24,7 @@ class CInflux:
             return all_dbs
 
     def _get_all_databses(self):
-        return self.df_client.get_list_database()
+        return [x['name'] for x in self.df_client.get_list_database()]
 
     def get(self, dbname = None):
         if dbname is None: dbname = self.dbname

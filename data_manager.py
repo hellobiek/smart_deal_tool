@@ -25,13 +25,14 @@ from datamanager.emotion import Emotion
 from datamanager.hgt import StockConnect
 from datamanager.ticks import download, unzip
 from datamanager.sexchange import StockExchange
+from base.cdate import transfer_date_string_to_int
 from datamanager.bull_stock_ratio import BullStockRatio
 from backlooking.creview import CReivew
 from rindustry import RIndexIndustryInfo
 from combination_info import CombinationInfo
 from futu.common.constant import SubType
 from algotrade.broker.futu.subscriber import Subscriber, StockQuoteHandler, TickerHandler
-from common import is_trading_time, add_prifix, add_index_prefix, kill_process, concurrent_run, get_day_nday_ago, get_dates_array, process_concurrent_run, transfer_date_string_to_int, get_latest_data_date
+from common import is_trading_time, add_prifix, add_index_prefix, kill_process, concurrent_run, get_day_nday_ago, get_dates_array, process_concurrent_run, get_latest_data_date
 pd.options.mode.chained_assignment = None #default='warn'
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -360,7 +361,7 @@ class DataManager:
         df = self.stock_info_client.get()
         if df.empty: return False
         failed_list = df.code.tolist()
-        return process_concurrent_run(_set_base_float_profit, failed_list, num = 5)
+        return process_concurrent_run(_set_base_float_profit, failed_list, num = 8)
 
     def init_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, index_info, code_id):
@@ -386,11 +387,11 @@ class DataManager:
         failed_list = df.code.tolist()
         if cdate is None:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
-            return process_concurrent_run(cfunc, failed_list, num = 5)
+            return process_concurrent_run(cfunc, failed_list, num = 8)
         else:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
             succeed = True
-            if not process_concurrent_run(cfunc, failed_list, num = 5):
+            if not process_concurrent_run(cfunc, failed_list, num = 8):
                 succeed = False
             return succeed
             #start_date = get_day_nday_ago(cdate, num = 4, dformat = "%Y-%m-%d")
@@ -513,12 +514,12 @@ if __name__ == '__main__':
     #sys.exit(0)
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
-    mdate = '2019-06-05' 
+    mdate = '2019-06-10' 
     dm.logger.info("start compute!")
     #dm.set_bull_stock_ratio(mdate, num = 10)
     #dm.clear_network_env()
-    #dm.init_base_float_profit()
+    dm.init_base_float_profit()
     #dm.init_stock_info(mdate)
     #dm.bootstrap(exec_date = '2019-03-26')
-    dm.bootstrap(cdate = mdate, exec_date = mdate)
+    #dm.bootstrap(cdate = mdate, exec_date = mdate)
     dm.logger.info("end compute!")

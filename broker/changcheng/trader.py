@@ -8,7 +8,7 @@ import time
 import random
 import string
 import const as ct
-from common import get_market
+from cstock import CStock
 from base.clog import getLogger
 from base.net.client import Client
 from base.net.session import SessionClient
@@ -90,7 +90,7 @@ class Trader:
 
     #action: "B" for buy, "S" for sell
     def deal(self, code, price, amount, action):
-        market_id = get_market(code) 
+        market_id = CStock.get_market(code) 
         up_limit = 0 
         down_limit = 0
         secuid = self.secuids[market_id]
@@ -200,7 +200,7 @@ class Trader:
     def max_amounts(self, code, price, max_qty):
         "https://trade.cgws.com/cgi-bin/stock/EntrustQuery?function=ajaxMaxAmount&market=0&secuid=0121056913&stkcode=300762&bsflag=B&price=16.280&rand=1551774639858"
         randNum = str(int(time.time())) + "".join(map(lambda x:random.choice(string.digits), range(3)))
-        market_id = get_market(code)
+        market_id = CStock.get_market(code)
         post_data = {
             "function": "ajaxMaxAmount",
             "market": market_id,

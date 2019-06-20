@@ -41,18 +41,19 @@ class CIndex(CMysqlObj):
     def get_redis_name(code):
         return "realtime_i%s" % code
 
+    @staticmethod
+    def get_market(code):
+        if code.startswith("000") or code.startswith("880"):
+            return ct.MARKET_SH
+        elif code.startswith("399"):
+            return ct.MARKET_SZ
+        else:
+            return ct.MARKET_OTHER
+
     def run(self, data):
         if not data.empty:
             self.redis.set(self.get_redis_name(self.dbname), _pickle.dumps(data.tail(1), 2))
             self.influx_client.set(data)
-
-    def get_market(self):
-        if self.code.startswith("000") or self.code.startswith("880"):
-            return ct.MARKET_SH
-        elif self.code.startswith("399"):
-            return ct.MARKET_SZ
-        else:
-            return ct.MARKET_OTHER
 
     def get_day_table(self):
         return "%s_day" % self.dbname
@@ -62,7 +63,7 @@ class CIndex(CMysqlObj):
 
     def create(self, should_create_influxdb, should_create_mysqldb):
         influxdb_flag = self.create_influx_db() if should_create_influxdb else True
-        mysql_flag    = self.create_db(self.dbname) and self.create_mysql_table() if should_create_mysqldb else True
+        mysql_flag = self.create_db(self.dbname) and self.create_mysql_table() if should_create_mysqldb else True
         return influxdb_flag and mysql_flag
 
     def create_mysql_table(self):
@@ -161,7 +162,7 @@ class CIndex(CMysqlObj):
         return df
 
     def read(self, fpath):
-        prestr = "1" if self.get_market() == ct.MARKET_SH else "0"
+        prestr = "1" if self.get_market(self.code) == ct.MARKET_SH else "0"
         filename = "%s%s.csv" % (prestr, self.code)
         dheaders = ['date', 'open', 'high', 'close', 'low', 'amount', 'volume']
         df = pd.read_csv(fpath % filename, sep = ',', usecols = dheaders)

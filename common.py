@@ -47,13 +47,6 @@ def _fprint(obj):
     print(obj)
     print("***************************e")
 
-def get_years_between(start, end):
-    num_of_years = end - start + 1
-    year_format = time.strftime("%Y", time.strptime(str(start), "%Y"))
-    data_times = pd.date_range(year_format, periods = num_of_years, freq='Y')
-    year_only_array = np.vectorize(lambda s: s.strftime('%Y'))(data_times.to_pydatetime())
-    return year_only_array.tolist()
-
 def get_dates_array(start_date, end_date, dformat = "%Y-%m-%d", asending = False):
     num_days = delta_days(start_date, end_date, dformat)
     start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(start_date, dformat))
@@ -117,17 +110,6 @@ def df_delta(pos_df, neg_df, subset_list, keep = False):
     pos_df = pos_df.append(neg_df)
     return pos_df.drop_duplicates(subset=subset_list, keep=False)
 
-def get_market_name(code):
-    if code.startswith("6"):
-        return ct.SHZB
-    elif code.startswith("000") or code.startswith("001"):
-        return ct.SZZB
-    elif code.startswith("002"):
-        return ct.ZXBZ
-    elif code.startswith("300"):
-        return ct.SCYB
-    return None
-
 def get_security_exchange_name(stock_code):
     if (stock_code.startswith("6") or stock_code.startswith("500") or stock_code.startswith("550") or stock_code.startswith("510") or stock_code.startswith("8")):
         return "sh"
@@ -153,14 +135,6 @@ def get_available_tdx_server(api):
         ip, port = ct.TDX_SERVERS[k][1].split(":")
         if api.connect(ip, int(port)): return ip, int(port)
     raise Exception("no server can be connected")
-
-def get_market(code):
-    if (code.startswith("6") or code.startswith("500") or code.startswith("550") or code.startswith("510")) or code.startswith("7"):
-        return ct.MARKET_SH
-    elif (code.startswith("00") or code.startswith("30") or code.startswith("150") or code.startswith("159")):
-        return ct.MARKET_SZ
-    else:
-        return ct.MARKET_OTHER
 
 def unix_time_millis(dt):
     epoch = datetime.utcfromtimestamp(0)
@@ -197,13 +171,6 @@ def get_real_trading_stocks(fpath = ct.USER_FILE):
 def get_tushare_client(fpath = ct.TUSHAE_FILE):
     with open(fpath) as f: key_info = json.load(f)
     return ts.pro_api(key_info['key'])
-
-def transfer_date_string_to_int(cdate):
-    cdates = cdate.split('-')
-    return int(cdates[0]) * 10000 + int(cdates[1]) * 100 + int(cdates[2])
-
-def transfer_int_to_date_string(cdate):
-    return time.strftime('%Y-%m-%d', time.strptime(str(cdate), "%Y%m%d"))
 
 def kill_process(pstring):
     for line in os.popen("ps ax | grep " + pstring + " | grep -v grep"):
@@ -265,7 +232,6 @@ def queue_process_concurrent_run(mfunc, all_list, redis_client = None, process_n
     while last_length > 0:
         i_start = 0
         jobs = list()
-        #av_num = max(int(last_length / process_num), process_num)
         for x in range(process_num):
             i_end = min(i_start + num, last_length)
             p = Process(target = queue_thread_concurrent_run, args=(mfunc, todo_list[i_start:i_end], redis_client, ct.UNFINISHED_QUEUE_WORKS, q), kwargs={'num': num})
@@ -313,10 +279,11 @@ def process_concurrent_run(mfunc, all_list, redis_client = None, process_num = 2
     logger.info("all code list length:%s, all length:%s" % (len(todo_list), len(all_list)))
     if len(todo_list) == 0: return False
     last_length = len(todo_list)
+
+    if len(black_list) > 0: remove_blacklist(redis_client, ct.UNFINISHED_WORKS, black_list)
     while last_length > 0:
         i_start = 0
         jobs = list()
-        #av_num = max(int(last_length / process_num), process_num)
         for x in range(process_num):
             i_end = min(i_start + num, last_length)
             p = Process(target = thread_concurrent_run, args=(mfunc, todo_list[i_start:i_end], redis_client, ct.UNFINISHED_WORKS), kwargs={'num': num})
@@ -324,9 +291,6 @@ def process_concurrent_run(mfunc, all_list, redis_client = None, process_num = 2
             i_start = i_end
         for j in jobs: j.start()
         for j in jobs: j.join()
-        if len(black_list) > 0: 
-            remove_blacklist(redis_client, ct.UNFINISHED_WORKS, black_list)
-            black_list = list()
         todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
         if len(todo_list) == last_length:
             logger.error("left todo length:%s" % len(todo_list))
@@ -348,7 +312,6 @@ def thread_concurrent_run(mfunc, todo_list, redis_client, key, num = 10):
             time.sleep(0.1)
     obj_pool.join(timeout = 10)
     obj_pool.kill()
-    sys.exit(True)
 
 def concurrent_run(mfunc, all_list, num = 10, max_retry_times = 10):
     failed_count = 0
@@ -390,3 +353,10 @@ def resample(data, period = 'W-Mon'):
     data.set_index('date',inplace = True)
     df = data.resample(period, closed = 'left', label = 'left').agg(ohlc_dict).dropna(how='any')
     return df
+
+def get_files_in_path(file_path):
+    for dirpath, dirnames, filenames in os.walk(file_path):
+        return filenames
+
+def apply_inplace(df, field, fun):
+    return pd.concat([df.drop(field, axis=1), df[field].apply(fun)], axis=1)

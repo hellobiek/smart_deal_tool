@@ -7,11 +7,11 @@ import time
 import datetime
 import subprocess
 import const as ct
-from threading import Timer
 from datetime import datetime
 from ccalendar import CCalendar
 from base.clog import getLogger
-from common import get_latest_data_date, transfer_date_string_to_int
+from base.cdate import transfer_date_string_to_int
+from common import get_latest_data_date
 SCRIPT1 = ['python3', '-B', '/Users/hellobiek/Documents/workspace/python/quant/DTGear/cli.py', 'update', 'report']
 SCRIPT2 = ['/Users/hellobiek/Documents/workspace/golang/bin/tdx']
 class DataPreparer:
@@ -32,15 +32,20 @@ class DataPreparer:
 
     def run(self, cmd, timeout):
         proc = subprocess.Popen(cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-        timer = Timer(timeout, proc.kill)
-        try:
-            timer.start()
-            proc.communicate()
-            #stdout, stderr = proc.communicate()
-            #self.logger.debug("run cmd %s stdout:%s, stderr:%s" % (cmd, stdout.decode(), stderr.decode()))
-        finally:
-            self.logger.error("kill process, cmd:%s, pid:%s" % (cmd, proc.pid))
-            timer.cancel()
+        finished = False
+        for t in range(timeout):
+            if not finished:
+                time.sleep(1)
+                if proc.poll() is not None:
+                    outs, errs = proc.communicate()
+                    finished = True
+            else:
+                if proc.poll() is None:
+                    self.logger.error("kill process after finished, cmd:%s, pid:%s" % (cmd, proc.pid))
+                    proc.kill()
+                return
+        self.logger.error("kill process for not finished, cmd:%s, pid:%s" % (cmd, proc.pid))
+        proc.kill()
 
     def update(self, sleep_time):
         while True:

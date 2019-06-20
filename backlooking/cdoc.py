@@ -13,7 +13,6 @@ import matplotlib.dates as mdates
 import matplotlib.ticker as mticker
 from common import get_chinese_font
 from mpl_finance import candlestick_ohlc
-from cstock_info import CStockInfo
 from tools.markdown_table import MarkdownTable
 from tools.markdown_writer import MarkdownWriter
 from visualization.marauder_map import MarauderMap

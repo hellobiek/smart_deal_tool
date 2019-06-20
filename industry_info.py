@@ -9,7 +9,7 @@ from pandas import DataFrame
 from base.clog import getLogger
 from common import create_redis_obj, concurrent_run
 logger = getLogger(__name__)
-class IndustryInfo:
+class IndustryInfo(object):
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.table = ct.INDUSTRY_INFO
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
@@ -44,7 +44,8 @@ class IndustryInfo:
         df_byte = redis.get(ct.INDUSTRY_INFO) 
         return pd.DataFrame() if df_byte is None else _pickle.loads(df_byte)
 
-    def get_industry_name_dict_from_tongdaxin(self, fname):
+    @staticmethod
+    def get_industry_name_dict_from_tongdaxin(fname):
         industry_dict = dict()
         with open(fname, "rb") as f:
             data = f.read()
@@ -58,7 +59,8 @@ class IndustryInfo:
             industry_dict[x[0]] = x[1]
         return industry_dict
 
-    def get_industry_code_dict_from_tongdaxin(self, fname):
+    @staticmethod
+    def get_industry_code_dict_from_tongdaxin(fname):
         industry_dict = dict()
         with open(fname, "rb") as f:
             data = f.read()
@@ -75,17 +77,19 @@ class IndustryInfo:
             industry_dict[key] = json.dumps(industry_dict[key])
         return industry_dict
 
-    def get_tdx_industry_code(self, fname = ct.TONG_DA_XIN_CODE_FILE):
+    @staticmethod
+    def get_tdx_industry_code(fname = ct.TONG_DA_XIN_CODE_FILE):
         data = pd.read_csv(ct.TONG_DA_XIN_CODE_FILE, sep = ',', dtype = {'code' : str, 'market': int, 'name': str})
         data = data[['code', 'name']]
         data = data[data.code.str.startswith('880')]
         data = data.reset_index(drop = True)
         return data
 
-    def get_industry(self):
-        industry_code_dict = self.get_industry_code_dict_from_tongdaxin(ct.TONG_DA_XIN_CODE_PATH)
-        industry_name_dict = self.get_industry_name_dict_from_tongdaxin(ct.TONG_DA_XIN_INDUSTRY_PATH)
-        industre_tdx_df = self.get_tdx_industry_code()
+    @staticmethod
+    def get_industry():
+        industry_code_dict = IndustryInfo.get_industry_code_dict_from_tongdaxin(ct.TONG_DA_XIN_CODE_PATH)
+        industry_name_dict = IndustryInfo.get_industry_name_dict_from_tongdaxin(ct.TONG_DA_XIN_INDUSTRY_PATH)
+        industre_tdx_df = IndustryInfo.get_tdx_industry_code()
         name_list = list()
         for key in industry_code_dict:
             name_list.append(industry_name_dict[key])
