@@ -274,7 +274,7 @@ def queue_thread_concurrent_run(mfunc, todo_list, redis_client, key, q, num = 10
 
 def process_concurrent_run(mfunc, all_list, redis_client = None, process_num = 2, num = 10, black_list = ct.BLACK_LIST):
     if redis_client is None: redis_client = create_redis_obj()
-    init_unfinished_workers(redis_client, ct.UNFINISHED_WORKS, copy.deepcopy(all_list), overwrite = True)
+    init_unfinished_workers(redis_client, ct.UNFINISHED_WORKS, copy.deepcopy(all_list))
     todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
     logger.info("all code list length:%s, all length:%s" % (len(todo_list), len(all_list)))
     if len(todo_list) == 0: return False

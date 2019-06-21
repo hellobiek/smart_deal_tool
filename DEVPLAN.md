@@ -292,7 +292,7 @@
                                 归属于母公司所有者的净利润, 总股本, 已上市流通A股、披露时间(done)
                 - 计算股息率, PE, PB, ROE
                     - 计算过程(done)
-                    - 存储话，暂时存储在csv文件中，等稳定后转入到mysql中
+                    - 存储暂时存储在csv文件中，等稳定后转入到mysql中
                     - 并行化
                     - cpython化
             - 计算
@@ -303,8 +303,8 @@
                 - Grafana显示数据
                     - https://cuiqingcai.com/6217.html/comment-page-1
                     - https://blog.csdn.net/Jailman/article/details/78913824
-        - 复盘视频的添加。
-        - ratio的数据重复bugfix。
+        - 净利润增速增加到reprot中
+        - bull ratio的数据重复bugfix。
         - 完成复盘的热力图。
         - 回测框架支持如果开盘涨停则不买入。
         - 指数贡献点数的计算
@@ -313,6 +313,7 @@
             - 这个问题的根本在于docker本身，等docker官方来解决。
         - 完成复盘添加牛熊比的数据图形(done)。
         - DcokerForMac的服务和futu放到一起(done)
+        - 复盘视频的添加。
     - CTA量化策略开发
         - 策略开发
             - 趋势策略
@@ -357,9 +358,85 @@
             - 贝叶斯网络的学习
         - HMM算法
             - HMM算法
+##2019-06-20
+    - 专业知识
+        - 中股复盘: 日复盘(done)
+        - 美股复盘: 日复盘(done)
+    - 系统开发与维护
+        - 完成PE，PB的估值带图形(doing)。
+            - 转换
+                - 获取所有季报的date, code, 基本每股收益, 扣非每股收益, 每股净资产, 
+                                净资产收益率(roa), 所有者权益（或股东权益）合计, 
+                                归属于母公司所有者的净利润, 总股本, 已上市流通A股、披露时间(done)
+                - 计算股息率, PE, PB, ROE
+                    - 计算过程(done)
+                    - 存储暂时存储在csv文件中，等稳定后转入到mysql中
+                    - 并行化
+                    - cpython化
+            - 计算
+                - 计算各指数的估值信息
+            - 绘制
+                - 绘制图表 
+                - Grafana显示数据
+                    - https://cuiqingcai.com/6217.html/comment-page-1
+                    - https://blog.csdn.net/Jailman/article/details/78913824
+        - 净利润增速增加到reprot中(done)。
+        - bull ratio的数据重复bugfix。
+        - 完成复盘的热力图。
+        - 回测框架支持如果开盘涨停则不买入。
+        - 转移爬虫到scrapyd中去。
+    - CTA量化策略开发
+        - 策略开发
+            - 趋势策略
+                - 海龟交易模型(done)：
+                - DualThrust模型：
+                - 三关模型：
+                    - 使用TD指标
+                - MACD背离模型：
+                    - 性能调优
+                - 双均线策略模型：
+                    - 性能调优
+                - 五三战法模型：
+                    - 资金流入前3的板块
+                    - 这些板块的资金需要连续3天保持前3
+                    - 只选者前3个板块中的前3个
+                    - 前3板块的股票必须连续3天保持前3
+                    - 买入是最好筹码状态比较好，满足90:3，且不能放量太大。
+                - 获利纵横模型
+            - 震荡策略
+                - RSI模型
+                - KDJ模型
+                - 网格模型
+                - 牛熊股比模型
+                - 超跌反弹模型
+            - 其他模型
+                - https://www.bilibili.com/video/av35706220?spm_id_from=333.338.b_5f5f626f667169.9
+                - 鳄鱼交易法则
+                - 羊驼交易法则
+        - 信号处理与开发
+            - 滤波
+                - 卡曼滤波器
+                - EMD(Empirical Mode Decomposition)滤波器
+        - 策略参数优化
+            - 关键在于是否有平滑的参数条有效果
+            - 如果出现孤岛的效果，该如何优化
+    - 机器学习
+        - EM算法(done)
+            - 手推EM算法
+            - EM的loss函数
+            - 手推EM算法在GMM中的应用
+        - 贝叶斯网络(done)
+            - 贝叶斯网络的学习
+        - HMM算法(done)
+            - HMM算法
+        - SVM(done)
+        - Logistic(done)
+        - AdaBoost(doing)
+        - Genetic Algorithm
 ##TODO
     - 软件维护
-        - 爬虫scrapy化
+        - 复盘视频的添加。
+        - 爬虫scrapy化(done)
         - 大宗交易爬虫
         - 基金持仓数据分析爬虫
         - 股票每日复盘添加热力图
@@ -368,6 +445,8 @@
         - 回测框架支持数据resample，从5分钟线resample到30分钟，60分钟
         - 资金的每日资金分析（融资融券，港股通，基金，MSCI，十大股东等）
         - 爬虫添加监控和报警(done)
+        - 指数贡献点数的计算
+            - [（价格改变 * 个股总股数）/ 上交所全体股票总市值]* 上证指数
     - 模型开发
         - KDJ放量买入模型(done)
         - 一阳指战法的实现

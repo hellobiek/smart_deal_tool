@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import time
+import calendar
 import numpy as np
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 def quarter(mdate:int):
     """
     获取指定日期属于第几季度
@@ -135,3 +136,27 @@ def years_ago(years, from_date=None):
         # Must be 2/29!
         assert from_date.month == 2 and from_date.day == 29 # can be removed
         return from_date.replace(month=2, day=28, year=from_date.year-years)
+
+def get_pre_date(sdate, target_day = calendar.FRIDAY, dformat = '%Y.%m.%d'):
+    #func: get next date
+    #sdate: str, example: '2017-01-01'
+    #tdate: str, example: '2017-01-06'
+    oneday = timedelta(days = 1)
+    sdate = datetime.strptime(sdate, dformat)
+    if sdate.weekday() == target_day: sdate -= oneday
+    while sdate.weekday() != target_day: 
+        sdate -= oneday
+    tdate = sdate.strftime(dformat)
+    return tdate
+
+def get_next_date(sdate, target_day = calendar.FRIDAY, dformat = '%Y.%m.%d'):
+    #func: get next date
+    #sdate: str, example: '2017-01-01'
+    #tdate: str, example: '2017-01-06'
+    oneday = timedelta(days = 1)
+    sdate = datetime.strptime(sdate, dformat)
+    if sdate.weekday() == target_day: sdate += oneday
+    while sdate.weekday() != target_day: 
+        sdate += oneday
+    tdate = sdate.strftime(dformat)
+    return tdate
