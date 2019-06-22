@@ -97,11 +97,12 @@ class CValuation(object):
             else:
                 result_df.to_csv(self.report_data_path, index=False, header=False, mode='a+', encoding='utf8')
 
-    def get_css_tcs(self, tdate, code):
-        item_valuation = self.get_actual_report_item(tdate, code)
-        ccs = int(item_valuation["ccs"])    #流通股
-        tcs = int(item_valuation["tcs"])    #总股本
-        if ccs == 0 or tcs == 0: self.logger.error("code:%s, date:%s css:%s or tcs:%s is 0." % (code, tdate, css, tcs))
+    def get_css_tcs(self, item):
+        ccs = int(item["ccs"])#流通股
+        tcs = int(item["tcs"])#总股本
+        if ccs == 0 or tcs == 0:
+            import pdb
+            pdb.set_trace()
         return ccs, tcs
 
     def get_css_tcs_mv(self, close, ccs, tcs):
@@ -109,24 +110,30 @@ class CValuation(object):
         tcs_mv = close * tcs
         return ccs_mv, tcs_mv
 
-    def set_stock_valuation(self, base_df, mdate, code):
+    def set_stock_valuation(self, mdate, code):
         def compute(tdate, close):
             tdate = int(tdate)
             if tdate > 20040101:
-                pe_value = self.pe(tdate, code, close, time2market)
-                ttm_value = self.ttm(tdate, code, close, time2market)
-                pb_value = self.pb(tdate, code, close)
+                year_item = self.get_year_report_item(tdate, code)
+                cur_item = self.get_actual_report_item(tdate, code)
+                if year_item['publish'] > cur_item['publish']:
+                    self.logger.error("year report publish date:%s, cur report publish date:%s" % (year_item['publish'], cur_item['publish']))
+                    import pdb
+                    pdb.set_trace()
+                pe_value = self.pe(cur_item, year_item, close)
+                ttm_value = self.ttm(cur_item, code, close)
+                pb_value = self.pb(cur_item, close)
                 roe_value = pb_value / ttm_value if ttm_value != 0.0 else 0.0
-                ccs, tcs = self.get_css_tcs(tdate, code)
+                ccs, tcs = self.get_css_tcs(cur_item)
                 ccs_mv, tcs_mv = self.get_css_tcs_mv(close, ccs, tcs)
                 dividend_value = self.bonus_client.get_dividend_rate(tdate, code, close)
                 return tdate, pe_value, ttm_value, pb_value, roe_value, dividend_value, ccs, tcs, ccs_mv, tcs_mv
             else:
                 return tdate,0,0,0,0,0,0,0,0,0
-        time2market = base_df.loc[base_df.code == code].timeToMarket.values[0]
         stock_obj = CStock(code)
         df, _ = stock_obj.read(mdate)
-        tdates, pe_values, ttm_values, pb_values, roe_values, dividend_values, ccss, tcss, ccs_mvs, tcs_mvs = zip(*df.apply(lambda df: compute(df['date'], df['close']), axis = 1))
+        tdates, pe_values, ttm_values, pb_values, roe_values, dividend_values, ccss, tcss, ccs_mvs, tcs_mvs\
+             = zip(*df.apply(lambda df: compute(df['date'], df['close']), axis = 1))
         data = {"date": list(tdates), "pe": list(pe_values), "ttm": list(ttm_values), "pb": list(pb_values), "roe": list(roe_values), 
                 "dr": list(dividend_values), "ccs": list(ccss), "tcs": list(tcss), "ccs_mv": list(ccs_mvs), "tcs_mv": list(tcs_mvs)}
         vdf = pd.DataFrame(data, columns=["date", "pe", "ttm", "pb", "roe", "dr", "ccs", "tcs", "ccs_mv", "tcs_mv"])
@@ -149,7 +156,7 @@ class CValuation(object):
             with open(fpath) as f: succeed_list = f.read().strip().split()
             for code in base_df.code.tolist():
                 if code not in succeed_list:
-                    if self.set_stock_valuation(base_df, mdate, code):
+                    if self.set_stock_valuation(mdate, code):
                         succeed_list.append(code)
                         with open(fpath, 'a+') as f: f.write(code + '\n')
             #cfunc = partial(self.set_stock_valuation, base_df, mdate)
@@ -194,35 +201,28 @@ class CValuation(object):
         df = self.valuation_data[(self.valuation_data["date"] == mdate) & (self.valuation_data["code"] == code)]
         return None if df.empty else list(df.to_dict('index').values())[0]
 
-    def get_pe_report_item(self, mdate, code, time2market):
+    def get_year_report_item(self, mdate, code):
         curday = int_to_datetime(mdate)
-        if curday.year < 1997:
-            #1996年6月30号以前没有财报数据，静态市盈率需要年报数据，所以需要从1997年开始算起
-            return None
-
         report_date = int("%d1231" % (curday.year - 1))
-        if time2market < report_date:
-            #上市时间早于标准年报更新时间
-            report_item = self.get_report_item(report_date, code)
-            if report_item is None:
-                #获取不到年报
-                self.logger.error("%s year report is empty for %s" % (report_date, code))
-            else:
-                if report_item["publish"] > mdate:
-                    #年报实际公布时间晚于当前时间
-                    self.logger.debug("%s year report actual report time is later than current date %s for %s" % (report_date, mdate, code))
-                    report_date = int("%d1231" % (curday.year - 2))
-                    report_item = self.get_report_item(report_date, code)
-                    if report_item is None:
-                        self.logger.error("get 2 years before report error., code:%s, date:%s" % (code, mdate))
+        #上市时间早于标准年报更新时间
+        report_item = self.get_report_item(report_date, code)
+        if report_item is None:
+            #获取不到年报
+            self.logger.error("%s year report is empty for %s" % (report_date, code))
+            import pdb
+            pdb.set_trace()
         else:
-            #上市时间晚于标准年报更新时间
-            self.logger.error("%s release time is later than year report normal report time %s for %s" % (report_item, time2market, code))
-            report_date = prev_report_date_with(report_date)
-            report_item = self.get_report_item(report_date, code)
+            if report_item["publish"] > mdate:
+                #年报实际公布时间晚于当前时间
+                report_date = int("%d1231" % (curday.year - 2))
+                report_item = self.get_report_item(report_date, code)
+                if report_item is None:
+                    self.logger.error("get 2 years before report error., code:%s, date:%s" % (code, mdate))
+                    import pdb
+                    pdb.set_trace()
         return report_item
 
-    def pb(self, mdate, code, price):
+    def pb(self, item, price):
         """
         获取某只股票某个时段的PB值
         :param mdate:
@@ -230,36 +230,20 @@ class CValuation(object):
         :param price:
         :return:
         """
-        item = self.get_actual_report_item(mdate, code)
         if item is None or item['bps'] == 0: return 0.0
-        if item['bps'] <= 0:
-            self.logger.debug("code:%s, date:%s bps is less than zero" % (code, mdate))
         return price / item['bps']
 
-    def pe(self, mdate, code, price, time2market):
+    def pe(self, cur_item, year_item, price):
         """
         获取某只股票某个时段的静态市盈率
-        :param mdate: 日期
-        :param code:  代码
-        :param price: 价格
-        :param time2market: 上市时间
-        :return:
         """
-        cur_item = self.get_actual_report_item(mdate, code)
-        if cur_item is None or cur_item['tcs'] == 0:
-            if mdate > 19970101:
-                self.logger.error("code:%s, date:%s cur_item:%s is none or 0" % (code, mdate, cur_item))
-            return 0.0
-        year_item = self.get_pe_report_item(mdate, code, time2market)
-        if year_item is None or year_item['tcs'] == 0:
-            if mdate > 19970101:
-                self.logger.error("code:%s, date:%s year_item:%s is none or 0" % (code, mdate, cur_item))
-            return 0.0
+        if cur_item is None or cur_item['tcs'] == 0: return 0.0
+        if year_item is None: return 0.0
         # 用年报的每股收益 * 因股本变动导致的稀释
-        lyr_eps = year_item['eps'] * (year_item['tcs'] / cur_item['tcs'])
+        lyr_eps = (year_item['eps'] * year_item['tcs']) / cur_item['tcs']
         return 0.0 if lyr_eps == 0 else price / lyr_eps
 
-    def ttm(self, mdate, code, price, time2market):
+    def ttm(self, cur_item, code, price):
         """
         获取指定日志的滚动市盈率(从2003年开始计算)
         :param date:
@@ -267,12 +251,6 @@ class CValuation(object):
         :param price:
         :return:
         """
-        cur_day = int_to_datetime(mdate)
-        if cur_day.year <= 2002 or (cur_day.year == 2003 and cur_day.month < 4):
-            # 2002年以前没有四季报，只算静态市盈率
-            return self.pe(mdate, code, price, time2market)
-   
-        cur_item = self.get_actual_report_item(mdate, code)
         if cur_item is None or cur_item['tcs'] == 0.0:
             #刚上市还没公布最新财报或者没有股本信息
             return 0.0
@@ -286,9 +264,13 @@ class CValuation(object):
             # 当前是三季报, 还需要 上一年年报 - 上一年三季报 + 当前的三季报
             year_report = self.get_report_item(int("%d1231" % (year-1)), code)
             q3_report = self.get_report_item(int("%d0930" % (year-1)), code)
-            if year_report is None or q3_report is None: # 上市不足一年
-                self.logger.error("report_quarter == 2, code:%s, date:%s item is None, cur_item['np']:%s" % (code, mdate, cur_item['np']))
-                return price / (cur_item['np'] / cur_item['tcs'])
+            if year_report is None or q3_report is None:
+                # 上市不足一年
+                if year_report is None:
+                    self.logger.error("report_quarter == 2, code:%s, year_report:%s is None" % (code, "%d1231" % (year-1)))
+                else:
+                    self.logger.error("report_quarter == 2, code:%s, q3_report:%s is None" % (code, "%d0930" % (year-1)))
+                return (price * cur_item['tcs'])/ cur_item['np']
     
             current_eps = (year_report['np'] - q3_report['np'] + cur_item['np']) / cur_item['tcs']
             return 0.0 if current_eps == 0 else price / current_eps
@@ -299,8 +281,11 @@ class CValuation(object):
             q2_report = self.get_report_item(int("%d0630" % (year-1)), code)
             if year_report is None or q2_report is None:
                 # 上市不足一年
-                self.logger.error("report_quarter == 1, code:%s, date:%s item is None, cur_item['np']:%s" % (code, mdate, cur_item['np']))
-                return price / (cur_item['np'] / cur_item['tcs'])
+                if year_report is None:
+                    self.logger.error("report_quarter == 1, code:%s, year_report:%s is None" % (code, "%d1231" % (year-1)))
+                else:
+                    self.logger.error("report_quarter == 1, code:%s, q2_report:%s is None" % (code, "%d0630" % (year-1)))
+                return (price * cur_item['tcs'])/ cur_item['np']
             current_eps = (year_report['np'] - q2_report['np'] + cur_item['np']) / cur_item['tcs']
             return 0.0 if current_eps == 0 else price / current_eps
     
@@ -310,10 +295,15 @@ class CValuation(object):
             q1_report = self.get_report_item(int("%d0331" % (year-1)), code)
             if year_report is None or q1_report is None:
                 # 上市不足一年
-                self.logger.error("report_quarter == 0, code:%s, date:%s item is None, cur_item['np']:%s" % (code, mdate, cur_item['np']))
-                return price / (cur_item['np'] / cur_item['tcs'])
+                if year_report is None:
+                    self.logger.error("report_quarter == 0, code:%s, year_report:%s is None" % (code, "%d1231" % (year-1)))
+                else:
+                    self.logger.error("report_quarter == 0, code:%s, q1_report:%s is None" % (code, "%d0331" % (year-1)))
+                return (price * cur_item['tcs'])/ cur_item['np']
             current_eps = (year_report['np'] - q1_report['np'] + cur_item['np']) / cur_item['tcs']
             return 0.0 if current_eps == 0 else price / current_eps
+        import pdb
+        pdb.set_trace()
         return 0.0
 
     def get_actual_report_item(self, mdate, code = None):
@@ -331,23 +321,18 @@ class CValuation(object):
 
         report_date = prev_report_date_with(report_date)
         item = self.get_report_item(report_date, code)
-        # 判断当前日期是否大于前一个财报披露时间，否则取用前两个财报信息
+        # 判断当前日期是否大于前一个财报披露时间
         if item is not None and item['publish'] <= mdate: return item
         self.logger.debug("%s has not publish report for 3 months from %s, report_date:%s" % (code, mdate, report_date))
 
         report_date = prev_report_date_with(report_date)
         item = self.get_report_item(report_date, code)
-
-        # 判断当前日期是否大于前两个财报披露时间
-        if item is not None and item['publish'] <= mdate: return item
-        self.logger.debug("%s has not publish report for 6 months from %s, report_date:%s" % (code, mdate, report_date))
-
-        report_date = prev_report_date_with(report_date)
-        item = self.get_report_item(report_date, code)
-
-        # 判断当前日期是否大于前三个财报披露时间
+        # 判断当前日期是否大于前一个财报披露时间
         if item is not None and item['publish'] <= mdate: return item
         self.logger.error("%s has not publish report for 6 months from %s, report_date:%s" % (code, mdate, report_date))
+
+        import pdb
+        pdb.set_trace()
 
     def calculate(self, code_list = None):
         pass

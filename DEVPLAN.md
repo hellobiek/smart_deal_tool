@@ -381,10 +381,9 @@
                     - https://cuiqingcai.com/6217.html/comment-page-1
                     - https://blog.csdn.net/Jailman/article/details/78913824
         - 净利润增速增加到reprot中(done)。
-        - bull ratio的数据重复bugfix。
-        - 完成复盘的热力图。
-        - 回测框架支持如果开盘涨停则不买入。
+        - bull ratio的数据重复bugfix(done)。
         - 转移爬虫到scrapyd中去。
+        - 回测框架支持如果开盘涨停则不买入。
     - CTA量化策略开发
         - 策略开发
             - 趋势策略
@@ -435,8 +434,8 @@
         - Genetic Algorithm
 ##TODO
     - 软件维护
-        - 复盘视频的添加。
         - 爬虫scrapy化(done)
+        - 爬虫添加监控和报警(done)
         - 大宗交易爬虫
         - 基金持仓数据分析爬虫
         - 股票每日复盘添加热力图
@@ -444,7 +443,8 @@
         - 需要将长城证券的broker修改为富途的broker的类型
         - 回测框架支持数据resample，从5分钟线resample到30分钟，60分钟
         - 资金的每日资金分析（融资融券，港股通，基金，MSCI，十大股东等）
-        - 爬虫添加监控和报警(done)
+        - 复盘视频的添加。
+        - 完成复盘的热力图。
         - 指数贡献点数的计算
             - [（价格改变 * 个股总股数）/ 上交所全体股票总市值]* 上证指数
     - 模型开发

@@ -21,7 +21,7 @@ class CBonus(object):
             return self.data[self.data["code"] == code]
         return self.data
 
-    def get_dividend_rate(self, mdate, code, price, nyear = 1):
+    def get_dividend_rate(self, mdate, code, price, nyear = 3):
         """
         求某只股票在指定时间点的nyear年平均股息率
         :param mdate:
