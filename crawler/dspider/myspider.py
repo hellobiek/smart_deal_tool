@@ -55,13 +55,13 @@ class BasicSpider(Spider):
     def errback_httpbin(self, failure):
         if failure.check(HttpError):
             response = failure.value.response
-            print('HttpError on %s', response.url)
+            print('HttpError on %s' % response.url)
         elif failure.check(DNSLookupError):
             request = failure.request
-            print('DNSLookupError on %s', request.url)
+            print('DNSLookupError on %s' %request.url)
         elif failure.check(TimeoutError):
             request = failure.request
-            print('TimeoutError on %s', request.url)
+            print('TimeoutError on %s' % request.url)
         else:
             request = failure.request
-            print('UnknownError on %s', request.url)
+            print('UnknownError on %s' % request.url)

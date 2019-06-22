@@ -23,12 +23,13 @@ from datetime import datetime
 from rstock import RIndexStock
 from base.clog import getLogger
 from datamanager.margin import Margin
-from rindustry import RIndexIndustryInfo
 from industry_info import IndustryInfo
 from datamanager.emotion import Emotion
+from base.cdate import get_day_nday_ago
+from rindustry import RIndexIndustryInfo
 from datamanager.sexchange import StockExchange
 from visualization.bull_ratio_plot import CBullRation
-from common import create_redis_obj, get_chinese_font, get_tushare_client, get_day_nday_ago
+from common import create_redis_obj, get_chinese_font, get_tushare_client
 class CReivew:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.dbinfo             = dbinfo

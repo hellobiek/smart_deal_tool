@@ -4,10 +4,10 @@ import pandas as pd
 from climit import CLimit
 from cindex import CIndex
 from rstock import RIndexStock
-from common import get_day_nday_ago
-from industry_info import IndustryInfo
-from rindustry import RIndexIndustryInfo
 from datamanager.margin import Margin
+from industry_info import IndustryInfo
+from base.cdate import get_day_nday_ago
+from rindustry import RIndexIndustryInfo
 from datamanager.sexchange import StockExchange
 from algotrade.selecters.anti_market_up import AntiMarketUpSelecter
 from algotrade.selecters.market_oversold import MarketOversoldJudger

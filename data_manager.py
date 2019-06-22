@@ -23,7 +23,6 @@ from industry_info import IndustryInfo
 from datamanager.margin  import Margin
 from datamanager.emotion import Emotion
 from datamanager.hgt import StockConnect
-from datamanager.ticks import download, unzip
 from datamanager.sexchange import StockExchange
 from base.cdate import transfer_date_string_to_int
 from datamanager.bull_stock_ratio import BullStockRatio
@@ -31,8 +30,9 @@ from backlooking.creview import CReivew
 from rindustry import RIndexIndustryInfo
 from combination_info import CombinationInfo
 from futu.common.constant import SubType
+from base.cdate import get_day_nday_ago
 from algotrade.broker.futu.subscriber import Subscriber, StockQuoteHandler, TickerHandler
-from common import is_trading_time, add_prifix, add_index_prefix, kill_process, concurrent_run, get_day_nday_ago, get_dates_array, process_concurrent_run, get_latest_data_date
+from common import is_trading_time, add_prifix, add_index_prefix, kill_process, concurrent_run, get_dates_array, process_concurrent_run, get_latest_data_date
 pd.options.mode.chained_assignment = None #default='warn'
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
@@ -217,9 +217,6 @@ class DataManager:
             self.set_update_info(5, exec_date, cdate)
 
         if finished_step < 6:
-            if not self.download_and_extract(exec_date, num  = ndays):
-                self.logger.error("download and extract failed")
-                return False
             self.set_update_info(6, exec_date, cdate)
 
         if finished_step < 7:
@@ -483,20 +480,6 @@ class DataManager:
                     if not concurrent_run(cfunc, index_code_list, num = 5):
                         succeed = False
             return succeed
-
-    def download_and_extract(self, cdate, num = 10):
-        try:
-            if not download(ct.ZIP_DIR, cdate, num): return False
-            list_files = os.listdir(ct.ZIP_DIR)
-            for filename in list_files:
-                if not filename.startswith('.'):
-                    file_path = os.path.join(ct.ZIP_DIR, filename)
-                    if os.path.exists(file_path):
-                        unzip(file_path, ct.TIC_DIR)
-            return True
-        except Exception as e:
-            self.logger.error(e)
-            return False
  
 if __name__ == '__main__':
     #from cmysql import CMySQL

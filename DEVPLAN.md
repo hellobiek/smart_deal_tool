@@ -382,7 +382,7 @@
                     - https://blog.csdn.net/Jailman/article/details/78913824
         - 净利润增速增加到reprot中(done)。
         - bull ratio的数据重复bugfix(done)。
-        - 转移爬虫到scrapyd中去。
+        - 转移爬虫到scrapyd中去(doing)。
         - 回测框架支持如果开盘涨停则不买入。
     - CTA量化策略开发
         - 策略开发

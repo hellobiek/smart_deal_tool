@@ -1,21 +1,21 @@
 #coding=utf-8
 import time
-import _pickle
 import datetime
 import const as ct
 import numpy as np
 import pandas as pd
 from tornado import gen
 from tornado import ioloop
-from functools import partial
-from datetime import datetime
-from base.clog import getLogger
 from cmysql import CMySQL
 from cstock import CStock
-from cstock_info import CStockInfo
+from functools import partial
+from datetime import datetime
 from ccalendar import CCalendar
+from base.clog import getLogger
+from cstock_info import CStockInfo
 from collections import OrderedDict
-from common import delta_days, create_redis_obj, get_day_nday_ago, get_dates_array
+from base.cdate import get_day_nday_ago
+from common import delta_days, create_redis_obj, get_dates_array
 class RProfit:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)

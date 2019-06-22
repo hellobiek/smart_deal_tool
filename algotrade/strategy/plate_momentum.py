@@ -8,11 +8,12 @@ import const as ct
 from cmysql import CMySQL
 from cindex import CIndex
 from cstock import CStock
-from industry_info import IndustryInfo
 from pandas import DataFrame
-from algotrade.feed import dataFramefeed 
+from industry_info import IndustryInfo
+from base.cdate import get_day_nday_ago
 from rindustry import RIndexIndustryInfo
-from common import get_day_nday_ago, get_dates_array, create_redis_obj
+from algotrade.feed import dataFramefeed 
+from common import get_dates_array, create_redis_obj
 from pyalgotrade.technical import highlow, ma
 from pyalgotrade.stratanalyzer import returns
 from pyalgotrade import plotter, strategy, broker

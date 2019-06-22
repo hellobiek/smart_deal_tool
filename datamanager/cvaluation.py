@@ -117,6 +117,7 @@ class CValuation(object):
                 year_item = self.get_year_report_item(tdate, code)
                 cur_item = self.get_actual_report_item(tdate, code)
                 if year_item['publish'] > cur_item['publish']:
+                    #年报逼当前的财报公布的还晚
                     self.logger.error("year report publish date:%s, cur report publish date:%s" % (year_item['publish'], cur_item['publish']))
                     import pdb
                     pdb.set_trace()
@@ -329,8 +330,14 @@ class CValuation(object):
         item = self.get_report_item(report_date, code)
         # 判断当前日期是否大于前一个财报披露时间
         if item is not None and item['publish'] <= mdate: return item
-        self.logger.error("%s has not publish report for 6 months from %s, report_date:%s" % (code, mdate, report_date))
+        self.logger.debug("%s has not publish report for 6 months from %s, report_date:%s" % (code, mdate, report_date))
+        #000035 20041231日的年报，一直到20050815好才发布
 
+        report_date = prev_report_date_with(report_date)
+        item = self.get_report_item(report_date, code)
+        # 判断当前日期是否大于前一个财报披露时间
+        if item is not None and item['publish'] <= mdate: return item
+        self.logger.error("%s has not publish report for 9 months from %s, report_date:%s" % (code, mdate, report_date))
         import pdb
         pdb.set_trace()
 

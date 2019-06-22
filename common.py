@@ -82,12 +82,6 @@ def get_day_nday_after(date, num, dformat = "%Y%m%d"):
     _date = datetime(y, m, d) + timedelta(num)
     return _date.strftime(dformat)
 
-def get_day_nday_ago(date, num, dformat = "%Y%m%d"):
-    t = time.strptime(date, dformat)
-    y, m, d = t[0:3]
-    _date = datetime(y, m, d) - timedelta(num)
-    return _date.strftime(dformat)
-
 def is_trading_time(now_time = None):
     if now_time is None:now_time = datetime.now()
     _date = now_time.strftime('%Y-%m-%d')

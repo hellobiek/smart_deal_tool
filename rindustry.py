@@ -2,19 +2,20 @@
 import time
 import _pickle
 import datetime
-from gevent.pool import Pool
-from datetime import datetime
-from functools import partial
 import const as ct
 import numpy as np
 import pandas as pd
-from common import delta_days, create_redis_obj, get_day_nday_ago, get_dates_array
 from cmysql import CMySQL
 from cindex import CIndex
+from gevent.pool import Pool
+from datetime import datetime
+from functools import partial
 from base.clog import getLogger
 from ccalendar import CCalendar
 from collections import OrderedDict
 from industry_info import IndustryInfo
+from base.cdate import get_day_nday_ago
+from common import delta_days, create_redis_obj, get_dates_array
 
 class RIndexIndustryInfo:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):

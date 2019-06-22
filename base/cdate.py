@@ -160,3 +160,9 @@ def get_next_date(sdate, target_day = calendar.FRIDAY, dformat = '%Y.%m.%d'):
         sdate += oneday
     tdate = sdate.strftime(dformat)
     return tdate
+
+def get_day_nday_ago(date, num, dformat = "%Y%m%d"):
+    t = time.strptime(date, dformat)
+    y, m, d = t[0:3]
+    _date = datetime(y, m, d) - timedelta(num)
+    return _date.strftime(dformat)

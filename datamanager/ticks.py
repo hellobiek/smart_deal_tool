@@ -17,8 +17,9 @@ import const as ct
 import numpy as np
 import pandas as pd
 from base.clog import getLogger
+from base.cdate import get_day_nday_ago
 from datetime import datetime, timedelta
-from common import get_security_exchange_name, get_day_nday_ago
+from common import get_security_exchange_name
 from datamanager.tick_models import TickTradeDetail, TickDetailModel
 logger = getLogger(__name__)
 pd.options.mode.chained_assignment = None #default='warn'
@@ -262,13 +263,13 @@ def exists(path):
 
 def download(output_directory, cdate, ndays):
     cdate = time.strftime("%Y%m%d", time.strptime(cdate, "%Y-%m-%d"))
-    _date = get_day_nday_ago(cdate, num = ndays)
-    start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(_date, "%Y%m%d"))
+    date_ = get_day_nday_ago(cdate, num = ndays)
+    start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(date_, "%Y%m%d"))
     data_times = pd.date_range(start_date_dmy_format, periods = ndays + 1, freq = 'D')
     date_only_array = np.vectorize(lambda s: s.strftime('%Y%m%d'))(data_times.to_pydatetime())
     date_only_array = date_only_array[::-1]
-    for _date in date_only_array:
-        filename = "%s.zip" % _date
+    for date_ in date_only_array:
+        filename = "%s.zip" % date_
         url = "http://www.tdx.com.cn/products/data/data/2ktic/%s" % filename
         filepath = "%s/%s" % (output_directory, filename)
         try:
@@ -293,8 +294,9 @@ def unzip(file_path, tic_dir):
     zip_file.close()
 
 if __name__ == "__main__":
-    code_id = '880001'
-    tickname = '20180822.tic'
-    ticname = os.path.join('/Volumes/data/quant/stock/data/tdx/tic', tickname)
-    df = read_tick(ticname, code_id)
-    print(df)
+    #code_id = '880001'
+    #tickname = '20180822.tic'
+    #ticname = os.path.join('/Volumes/data/quant/stock/data/tdx/tic', tickname)
+    #df = read_tick(ticname, code_id)
+    #print(df)
+    download(ct.TDX_DAILY_DOWNLOAD_ZIP_PATH, '2019-05-31', 10)

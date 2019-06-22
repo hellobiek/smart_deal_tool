@@ -4,15 +4,16 @@ import datetime
 import const as ct
 import numpy as np
 import pandas as pd
+from cmysql import CMySQL
+from cstock import CStock
 from functools import partial
 from datetime import datetime
 from base.clog import getLogger
-from cmysql import CMySQL
-from cstock import CStock
 from ccalendar import CCalendar
 from cstock_info import CStockInfo
 from collections import OrderedDict
-from common import delta_days, create_redis_obj, get_day_nday_ago, get_dates_array, queue_process_concurrent_run
+from base.cdate import get_day_nday_ago
+from common import delta_days, create_redis_obj, get_dates_array, queue_process_concurrent_run
 class RIndexStock:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
