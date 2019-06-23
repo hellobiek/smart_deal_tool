@@ -18,7 +18,6 @@ from gevent.pool import Pool
 from multiprocessing import Process, Queue
 from datetime import datetime, timedelta
 logger = getLogger(__name__)
-
 def trace_func(*dargs, **dkargs):
     def wrapper(func):
         def _wrapper(*args, **kargs):
@@ -42,11 +41,6 @@ def gint(x):
     else:
         return int(x)
 
-def _fprint(obj):
-    print("***************************s")
-    print(obj)
-    print("***************************e")
-
 def number_of_days(pre_pos, pos):
     return pos - pre_pos
 
@@ -59,12 +53,6 @@ def is_afternoon(now_time = None):
     mor_close_hour,mor_close_minute,mor_close_second = (23,59,59)
     mor_close_time = datetime(y,m,d,mor_close_hour,mor_close_minute,mor_close_second)
     return (mor_open_time < now_time < mor_close_time)
-
-def get_day_nday_after(date, num, dformat = "%Y%m%d"):
-    t = time.strptime(date, dformat)
-    y, m, d = t[0:3]
-    _date = datetime(y, m, d) + timedelta(num)
-    return _date.strftime(dformat)
 
 def is_trading_time(now_time = None):
     if now_time is None:now_time = datetime.now()

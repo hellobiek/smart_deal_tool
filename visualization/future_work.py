@@ -5,10 +5,10 @@ from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(os.path.abspath(__file__))))
 import const as ct
 import pandas as pd
-from common import get_day_nday_after
 from cindex import CIndex
 import matplotlib.pyplot as plt
 from matplotlib import ticker as mticker
+from base.cdate import get_day_nday_after
 from mpl_finance import candlestick2_ochl
 def plot_index(cdate, i_data):
     base_color = '#e6daa6'
