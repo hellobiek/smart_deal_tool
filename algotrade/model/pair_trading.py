@@ -9,10 +9,11 @@ import tushare as ts
 import statsmodels.api as sm
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
-import statsmodels.tsa.stattools as sts
 from ccalendar import CCalendar
+import statsmodels.tsa.stattools as sts
 from sklearn.model_selection import train_test_split
-from common import get_dates_array, get_tushare_client, add_suffix, delta_days, create_redis_obj, transfer_int_to_date_string
+from base.cdate import transfer_int_to_date_string, get_dates_array
+from common import get_tushare_client, add_suffix, create_redis_obj
 fpath     = '/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/tushare.json' 
 mredis    = create_redis_obj(host = "127.0.0.1")
 ts_client = get_tushare_client(fpath)

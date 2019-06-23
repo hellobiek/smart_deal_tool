@@ -10,8 +10,9 @@ from cstock import CStock
 from cindex import CIndex
 from datetime import timedelta
 from rstock import RIndexStock
+from base.cdate import delta_days
 from cstock_info import CStockInfo
-from common import is_df_has_unexpected_data, delta_days
+from common import is_df_has_unexpected_data
 from algotrade.feed import dataFramefeed
 from algotrade.indicator.macd import Macd, DivergenceType
 from algotrade.strategy import gen_broker

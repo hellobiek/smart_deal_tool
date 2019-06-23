@@ -7,9 +7,9 @@ from cmysql import CMySQL
 from datetime import datetime
 from ccalendar import CCalendar
 from base.clog import getLogger
-from base.cdate import get_day_nday_ago
+from common import create_redis_obj
 from datamanager.hk_crawl import MCrawl
-from common import create_redis_obj, get_dates_array
+from base.cdate import get_day_nday_ago, get_dates_array, delta_days
 class StockConnect(object):
     def __init__(self, market_from = ct.SH_MARKET_SYMBOL, market_to = ct.HK_MARKET_SYMBOL, dbinfo = ct.DB_INFO, redis_host = None):
         self.market_from  = market_from

@@ -8,7 +8,7 @@ import const as ct
 import pandas as pd
 from futu import TrdEnv
 from datetime import datetime
-from common import get_dates_array
+from base.cdate import get_dates_array
 from tools.markdown_table import MarkdownTable
 from tools.markdown_writer import MarkdownWriter
 from algotrade.broker.futu.fututrader import FutuTrader

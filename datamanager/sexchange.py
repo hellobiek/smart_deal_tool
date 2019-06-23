@@ -10,8 +10,8 @@ from cmysql import CMySQL
 from datetime import datetime
 from base.clog import getLogger
 from ccalendar import CCalendar
-from base.cdate import get_day_nday_ago
-from common import create_redis_obj, get_dates_array, smart_get, int_random, loads_jsonp, float_random
+from base.cdate import get_day_nday_ago, get_dates_array
+from common import create_redis_obj, smart_get, int_random, loads_jsonp, float_random
 class StockExchange(object):
     def __init__(self, market = ct.SH_MARKET_SYMBOL, dbinfo = ct.DB_INFO, redis_host = None):
         self.market       = market

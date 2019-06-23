@@ -7,6 +7,7 @@ import os
 import json
 import time
 import _pickle
+import ccalendar
 import datetime
 from datetime import datetime, date
 from os import path
@@ -32,8 +33,7 @@ from cstock_info import CStockInfo
 from industry_info import IndustryInfo
 from sklearn.linear_model import Ridge
 from sklearn import cluster, covariance, manifold, preprocessing
-import ccalendar
-from common import create_redis_obj, get_dates_array
+from common import create_redis_obj
 from base.clog import getLogger
 from hurst import compute_Hc
 import statsmodels.api as sm

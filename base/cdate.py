@@ -166,3 +166,19 @@ def get_day_nday_ago(date, num, dformat = "%Y%m%d"):
     y, m, d = t[0:3]
     _date = datetime(y, m, d) - timedelta(num)
     return _date.strftime(dformat)
+
+def delta_days(_from, _to, dformat = "%Y-%m-%d"):
+    _from = time.strptime(_from, dformat)
+    _to = time.strptime(_to, dformat)
+    _from = datetime(_from[0],_from[1],_from[2])
+    _to = datetime(_to[0],_to[1],_to[2])
+    return (_to - _from).days + 1
+
+def get_dates_array(start_date, end_date, dformat = "%Y-%m-%d", asending = False):
+    num_days = delta_days(start_date, end_date, dformat)
+    start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(start_date, dformat))
+    data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
+    date_only_array = np.vectorize(lambda s: s.strftime(dformat))(data_times.to_pydatetime())
+    if asending: return date_only_array
+    date_only_array = date_only_array[::-1]
+    return date_only_array

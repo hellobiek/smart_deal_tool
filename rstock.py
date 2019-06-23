@@ -12,8 +12,8 @@ from base.clog import getLogger
 from ccalendar import CCalendar
 from cstock_info import CStockInfo
 from collections import OrderedDict
-from base.cdate import get_day_nday_ago
-from common import delta_days, create_redis_obj, get_dates_array, queue_process_concurrent_run
+from common import create_redis_obj, queue_process_concurrent_run
+from base.cdate import get_day_nday_ago, delta_days, get_dates_array
 class RIndexStock:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)

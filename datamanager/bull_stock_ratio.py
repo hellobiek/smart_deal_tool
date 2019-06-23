@@ -10,8 +10,8 @@ from datetime import datetime
 from rstock import RIndexStock
 from base.clog import getLogger
 from ccalendar import CCalendar
-from base.cdate import get_day_nday_ago
-from common import create_redis_obj, get_dates_array
+from common import create_redis_obj
+from base.cdate import get_day_nday_ago, get_dates_array
 class BullStockRatio:
     def __init__(self, index_code, dbinfo = ct.DB_INFO, redis_host = None):
         self.dbinfo = dbinfo

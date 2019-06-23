@@ -10,13 +10,13 @@ from cindex import CIndex
 from gevent.pool import Pool
 from datetime import datetime
 from functools import partial
-from base.clog import getLogger
 from ccalendar import CCalendar
+from base.clog import getLogger
+from base.cdate import delta_days
+from common import create_redis_obj
 from collections import OrderedDict
 from industry_info import IndustryInfo
-from base.cdate import get_day_nday_ago
-from common import delta_days, create_redis_obj, get_dates_array
-
+from base.cdate import get_day_nday_ago, get_dates_array
 class RIndexIndustryInfo:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)

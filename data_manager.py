@@ -23,16 +23,16 @@ from industry_info import IndustryInfo
 from datamanager.margin  import Margin
 from datamanager.emotion import Emotion
 from datamanager.hgt import StockConnect
+from backlooking.creview import CReivew
+from rindustry import RIndexIndustryInfo
+from futu.common.constant import SubType
+from combination_info import CombinationInfo
 from datamanager.sexchange import StockExchange
 from base.cdate import transfer_date_string_to_int
 from datamanager.bull_stock_ratio import BullStockRatio
-from backlooking.creview import CReivew
-from rindustry import RIndexIndustryInfo
-from combination_info import CombinationInfo
-from futu.common.constant import SubType
-from base.cdate import get_day_nday_ago
+from base.cdate import get_day_nday_ago, get_dates_array
 from algotrade.broker.futu.subscriber import Subscriber, StockQuoteHandler, TickerHandler
-from common import is_trading_time, add_prifix, add_index_prefix, kill_process, concurrent_run, get_dates_array, process_concurrent_run, get_latest_data_date
+from common import is_trading_time, add_prifix, add_index_prefix, kill_process, concurrent_run, process_concurrent_run, get_latest_data_date
 pd.options.mode.chained_assignment = None #default='warn'
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)

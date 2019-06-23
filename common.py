@@ -47,22 +47,6 @@ def _fprint(obj):
     print(obj)
     print("***************************e")
 
-def get_dates_array(start_date, end_date, dformat = "%Y-%m-%d", asending = False):
-    num_days = delta_days(start_date, end_date, dformat)
-    start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(start_date, dformat))
-    data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
-    date_only_array = np.vectorize(lambda s: s.strftime(dformat))(data_times.to_pydatetime())
-    if asending: return date_only_array
-    date_only_array = date_only_array[::-1]
-    return date_only_array
-
-def delta_days(_from, _to, dformat = "%Y-%m-%d"):
-    _from = time.strptime(_from, dformat)
-    _to = time.strptime(_to, dformat)
-    _from = datetime(_from[0],_from[1],_from[2])
-    _to = datetime(_to[0],_to[1],_to[2])
-    return (_to - _from).days + 1
-
 def number_of_days(pre_pos, pos):
     return pos - pre_pos
 

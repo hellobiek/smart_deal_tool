@@ -11,9 +11,8 @@ from datetime import datetime
 from base.clog import getLogger
 from ccalendar import CCalendar
 from collections import OrderedDict
-from base.cdate import get_day_nday_ago
-from base.cdate import transfer_date_string_to_int
-from common import create_redis_obj, get_dates_array, get_tushare_client, smart_get, delta_days
+from common import create_redis_obj, get_tushare_client, smart_get
+from base.cdate import get_day_nday_ago, delta_days, transfer_date_string_to_int, get_dates_array
 class Margin(object):
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.logger       = getLogger(__name__)
