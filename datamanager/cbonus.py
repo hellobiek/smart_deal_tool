@@ -46,9 +46,9 @@ class CBonus(object):
         filter_df = bonus_df.sort_values(['date'], ascending=True)
         res_df = filter_df.loc[filter_df.date <= mdate]
         if res_df.empty:
-            return int(10000 * float('%.1f' % filter_df.iloc[0]['money'])), int(10000 * float('%.1f' % filter_df.iloc[0]['price']))
+            return int(10000 * float('%.1f' % filter_df.iloc[-1]['money'])), int(10000 * float('%.1f' % filter_df.iloc[-1]['price']))
         else:
-            return int(10000 * float('%.1f' % res_df.iloc[0]['count'])), int(10000 * float('%.1f' % res_df.iloc[0]['rate']))
+            return int(10000 * float('%.1f' % res_df.iloc[-1]['count'])), int(10000 * float('%.1f' % res_df.iloc[-1]['rate']))
 
 if __name__ == '__main__':
     cbonus = CBonus()

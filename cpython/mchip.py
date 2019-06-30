@@ -57,10 +57,9 @@ def divide_according_position(position_series, volume_series, volume, position):
     ratio_series = postive_normalization(delta_position_series + delta_volume_series)
     return allocate_volume(volume, ratio_series, volume_series)
 
-def number_of_days(pre_pos, pos):
-    return pos - pre_pos
-
 def divide_data(mdata, pos, price):
+    def number_of_days(pre_pos, pos):
+        return pos - pre_pos
     #short chip data
     s_data = mdata[np.apply_along_axis(number_of_days, 0, mdata['pos'], pos) <= 60]
     #short profit data

@@ -67,7 +67,7 @@ class DataManager:
         now_time = datetime.now()
         _date = now_time.strftime('%Y-%m-%d')
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
-        aft_open_hour,aft_open_minute,aft_open_second = (17,30,00)
+        aft_open_hour,aft_open_minute,aft_open_second = (17,10,00)
         aft_open_time = datetime(y,m,d,aft_open_hour,aft_open_minute,aft_open_second)
         aft_close_hour,aft_close_minute,aft_close_second = (23,59,59)
         aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
@@ -497,12 +497,12 @@ if __name__ == '__main__':
     #sys.exit(0)
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
-    mdate = '2019-06-10' 
+    mdate = '2019-06-28' 
     dm.logger.info("start compute!")
     #dm.set_bull_stock_ratio(mdate, num = 10)
     #dm.clear_network_env()
-    dm.init_base_float_profit()
+    #dm.init_base_float_profit()
     #dm.init_stock_info(mdate)
     #dm.bootstrap(exec_date = '2019-03-26')
-    #dm.bootstrap(cdate = mdate, exec_date = mdate)
+    dm.bootstrap(cdate = mdate, exec_date = mdate)
     dm.logger.info("end compute!")

@@ -41,9 +41,6 @@ def gint(x):
     else:
         return int(x)
 
-def number_of_days(pre_pos, pos):
-    return pos - pre_pos
-
 def is_afternoon(now_time = None):
     if now_time is None:now_time = datetime.now()
     _date = now_time.strftime('%Y-%m-%d')

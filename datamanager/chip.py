@@ -1,8 +1,8 @@
 #coding=utf-8
 import const as ct
 import pandas as pd
+from common import df_empty
 from base.clog import getLogger
-from common import df_empty, number_of_days
 logger = getLogger(__name__)
 class Chip:
     def evenly_distributed_new_chip(self, volume_series, pre_outstanding, outstanding):
@@ -107,6 +107,8 @@ class Chip:
         return profit_df.volume.sum() if len(profit_df) > 0 else 0
 
     def adjust_volume(self, df, pos, volume, price, pre_outstanding, outstanding):
+        def number_of_days(pre_pos, pos):
+            return pos - pre_pos
         if pre_outstanding != outstanding:
             df['volume'] = self.evenly_distributed_new_chip(df['volume'], pre_outstanding, outstanding)
 

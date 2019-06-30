@@ -382,7 +382,7 @@
                     - https://blog.csdn.net/Jailman/article/details/78913824
         - 净利润增速增加到reprot中(done)。
         - bull ratio的数据重复bugfix(done)。
-        - 转移爬虫到scrapyd中去(doing)。
+        - 转移爬虫到scrapyd中去(done)。
         - 回测框架支持如果开盘涨停则不买入。
     - CTA量化策略开发
         - 策略开发
@@ -430,8 +430,13 @@
             - HMM算法
         - SVM(done)
         - Logistic(done)
-        - AdaBoost(doing)
-        - Genetic Algorithm
+        - Boosting(done)
+            - GBDT
+            - XBoost
+            - AdaBoost
+        - Genetic Algorithm(done)
+            - 实践
+        - DeepLearning(doing)
 ##TODO
     - 软件维护
         - 爬虫scrapy化(done)
