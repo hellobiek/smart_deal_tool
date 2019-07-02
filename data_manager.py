@@ -52,7 +52,7 @@ class DataManager:
         self.rindex_stock_data_client = RIndexStock(dbinfo, redis_host) 
         self.industry_info_client = IndustryInfo(dbinfo, redis_host)
         self.rindustry_info_client = RIndexIndustryInfo(dbinfo, redis_host)
-        self.limit_client = CLimit(dbinfo, redis_host)
+        #self.limit_client = CLimit(dbinfo, redis_host)
         self.animation_client = CAnimation(dbinfo, redis_host)
         self.subscriber = Subscriber()
         self.quote_handler  = StockQuoteHandler()
@@ -256,9 +256,9 @@ class DataManager:
             self.set_update_info(12, exec_date, cdate)
 
         if finished_step < 13:
-            if not self.limit_client.update(exec_date, num = ndays):
-                self.logger.error("init limit info failed")
-                return False
+            #if not self.limit_client.update(exec_date, num = ndays):
+            #    self.logger.error("init limit info failed")
+            #    return False
             self.set_update_info(13, exec_date, cdate)
 
         if finished_step < 14:

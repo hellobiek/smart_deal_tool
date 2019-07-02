@@ -1,7 +1,6 @@
 #coding=utf-8
 from schematics.models import Model
 from schematics.types import URLType, StringType, ListType, FloatType, IntType
-
 class MonthInvestorSituationModel(Model):
     date = StringType(required=True)
     unit = StringType(required=True)
@@ -76,3 +75,19 @@ class HkexTradeTopTenModel(Model):
     buy_turnover = FloatType(required=True)
     sell_turnover = FloatType(required=True)
     total_turnover = FloatType(required=True)
+
+class StockLimitModel(Model):
+    fcb = FloatType(required=True)
+    flb = FloatType(required=True)
+    date = StringType(required=True)
+    code = StringType(required=True)
+    price = FloatType(required=True)
+    pchange = FloatType(required=True)
+    prange = FloatType(required=True)
+    intensity = FloatType(required=True)
+    fdmoney = FloatType(required=True)
+    open_times = IntType(required=True)
+    first_time = StringType(required=True)
+    last_time = StringType(required=True)
+    concept = StringType()
+

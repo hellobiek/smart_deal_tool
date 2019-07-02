@@ -1,10 +1,7 @@
 #coding=utf-8
-import os
 import re
-import sys
 import json
 import time
-import random
 import requests
 import const as ct
 import numpy as np
@@ -149,7 +146,6 @@ class CLimit:
         succeed = True
         for mdate in date_array:
             if CCalendar.is_trading_day(mdate, redis = self.redis):
-                #if mdate == end_date: continue
                 if not self.crawl_data(mdate):
                     self.logger.error("%s set failed" % mdate)
                     succeed = False
@@ -158,4 +154,4 @@ class CLimit:
 if __name__ == '__main__':
     cl = CLimit()
     #cl.mysql_client.delete(cl.table)
-    cl.update(end_date = '2019-03-28')
+    cl.update(end_date = '2019-07-01')

@@ -434,9 +434,16 @@
             - GBDT
             - XBoost
             - AdaBoost
-        - Genetic Algorithm(done)
+        - GeneticAlgorithm(done)
             - 实践
-        - DeepLearning(doing)
+        - DeepLearning(done)
+            - DNN(done)
+            - CNN(done)
+        - SemiSuperversiedLearning(done)
+        - UnSupervisedLearning
+            - LieanerMethod(done)
+            - WordEmbeding(done)
+            - NeibortherEmbeding(done)
 ##TODO
     - 软件维护
         - 爬虫scrapy化(done)

@@ -3,12 +3,14 @@ import time
 import calendar
 import datetime
 from scrapy import Spider
+from common import create_redis_obj
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from twisted.internet.error import TimeoutError
 from twisted.internet.error import DNSLookupError
 from scrapy.spidermiddlewares.httperror import HttpError
 class BasicSpider(Spider):
+    redis = create_redis_obj()
     def get_nday_ago(self, mdate, num, dformat = "%Y.%m.%d"):
         t = time.strptime(mdate, dformat)
         y, m, d = t[0:3]
@@ -51,6 +53,11 @@ class BasicSpider(Spider):
         while sdate.weekday() > 4: sdate += oneday 
         tdate = sdate.strftime(dformat)
         return tdate
+
+    def is_date_exists(self, table_name, cdate):
+        if self.redis.exists(table_name):
+            return cdate in set(tdate.decode() for tdate in self.redis.smembers(table_name))
+        return False
 
     def errback_httpbin(self, failure):
         if failure.check(HttpError):

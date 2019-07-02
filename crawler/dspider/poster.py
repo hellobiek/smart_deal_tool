@@ -13,6 +13,7 @@ from hkex import HkexCrawler
 from investor import InvestorCrawler
 from investor import MonthInvestorCrawler
 from plate_valuation import PlateValuationCrawler
+from stock_limit_crawler import StockLimitCrawler
 from china_treasury_rate import ChinaTreasuryRateCrawler
 from china_security_industry_valuation import ChinaSecurityIndustryValuationCrawler
 from pymysql.err import OperationalError, InterfaceError, DataError, InternalError, IntegrityError
@@ -247,3 +248,24 @@ class MonthInvestorSituationItemPoster(Poster):
     def store(self):
         query = self.dbpool.runInteraction(self.do_insert, self.item)
         query.addErrback(self.on_error)
+
+class StockLimitItemPoster(Poster):
+    def __init__(self, item, dbinfo = ct.DB_INFO, redis_host = None):
+        super(StockLimitItemPoster, self).__init__(item)
+        self.dbname = StockLimitCrawler.get_dbname()
+        self.table = StockLimitCrawler.get_tablename()
+        self.connect = pymysql.connect(host=dbinfo['host'], port=dbinfo['port'], db=self.dbname, user=dbinfo['user'], passwd=dbinfo['password'], charset=ct.UTF8)
+        self.cursor = self.connect.cursor()
+
+    def store(self):
+        try:
+            insert_sql, params = self.item.get_insert_sql(self.table)
+            if insert_sql == None and params == None: return
+            self.cursor.execute(insert_sql, params)
+            self.connect.commit()
+        except Exception as e:
+            logger.debug(e)
+
+    def on_error(self, failure):
+        if not (failure.type == IntegrityError and failure.value.args[0] == 1062):
+            logger.error(failure.type, failure.value, failure.getTraceback())

@@ -178,3 +178,25 @@ class StockFinancialDisclosureTimeItem(DspiderItem):
     first   = scrapy.Field()
     changed = scrapy.Field()
     actual  = scrapy.Field()
+
+class StockLimitItem(DspiderItem):
+    date = scrapy.Field()
+    code = scrapy.Field()
+    price = scrapy.Field()
+    pchange = scrapy.Field()
+    prange = scrapy.Field()
+    concept = scrapy.Field()
+    fcb = scrapy.Field()
+    flb = scrapy.Field()
+    fdmoney = scrapy.Field()
+    first_time = scrapy.Field()
+    last_time = scrapy.Field()
+    open_times = scrapy.Field()
+    intensity = scrapy.Field()
+    def get_insert_sql(self, table):
+        dc = dict(self)
+        params = (dc['date'], dc['code'], dc['price'], dc['pchange'], dc['prange'],\
+              dc['concept'], dc['fcb'], dc['flb'], dc['fdmoney'], dc['first_time'],\
+                                dc['last_time'], dc['open_times'], dc['intensity'])
+        insert_sql = "insert ignore into {}(date, code, price, pchange, prange, concept, fcb, flb, fdmoney, first_time,last_time, open_times, intensity) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)".format(table)
+        return insert_sql, params

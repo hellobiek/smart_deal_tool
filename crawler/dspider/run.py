@@ -15,6 +15,7 @@ from dspider.china_security_industry_valuation import ChinaSecurityIndustryValua
 from dspider.security_exchange_commission_valuation import SecurityExchangeCommissionValuationCrawler
 from dspider.investor import MonthInvestorCrawler
 from scrapy.utils.project import get_project_settings
+from dspider.spiders.stockLimitSpider import StockLimitSpider
 from dspider.spiders.hkexSituationSpider import HkexSpider
 from dspider.spiders.plateValuation import PlateValuationSpider
 from dspider.spiders.spledgeSituationSpider import SPledgeSituationSpider
@@ -49,6 +50,7 @@ def weekly_spider():
         #myrunner.crawl(SecurityExchangeCommissionValuationSpider)
         #myrunner.crawl(ChinaTreasuryRateSpider)
         #myrunner.crawl(StockFinancialDisclosureTimeSpider)
+        myrunner.crawl(StockLimitSpider)
         d = myrunner.join()
         d.addBoth(lambda _: reactor.stop())
         reactor.run() #the script will block here until the crawling is finished

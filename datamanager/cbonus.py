@@ -44,9 +44,10 @@ class CBonus(object):
         bonus_df = self.get_bonus(code)
         bonus_df = bonus_df[(bonus_df["type"] != 6) & ((bonus_df["type"] > 1) & (bonus_df["type"] < 13))]
         filter_df = bonus_df.sort_values(['date'], ascending=True)
+        if filter_df.empty: print("code:%s, mdate:%s bonus df is empty" % (code, mdate))
         res_df = filter_df.loc[filter_df.date <= mdate]
         if res_df.empty:
-            return int(10000 * float('%.1f' % filter_df.iloc[-1]['money'])), int(10000 * float('%.1f' % filter_df.iloc[-1]['price']))
+            return int(10000 * float('%.1f' % filter_df.iloc[0]['money'])), int(10000 * float('%.1f' % filter_df.iloc[0]['price']))
         else:
             return int(10000 * float('%.1f' % res_df.iloc[-1]['count'])), int(10000 * float('%.1f' % res_df.iloc[-1]['rate']))
 
