@@ -11,6 +11,7 @@ import const as ct
 import numpy as np
 import pandas as pd
 from cstock import CStock
+from numba import njit, jit
 from datetime import datetime
 from base.clog import getLogger
 from cstock_info import CStockInfo
@@ -144,7 +145,7 @@ class CValuation(object):
         stock_obj = CStock(code)
         df, _ = stock_obj.read(mdate)
         vfunc = np.vectorize(compute)
-        data = [item for item in zip(*vfunc(df['date'], df['close']))]
+        data = [item for item in zip(*vfunc(df['date'].values, df['close'].values))]
         vdf = pd.DataFrame(data, columns=["date", "pe", "ttm", "pb", "roe", "dr", "ccs", "tcs", "ccs_mv", "tcs_mv"])
         vdf['code'] = code
         return stock_obj.set_val_data(vdf, mdate)

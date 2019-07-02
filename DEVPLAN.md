@@ -370,9 +370,9 @@
                                 归属于母公司所有者的净利润, 总股本, 已上市流通A股、披露时间(done)
                 - 计算股息率, PE, PB, ROE
                     - 计算过程(done)
-                    - 存储暂时存储在csv文件中，等稳定后转入到mysql中
-                    - 并行化
-                    - cpython化
+                    - 存储暂时存储在csv文件中，等稳定后转入到mysql中(done)
+                    - 并行化(done)
+                    - cpython化(doing)
             - 计算
                 - 计算各指数的估值信息
             - 绘制
@@ -440,10 +440,17 @@
             - DNN(done)
             - CNN(done)
         - SemiSuperversiedLearning(done)
-        - UnSupervisedLearning
+        - UnSupervisedLearning(doing)
             - LieanerMethod(done)
             - WordEmbeding(done)
             - NeibortherEmbeding(done)
+            - GenerativeModel
+                - PixelRNN
+                - VAE
+                - GAN
+        - TransferLearning
+        - RNN
+        - DeepRefLearning
 ##TODO
     - 软件维护
         - 爬虫scrapy化(done)

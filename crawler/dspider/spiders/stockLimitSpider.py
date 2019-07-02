@@ -118,9 +118,10 @@ class StockLimitSpider(BasicSpider):
                 limit_intensity_df = limit_intensity_df[self.get_useful_columns(self.SEC_PAGE_ORDER)]
                 df = pd.merge(limit_intensity_df, limit_df, how='left', on=['代码'])
                 df.replace(np.inf, 1000, inplace = True)
-                df = df.reset_index(drop = True)
                 df.columns = [self.mdict[key] for key in df.columns.tolist()] 
                 df['date'] = mdate
+                df['concept'].fillna('', inplace = True)
+                df = df.reset_index(drop = True)
                 records = df.to_dict('records')
                 for record in df.to_dict('records'): yield StockLimitItem(record)
             else:
