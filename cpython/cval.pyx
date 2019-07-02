@@ -59,7 +59,8 @@ cdef int PRE_YEAR_REPORT_DATE = 0, RE_CUR_REPORT_DATE = 0
 
 cdef class CValuation(object):
     cdef public str report_data_path
-    cdef public object logger, bonus_client, report_client, stock_info_client, valuation_data
+    cdef public np.ndarray valuation_data
+    cdef public object logger, bonus_client, report_client, stock_info_client
     def __init__(self, str valution_path = ct.VALUATION_PATH):
         self.logger = getLogger(__name__)
         self.bonus_client = CBonus()
@@ -69,8 +70,10 @@ cdef class CValuation(object):
         self.valuation_data = self.get_reports_data()
 
     cdef object get_reports_data(self):
+        cdef object df
         #self.convert()
-        return pd.read_csv(self.report_data_path, header = 0, encoding = "utf8", usecols = DATA_COLUMS, dtype = DTYPE_DICT)
+        df = pd.read_csv(self.report_data_path, header = 0, encoding = "utf8", usecols = DATA_COLUMS, dtype = DTYPE_DICT)
+        return df.to_records(index = False)
 
     cdef object convert(self, mdate = None):
         #date, code, 1.基本每股收益(earnings per share)、2.扣非每股收益(non-earnings per share)、
@@ -194,9 +197,8 @@ cdef class CValuation(object):
         return (code, stock_obj.set_val_data(vdf))
 
     cdef dict get_report_item(self, int mdate, str code):
-        cdef object df
-        df = self.valuation_data[(self.valuation_data["date"] == mdate) & (self.valuation_data["code"] == code)]
-        return dict() if df.empty else list(df.to_dict('index').values())[0]
+        cdef object data_ = self.valuation_data[np.where((self.valuation_data["date"] == mdate) & (self.valuation_data["code"] == code))]
+        return dict() if len(data_) == 0 else {name:data_[name].item() for name in data_.dtype.names}
 
     cdef dict get_year_report_item(self, int mdate, str code, int timeToMarket):
         cdef int report_date

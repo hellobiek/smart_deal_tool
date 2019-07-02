@@ -20,7 +20,7 @@ from datamanager.creport import CReport
 from base.cdate import quarter, transfer_date_string_to_int, report_date_with, str_to_datetime, int_to_datetime, prev_report_date_with, get_pre_date, get_next_date, delta_days
 class CValuation(object):
     DATA_COLUMS = ['date', 'code', 'bps', 'eps', 'np', 'ccs', 'tcs', 'publish']
-    DTYPE_DICT = {'date': int, 'code':str, 'bps':float, 'eps': float, 'np': float, 'ccs': float, 'tcs': float, 'publish': int} 
+    DTYPE_DICT = {'date': int, 'code':str, 'bps':float, 'eps': float, 'np': float, 'ccs': float, 'tcs': float, 'publish': int}
     def __init__(self, valution_path = ct.VALUATION_PATH):
         self.logger = getLogger(__name__)
         self.bonus_client = CBonus()
@@ -31,7 +31,8 @@ class CValuation(object):
 
     def get_reports_data(self):
         #self.convert()
-        return pd.read_csv(self.report_data_path, header = 0, encoding = "utf8", usecols = self.DATA_COLUMS, dtype = self.DTYPE_DICT)
+        df = pd.read_csv(self.report_data_path, header = 0, encoding = "utf8", usecols = self.DATA_COLUMS, dtype = self.DTYPE_DICT)
+        return df.to_records(index = False)
 
     def convert(self, mdate = None):
         #date, code, 1.基本每股收益(earnings per share)、2.扣非每股收益(non-earnings per share)、
@@ -208,8 +209,8 @@ class CValuation(object):
 
     def get_report_item(self, mdate, code):
         if mdate is None: return None
-        df = self.valuation_data[(self.valuation_data["date"] == mdate) & (self.valuation_data["code"] == code)]
-        return None if df.empty else list(df.to_dict('index').values())[0]
+        data_ = self.valuation_data[np.where((self.valuation_data["date"] == mdate) & (self.valuation_data["code"] == code))]
+        return None if len(data_) == 0 else {name:data_[name].item() for name in data_.dtype.names}
 
     def get_year_report_item(self, mdate, code, timeToMarket):
         global PRE_YEAR_CODE, PRE_YEAR_REPORT_DATE, PRE_YEAR_ITEM
