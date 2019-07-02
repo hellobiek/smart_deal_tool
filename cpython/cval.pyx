@@ -55,7 +55,7 @@ DTYPE_LIST = [('date', 'S10'),\
 
 cdef str PRE_CUR_CODE = '', PRE_YEAR_CODE = ''
 cdef dict PRE_YEAR_ITEM = dict(), PRE_CUR_ITEM = dict()
-cdef int PRE_YEAR_REPORT_DATE = 0, RE_CUR_REPORT_DATE = 0
+cdef int PRE_YEAR_REPORT_DATE = 0, PRE_CUR_REPORT_DATE = 0
 
 cdef class CValuation(object):
     cdef public str report_data_path
@@ -142,8 +142,7 @@ cdef class CValuation(object):
     cdef (float, float) get_css_tcs(self, str code, int tdate, dict item):
         cdef float css, tcs
         if len(item) > 0:
-            ccs = item["ccs"] #流通股
-            tcs = item["tcs"] #总股本
+            ccs, tcs = item["ccs"], item["tcs"] #流通股, 总股本
             if ccs == 0 or tcs == 0:
                 self.logger.debug("get code:%s, tdate:%s failed. ccs:%s, tcs:%s" % (code, tdate, ccs, tcs))
                 ccs, tcs = self.bonus_client.get_css_tcs(code, tdate)
@@ -242,8 +241,7 @@ cdef class CValuation(object):
         :param price:
         :return:
         """
-        if len(item) == 0 or item['bps'] == 0: return 0.0
-        return price / item['bps']
+        return 0.0 if len(item) == 0 or item['bps'] == 0 else price / item['bps']
 
     cdef float pe(self, dict cur_item, dict year_item, float price):
         """
@@ -266,6 +264,7 @@ cdef class CValuation(object):
         """
         cdef float current_eps
         cdef int year, report_quarter
+        cdef dict year_report, q3_report, q2_report, q1_report 
         if len(cur_item) == 0 or cur_item['tcs'] == 0.0:
             #刚上市还没公布最新财报或者没有股本信息
             return 0.0
@@ -328,6 +327,8 @@ cdef class CValuation(object):
         :param code:
         :return:
         """
+        cdef int report_date
+        cdef dict item
         global PRE_CUR_CODE, PRE_CUR_REPORT_DATE, PRE_CUR_ITEM
         report_date = report_date_with(mdate)
 
