@@ -47,7 +47,8 @@ class CBonus(object):
         if filter_df.empty: print("code:%s, mdate:%s bonus df is empty" % (code, mdate))
         res_df = filter_df.loc[filter_df.date <= mdate]
         if res_df.empty:
-            return int(10000 * float('%.1f' % filter_df.iloc[0]['money'])), int(10000 * float('%.1f' % filter_df.iloc[0]['price']))
+            return 0, 0
+            #return int(10000 * float('%.1f' % filter_df.iloc[0]['money'])), int(10000 * float('%.1f' % filter_df.iloc[0]['price']))
         else:
             return int(10000 * float('%.1f' % res_df.iloc[-1]['count'])), int(10000 * float('%.1f' % res_df.iloc[-1]['rate']))
 

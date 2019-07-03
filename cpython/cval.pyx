@@ -73,6 +73,7 @@ cdef class CValuation(object):
         cdef object df
         #self.convert()
         df = pd.read_csv(self.report_data_path, header = 0, encoding = "utf8", usecols = DATA_COLUMS, dtype = DTYPE_DICT)
+        df = df.drop_duplicates()
         return df.to_records(index = False)
 
     cdef object convert(self, mdate = None):

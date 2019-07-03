@@ -32,6 +32,7 @@ class CValuation(object):
     def get_reports_data(self):
         #self.convert()
         df = pd.read_csv(self.report_data_path, header = 0, encoding = "utf8", usecols = self.DATA_COLUMS, dtype = self.DTYPE_DICT)
+        df = df.drop_duplicates()
         return df.to_records(index = False)
 
     def convert(self, mdate = None):
@@ -166,8 +167,8 @@ class CValuation(object):
             with open(fpath) as f: succeed_list = f.read().strip().split()
             for row in base_df.itertuples():
                 code = row.code
-                if code not in succeed_list:
-                    code = '603811'
+                #if code not in succeed_list:
+                if code == '600876':
                     timeToMarket = row.timeToMarket
                     if self.set_stock_valuation(mdate, code, timeToMarket):
                         succeed_list.append(code)

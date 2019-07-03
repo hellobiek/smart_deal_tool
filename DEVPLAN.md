@@ -372,7 +372,7 @@
                     - 计算过程(done)
                     - 存储暂时存储在csv文件中，等稳定后转入到mysql中(done)
                     - 并行化(done)
-                    - cpython化(doing)
+                    - cpython化(done)
             - 计算
                 - 计算各指数的估值信息
             - 绘制
@@ -448,7 +448,7 @@
                 - PixelRNN
                 - VAE
                 - GAN
-        - TransferLearning
+        - TransferLearning(done)
         - RNN
         - DeepRefLearning
 ##TODO
