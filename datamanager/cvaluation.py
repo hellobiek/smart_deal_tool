@@ -33,6 +33,7 @@ class CValuation(object):
         #self.convert()
         df = pd.read_csv(self.report_data_path, header = 0, encoding = "utf8", usecols = self.DATA_COLUMS, dtype = self.DTYPE_DICT)
         df = df.drop_duplicates()
+        df = df.reset_index(drop = True)
         return df.to_records(index = False)
 
     def convert(self, mdate = None):
