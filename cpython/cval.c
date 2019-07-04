@@ -2256,6 +2256,7 @@ static const char __pyx_k_amount[] = "amount";
 static const char __pyx_k_append[] = "append";
 static const char __pyx_k_aprice[] = "aprice";
 static const char __pyx_k_ccs_mv[] = "ccs_mv";
+static const char __pyx_k_code_2[] = "code:";
 static const char __pyx_k_counts[] = "counts";
 static const char __pyx_k_cp1252[] = "cp1252";
 static const char __pyx_k_cstock[] = "cstock";
@@ -2424,7 +2425,7 @@ static const char __pyx_k_social_security_holders[] = "social_security_holders";
 static const char __pyx_k_social_security_holding[] = "social_security_holding";
 static const char __pyx_k_unexpected_css_tcs_code[] = "unexpected css tcs code:";
 static const char __pyx_k_year_report_is_empty_for[] = " year report is empty for ";
-static const char __pyx_k_year_report_publish_date[] = "year report publish date:";
+static const char __pyx_k_year_report_publish_date[] = ", year report publish date:";
 static const char __pyx_k_financial_company_holders[] = "financial_company_holders";
 static const char __pyx_k_financial_company_holding[] = "financial_company_holding";
 static const char __pyx_k_ndarray_is_not_C_contiguous[] = "ndarray is not C contiguous";
@@ -2509,6 +2510,7 @@ static PyObject *__pyx_n_u_close;
 static PyObject *__pyx_n_s_code;
 static PyObject *__pyx_n_u_code;
 static PyObject *__pyx_n_s_code2time_dict;
+static PyObject *__pyx_kp_u_code_2;
 static PyObject *__pyx_kp_u_col_s;
 static PyObject *__pyx_n_s_columns;
 static PyObject *__pyx_n_s_compute;
@@ -5879,7 +5881,7 @@ static PyObject *__pyx_pf_4cval_10CValuation_19set_stock_valuation_compute(PyObj
  *                 if len(year_item) > 0 and len(cur_item) > 0:
  *                     if year_item['publish'] > cur_item['publish']:             # <<<<<<<<<<<<<<
  *                         #
- *                         self.logger.error("year report publish date:%s, cur report publish date:%s" % (year_item['publish'], cur_item['publish']))
+ *                         self.logger.error("code:%s, tdate:%s, year report publish date:%s, cur report publish date:%s" % (code, tdate, year_item['publish'], cur_item['publish']))
  */
       if (unlikely(__pyx_v_year_item == Py_None)) {
         PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
@@ -5903,21 +5905,43 @@ static PyObject *__pyx_pf_4cval_10CValuation_19set_stock_valuation_compute(PyObj
         /* "cval.pyx":177
  *                     if year_item['publish'] > cur_item['publish']:
  *                         #
- *                         self.logger.error("year report publish date:%s, cur report publish date:%s" % (year_item['publish'], cur_item['publish']))             # <<<<<<<<<<<<<<
+ *                         self.logger.error("code:%s, tdate:%s, year report publish date:%s, cur report publish date:%s" % (code, tdate, year_item['publish'], cur_item['publish']))             # <<<<<<<<<<<<<<
  *                         return tdate, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
  *                         #sys.exit(0)
  */
         if (unlikely(!__pyx_cur_scope->__pyx_v_self)) { __Pyx_RaiseClosureNameError("self"); __PYX_ERR(0, 177, __pyx_L1_error) }
         __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_cur_scope->__pyx_v_self->logger, __pyx_n_s_error); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 177, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_3);
-        __pyx_t_2 = PyTuple_New(4); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 177, __pyx_L1_error)
+        __pyx_t_2 = PyTuple_New(8); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 177, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_2);
         __pyx_t_4 = 0;
         __pyx_t_7 = 127;
+        __Pyx_INCREF(__pyx_kp_u_code_2);
+        __pyx_t_4 += 5;
+        __Pyx_GIVEREF(__pyx_kp_u_code_2);
+        PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_kp_u_code_2);
+        if (unlikely(!__pyx_cur_scope->__pyx_v_code)) { __Pyx_RaiseClosureNameError("code"); __PYX_ERR(0, 177, __pyx_L1_error) }
+        __pyx_t_8 = __Pyx_PyUnicode_Unicode(__pyx_cur_scope->__pyx_v_code); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 177, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_8);
+        __pyx_t_7 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_8) > __pyx_t_7) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_8) : __pyx_t_7;
+        __pyx_t_4 += __Pyx_PyUnicode_GET_LENGTH(__pyx_t_8);
+        __Pyx_GIVEREF(__pyx_t_8);
+        PyTuple_SET_ITEM(__pyx_t_2, 1, __pyx_t_8);
+        __pyx_t_8 = 0;
+        __Pyx_INCREF(__pyx_kp_u_tdate);
+        __pyx_t_4 += 8;
+        __Pyx_GIVEREF(__pyx_kp_u_tdate);
+        PyTuple_SET_ITEM(__pyx_t_2, 2, __pyx_kp_u_tdate);
+        __pyx_t_8 = __Pyx_PyUnicode_From_int(__pyx_v_tdate, 0, ' ', 'd'); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 177, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_8);
+        __pyx_t_4 += __Pyx_PyUnicode_GET_LENGTH(__pyx_t_8);
+        __Pyx_GIVEREF(__pyx_t_8);
+        PyTuple_SET_ITEM(__pyx_t_2, 3, __pyx_t_8);
+        __pyx_t_8 = 0;
         __Pyx_INCREF(__pyx_kp_u_year_report_publish_date);
-        __pyx_t_4 += 25;
+        __pyx_t_4 += 27;
         __Pyx_GIVEREF(__pyx_kp_u_year_report_publish_date);
-        PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_kp_u_year_report_publish_date);
+        PyTuple_SET_ITEM(__pyx_t_2, 4, __pyx_kp_u_year_report_publish_date);
         if (unlikely(__pyx_v_year_item == Py_None)) {
           PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
           __PYX_ERR(0, 177, __pyx_L1_error)
@@ -5930,12 +5954,12 @@ static PyObject *__pyx_pf_4cval_10CValuation_19set_stock_valuation_compute(PyObj
         __pyx_t_7 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_9) > __pyx_t_7) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_9) : __pyx_t_7;
         __pyx_t_4 += __Pyx_PyUnicode_GET_LENGTH(__pyx_t_9);
         __Pyx_GIVEREF(__pyx_t_9);
-        PyTuple_SET_ITEM(__pyx_t_2, 1, __pyx_t_9);
+        PyTuple_SET_ITEM(__pyx_t_2, 5, __pyx_t_9);
         __pyx_t_9 = 0;
         __Pyx_INCREF(__pyx_kp_u_cur_report_publish_date);
         __pyx_t_4 += 26;
         __Pyx_GIVEREF(__pyx_kp_u_cur_report_publish_date);
-        PyTuple_SET_ITEM(__pyx_t_2, 2, __pyx_kp_u_cur_report_publish_date);
+        PyTuple_SET_ITEM(__pyx_t_2, 6, __pyx_kp_u_cur_report_publish_date);
         if (unlikely(__pyx_v_cur_item == Py_None)) {
           PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
           __PYX_ERR(0, 177, __pyx_L1_error)
@@ -5948,9 +5972,9 @@ static PyObject *__pyx_pf_4cval_10CValuation_19set_stock_valuation_compute(PyObj
         __pyx_t_7 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_8) > __pyx_t_7) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_8) : __pyx_t_7;
         __pyx_t_4 += __Pyx_PyUnicode_GET_LENGTH(__pyx_t_8);
         __Pyx_GIVEREF(__pyx_t_8);
-        PyTuple_SET_ITEM(__pyx_t_2, 3, __pyx_t_8);
+        PyTuple_SET_ITEM(__pyx_t_2, 7, __pyx_t_8);
         __pyx_t_8 = 0;
-        __pyx_t_8 = __Pyx_PyUnicode_Join(__pyx_t_2, 4, __pyx_t_4, __pyx_t_7); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 177, __pyx_L1_error)
+        __pyx_t_8 = __Pyx_PyUnicode_Join(__pyx_t_2, 8, __pyx_t_4, __pyx_t_7); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 177, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_8);
         __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
         __pyx_t_2 = NULL;
@@ -5973,7 +5997,7 @@ static PyObject *__pyx_pf_4cval_10CValuation_19set_stock_valuation_compute(PyObj
 
         /* "cval.pyx":178
  *                         #
- *                         self.logger.error("year report publish date:%s, cur report publish date:%s" % (year_item['publish'], cur_item['publish']))
+ *                         self.logger.error("code:%s, tdate:%s, year report publish date:%s, cur report publish date:%s" % (code, tdate, year_item['publish'], cur_item['publish']))
  *                         return tdate, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0             # <<<<<<<<<<<<<<
  *                         #sys.exit(0)
  *                 pe_value = self.pe(cur_item, year_item, close)
@@ -6022,7 +6046,7 @@ static PyObject *__pyx_pf_4cval_10CValuation_19set_stock_valuation_compute(PyObj
  *                 if len(year_item) > 0 and len(cur_item) > 0:
  *                     if year_item['publish'] > cur_item['publish']:             # <<<<<<<<<<<<<<
  *                         #
- *                         self.logger.error("year report publish date:%s, cur report publish date:%s" % (year_item['publish'], cur_item['publish']))
+ *                         self.logger.error("code:%s, tdate:%s, year report publish date:%s, cur report publish date:%s" % (code, tdate, year_item['publish'], cur_item['publish']))
  */
       }
 
@@ -17683,6 +17707,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_code, __pyx_k_code, sizeof(__pyx_k_code), 0, 0, 1, 1},
   {&__pyx_n_u_code, __pyx_k_code, sizeof(__pyx_k_code), 0, 1, 0, 1},
   {&__pyx_n_s_code2time_dict, __pyx_k_code2time_dict, sizeof(__pyx_k_code2time_dict), 0, 0, 1, 1},
+  {&__pyx_kp_u_code_2, __pyx_k_code_2, sizeof(__pyx_k_code_2), 0, 1, 0, 0},
   {&__pyx_kp_u_col_s, __pyx_k_col_s, sizeof(__pyx_k_col_s), 0, 1, 0, 0},
   {&__pyx_n_s_columns, __pyx_k_columns, sizeof(__pyx_k_columns), 0, 0, 1, 1},
   {&__pyx_n_s_compute, __pyx_k_compute, sizeof(__pyx_k_compute), 0, 0, 1, 1},

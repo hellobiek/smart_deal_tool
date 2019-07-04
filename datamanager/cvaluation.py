@@ -112,6 +112,8 @@ class CValuation(object):
         else:
             ccs, tcs = self.bonus_client.get_css_tcs(code, tdate)
             if ccs == 0 or tcs == 0:
+                import pdb
+                pdb.set_trace()
                 raise Exception("unexpected css tcs code:%s, tdate:%s for item is None" % (code, tdate))
         return ccs, tcs
 
@@ -129,8 +131,7 @@ class CValuation(object):
                 if year_item is not None and cur_item is not None:
                     if year_item['publish'] > cur_item['publish']:
                         #年报比当前的财报公布的还晚
-                        self.logger.error("year report publish date:%s, cur report publish date:%s" % (year_item['publish'], cur_item['publish']))
-                        raise Exception("year report publish date:%s, cur report publish date:%s" % (year_item['publish'], cur_item['publish']))
+                        raise Exception("code:%s, tdate:%s, year report publish date:%s, cur report publish date:%s" % (code, tdate, year_item['publish'], cur_item['publish']))
                 pe_value = self.pe(cur_item, year_item, close)
                 ttm_value = self.ttm(cur_item, code, close)
                 pb_value = self.pb(cur_item, close)
@@ -169,11 +170,11 @@ class CValuation(object):
             for row in base_df.itertuples():
                 code = row.code
                 #if code not in succeed_list:
-                if code == '600876':
+                if code == '600325':
                     timeToMarket = row.timeToMarket
                     if self.set_stock_valuation(mdate, code, timeToMarket):
                         succeed_list.append(code)
-                        with open(fpath, 'a+') as f: f.write(code + '\n')
+                        #with open(fpath, 'a+') as f: f.write(code + '\n')
         except Exception as e:
             self.logger.error(e)
             traceback.print_exc()

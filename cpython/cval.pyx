@@ -174,7 +174,7 @@ cdef class CValuation(object):
                 if len(year_item) > 0 and len(cur_item) > 0:
                     if year_item['publish'] > cur_item['publish']:
                         #年报比当前的财报公布的还晚
-                        self.logger.error("year report publish date:%s, cur report publish date:%s" % (year_item['publish'], cur_item['publish']))
+                        self.logger.error("code:%s, tdate:%s, year report publish date:%s, cur report publish date:%s" % (code, tdate, year_item['publish'], cur_item['publish']))
                         return tdate, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
                         #sys.exit(0)
                 pe_value = self.pe(cur_item, year_item, close)
