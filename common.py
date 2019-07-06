@@ -235,26 +235,26 @@ def queue_thread_concurrent_run(mfunc, todo_list, redis_client, key, q, num = 10
             redis_client.srem(key, result[0])
     sys.exit(True)
 
-def process_concurrent_run(mfunc, all_list, redis_client = None, process_num = 2, num = 10, black_list = ct.BLACK_LIST):
+def process_concurrent_run(mfunc, all_list, redis_client = None, process_num = 2, num = 10, black_list = ct.BLACK_LIST, redis_key_name = ct.UNFINISHED_WORKS):
     if redis_client is None: redis_client = create_redis_obj()
-    init_unfinished_workers(redis_client, ct.UNFINISHED_WORKS, copy.deepcopy(all_list))
-    todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
+    init_unfinished_workers(redis_client, redis_key_name, copy.deepcopy(all_list))
+    todo_list = get_unfinished_workers(redis_client, redis_key_name)
     logger.info("all code list length:%s, all length:%s" % (len(todo_list), len(all_list)))
     if len(todo_list) == 0: return False
     last_length = len(todo_list)
 
-    if len(black_list) > 0: remove_blacklist(redis_client, ct.UNFINISHED_WORKS, black_list)
+    if len(black_list) > 0: remove_blacklist(redis_client, redis_key_name, black_list)
     while last_length > 0:
         i_start = 0
         jobs = list()
         for x in range(process_num):
             i_end = min(i_start + num, last_length)
-            p = Process(target = thread_concurrent_run, args=(mfunc, todo_list[i_start:i_end], redis_client, ct.UNFINISHED_WORKS), kwargs={'num': num})
+            p = Process(target = thread_concurrent_run, args=(mfunc, todo_list[i_start:i_end], redis_client, redis_key_name), kwargs={'num': num})
             jobs.append(p)
             i_start = i_end
         for j in jobs: j.start()
         for j in jobs: j.join()
-        todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_WORKS)
+        todo_list = get_unfinished_workers(redis_client, redis_key_name)
         if len(todo_list) == last_length:
             logger.error("left todo length:%s" % len(todo_list))
             time.sleep(600)

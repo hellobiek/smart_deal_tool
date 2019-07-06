@@ -650,9 +650,9 @@ class CStock(CMysqlObj):
         else:
             return df.loc[df.date == mdate]
 
-    def set_val_data(self, df, mdate = None):
-        stock_val_path = os.path.join("/data/valuation/stocks", self.get_val_filename())
-        if mdate is None:
+    def set_val_data(self, df, fpath = "/data/valuation/stocks"):
+        stock_val_path = os.path.join(fpath, self.get_val_filename())
+        if not os.path.exists(stock_val_path):
             df.to_csv(stock_val_path, index=False, header=True, mode='w', encoding='utf8')
         else:
             df.to_csv(stock_val_path, index=False, header=False, mode='a+', encoding='utf8')

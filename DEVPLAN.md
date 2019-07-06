@@ -375,8 +375,13 @@
                     - cpython化(done)
             - 计算
                 - 计算各指数的估值信息
+                    - Val结果对比
+                    - RVal的代码
+                    - 计算指数的代码
             - 绘制
-                - 绘制图表 
+                - 可视化
+                    - https://zhuanlan.zhihu.com/p/47761108
+                    - PE, TTM，ROE，PB，分红分位数信息
                 - Grafana显示数据
                     - https://cuiqingcai.com/6217.html/comment-page-1
                     - https://blog.csdn.net/Jailman/article/details/78913824

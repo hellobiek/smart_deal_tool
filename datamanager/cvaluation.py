@@ -10,6 +10,7 @@ import traceback
 import const as ct
 import numpy as np
 import pandas as pd
+from pathlib import Path
 from cstock import CStock
 from numba import njit, jit
 from datetime import datetime
@@ -152,7 +153,24 @@ class CValuation(object):
         data = [item for item in zip(*vfunc(df['date'].values, df['close'].values))]
         vdf = pd.DataFrame(data, columns=["date", "pe", "ttm", "pb", "roe", "dr", "ccs", "tcs", "ccs_mv", "tcs_mv"])
         vdf['code'] = code
-        return stock_obj.set_val_data(vdf, mdate)
+        return stock_obj.set_val_data(vdf)
+
+    def collect_financial_data(self, spath = "/data/crawler/china_security_industry_valuation/stock", tpath = '/data/valuation/cstocks'):
+        def myfunc(code, mdate):
+            tmp_df = df.loc[(df.code == code) & (df.date == mdate)]
+            tmp_df = tmp_df.reset_index(drop = True)
+            CStock(code).set_val_data(tmp_df, fpath = "/data/valuation/cstocks")
+        spath_obj = Path(spath)
+        csvs = spath_obj.glob('*.csv')
+        xfiles = [xfile.name for xfile in csvs]
+        xfiles.sort()
+        use_cols = ['code', 'date', 'pe', 'pb', 'ttm', 'dividend']
+        dtype_dict = {'code':str, 'date': str, 'pe': float, 'pb': float, 'ttm': float, 'dividend': float}
+        for fname in xfiles:
+            df = pd.read_csv(spath_obj / fname, header = 0, encoding = "utf8", usecols = use_cols, dtype = dtype_dict)
+            df = df[use_cols]
+            vfunc = np.vectorize(myfunc)
+            vfunc(df['code'].values, df['date'].values)
 
     def set_financial_data(self, mdate = None):
         '''
@@ -433,6 +451,7 @@ if __name__ == '__main__':
     cvaluation = CValuation()
     #df = cvaluation.get_stock_pledge_info(mdate = '20180708')
     try:
-        df = cvaluation.set_financial_data()
+        cvaluation.collect_financial_data()
+        #df = cvaluation.set_financial_data()
     except Exception as e:
         print(e)

@@ -161,7 +161,7 @@ cdef class CValuation(object):
     cdef (float, float) get_css_tcs_mv(self, float close, float ccs, float tcs):
         return close * ccs, close * tcs
 
-    def set_stock_valuation(self, dict code2time_dict, str code):
+    def set_stock_valuation(self, dict code2time_dict, str code, str mdate):
         cdef list data
         cdef dict year_item, cur_item
         cdef object df, vdf, stock_obj
@@ -187,14 +187,12 @@ cdef class CValuation(object):
                 return tdate, pe_value, ttm_value, pb_value, roe_value, dividend_value, ccs, tcs, ccs_mv, tcs_mv
             else:
                 return tdate, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
-        print(time.ctime(), code, "started")
         stock_obj = CStock(code)
-        df, _ = stock_obj.read()
+        df, _ = stock_obj.read() if mdate == '' else stock_obj.read(cdate = mdate)
         vfunc = np.vectorize(compute)
         data = [item for item in zip(*vfunc(df['date'].values, df['close'].values))]
         vdf = pd.DataFrame(data, columns=["date", "pe", "ttm", "pb", "roe", "dr", "ccs", "tcs", "ccs_mv", "tcs_mv"])
         vdf['code'] = code
-        print(time.ctime(), code, "finished")
         return (code, stock_obj.set_val_data(vdf))
 
     cdef dict get_report_item(self, int mdate, str code):
