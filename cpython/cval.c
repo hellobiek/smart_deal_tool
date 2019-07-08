@@ -6730,7 +6730,7 @@ static PyObject *__pyx_pf_4cval_10CValuation_2set_stock_valuation(struct __pyx_o
  *         data = [item for item in zip(*vfunc(df['date'].values, df['close'].values))]
  *         vdf = pd.DataFrame(data, columns=["date", "pe", "ttm", "pb", "roe", "dr", "ccs", "tcs", "ccs_mv", "tcs_mv"])             # <<<<<<<<<<<<<<
  *         vdf['code'] = code
- *         return (code, stock_obj.set_val_data(vdf))
+ *         return (code, stock_obj.set_val_data(vdf, mdate))
  */
   __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_pd); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 194, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
@@ -6790,7 +6790,7 @@ static PyObject *__pyx_pf_4cval_10CValuation_2set_stock_valuation(struct __pyx_o
  *         data = [item for item in zip(*vfunc(df['date'].values, df['close'].values))]
  *         vdf = pd.DataFrame(data, columns=["date", "pe", "ttm", "pb", "roe", "dr", "ccs", "tcs", "ccs_mv", "tcs_mv"])
  *         vdf['code'] = code             # <<<<<<<<<<<<<<
- *         return (code, stock_obj.set_val_data(vdf))
+ *         return (code, stock_obj.set_val_data(vdf, mdate))
  * 
  */
   if (unlikely(PyObject_SetItem(__pyx_v_vdf, __pyx_n_u_code, __pyx_cur_scope->__pyx_v_code) < 0)) __PYX_ERR(0, 195, __pyx_L1_error)
@@ -6798,7 +6798,7 @@ static PyObject *__pyx_pf_4cval_10CValuation_2set_stock_valuation(struct __pyx_o
   /* "cval.pyx":196
  *         vdf = pd.DataFrame(data, columns=["date", "pe", "ttm", "pb", "roe", "dr", "ccs", "tcs", "ccs_mv", "tcs_mv"])
  *         vdf['code'] = code
- *         return (code, stock_obj.set_val_data(vdf))             # <<<<<<<<<<<<<<
+ *         return (code, stock_obj.set_val_data(vdf, mdate))             # <<<<<<<<<<<<<<
  * 
  *     cdef dict get_report_item(self, int mdate, str code):
  */
@@ -6806,6 +6806,7 @@ static PyObject *__pyx_pf_4cval_10CValuation_2set_stock_valuation(struct __pyx_o
   __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_v_stock_obj, __pyx_n_s_set_val_data); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 196, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
   __pyx_t_1 = NULL;
+  __pyx_t_2 = 0;
   if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_6))) {
     __pyx_t_1 = PyMethod_GET_SELF(__pyx_t_6);
     if (likely(__pyx_t_1)) {
@@ -6813,12 +6814,41 @@ static PyObject *__pyx_pf_4cval_10CValuation_2set_stock_valuation(struct __pyx_o
       __Pyx_INCREF(__pyx_t_1);
       __Pyx_INCREF(function);
       __Pyx_DECREF_SET(__pyx_t_6, function);
+      __pyx_t_2 = 1;
     }
   }
-  __pyx_t_10 = (__pyx_t_1) ? __Pyx_PyObject_Call2Args(__pyx_t_6, __pyx_t_1, __pyx_v_vdf) : __Pyx_PyObject_CallOneArg(__pyx_t_6, __pyx_v_vdf);
-  __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
-  if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 196, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_10);
+  #if CYTHON_FAST_PYCALL
+  if (PyFunction_Check(__pyx_t_6)) {
+    PyObject *__pyx_temp[3] = {__pyx_t_1, __pyx_v_vdf, __pyx_v_mdate};
+    __pyx_t_10 = __Pyx_PyFunction_FastCall(__pyx_t_6, __pyx_temp+1-__pyx_t_2, 2+__pyx_t_2); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 196, __pyx_L1_error)
+    __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
+    __Pyx_GOTREF(__pyx_t_10);
+  } else
+  #endif
+  #if CYTHON_FAST_PYCCALL
+  if (__Pyx_PyFastCFunction_Check(__pyx_t_6)) {
+    PyObject *__pyx_temp[3] = {__pyx_t_1, __pyx_v_vdf, __pyx_v_mdate};
+    __pyx_t_10 = __Pyx_PyCFunction_FastCall(__pyx_t_6, __pyx_temp+1-__pyx_t_2, 2+__pyx_t_2); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 196, __pyx_L1_error)
+    __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
+    __Pyx_GOTREF(__pyx_t_10);
+  } else
+  #endif
+  {
+    __pyx_t_4 = PyTuple_New(2+__pyx_t_2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 196, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_4);
+    if (__pyx_t_1) {
+      __Pyx_GIVEREF(__pyx_t_1); PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_1); __pyx_t_1 = NULL;
+    }
+    __Pyx_INCREF(__pyx_v_vdf);
+    __Pyx_GIVEREF(__pyx_v_vdf);
+    PyTuple_SET_ITEM(__pyx_t_4, 0+__pyx_t_2, __pyx_v_vdf);
+    __Pyx_INCREF(__pyx_v_mdate);
+    __Pyx_GIVEREF(__pyx_v_mdate);
+    PyTuple_SET_ITEM(__pyx_t_4, 1+__pyx_t_2, __pyx_v_mdate);
+    __pyx_t_10 = __Pyx_PyObject_Call(__pyx_t_6, __pyx_t_4, NULL); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 196, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_10);
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  }
   __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
   __pyx_t_6 = PyTuple_New(2); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 196, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
@@ -6867,7 +6897,7 @@ static PyObject *__pyx_pf_4cval_10CValuation_2set_stock_valuation(struct __pyx_o
 }
 
 /* "cval.pyx":198
- *         return (code, stock_obj.set_val_data(vdf))
+ *         return (code, stock_obj.set_val_data(vdf, mdate))
  * 
  *     cdef dict get_report_item(self, int mdate, str code):             # <<<<<<<<<<<<<<
  *         cdef object data_ = self.valuation_data[np.where((self.valuation_data["date"] == mdate) & (self.valuation_data["code"] == code))]
@@ -7043,7 +7073,7 @@ static PyObject *__pyx_f_4cval_10CValuation_get_report_item(struct __pyx_obj_4cv
   goto __pyx_L0;
 
   /* "cval.pyx":198
- *         return (code, stock_obj.set_val_data(vdf))
+ *         return (code, stock_obj.set_val_data(vdf, mdate))
  * 
  *     cdef dict get_report_item(self, int mdate, str code):             # <<<<<<<<<<<<<<
  *         cdef object data_ = self.valuation_data[np.where((self.valuation_data["date"] == mdate) & (self.valuation_data["code"] == code))]

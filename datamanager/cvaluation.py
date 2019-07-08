@@ -148,12 +148,12 @@ class CValuation(object):
         PRE_YEAR_CODE, PRE_YEAR_REPORT_DATE, PRE_YEAR_ITEM = None, None, None
         PRE_CUR_CODE, PRE_CUR_REPORT_DATE, PRE_CUR_ITEM = None, None, None
         stock_obj = CStock(code)
-        df, _ = stock_obj.read(mdate)
+        df, _ = stock_obj.read() if mdate == '' else stock_obj.read(cdate = mdate)
         vfunc = np.vectorize(compute)
         data = [item for item in zip(*vfunc(df['date'].values, df['close'].values))]
         vdf = pd.DataFrame(data, columns=["date", "pe", "ttm", "pb", "roe", "dr", "ccs", "tcs", "ccs_mv", "tcs_mv"])
         vdf['code'] = code
-        return stock_obj.set_val_data(vdf)
+        return stock_obj.set_val_data(vdf, mdate)
 
     def collect_financial_data(self, spath = "/data/crawler/china_security_industry_valuation/stock", tpath = '/data/valuation/cstocks'):
         def myfunc(code, mdate):
@@ -172,7 +172,7 @@ class CValuation(object):
             vfunc = np.vectorize(myfunc)
             vfunc(df['code'].values, df['date'].values)
 
-    def set_financial_data(self, mdate = None):
+    def set_financial_data(self, mdate = ''):
         '''
         计算PE、PB、ROE、股息率、流通股本、总股本、流通市值、总市值
         1.基本每股收益、4.每股净资产、96.归属于母公司所有者的净利润、238.总股本、239.已上市流通A股
@@ -188,7 +188,7 @@ class CValuation(object):
             for row in base_df.itertuples():
                 code = row.code
                 #if code not in succeed_list:
-                if code == '600325':
+                if code == '600503':
                     timeToMarket = row.timeToMarket
                     if self.set_stock_valuation(mdate, code, timeToMarket):
                         succeed_list.append(code)
@@ -451,7 +451,7 @@ if __name__ == '__main__':
     cvaluation = CValuation()
     #df = cvaluation.get_stock_pledge_info(mdate = '20180708')
     try:
-        cvaluation.collect_financial_data()
-        #df = cvaluation.set_financial_data()
+        #cvaluation.collect_financial_data()
+        #cvaluation.set_financial_data()
     except Exception as e:
         print(e)

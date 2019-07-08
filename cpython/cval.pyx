@@ -193,7 +193,7 @@ cdef class CValuation(object):
         data = [item for item in zip(*vfunc(df['date'].values, df['close'].values))]
         vdf = pd.DataFrame(data, columns=["date", "pe", "ttm", "pb", "roe", "dr", "ccs", "tcs", "ccs_mv", "tcs_mv"])
         vdf['code'] = code
-        return (code, stock_obj.set_val_data(vdf))
+        return (code, stock_obj.set_val_data(vdf, mdate))
 
     cdef dict get_report_item(self, int mdate, str code):
         cdef object data_ = self.valuation_data[np.where((self.valuation_data["date"] == mdate) & (self.valuation_data["code"] == code))]

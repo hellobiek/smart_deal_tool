@@ -38,7 +38,7 @@ class CBonus(object):
                              (bonus_df["date"] <= datetime_to_int(end))]
         total_money = 0.0
         for idx, item in filter_df.iterrows(): total_money += item["money"] / 10
-        return total_money / (nyear * price)
+        return (100 * total_money) / (nyear * price)
 
     def get_css_tcs(self, code, mdate):
         bonus_df = self.get_bonus(code)
