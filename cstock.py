@@ -640,15 +640,13 @@ class CStock(CMysqlObj):
         return "%s_val.csv" % self.dbname
 
     def get_val_data(self, mdate):
-        import pdb
-        pdb.set_trace()
         stock_val_path = os.path.join("/data/valuation/stocks", self.get_val_filename())
-        #dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int}
+        if not os.path.exists(stock_val_path): return None
         df = pd.read_csv(stock_val_path)
         if mdate is None:
             return df
         else:
-            return df.loc[df.date == mdate]
+            return df.loc[df.date == int(mdate)].reset_index(drop = True)
 
     def set_val_data(self, df, mdate = '', fpath = "/data/valuation/stocks"):
         stock_val_path = os.path.join(fpath, self.get_val_filename())

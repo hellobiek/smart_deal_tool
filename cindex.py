@@ -311,6 +311,20 @@ class TdxFgIndex(CIndex):
             if self.redis.sadd(table_name, cdate): return True
         return False
 
+    def get_val_filename(self):
+        return "%s_val.csv" % self.dbname
+
+    def set_val_data(self, df, mdate = '', fpath = "/data/valuation/indexs"):
+        index_val_path = os.path.join(fpath, self.get_val_filename())
+        if mdate == '':
+            df.to_csv(index_val_path, index=False, header=True, mode='w', encoding='utf8')
+        else:
+            if not os.path.exists(index_val_path):
+                df.to_csv(index_val_path, index=False, header=True, mode='w', encoding='utf8')
+            else:
+                df.to_csv(index_val_path, index=False, header=False, mode='a+', encoding='utf8')
+        return True
+
 if __name__ == '__main__':
     tdi = TdxFgIndex(code = '880883', should_create_influxdb = True, should_create_mysqldb = True)
     tdi.set_k_data()

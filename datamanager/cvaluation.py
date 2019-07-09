@@ -113,8 +113,6 @@ class CValuation(object):
         else:
             ccs, tcs = self.bonus_client.get_css_tcs(code, tdate)
             if ccs == 0 or tcs == 0:
-                import pdb
-                pdb.set_trace()
                 raise Exception("unexpected css tcs code:%s, tdate:%s for item is None" % (code, tdate))
         return ccs, tcs
 
@@ -148,7 +146,8 @@ class CValuation(object):
         PRE_YEAR_CODE, PRE_YEAR_REPORT_DATE, PRE_YEAR_ITEM = None, None, None
         PRE_CUR_CODE, PRE_CUR_REPORT_DATE, PRE_CUR_ITEM = None, None, None
         stock_obj = CStock(code)
-        df, _ = stock_obj.read() if mdate == '' else stock_obj.read(cdate = mdate)
+        df = stock_obj.read()[0] if mdate == '' else stock_obj.read(cdate = mdate)[0]
+        df = df.reset_index(drop = True)
         vfunc = np.vectorize(compute)
         data = [item for item in zip(*vfunc(df['date'].values, df['close'].values))]
         vdf = pd.DataFrame(data, columns=["date", "pe", "ttm", "pb", "roe", "dr", "ccs", "tcs", "ccs_mv", "tcs_mv"])
@@ -196,37 +195,6 @@ class CValuation(object):
         except Exception as e:
             self.logger.error(e)
             traceback.print_exc()
-
-    def get_r_financial_name(self, mdate):
-        cdates = cdate.split('-')
-        return "%s_%s_%s.csv" % ("rval", cdates[0], (int(cdates[1])-1)//3 + 1)
-
-    def get_stock_valuation(self, code, mdate):
-        stock_obj = CStock(code)
-        return stock_obj.get_val_data(mdate)
-
-    def set_r_financial_data(self, mdate):
-        try:
-            file_name = self.get_r_financial_name(mdate)
-            file_path = os.path.join("/data/valuation/rstock", file_name)
-            base_df = self.stock_info_client.get_basics()
-            code_list = base_df.code.tolist()
-            all_df = pd.DataFrame()
-            for code in base_df.code.tolist():
-                df = self.get_stock_valuation(code, mdate)
-                if not df.empey: all_df.append(df)
-            if not os.path.exists(file_path):
-                all_df.to_csv(file_path, index=False, header=True, mode='w', encoding='utf8')
-            else:
-                all_df.to_csv(file_path, index=False, header=False, mode='a+', encoding='utf8')
-        except Exception as e:
-            self.logger.error(e)
-            traceback.print_exc()
-
-    def get_r_financial_data(self, mdate):
-        file_name = self.get_r_financial_name(mdate)
-        file_path = os.path.join("/data/valuation/rstock", file_name)
-        return pd.read_csv(file_path, header = 0, encoding = "utf8")
 
     def get_report_item(self, mdate, code):
         if mdate is None: return None
@@ -400,7 +368,6 @@ class CValuation(object):
             return PRE_CUR_ITEM
         self.logger.debug("%s has not publish report for 6 months from %sreport_date:%s" % (code, mdate, report_date))
         #000035 20041231日的年报，一直到20050815好才发布
-
         report_date = prev_report_date_with(report_date)
         if timeToMarket > report_date:
             self.logger.info("%s timeToMarket %s, report_date:%s" % (code, timeToMarket, report_date))
@@ -414,9 +381,6 @@ class CValuation(object):
         self.logger.warn("%s has not publish report for 9 months from %s, report_date:%s" % (code, mdate, report_date))
         PRE_CUR_ITEM = None
         return PRE_CUR_ITEM
-
-    def calculate(self, code_list = None):
-        pass
 
     def get_stock_pledge_info(self, code = None, mdate = None, dformat = '%Y%m%d'):
         if mdate is None: mdate = datetime.now().strftime(dformat)
@@ -447,11 +411,79 @@ class CValuation(object):
             self.logger.error(e)
             return None
 
+    def index_val(self, mdate, code_list, dtype = 'pe'):
+        df = self.get_stocks_info(mdate, code_list)
+        total_mv = 0
+        total_profit = 0
+        for row in df.itertuples():
+            import pdb
+            pdb.set_trace()
+        return total_mv / total_profit
+
+    def index_dr(self, mdate, code_list):
+        df = self.get_stocks_info(mdate, code_list)
+        total_mv = 0
+        total_divide = 0
+        for row in df.itertuples():
+            import pdb
+            pdb.set_trace()
+        return total_divide / total_mv
+    
+    def set_index_valuation(self, code, mdate):
+        index_obj = CIndex(code)
+        code_list = index_obj.get_components_data(mdate)
+        pe  = self.index_val(mdate, code_list, 'pe')
+        pb  = self.index_val(mdate, code_list, 'pb')
+        ttm = self.index_val(mdate, code_list, 'ttm')
+        roe = pb / ttm if ttm != 0.0 else 0.0
+        dr = self.index_dr(mdate, code_list)
+        data = {'code':[code], 'date':[mdate], 'pe':[pe], 'pb':[pb], 'ttm':[ttm], 'roe':[roe], 'dr':[dr]}
+        df = pd.DataFrame.from_dict(data)
+        return index_obj.set_val_data(df, mdate)
+
+    def get_stocks_info(self, mdate, code_list):
+        all_df = self.get_r_financial_data(mdate)
+        df = all_df.loc[all_df.code.isin(code_list)]
+        df = df.reset_index(drop = True)
+        return df
+
+    def get_stock_valuation(self, code, mdate):
+        stock_obj = CStock(code)
+        return stock_obj.get_val_data(mdate)
+
+    def get_r_financial_name(self, mdate):
+        #cdates = cdate.split('-')
+        #return "%s_%s_%s.csv" % ("rval", cdates[0], (int(cdates[1])-1)//3 + 1)
+        return "%s.csv" % mdate
+
+    def set_r_financial_data(self, mdate):
+        try:
+            file_name = self.get_r_financial_name(mdate)
+            file_path = Path("/data/valuation/rstock") / file_name
+            base_df = self.stock_info_client.get_basics()
+            code_list = base_df.code.tolist()
+            all_df = pd.DataFrame()
+            for code in base_df.code.tolist():
+                df = self.get_stock_valuation(code, mdate)
+                if not df.empey: all_df.append(df)
+            all_df = all_df.reset_index(drop = True)
+            all_df.to_csv(file_path, index=False, header=True, mode='w', encoding='utf8')
+        except Exception as e:
+            self.logger.error(e)
+            traceback.print_exc()
+
+    def get_r_financial_data(self, mdate):
+        file_name = self.get_r_financial_name(mdate)
+        file_path = Path("/data/valuation/rstock") / file_name
+        if file_path.exists():
+            return pd.read_csv(file_path, header = 0, encoding = "utf8")
+
 if __name__ == '__main__':
-    cvaluation = CValuation()
     #df = cvaluation.get_stock_pledge_info(mdate = '20180708')
+    cvaluation = CValuation()
     try:
+        cvaluation.set_financial_data(mdate = '2019-07-08')
         #cvaluation.collect_financial_data()
-        #cvaluation.set_financial_data()
+        #cvaluation.set_r_financial_data('20190705')
     except Exception as e:
         print(e)

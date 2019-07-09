@@ -375,16 +375,12 @@
                     - cpython化(done)
             - 计算
                 - 计算各指数的估值信息
-                    - Val结果对比
-                    - RVal的代码
-                    - 计算指数的代码
+                    - Val结果对比(done)
+                    - RVal的代码(done)
+                    - 计算指数的代码(done)
             - 绘制
                 - 可视化
-                    - https://zhuanlan.zhihu.com/p/47761108
                     - PE, TTM，ROE，PB，分红分位数信息
-                - Grafana显示数据
-                    - https://cuiqingcai.com/6217.html/comment-page-1
-                    - https://blog.csdn.net/Jailman/article/details/78913824
         - 净利润增速增加到reprot中(done)。
         - bull ratio的数据重复bugfix(done)。
         - 转移爬虫到scrapyd中去(done)。
@@ -462,15 +458,17 @@
         - 爬虫添加监控和报警(done)
         - 大宗交易爬虫
         - 基金持仓数据分析爬虫
-        - 股票每日复盘添加热力图
         - 富途股票突破限制的情况(需要联系客服)
         - 需要将长城证券的broker修改为富途的broker的类型
         - 回测框架支持数据resample，从5分钟线resample到30分钟，60分钟
         - 资金的每日资金分析（融资融券，港股通，基金，MSCI，十大股东等）
-        - 复盘视频的添加。
-        - 完成复盘的热力图。
+        - 完成复盘的动画界面。
+        - 股票每日复盘添加热力图
         - 指数贡献点数的计算
             - [（价格改变 * 个股总股数）/ 上交所全体股票总市值]* 上证指数
+        - Grafana显示数据
+            - https://cuiqingcai.com/6217.html/comment-page-1
+            - https://blog.csdn.net/Jailman/article/details/78913824
     - 模型开发
         - KDJ放量买入模型(done)
         - 一阳指战法的实现
