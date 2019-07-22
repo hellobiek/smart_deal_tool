@@ -9,7 +9,6 @@ import const as ct
 import pandas as pd
 from cstock import CStock
 from cindex import CIndex, TdxFgIndex
-from climit import CLimit 
 from base.clog import getLogger 
 from functools import partial
 from datetime import datetime
@@ -25,6 +24,7 @@ from datamanager.emotion import Emotion
 from datamanager.hgt import StockConnect
 from backlooking.creview import CReivew
 from rindustry import RIndexIndustryInfo
+from cpython.cval import CValuation
 from futu.common.constant import SubType
 from combination_info import CombinationInfo
 from datamanager.sexchange import StockExchange
@@ -46,13 +46,13 @@ class DataManager:
         self.combination_objs = dict()
         self.cal_client = CCalendar(dbinfo, redis_host)
         self.index_info_client = IndexInfo()
+        self.cvaluation_client = CValuation()
         self.reviewer = CReivew(dbinfo, redis_host)
         self.comb_info_client = CombinationInfo(dbinfo, redis_host)
         self.stock_info_client = CStockInfo(dbinfo, redis_host)
         self.rindex_stock_data_client = RIndexStock(dbinfo, redis_host) 
         self.industry_info_client = IndustryInfo(dbinfo, redis_host)
         self.rindustry_info_client = RIndexIndustryInfo(dbinfo, redis_host)
-        #self.limit_client = CLimit(dbinfo, redis_host)
         self.animation_client = CAnimation(dbinfo, redis_host)
         self.subscriber = Subscriber()
         self.quote_handler  = StockQuoteHandler()
@@ -217,72 +217,72 @@ class DataManager:
             self.set_update_info(5, exec_date, cdate)
 
         if finished_step < 6:
+            if not self.init_tdx_index_info(cdate, num = ndays):
+                self.logger.error("init tdx index info failed")
+                return False
             self.set_update_info(6, exec_date, cdate)
 
         if finished_step < 7:
-            if not self.init_tdx_index_info(cdate, num = ndays):
-                self.logger.error("init tdx index info failed")
+            if not self.sh_exchange_client.update(exec_date, num = ndays):
+                self.logger.error("sh exchange update failed")
                 return False
             self.set_update_info(7, exec_date, cdate)
 
         if finished_step < 8:
-            if not self.sh_exchange_client.update(exec_date, num = ndays):
-                self.logger.error("sh exchange update failed")
+            if not self.sz_exchange_client.update(exec_date, num = ndays):
+                self.logger.error("sz exchange update failed")
                 return False
             self.set_update_info(8, exec_date, cdate)
 
         if finished_step < 9:
-            if not self.sz_exchange_client.update(exec_date, num = ndays):
-                self.logger.error("sz exchange update failed")
+            if not self.init_index_components_info(exec_date):
+                self.logger.error("init index components info failed")
                 return False
             self.set_update_info(9, exec_date, cdate)
 
         if finished_step < 10:
-            if not self.init_index_components_info(exec_date):
-                self.logger.error("init index components info failed")
+            if not self.init_industry_info(cdate, num = ndays):
+                self.logger.error("init industry info failed")
                 return False
             self.set_update_info(10, exec_date, cdate)
 
         if finished_step < 11:
-            if not self.init_industry_info(cdate, num = ndays):
-                self.logger.error("init industry info failed")
+            if not self.rindustry_info_client.update(exec_date, num = ndays):
+                self.logger.error("init %s rindustry info failed" % exec_date)
                 return False
             self.set_update_info(11, exec_date, cdate)
 
         if finished_step < 12:
-            if not self.rindustry_info_client.update(exec_date, num = ndays):
-                self.logger.error("init %s rindustry info failed" % exec_date)
+            if not self.init_yesterday_hk_info(exec_date, num = ndays):
+                self.logger.error("init yesterday hk info failed")
                 return False
             self.set_update_info(12, exec_date, cdate)
 
         if finished_step < 13:
-            #if not self.limit_client.update(exec_date, num = ndays):
-            #    self.logger.error("init limit info failed")
-            #    return False
+            if not self.margin_client.update(exec_date, num = ndays):
+                self.logger.error("init yesterday margin failed")
+                return False
             self.set_update_info(13, exec_date, cdate)
 
         if finished_step < 14:
-            if not self.init_yesterday_hk_info(exec_date, num = ndays):
-                self.logger.error("init yesterday hk info failed")
+            if not self.init_stock_info(cdate):
+                self.logger.error("init stock info set failed")
                 return False
             self.set_update_info(14, exec_date, cdate)
 
         if finished_step < 15:
-            if not self.margin_client.update(exec_date, num = ndays):
-                self.logger.error("init yesterday margin failed")
+            if not self.init_base_float_profit():
+                self.logger.error("init base float profit for all stock")
                 return False
             self.set_update_info(15, exec_date, cdate)
 
         if finished_step < 16:
-            if not self.init_stock_info(cdate):
-                self.logger.error("init stock info set failed")
+            if not self.init_valuation_info(cdate):
+                self.logger.error("init stock valuation info failed")
                 return False
             self.set_update_info(16, exec_date, cdate)
 
         if finished_step < 17:
-            if not self.init_base_float_profit():
-                self.logger.error("init base float profit for all stock")
-                return False
             self.set_update_info(17, exec_date, cdate)
 
         if finished_step < 18:
@@ -295,13 +295,7 @@ class DataManager:
             if not self.set_bull_stock_ratio(exec_date, num = ndays):
                 self.logger.error("bull ratio set failed")
                 return False
-            self.set_update_info(19, exec_date, cdate)
-        
-        if finished_step < 20:
-            if not self.reviewer.update(cdate):
-                self.logger.error("generate review for %s failed", cdate)
-                return False
-            self.set_update_info(20, exec_date, cdate)
+            self.set_update_info(19, exec_date, cdate) 
 
         self.logger.info("updating succeed")
         return True
@@ -359,6 +353,14 @@ class DataManager:
         if df.empty: return False
         failed_list = df.code.tolist()
         return process_concurrent_run(_set_base_float_profit, failed_list, num = 8)
+
+    def init_valuation_info(self, cdate = None):
+        df = self.stock_info_client.get()
+        code_list = df['code'].tolist()
+        time2market_list = df['timeToMarket'].tolist()
+        code2timedict = dict(zip(code_list, time2market_list))
+        cfun = partial(self.cvaluation_client.set_stock_valuation, code2timedict, cdate)
+        return process_concurrent_run(cfun, code_list, num = 15, black_list = list())
 
     def init_stock_info(self, cdate = None):
         def _set_stock_info(_date, bonus_info, index_info, code_id):
@@ -497,8 +499,9 @@ if __name__ == '__main__':
     #sys.exit(0)
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
-    mdate = '2019-07-03' 
+    mdate = '2019-07-19' 
     dm.logger.info("start compute!")
+    #dm.init_valuation_info(mdate)
     #dm.set_bull_stock_ratio(mdate, num = 10)
     #dm.clear_network_env()
     #dm.init_base_float_profit()

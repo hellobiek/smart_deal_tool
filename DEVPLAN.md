@@ -380,7 +380,13 @@
                     - 计算指数的代码(done)
             - 绘制
                 - 可视化
-                    - PE, TTM，ROE，PB，分红分位数信息
+                    - 复盘的仪表盘(done)
+                    - PE, TTM，ROE，PB，分红分位图的绘制(done)
+                        - https://blog.csdn.net/weixin_40076694/article/details/80048105
+                        - https://flothesof.github.io/kaggle-whatscooking-bokeh-plots.html
+                    - 投资者人数的绘制(done)
+                    - 部署成为flask上发布
+                    - 牛熊股比例图
         - 净利润增速增加到reprot中(done)。
         - bull ratio的数据重复bugfix(done)。
         - 转移爬虫到scrapyd中去(done)。

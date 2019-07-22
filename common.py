@@ -171,7 +171,7 @@ def get_unfinished_workers(redis_client, key):
     while len(result_list) == 0 and index < 3:
         if index > 0: logger.info("get list length is 0")
         index = index + 1
-        time.sleep(19 * index)
+        time.sleep(30 * index)
         result_list = list(set(code.decode() for code in redis_client.smembers(key)))
     return result_list
 

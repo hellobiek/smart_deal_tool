@@ -71,3 +71,16 @@ class MonthInvestorCrawler(object):
                                              trading_b_investor float,\
                                              PRIMARY KEY(date))' % self.table
         return True if self.table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.table)
+
+    def get_data(self, mdate):
+        table_name = self.get_table_name()
+        if date is not None:
+            sql = "select * from %s where date=\"%s\"" %(table_name, date)
+        else:
+            sql = "select * from %s" % table_name
+        return self.mysql_client.get(sql)
+
+    def get_data_in_range(self, start_date, end_date):
+        table_name = self.get_table_name()
+        sql = "select * from %s where date between \"%s\" and \"%s\"" %(table_name, start_date, end_date)
+        return self.mysql_client.get(sql)

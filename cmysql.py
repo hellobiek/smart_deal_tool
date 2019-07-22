@@ -235,6 +235,11 @@ class CMySQL:
             return self.redis.sadd(self.dbname, table)
         return False
 
+    def delete_item(self, table, cdate):
+        sql = 'delete from %s where date = "%s"' % (table, cdate)
+        self.redis.srem(table, cdate)
+        self.exec_sql(sql)
+
     def delete(self, table):
         sql = 'drop table %s' % table
         self.exec_sql(sql)

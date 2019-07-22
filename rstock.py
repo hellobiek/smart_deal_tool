@@ -12,8 +12,8 @@ from base.clog import getLogger
 from ccalendar import CCalendar
 from cstock_info import CStockInfo
 from collections import OrderedDict
-from common import create_redis_obj, queue_process_concurrent_run
 from base.cdate import get_day_nday_ago, delta_days, get_dates_array
+from common import create_redis_obj, queue_process_concurrent_run, is_df_has_unexpected_data
 class RIndexStock:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
@@ -151,9 +151,7 @@ class RIndexStock:
         start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
         date_array = get_dates_array(start_date, end_date)
         succeed = True
-        count = 0
         for mdate in date_array:
-            count += 1
             if CCalendar.is_trading_day(mdate, redis = self.redis):
                 if not self.set_day_data(mdate):
                     self.logger.error("set %s data for rstock failed" % mdate)
@@ -172,6 +170,7 @@ class RIndexStock:
             return True
         df = self.generate_all_data(cdate)
         if df is None: return False
+        if is_df_has_unexpected_data(df): return False
         if self.mysql_client.set(df, table_name):
             self.redis.sadd(table_name, cdate)
             return True

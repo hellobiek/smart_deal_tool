@@ -646,7 +646,8 @@ class CStock(CMysqlObj):
         if mdate is None:
             return df
         else:
-            return df.loc[df.date == int(mdate)].reset_index(drop = True)
+            tdate = transfer_date_string_to_int(mdate)
+            return df.loc[df.date == tdate].reset_index(drop = True)
 
     def set_val_data(self, df, mdate = '', fpath = "/data/valuation/stocks"):
         stock_val_path = os.path.join(fpath, self.get_val_filename())
@@ -656,7 +657,9 @@ class CStock(CMysqlObj):
             if not os.path.exists(stock_val_path):
                 df.to_csv(stock_val_path, index=False, header=True, mode='w', encoding='utf8')
             else:
-                df.to_csv(stock_val_path, index=False, header=False, mode='a+', encoding='utf8')
+                vdf = self.get_val_data(mdate)
+                if vdf.empty:
+                    df.to_csv(stock_val_path, index=False, header=False, mode='a+', encoding='utf8')
         return True
 
 if __name__ == '__main__':
@@ -665,9 +668,9 @@ if __name__ == '__main__':
     from cindex import CIndex
     index_info = CIndex('000001').get_k_data(cdate)
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    cstock = CStock('002070', should_create_influxdb = True, should_create_mysqldb = True)
+    cstock = CStock('300783', should_create_influxdb = False, should_create_mysqldb = False)
     logger.info("start compute")
-    cstock.set_k_data(bonus_info, index_info)
+    cstock.set_k_data(bonus_info, index_info, cdate = None)
     logger.info("enter set base floating profit")
     cstock.set_base_floating_profit()
     logger.info("end compute")

@@ -1,4 +1,5 @@
 #coding=utf-8
+import os
 import _pickle
 import const as ct
 import pandas as pd
@@ -7,6 +8,7 @@ from datetime import datetime
 from base.cobj import CMysqlObj
 from base.clog import getLogger
 from pytdx.reader import BlockReader
+from base.cdate import transfer_date_string_to_int
 # http://blog.sina.com.cn/s/blog_623d2d280102vt8y.html
 from common import float_random, is_df_has_unexpected_data, smart_get
 logger = getLogger(__name__)
@@ -259,6 +261,32 @@ class CIndex(CMysqlObj):
                 return True
         return False
 
+    def get_val_filename(self):
+        return "%s_val.csv" % self.dbname
+
+    def get_val_data(self, mdate = None):
+        index_val_path = os.path.join("/data/valuation/indexs", self.get_val_filename())
+        if not os.path.exists(index_val_path): return None
+        df = pd.read_csv(index_val_path)
+        if mdate is None:
+            return df
+        else:
+            tdate = transfer_date_string_to_int(mdate)
+            return df.loc[df.date == tdate].reset_index(drop = True)
+
+    def set_val_data(self, df, mdate = '', fpath = "/data/valuation/indexs"):
+        index_val_path = os.path.join(fpath, self.get_val_filename())
+        if mdate == '':
+            df.to_csv(index_val_path, index=False, header=True, mode='w', encoding='utf8')
+        else:
+            if not os.path.exists(index_val_path):
+                df.to_csv(index_val_path, index=False, header=True, mode='w', encoding='utf8')
+            else:
+                vdf = self.get_val_data(mdate)
+                if vdf.empty:
+                    df.to_csv(index_val_path, index=False, header=False, mode='a+', encoding='utf8')
+        return True
+
 class TdxFgIndex(CIndex):
     #通达信风格指数
     def __init__(self, code, dbinfo = ct.DB_INFO, redis_host = None, should_create_influxdb = False, should_create_mysqldb = False):
@@ -310,20 +338,6 @@ class TdxFgIndex(CIndex):
         if self.mysql_client.set(df, table_name):
             if self.redis.sadd(table_name, cdate): return True
         return False
-
-    def get_val_filename(self):
-        return "%s_val.csv" % self.dbname
-
-    def set_val_data(self, df, mdate = '', fpath = "/data/valuation/indexs"):
-        index_val_path = os.path.join(fpath, self.get_val_filename())
-        if mdate == '':
-            df.to_csv(index_val_path, index=False, header=True, mode='w', encoding='utf8')
-        else:
-            if not os.path.exists(index_val_path):
-                df.to_csv(index_val_path, index=False, header=True, mode='w', encoding='utf8')
-            else:
-                df.to_csv(index_val_path, index=False, header=False, mode='a+', encoding='utf8')
-        return True
 
 if __name__ == '__main__':
     tdi = TdxFgIndex(code = '880883', should_create_influxdb = True, should_create_mysqldb = True)

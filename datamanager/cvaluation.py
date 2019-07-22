@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
+from gevent import monkey
+monkey.patch_all()
 import os
 import sys
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
-import json
 import xlrd
+import time
 import calendar
 import traceback
 import const as ct
@@ -12,22 +14,27 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from cstock import CStock
-from numba import njit, jit
+from cindex import CIndex
+from gevent.pool import Pool
+from functools import partial
 from datetime import datetime
+from ccalendar import CCalendar
 from base.clog import getLogger
 from cstock_info import CStockInfo
 from datamanager.cbonus import CBonus
 from datamanager.creport import CReport
-from base.cdate import quarter, transfer_date_string_to_int, report_date_with, str_to_datetime, int_to_datetime, prev_report_date_with, get_pre_date, get_next_date, delta_days
+from base.cdate import quarter, report_date_with, int_to_datetime, prev_report_date_with, get_pre_date, get_next_date, get_day_nday_ago, get_dates_array
 class CValuation(object):
     DATA_COLUMS = ['date', 'code', 'bps', 'eps', 'np', 'ccs', 'tcs', 'publish']
     DTYPE_DICT = {'date': int, 'code':str, 'bps':float, 'eps': float, 'np': float, 'ccs': float, 'tcs': float, 'publish': int}
-    def __init__(self, valution_path = ct.VALUATION_PATH):
+    def __init__(self, valuation_path = ct.VALUATION_PATH, rvaluation_dir = ct.RVALUATION_DIR, rindex_dir = ct.RINDEX_DIR):
         self.logger = getLogger(__name__)
         self.bonus_client = CBonus()
         self.report_client = CReport()
         self.stock_info_client = CStockInfo()
-        self.report_data_path = valution_path
+        self.rindex_dir = rindex_dir
+        self.rvaluation_dir = rvaluation_dir
+        self.report_data_path = valuation_path
         self.valuation_data = self.get_reports_data()
 
     def get_reports_data(self):
@@ -182,16 +189,18 @@ class CValuation(object):
         '''
         try:
             base_df = self.stock_info_client.get_basics()
-            fpath = "/tmp/succeed_list"
-            with open(fpath) as f: succeed_list = f.read().strip().split()
+            #fpath = "/tmp/succeed_list"
+            #with open(fpath) as f: succeed_list = f.read().strip().split()
             for row in base_df.itertuples():
                 code = row.code
                 #if code not in succeed_list:
-                if code == '600503':
+                if code == '000693':
                     timeToMarket = row.timeToMarket
-                    if self.set_stock_valuation(mdate, code, timeToMarket):
-                        succeed_list.append(code)
-                        #with open(fpath, 'a+') as f: f.write(code + '\n')
+                    self.set_stock_valuation(mdate, code, timeToMarket)
+                    #if self.set_stock_valuation(mdate, code, timeToMarket):
+                    #    succeed_list.append(code)
+                    #    with open(fpath, 'a+') as f: f.write(code + '\n')
+                    #    pass
         except Exception as e:
             self.logger.error(e)
             traceback.print_exc()
@@ -411,79 +420,118 @@ class CValuation(object):
             self.logger.error(e)
             return None
 
-    def index_val(self, mdate, code_list, dtype = 'pe'):
-        df = self.get_stocks_info(mdate, code_list)
-        total_mv = 0
-        total_profit = 0
-        for row in df.itertuples():
-            import pdb
-            pdb.set_trace()
-        return total_mv / total_profit
-
-    def index_dr(self, mdate, code_list):
-        df = self.get_stocks_info(mdate, code_list)
-        total_mv = 0
-        total_divide = 0
-        for row in df.itertuples():
-            import pdb
-            pdb.set_trace()
-        return total_divide / total_mv
-    
-    def set_index_valuation(self, code, mdate):
-        index_obj = CIndex(code)
-        code_list = index_obj.get_components_data(mdate)
-        pe  = self.index_val(mdate, code_list, 'pe')
-        pb  = self.index_val(mdate, code_list, 'pb')
-        ttm = self.index_val(mdate, code_list, 'ttm')
-        roe = pb / ttm if ttm != 0.0 else 0.0
-        dr = self.index_dr(mdate, code_list)
-        data = {'code':[code], 'date':[mdate], 'pe':[pe], 'pb':[pb], 'ttm':[ttm], 'roe':[roe], 'dr':[dr]}
-        df = pd.DataFrame.from_dict(data)
-        return index_obj.set_val_data(df, mdate)
-
-    def get_stocks_info(self, mdate, code_list):
-        all_df = self.get_r_financial_data(mdate)
-        df = all_df.loc[all_df.code.isin(code_list)]
-        df = df.reset_index(drop = True)
-        return df
-
-    def get_stock_valuation(self, code, mdate):
-        stock_obj = CStock(code)
-        return stock_obj.get_val_data(mdate)
-
     def get_r_financial_name(self, mdate):
         #cdates = cdate.split('-')
         #return "%s_%s_%s.csv" % ("rval", cdates[0], (int(cdates[1])-1)//3 + 1)
         return "%s.csv" % mdate
 
-    def set_r_financial_data(self, mdate):
+    def set_r_financial_data(self, mdate, code_list):
+        def cget(mdate, code):
+            return code, CStock(code).get_val_data(mdate)
         try:
-            file_name = self.get_r_financial_name(mdate)
-            file_path = Path("/data/valuation/rstock") / file_name
-            base_df = self.stock_info_client.get_basics()
-            code_list = base_df.code.tolist()
+            obj_pool = Pool(5000)
             all_df = pd.DataFrame()
-            for code in base_df.code.tolist():
-                df = self.get_stock_valuation(code, mdate)
-                if not df.empey: all_df.append(df)
+            cfunc = partial(cget, mdate)
+            for code_data in obj_pool.imap_unordered(cfunc, code_list):
+                if not code_data[1].empty:
+                    tem_df = code_data[1]
+                    tem_df['code'] = code_data[0]
+                    all_df = all_df.append(tem_df)
+            obj_pool.join(timeout = 5)
+            obj_pool.kill()
             all_df = all_df.reset_index(drop = True)
+            file_name = self.get_r_financial_name(mdate)
+            file_path = Path(self.rvaluation_dir) / file_name
             all_df.to_csv(file_path, index=False, header=True, mode='w', encoding='utf8')
+            return True
         except Exception as e:
             self.logger.error(e)
             traceback.print_exc()
 
     def get_r_financial_data(self, mdate):
         file_name = self.get_r_financial_name(mdate)
-        file_path = Path("/data/valuation/rstock") / file_name
+        file_path = Path(self.rvaluation_dir) / file_name
         if file_path.exists():
-            return pd.read_csv(file_path, header = 0, encoding = "utf8")
+            use_cols = ['code', 'date', 'pe', 'pb', 'ttm', 'dr', 'ccs', 'tcs', 'ccs_mv', 'tcs_mv']
+            dtype_dict = {'code':str, 'date': str, 'pe': float, 'pb': float, 'ttm': float, 'dr': float, 'ccs': float, 'tcs': float, 'ccs_mv': float, 'tcs_mv': float}
+            return pd.read_csv(file_path, header = 0, encoding = "utf8", usecols = use_cols, dtype = dtype_dict)
+        return pd.DataFrame()
 
+    def index_val(self, df, dtype = 'pe'):
+        total_mv = df['tcs_mv'].sum()
+        total_profit = 0
+        for _, row in df.iterrows():
+            total_profit += row['tcs_mv'] / row[dtype] if 0 != row[dtype] else 0 
+        return total_mv / total_profit
+
+    def index_dr(self, df):
+        total_mv = df['tcs_mv'].sum()
+        total_divide = df['dr'].dot(df['tcs_mv'])
+        return total_divide / total_mv
+
+    def set_index_valuation(self, code, mdate):
+        global ori_code_list
+        index_obj = CIndex(code)
+        code_data = index_obj.get_components_data(mdate)
+        if code_data is None or code_data.empty:
+            code_list = ori_code_list
+        else:
+            code_list = code_data['code'].tolist()
+            ori_code_list = code_list
+        df = self.get_stocks_info(mdate, code_list)
+        if df.empty:
+            import pdb
+            pdb.set_trace()
+            return False
+        pe = self.index_val(df, 'pe')
+        pb = self.index_val(df, 'pb')
+        ttm = self.index_val(df, 'ttm')
+        roe = pb / ttm if ttm != 0.0 else 0.0
+        dr = self.index_dr(df)
+        data = {'code':[code], 'date':[mdate], 'pe':[pe], 'pb':[pb], 'ttm':[ttm], 'roe':[roe], 'dr':[dr]}
+        ndf = pd.DataFrame.from_dict(data)
+        return index_obj.set_val_data(ndf, mdate)
+
+    def get_stocks_info(self, mdate, code_list):
+        all_df = self.get_r_financial_data(mdate)
+        if all_df.empty: return all_df
+        df = all_df.loc[all_df.code.isin(code_list)]
+        df = df.reset_index(drop = True)
+        return df
+
+    def update_val(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 500):
+        succeed = True
+        start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
+        date_array = get_dates_array(start_date, end_date)
+        for mdate in date_array:
+            if CCalendar.is_trading_day(mdate):
+                for code in ct.INDEX_DICT:
+                    if not self.set_index_valuation(code, mdate):
+                        self.logger.error("%s set %s data for rvaluation failed" % (code, mdate))
+                        succeed = False
+        return succeed
+
+    def update(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 300):
+        succeed = True
+        base_df = self.stock_info_client.get_basics()
+        code_list = base_df.code.tolist()
+        start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
+        date_array = get_dates_array(start_date, end_date)
+        for mdate in date_array:
+            if CCalendar.is_trading_day(mdate):
+                if not self.set_r_financial_data(mdate, code_list):
+                    self.logger.error("set %s data for rvaluation failed" % mdate)
+                    succeed = False
+        return succeed
+        
 if __name__ == '__main__':
     #df = cvaluation.get_stock_pledge_info(mdate = '20180708')
     cvaluation = CValuation()
     try:
-        cvaluation.set_financial_data(mdate = '2019-07-08')
+        #cvaluation.set_financial_data('2019-07-08')
         #cvaluation.collect_financial_data()
-        #cvaluation.set_r_financial_data('20190705')
+        #cvaluation.get_r_financial_data('2016-05-30')
+        cvaluation.update('2016-01-27')
+        #cvaluation.update_val('2019-07-12')
     except Exception as e:
         print(e)

@@ -31,6 +31,7 @@ class DataPreparer:
         return aft_open_time < now_time < aft_close_time
 
     def run(self, cmd, timeout):
+        self.logger.info("start to run cmd:%s, timeout:%s" % (cmd, timeout))
         proc = subprocess.Popen(cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
         finished = False
         for t in range(timeout):
