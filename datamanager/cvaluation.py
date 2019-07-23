@@ -511,7 +511,7 @@ class CValuation(object):
                         succeed = False
         return succeed
 
-    def update(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 300):
+    def update(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 500):
         succeed = True
         base_df = self.stock_info_client.get_basics()
         code_list = base_df.code.tolist()
@@ -531,7 +531,7 @@ if __name__ == '__main__':
         #cvaluation.set_financial_data('2019-07-08')
         #cvaluation.collect_financial_data()
         #cvaluation.get_r_financial_data('2016-05-30')
-        cvaluation.update('2016-01-27')
+        cvaluation.update('2016-01-18')
         #cvaluation.update_val('2019-07-12')
     except Exception as e:
         print(e)

@@ -58,10 +58,10 @@ class DataPreparer:
                         mdate = transfer_date_string_to_int(datetime.now().strftime('%Y-%m-%d'))
                         if ndate < mdate:
                             self.run(SCRIPT1, timeout = 600)
-                            self.run(SCRIPT2, timeout = 2700)
+                            self.run(SCRIPT2, timeout = 3000)
             except Exception as e:
                 self.logger.error(e)
             time.sleep(sleep_time)
 
 dp = DataPreparer()
-dp.update(3000)
+dp.update(4000)

@@ -115,7 +115,7 @@ class RIndexStock:
         failed_list = CStockInfo(redis_host = self.redis_host).get(redis = self.redis).code.tolist()
         if len(black_list) > 0: failed_list = list(set(failed_list).difference(set(black_list)))
         cfunc = partial(self.get_stock_data, cdate)
-        return queue_process_concurrent_run(cfunc, failed_list, redis_client = self.redis)
+        return queue_process_concurrent_run(cfunc, failed_list)
 
     def generate_all_data(self, cdate, black_list = ct.BLACK_LIST):
         from gevent.pool import Pool
