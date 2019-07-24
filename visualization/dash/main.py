@@ -53,7 +53,7 @@ def create_index_figure_column(code, dtype, start_date, end_date):
         df = macd(df)
         source = ColumnDataSource(df)
         mapper = linear_cmap(field_name='pchange', palette=['red', 'green'], low=0, high=0, low_color = 'green', high_color = 'red')
-        p = figure(plot_height=500, plot_width=1300, tools="", toolbar_location=None, sizing_mode="scale_both", x_range=(0, len(df)))
+        p = figure(plot_height=500, plot_width=1200, tools="", toolbar_location=None, sizing_mode="scale_both", x_range=(0, len(df)))
         p.xaxis.axis_label = "时间"
         p.yaxis.axis_label = "点数"
 
@@ -61,7 +61,7 @@ def create_index_figure_column(code, dtype, start_date, end_date):
         p.vbar(x='index', bottom='open', top='close', width = 50 / delta_days, color=mapper, source=source)
         p.xaxis.major_label_overrides = {i: mdate.strftime('%Y-%m-%d') for i, mdate in enumerate(df["date"])}
 
-        volume_p = figure(plot_height=150, plot_width=1300, tools="", toolbar_location=None, sizing_mode="scale_both")
+        volume_p = figure(plot_height=150, plot_width=1200, tools="", toolbar_location=None, sizing_mode="scale_both")
         volume_p.x_range = p.x_range
         volume_p.vbar(x='index', top='volume', width = 50 / delta_days, color=mapper, source=source)
         volume_p.xaxis.major_label_overrides = {i: mdate.strftime('%Y-%m-%d') for i, mdate in enumerate(df["date"])}
@@ -75,7 +75,7 @@ def create_index_figure_column(code, dtype, start_date, end_date):
             'value': value_list
         }
         source = ColumnDataSource(data)
-        p = figure(plot_height=500, plot_width=1300, tools="", toolbar_location=None, sizing_mode="scale_both")
+        p = figure(plot_height=500, plot_width=1200, tools="", toolbar_location=None, sizing_mode="scale_both")
         p.xaxis.axis_label = "时间"
         p.yaxis.axis_label = "比例"
         p.xaxis.major_label_overrides = {i: mdate for i, mdate in enumerate(df["date"])}
@@ -90,6 +90,7 @@ def create_stock_figure_column(code, start_date, end_date):
     start_date = start_date.strftime('%Y-%m-%d')
     end_date = end_date.strftime('%Y-%m-%d')
     df = obj.get_k_data_in_range(start_date, end_date)
+    if df is None: return None
     df['date'] = df['date'].apply(lambda x:str_to_datetime(x, dformat = "%Y-%m-%d"))
     df = ma(df, 5)
     df = ma(df, 10)
@@ -152,19 +153,19 @@ def create_market_figure(sh_df, sz_df, ycolumn):
         'legend': list(y_dict.keys()),
     }
     source = ColumnDataSource(df)
-
     p = figure(plot_height=400, plot_width=600, tools="", toolbar_location=None, sizing_mode="scale_both", x_range=(0, len(x_list)), y_range=(0, yval_max * 1.3))
     p.xaxis.axis_label = "时间"
     p.yaxis.axis_label = ycolumn
     p.xaxis.major_label_overrides = {i: mdate for i, mdate in enumerate(sh_df["date"])}
-
+    import pdb
+    pdb.set_trace()
     p.multi_line(xs='index', ys='value', legend='legend', color='color', line_width=3, line_alpha=0.6, hover_line_alpha=1.0, source=source)
-    p.legend.orientation = "horizontal"
+    p.legend.click_policy="hide"
     p.legend.location = "top_left"
+    p.legend.orientation = "horizontal"
     x_custom = CustomJSHover(code="""
                                   return '' + special_vars.name
                                   """)
-
     y_custom = CustomJSHover(code="""
                                   return '' + special_vars.data_y
                                   """)
@@ -400,8 +401,9 @@ def create_valuation_figure(data_dict, code_dict, dtype):
     p.yaxis.axis_label = dtype
     p.xaxis.major_label_overrides = {i: mdate for i, mdate in enumerate(data_dict["date"])}
     p.multi_line(xs='index', ys='value', legend='legend', color='color', line_width=3, line_alpha=1.0, source=source)
-    p.legend.orientation = "horizontal"
+    p.legend.click_policy="hide"
     p.legend.location = "top_left"
+    p.legend.orientation = "horizontal"
     y_custom = CustomJSHover(code="""
                                   return '' + special_vars.data_y
                                   """)
@@ -445,7 +447,7 @@ def generate_investors_fig(df, dtype):
         'value': value_list
     }
     source = ColumnDataSource(data)
-    p = figure(plot_height=400, plot_width=600, tools="", toolbar_location=None, sizing_mode="scale_both")
+    p = figure(plot_height=300, plot_width=350, tools="", toolbar_location=None, sizing_mode="scale_both")
     p.xaxis.axis_label = "时间"
     p.yaxis.axis_label = "数量"
     p.xaxis.major_label_overrides = {i: mdate for i, mdate in enumerate(df["date"])}
@@ -471,7 +473,8 @@ def update_investors(attr, old, new):
     investors_layout.children[1] = create_investors_row(start_date, end_date)
 
 # Overview Data
-def get_overview_data(cdate = datetime.now().strftime('%Y-%m-%d')):
+def get_overview_data():
+    cdate = (datetime.now() - timedelta(days = 1)).strftime('%Y-%m-%d')
     code_dict = {
         '000001': '上证指数',
         '399001': '深证成指',
@@ -480,22 +483,23 @@ def get_overview_data(cdate = datetime.now().strftime('%Y-%m-%d')):
         '000905': '中证500'
     }
     overview_dict = {
-        '上证指数' : {'icon': 'dollar-sign', 'value': 11200, 'change':  4, 'label': '上证指数', 'cdate': cdate},
-        '深证成指' : {'icon': 'dollar-sign', 'value': 350, 'change':  1.2 , 'label': '深证成指', 'cdate': cdate},
-        '创业板指' : {'icon': 'dollar-sign', 'value': 5.6, 'change': -2.3 , 'label': '创业板指', 'cdate': cdate},
-        '上证50' : {'icon': 'dollar-sign', 'value': 27300, 'change':  0.5 , 'label': '上证50', 'cdate': cdate},
-        '中证500' : {'icon': 'dollar-sign', 'value': 8700, 'change': -0.2 , 'label': '中证500', 'cdate': cdate},
-        '科创板指' : {'icon': 'dollar-sign', 'value': 0, 'change': 0 , 'label': '科创板指', 'cdate': cdate}
+        '上证指数' : {'icon': 'dollar-sign', 'value': 0, 'change': 0, 'label': '上证指数', 'cdate': cdate},
+        '深证成指' : {'icon': 'dollar-sign', 'value': 0, 'change': 0, 'label': '深证成指', 'cdate': cdate},
+        '创业板指' : {'icon': 'dollar-sign', 'value': 0, 'change': 0, 'label': '创业板指', 'cdate': cdate},
+        '上证50' : {'icon': 'dollar-sign', 'value': 0, 'change': 0, 'label': '上证50', 'cdate': cdate},
+        '中证500' : {'icon': 'dollar-sign', 'value': 0, 'change': 0, 'label': '中证500', 'cdate': cdate},
+        '科创板指' : {'icon': 'dollar-sign', 'value': 0, 'change': 0, 'label': '科创板指', 'cdate': cdate}
     }
     for code, name in code_dict.items():
         df = CIndex(code).get_k_data(cdate)
+        if df is None: return overview_dict
         if df.empty:
             overview_dict[name]['value'] = 0
             overview_dict[name]['change'] = 0
         else:
             row = df.to_dict('records')[0]
-            overview_dict[name]['value'] = row['close']
-            overview_dict[name]['change'] = row['pchange']
+            overview_dict[name]['value'] = round(row['close'], 2)
+            overview_dict[name]['change'] = round(row['pchange'], 2)
     return overview_dict
 
 cdoc = curdoc()

@@ -531,7 +531,7 @@ if __name__ == '__main__':
         #cvaluation.set_financial_data('2019-07-08')
         #cvaluation.collect_financial_data()
         #cvaluation.get_r_financial_data('2016-05-30')
-        cvaluation.update('2016-01-18')
+        cvaluation.update('2014-09-05')
         #cvaluation.update_val('2019-07-12')
     except Exception as e:
         print(e)
