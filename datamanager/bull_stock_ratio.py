@@ -39,7 +39,7 @@ class BullStockRatio:
 
     def is_date_exists(self, table_name, cdate):
         if self.redis.exists(table_name):
-            return cdate in set(str(tdate, encoding = ct.UTF8) for tdate in self.redis.smembers(table_name))
+            return self.redis.sismember(table_name, cdate)
         return False
 
     def get_k_data_between(self, start_date, end_date):

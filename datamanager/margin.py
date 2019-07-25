@@ -32,7 +32,7 @@ class Margin(object):
 
     def is_date_exists(self, table_name, cdate):
         if self.redis.exists(table_name):
-            return cdate in set(tdate.decode() for tdate in self.redis.smembers(table_name))
+            return self.redis.sismember(table_name, cdate)
         return False
 
     def create_table(self, table):
@@ -99,7 +99,7 @@ class Margin(object):
 
     def is_table_exists(self, table_name):
         if self.redis.exists(self.dbname):
-            return table_name in set(table.decode() for table in self.redis.smembers(self.dbname))
+            return self.redis.sismember(self.dbname, table_name)
         return False
 
     def set_data(self, cdate = datetime.now().strftime('%Y-%m-%d')):

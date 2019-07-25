@@ -63,12 +63,12 @@ class StockExchange(object):
 
     def is_table_exists(self, table_name):
         if self.redis.exists(self.dbname):
-            return table_name in set(str(table, encoding = "utf8") for table in self.redis.smembers(self.dbname))
+            return self.redis.sismember(self.dbname, table_name)
         return False
 
     def is_date_exists(self, table_name, cdate):
         if self.redis.exists(table_name):
-            return cdate in set(str(tdate, encoding = "utf8") for tdate in self.redis.smembers(table_name))
+            return self.redis.sismember(table_name, cdate)
         return False
 
     def get_url(self):

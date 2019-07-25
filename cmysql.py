@@ -285,7 +285,7 @@ class CMySQL:
 
     def create_db(self, dbname = None):
         if dbname is None: dbname = self.dbname
-        if self.redis.exists(ALL_DATABASES) and dbname in set(tdb.decode() for tdb in self.redis.smembers(ALL_DATABASES)):
+        if self.redis.exists(ALL_DATABASES) and self.redis.sismember(ALL_DATABASES, dbname):
             return True
         res = False
         try:

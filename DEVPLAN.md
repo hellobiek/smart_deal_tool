@@ -465,7 +465,7 @@
     - 系统开发与维护
         - 完成PE，PB的估值带图形(done)。
         - Redis原理学习。
-            - 减少使用smembers
+            - 减少使用smembers(done)
             - 尽量不用redis存储Dataframe
         - 可视化优化
             - "技术面概况"性能优化。

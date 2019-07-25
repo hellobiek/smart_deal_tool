@@ -17,6 +17,8 @@ class CRedis:
                 return self.client.exists(*args, **kwargs)
             elif name == 'smembers':
                 return self.client.smembers(*args, **kwargs)
+            elif name == 'sismember':
+                return self.client.sismember(*args, **kwargs)
             elif name == 'sadd':
                 return self.client.sadd(*args, **kwargs)
             elif name == 'srem':
@@ -39,6 +41,8 @@ class CRedis:
                 return 0
             elif name == 'get':
                 return None
+            elif name == 'sismember':
+                return False
             else:
                 return None
 
@@ -52,6 +56,9 @@ class CRedis:
             except Exception as e:
                 logger.debug(e)
             time.sleep(i + 1)
+
+    def sismember(self, *args, **kwargs):
+        return self.execute_command('sismember', *args, **kwargs)
 
     def exists(self, *args, **kwargs):
         return self.execute_command('exists', *args, **kwargs)

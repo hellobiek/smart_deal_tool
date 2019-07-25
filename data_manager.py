@@ -499,7 +499,7 @@ if __name__ == '__main__':
     #sys.exit(0)
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
-    mdate = '2019-07-24' 
+    mdate = '2019-07-25' 
     dm.logger.info("start compute!")
     #dm.init_valuation_info(mdate)
     #dm.set_bull_stock_ratio(mdate, num = 10)

@@ -56,7 +56,7 @@ class BasicSpider(Spider):
 
     def is_date_exists(self, table_name, cdate):
         if self.redis.exists(table_name):
-            return cdate in set(tdate.decode() for tdate in self.redis.smembers(table_name))
+            return self.redis.sismember(table_name, cdate)
         return False
 
     def errback_httpbin(self, failure):
