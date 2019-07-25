@@ -184,7 +184,7 @@ def init_unfinished_workers(redis_client, key, todo_list, overwrite = False):
             redis_client.sadd(key, *set(todo_list))
 
 def queue_process_concurrent_run(mfunc, all_list, redis_client = None, process_num = 2, num = 10, black_list = []):
-    redis_client = create_redis_obj(port = 6579)
+    redis_client = create_redis_obj(host = 'redis-proxy-container', port = 6579)
     init_unfinished_workers(redis_client, ct.UNFINISHED_QUEUE_WORKS, copy.deepcopy(all_list))
     todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_QUEUE_WORKS)
     logger.info("all queue code list length:%s", len(todo_list))
@@ -236,7 +236,7 @@ def queue_thread_concurrent_run(mfunc, todo_list, redis_client, key, q, num = 10
     sys.exit(True)
 
 def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, black_list = ct.BLACK_LIST, redis_key_name = ct.UNFINISHED_WORKS):
-    redis_client = create_redis_obj(port = 6579)
+    redis_client = create_redis_obj(host = 'redis-proxy-container', port = 6579)
     init_unfinished_workers(redis_client, redis_key_name, copy.deepcopy(all_list))
     todo_list = get_unfinished_workers(redis_client, redis_key_name)
     logger.info("all code list length:%s, all length:%s" % (len(todo_list), len(all_list)))
