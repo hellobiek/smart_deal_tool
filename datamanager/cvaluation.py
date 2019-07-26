@@ -64,7 +64,14 @@ class CValuation(object):
         #256.社保机构数、257.社保持股量、258.私募机构数、259.私募持股量
         #260.财务公司机构数、261.财务公司持股量、262.年金机构数、263.年金持股量
         #183.营业收入增长率(increase growth rate)、184.净利润增长率(net growth rate)、
-        #189.营业利润增长率(profit growth rate)、191.扣非净利润同比(non-net profit rate)、财报披露时间(publish)
+        #189.营业利润增长率(profit growth rate)、191.扣非净利润同比(non-net profit rate)、
+
+        #21.流动资产合计(current assets)、27.固定资产(fixed assets)、199.销售净利率(net profit margin)、
+        #202.销售毛利率(gross profit ratio)、225.每股现金流量净额(cash flow per share)
+        #220.营业收入现金含量(main income cash content)、229.全部资产现金回收率(cash recovery rate of all assets)、
+        #228.经营活动现金净流量与净利润比率(net cash flow to net profit ratio)、
+        #159.流动比率(working capital ratio)、160.速动比率(quick ratio)、161.现金比率(currency ratio)、
+        #财报披露时间(publish)
         mcols = ['date','code','eps','neps','bps',
                  'roe','na','np','tcs','ccs',
                  'mf','br','ar','prepayments','or',
@@ -77,8 +84,12 @@ class CValuation(object):
                  'qfii_holders','qfii_holding','broker_holders','broker_holding','insurance_holders',
                  'insurance_holding','fund_holders','fund_holding','social_security_holders','social_security_holding',
                  'private_holders','private_holding','financial_company_holders', 'financial_company_holding','annuity_holders',
-                 'annuity_holding','igr','ngr','pgr','npr','publish']
+                 'annuity_holding','igr','ngr','pgr','npr',
+                 'ca', 'fa', 'npm', 'gpr', 'cfps', 
+                 'micc', 'crr', 'ncf', 'wcr', 'qr', 'cr', 'publish']
         date_list = self.report_client.get_all_report_list() if mdate is None else list(mdate)
+        import pdb
+        pdb.set_trace()
         is_first = True
         prefix = "col%s"
         for mdate in date_list:
@@ -98,7 +109,10 @@ class CValuation(object):
                             row[prefix%248], row[prefix%249], row[prefix%250], row[prefix%251], row[prefix%252], 
                             row[prefix%253], row[prefix%254], row[prefix%255], row[prefix%256], row[prefix%257], 
                             row[prefix%258], row[prefix%259], row[prefix%260], row[prefix%261], row[prefix%262], 
-                            row[prefix%263], row[prefix%183], row[prefix%184], row[prefix%189], row[prefix%191], pdate])
+                            row[prefix%263], row[prefix%183], row[prefix%184], row[prefix%189], row[prefix%191],
+                            row[prefix%21], row[prefix%27], row[prefix%199], row[prefix%202], row[prefix%225],
+                            row[prefix%220], row[prefix%229], row[prefix%228], row[prefix%159], row[prefix%160],
+                            row[prefix%161], pdate])
             result_df = pd.DataFrame(report_list, columns = mcols)
             result_df = result_df.sort_values(['code'], ascending = 1)
             result_df['code'] = result_df['code'].map(lambda x: str(x).zfill(6))
@@ -511,7 +525,7 @@ class CValuation(object):
                         succeed = False
         return succeed
 
-    def update(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 100):
+    def update(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 600):
         succeed = True
         base_df = self.stock_info_client.get_basics()
         code_list = base_df.code.tolist()
@@ -531,7 +545,7 @@ if __name__ == '__main__':
         #cvaluation.set_financial_data('2019-07-08')
         #cvaluation.collect_financial_data()
         #cvaluation.get_r_financial_data('2016-05-30')
-        cvaluation.update('2012-11-15')
+        cvaluation.update('2012-08-13')
         #cvaluation.update_val('2019-07-12')
     except Exception as e:
         print(e)
