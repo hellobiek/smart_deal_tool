@@ -65,7 +65,6 @@ class CValuation(object):
         #260.财务公司机构数、261.财务公司持股量、262.年金机构数、263.年金持股量
         #183.营业收入增长率(increase growth rate)、184.净利润增长率(net growth rate)、
         #189.营业利润增长率(profit growth rate)、191.扣非净利润同比(non-net profit rate)、
-
         #21.流动资产合计(current assets)、27.固定资产(fixed assets)、199.销售净利率(net profit margin)、
         #202.销售毛利率(gross profit ratio)、225.每股现金流量净额(cash flow per share)
         #220.营业收入现金含量(main income cash content)、229.全部资产现金回收率(cash recovery rate of all assets)、
@@ -88,8 +87,6 @@ class CValuation(object):
                  'ca', 'fa', 'npm', 'gpr', 'cfps', 
                  'micc', 'crr', 'ncf', 'wcr', 'qr', 'cr', 'publish']
         date_list = self.report_client.get_all_report_list() if mdate is None else list(mdate)
-        import pdb
-        pdb.set_trace()
         is_first = True
         prefix = "col%s"
         for mdate in date_list:
@@ -525,7 +522,7 @@ class CValuation(object):
                         succeed = False
         return succeed
 
-    def update(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 600):
+    def update(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 3000):
         succeed = True
         base_df = self.stock_info_client.get_basics()
         code_list = base_df.code.tolist()
@@ -545,7 +542,7 @@ if __name__ == '__main__':
         #cvaluation.set_financial_data('2019-07-08')
         #cvaluation.collect_financial_data()
         #cvaluation.get_r_financial_data('2016-05-30')
-        cvaluation.update('2012-08-13')
+        cvaluation.update('2010-12-22')
         #cvaluation.update_val('2019-07-12')
     except Exception as e:
         print(e)

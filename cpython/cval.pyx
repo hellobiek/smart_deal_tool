@@ -79,7 +79,7 @@ cdef class CValuation(object):
 
     cdef object convert(self, mdate = None):
         #date, code, 1.基本每股收益(earnings per share)、2.扣非每股收益(non-earnings per share)、
-        #4.每股净资产(book value per share)、6.净资产收益率(roe)、72.所有者权益（或股东权益）合计(net assert)、
+        #4.每股净资产(book value per share)、6.净资产回报率(roa)、72.所有者权益（或股东权益）合计(net assert)、
         #96.归属于母公司所有者的净利润(net profit)、238.总股本(total capital share)、239.已上市流通A股(circulating capital share)、
         #8.货币资金(money funds)、10.应收票据(bill receivable)、11.应收账款(accounts receivable)、12.预付款项(prepayments)、
         #13.其他应收款(other receivables)、14.应收关联公司款(receivables from related companies)、
@@ -101,11 +101,11 @@ cdef class CValuation(object):
         #21.流动资产合计(current assets)、27.固定资产(fixed assets)、199.销售净利率(net profit margin)、
         #202.销售毛利率(gross profit ratio)、225.每股现金流量净额(cash flow per share)
         #220.营业收入现金含量(main income cash content)、229.全部资产现金回收率(cash recovery rate of all assets)、
-        #228.经营活动现金净流量与净利润比率(net cash flow to net profit ratio)、
-        #159.流动比率(working capital ratio)、160.速动比率(quick ratio)、161.现金比率(currency ratio)、
+        #228.经营活动现金净流量与净利润比率(net cash flow to net profit ratio)、159.流动比率(working capital ratio)、
+        #160.速动比率(quick ratio)、161.现金比率(currency ratio)、197.净资产收益率(roe)
         #财报披露时间(publish)
         mcols = ['date','code','eps','neps','bps',
-                 'roe','na','np','tcs','ccs',
+                 'roa','na','np','tcs','ccs',
                  'mf','br','ar','prepayments','or',
                  'rfrc','rtr','dso','inventory','ta',
                  'stb','bp','ap','aria','pp',
@@ -118,7 +118,7 @@ cdef class CValuation(object):
                  'private_holders','private_holding','financial_company_holders', 'financial_company_holding','annuity_holders',
                  'annuity_holding','igr','ngr','pgr','npr',
                  'ca', 'fa', 'npm', 'gpr', 'cfps', 
-                 'micc', 'crr', 'ncf', 'wcr', 'qr', 'cr', 'publish']
+                 'micc', 'crr', 'ncf', 'wcr', 'qr', 'cr', 'roe', 'publish']
         date_list = self.report_client.get_all_report_list() if mdate is None else list(mdate)
         is_first = True
         prefix = "col%s"
@@ -142,7 +142,7 @@ cdef class CValuation(object):
                             row[prefix%263], row[prefix%183], row[prefix%184], row[prefix%189], row[prefix%191],
                             row[prefix%21], row[prefix%27], row[prefix%199], row[prefix%202], row[prefix%225],
                             row[prefix%220], row[prefix%229], row[prefix%228], row[prefix%159], row[prefix%160],
-                            row[prefix%161], pdate])
+                            row[prefix%161], row[prefix%197], pdate])
             result_df = pd.DataFrame(report_list, columns = mcols)
             result_df = result_df.sort_values(['code'], ascending = 1)
             result_df['code'] = result_df['code'].map(lambda x: str(x).zfill(6))

@@ -36,10 +36,14 @@ class DataPreparer:
         finished = False
         for t in range(timeout):
             if not finished:
-                time.sleep(1)
+                time.sleep(5)
                 if proc.poll() is not None:
                     outs, errs = proc.communicate()
+                    self.logger.debug("stdout:%s, stderr:%s" % (outs.decode("utf-8"), errs.decode("utf-8")))
                     finished = True
+                else:
+                    for stdout_line in proc.stdout:
+                        self.logger.debug("stdout:%s" % stdout_line.decode("utf-8"))
             else:
                 if proc.poll() is None:
                     self.logger.error("kill process after finished, cmd:%s, pid:%s" % (cmd, proc.pid))

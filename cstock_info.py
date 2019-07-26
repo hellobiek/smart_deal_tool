@@ -83,7 +83,7 @@ class CStockInfo(object):
     def init(self):
         df = self.get_basics()
         if df is None: return False
-        df = df.reset_index(drop = False)
+        df = df.reset_index(drop = True)
         return self.redis.set(ct.STOCK_INFO, _pickle.dumps(df, 2))
 
     def update(self):
