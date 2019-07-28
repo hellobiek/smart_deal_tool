@@ -166,12 +166,10 @@ def remove_blacklist(redis_client, key, black_list):
     if len(black_list) > 0: redis_client.srem(key, *set(black_list))
 
 def get_unfinished_workers(redis_client, key):
-    index = 0
     result_list = list(set(code.decode() for code in redis_client.smembers(key)))
-    while len(result_list) == 0 and index < 3:
-        if index > 0: logger.info("get list length is 0")
-        index = index + 1
-        time.sleep(30 * index)
+    for index in range(1, 4):
+        if len(result_list) > 0: return result_list
+        time.sleep(10 * index)
         result_list = list(set(code.decode() for code in redis_client.smembers(key)))
     return result_list
 

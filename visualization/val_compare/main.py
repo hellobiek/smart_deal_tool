@@ -79,7 +79,6 @@ code_select.on_change('value', update)
 value_select.on_change('value', update)
 
 controls = row(code_select, value_select)
-
 layout = column(controls, create_figure())
 
 curdoc().add_root(layout)

@@ -1,18 +1,14 @@
 # -*- coding: utf-8 -*-
 # cython: language_level=3, boundscheck=False, nonecheck=False, infer_types=True
 import os
-import sys
-import json
 import xlrd
-import time
-import array
 import calendar
 import traceback
 import const as ct
 import numpy as np
 cimport numpy as np
 import pandas as pd
-from cpython cimport array, bool
+from pandas import Series
 from cstock import CStock
 from pandas import DataFrame
 from datetime import datetime
@@ -20,9 +16,9 @@ from base.clog import getLogger
 from cstock_info import CStockInfo
 from datamanager.cbonus import CBonus
 from datamanager.creport import CReport
-from base.cdate import quarter, transfer_date_string_to_int, report_date_with, str_to_datetime, int_to_datetime, prev_report_date_with, get_pre_date, get_next_date, delta_days
-DATA_COLUMS = ['date', 'code', 'bps', 'eps', 'np', 'ccs', 'tcs', 'publish']
-DTYPE_DICT = {'date': int, 'code':str, 'bps':float, 'eps': float, 'np': float, 'ccs': float, 'tcs': float, 'publish': int}
+from base.cdate import quarter, report_date_with, int_to_datetime, prev_report_date_with, get_pre_date, get_next_date
+DATA_COLUMS = ['date', 'code', 'bps', 'eps', 'np', 'ccs', 'tcs', 'roa', 'roe', 'publish']
+DTYPE_DICT = {'date': int, 'code':str, 'bps':float, 'eps': float, 'np': float, 'ccs': float, 'tcs': float, 'roa': float, 'roe': float, 'publish': int}
 DTYPE_LIST = [('date', 'S10'),\
               ('open', 'f4'),\
               ('high', 'f4'),\
@@ -77,7 +73,7 @@ cdef class CValuation(object):
         df = df.reset_index(drop = True)
         return df.to_records(index = False)
 
-    cdef object convert(self, mdate = None):
+    cdef convert(self, mdate = None):
         #date, code, 1.基本每股收益(earnings per share)、2.扣非每股收益(non-earnings per share)、
         #4.每股净资产(book value per share)、6.净资产回报率(roa)、72.所有者权益（或股东权益）合计(net assert)、
         #96.归属于母公司所有者的净利润(net profit)、238.总股本(total capital share)、239.已上市流通A股(circulating capital share)、
@@ -143,7 +139,7 @@ cdef class CValuation(object):
                             row[prefix%21], row[prefix%27], row[prefix%199], row[prefix%202], row[prefix%225],
                             row[prefix%220], row[prefix%229], row[prefix%228], row[prefix%159], row[prefix%160],
                             row[prefix%161], row[prefix%197], pdate])
-            result_df = pd.DataFrame(report_list, columns = mcols)
+            result_df = DataFrame(report_list, columns = mcols)
             result_df = result_df.sort_values(['code'], ascending = 1)
             result_df['code'] = result_df['code'].map(lambda x: str(x).zfill(6))
             if is_first is True:
@@ -203,10 +199,38 @@ cdef class CValuation(object):
         if df.empty: return (code, True)
         df = df.reset_index(drop = True)
         vfunc = np.vectorize(compute)
-        data = [item for item in zip(*vfunc(df['date'].values, df['close'].values))]
-        vdf = pd.DataFrame(data, columns=["date", "pe", "ttm", "pb", "roe", "dr", "ccs", "tcs", "ccs_mv", "tcs_mv"])
+        data = [item for item in zip(*vfunc(df['date'].valuesdf['close'].values))]
+        vdf = DataFrame(data, columns=["date", "pe", "ttm", "pb", "roe", "dr", "ccs", "tcs", "ccs_mv", "tcs_mv"])
         vdf['code'] = code
         return (code, stock_obj.set_val_data(vdf, mdate))
+
+    def get_vertical_data(self, object df, list dtype_list, int mdate, str industry = '所有'):
+        cdef str dtype
+        cdef dict item
+        cdef object dval
+        def cfunc(str code, int time2Market):
+            item = self.get_actual_report_item(mdate, code, time2Market)
+            if 1 == len(dtype_list):
+                return item[dtype_list[0]] if item else None
+            else:
+                return tuple([item[dtype] for dtype in dtype_list]) if item else tuple([None for dtype in dtype_list])
+        vfunc = np.vectorize(cfunc)
+        for dtype, dval in zip(dtype_list, vfunc(df['code'].values, df['timeToMarket'].values)):
+            df[dtype] = dval
+        df = df.dropna(subset = dtype_list)
+        df = df[(df[dtype_list] > 0).all(axis=1)]
+        df = df.reset_index(drop = True)
+        return df
+
+    cpdef object get_horizontal_data(self, str code, list dtype_list):
+        cdef object df = self.get_report_items(code)
+        df = df[dtype_list]
+        return df
+
+    cdef object get_report_items(self, str code):
+        cdef object data = self.valuation_data[np.where(self.valuation_data["code"] == code)]
+        np_data = data[data['date'].argsort()]
+        return DataFrame(data = np_data)
 
     cdef dict get_report_item(self, int mdate, str code):
         cdef object data_ = self.valuation_data[np.where((self.valuation_data["date"] == mdate) & (self.valuation_data["code"] == code))]
@@ -333,7 +357,7 @@ cdef class CValuation(object):
         #sys.exit(0)
         return 0.0
 
-    cdef dict get_actual_report_item(self, int mdate, str code, int timeToMarket):
+    cpdef dict get_actual_report_item(self, int mdate, str code, int timeToMarket):
         """
         根据当前的实际日期获取最新财报信息
         :param mdate:
@@ -445,7 +469,7 @@ cdef class CValuation(object):
         try:
             base_df = self.stock_info_client.get_basics()
             code_list = base_df.code.tolist()
-            all_df = pd.DataFrame()
+            all_df = DataFrame()
             for code in base_df.code.tolist():
                 df = self.get_stock_valuation(code, mdate)
                 if not df.empey: all_df.append(df)
