@@ -215,8 +215,11 @@ cdef class CValuation(object):
             else:
                 return tuple([item[dtype] for dtype in dtype_list]) if item else tuple([None for dtype in dtype_list])
         vfunc = np.vectorize(cfunc)
-        for dtype, dval in zip(dtype_list, vfunc(df['code'].values, df['timeToMarket'].values)):
-            df[dtype] = dval
+        if len(dtype_list) == 1:
+            df[dtype_list[0]] = vfunc(df['code'].values, df['timeToMarket'].values)
+        else:
+            for dtype, dval in zip(dtype_list, vfunc(df['code'].values, df['timeToMarket'].values)):
+                df[dtype] = dval
         df = df.dropna(subset = dtype_list)
         df = df[(df[dtype_list] > 0).all(axis=1)]
         df = df.reset_index(drop = True)
