@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# cython: language_level=3, boundscheck=False, nonecheck=False, infer_types=True
+# cython: language_level=3, wraparound=False, boundscheck=False, nonecheck=False, infer_types=True
 import os
 import xlrd
 import calendar
@@ -279,7 +279,7 @@ cdef class CValuation(object):
         df = df.reset_index(drop = True)
         return df
 
-    cpdef object get_horizontal_data(self, str code, list dtype_list):
+    cdef object get_horizontal_data(self, str code, list dtype_list):
         cdef object df = self.get_report_items(code)
         df = df[dtype_list]
         return df

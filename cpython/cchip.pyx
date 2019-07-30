@@ -1,4 +1,5 @@
-# cython: language_level=3, boundscheck=False, nonecheck=False, infer_types=True
+# -*- coding: utf-8 -*-
+# cython: language_level=3, wraparound=False, boundscheck=False, nonecheck=False, infer_types=True
 import array
 import numpy as np
 from cpython cimport array

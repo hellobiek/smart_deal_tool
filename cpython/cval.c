@@ -1172,7 +1172,7 @@ struct __pyx_vtabstruct_4cval_CValuation {
   PyObject *(*get_reports_data)(struct __pyx_obj_4cval_CValuation *);
   __pyx_ctuple_float__and_float (*get_css_tcs)(struct __pyx_obj_4cval_CValuation *, PyObject *, int, PyObject *);
   __pyx_ctuple_float__and_float (*get_css_tcs_mv)(struct __pyx_obj_4cval_CValuation *, float, float, float);
-  PyObject *(*get_horizontal_data)(struct __pyx_obj_4cval_CValuation *, PyObject *, PyObject *, int __pyx_skip_dispatch);
+  PyObject *(*get_horizontal_data)(struct __pyx_obj_4cval_CValuation *, PyObject *, PyObject *);
   PyObject *(*get_report_items)(struct __pyx_obj_4cval_CValuation *, PyObject *);
   PyObject *(*get_report_item)(struct __pyx_obj_4cval_CValuation *, int, PyObject *);
   PyObject *(*get_year_report_item)(struct __pyx_obj_4cval_CValuation *, int, PyObject *, int);
@@ -1875,7 +1875,7 @@ static int __Pyx_InitStrings(__Pyx_StringTabEntry *t);
 static PyObject *__pyx_f_4cval_10CValuation_get_reports_data(struct __pyx_obj_4cval_CValuation *__pyx_v_self); /* proto*/
 static __pyx_ctuple_float__and_float __pyx_f_4cval_10CValuation_get_css_tcs(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code, int __pyx_v_tdate, PyObject *__pyx_v_item); /* proto*/
 static __pyx_ctuple_float__and_float __pyx_f_4cval_10CValuation_get_css_tcs_mv(CYTHON_UNUSED struct __pyx_obj_4cval_CValuation *__pyx_v_self, float __pyx_v_close, float __pyx_v_ccs, float __pyx_v_tcs); /* proto*/
-static PyObject *__pyx_f_4cval_10CValuation_get_horizontal_data(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code, PyObject *__pyx_v_dtype_list, int __pyx_skip_dispatch); /* proto*/
+static PyObject *__pyx_f_4cval_10CValuation_get_horizontal_data(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code, PyObject *__pyx_v_dtype_list); /* proto*/
 static PyObject *__pyx_f_4cval_10CValuation_get_report_items(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code); /* proto*/
 static PyObject *__pyx_f_4cval_10CValuation_get_report_item(struct __pyx_obj_4cval_CValuation *__pyx_v_self, int __pyx_v_mdate, PyObject *__pyx_v_code); /* proto*/
 static PyObject *__pyx_f_4cval_10CValuation_get_year_report_item(struct __pyx_obj_4cval_CValuation *__pyx_v_self, int __pyx_v_mdate, PyObject *__pyx_v_code, int __pyx_v_timeToMarket); /* proto*/
@@ -2211,7 +2211,6 @@ static const char __pyx_k_unlimited_quantity[] = "unlimited_quantity";
 static const char __pyx_k_datamanager_creport[] = "datamanager.creport";
 static const char __pyx_k_get_all_report_list[] = "get_all_report_list";
 static const char __pyx_k_get_components_data[] = "get_components_data";
-static const char __pyx_k_get_horizontal_data[] = "get_horizontal_data";
 static const char __pyx_k_set_index_valuation[] = "set_index_valuation";
 static const char __pyx_k_total_capital_share[] = "total_capital_share";
 static const char __pyx_k_for_item_is_not_None[] = " for item is not None";
@@ -2387,7 +2386,6 @@ static PyObject *__pyx_kp_u_get_code;
 static PyObject *__pyx_n_s_get_components_data;
 static PyObject *__pyx_n_s_get_css_tcs;
 static PyObject *__pyx_n_s_get_dividend_rate;
-static PyObject *__pyx_n_s_get_horizontal_data;
 static PyObject *__pyx_n_s_get_next_date;
 static PyObject *__pyx_n_s_get_pre_date;
 static PyObject *__pyx_n_s_get_report_data;
@@ -2578,12 +2576,11 @@ static PyObject *__pyx_pf_4cval_10CValuation_19set_stock_valuation_compute(PyObj
 static PyObject *__pyx_pf_4cval_10CValuation_4set_stock_valuation(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code2time_dict, PyObject *__pyx_v_mdate, PyObject *__pyx_v_code); /* proto */
 static PyObject *__pyx_pf_4cval_10CValuation_17get_vertical_data_cfunc(PyObject *__pyx_self, PyObject *__pyx_v_code, int __pyx_v_time2Market); /* proto */
 static PyObject *__pyx_pf_4cval_10CValuation_6get_vertical_data(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_df, PyObject *__pyx_v_dtype_list, int __pyx_v_mdate, CYTHON_UNUSED PyObject *__pyx_v_industry); /* proto */
-static PyObject *__pyx_pf_4cval_10CValuation_8get_horizontal_data(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code, PyObject *__pyx_v_dtype_list); /* proto */
-static PyObject *__pyx_pf_4cval_10CValuation_10get_actual_report_item(struct __pyx_obj_4cval_CValuation *__pyx_v_self, int __pyx_v_mdate, PyObject *__pyx_v_code, int __pyx_v_timeToMarket); /* proto */
+static PyObject *__pyx_pf_4cval_10CValuation_8get_actual_report_item(struct __pyx_obj_4cval_CValuation *__pyx_v_self, int __pyx_v_mdate, PyObject *__pyx_v_code, int __pyx_v_timeToMarket); /* proto */
 static PyObject *__pyx_lambda_funcdef_lambda1(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_x); /* proto */
-static PyObject *__pyx_pf_4cval_10CValuation_12get_stock_pledge_info(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code, PyObject *__pyx_v_mdate, PyObject *__pyx_v_dformat); /* proto */
-static PyObject *__pyx_pf_4cval_10CValuation_14get_stock_valuation(CYTHON_UNUSED struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code, PyObject *__pyx_v_mdate); /* proto */
-static PyObject *__pyx_pf_4cval_10CValuation_16set_index_valuation(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code, PyObject *__pyx_v_mdate); /* proto */
+static PyObject *__pyx_pf_4cval_10CValuation_10get_stock_pledge_info(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code, PyObject *__pyx_v_mdate, PyObject *__pyx_v_dformat); /* proto */
+static PyObject *__pyx_pf_4cval_10CValuation_12get_stock_valuation(CYTHON_UNUSED struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code, PyObject *__pyx_v_mdate); /* proto */
+static PyObject *__pyx_pf_4cval_10CValuation_14set_index_valuation(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code, PyObject *__pyx_v_mdate); /* proto */
 static PyObject *__pyx_pf_4cval_10CValuation_16report_data_path___get__(struct __pyx_obj_4cval_CValuation *__pyx_v_self); /* proto */
 static int __pyx_pf_4cval_10CValuation_16report_data_path_2__set__(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
 static int __pyx_pf_4cval_10CValuation_16report_data_path_4__del__(struct __pyx_obj_4cval_CValuation *__pyx_v_self); /* proto */
@@ -2602,8 +2599,8 @@ static int __pyx_pf_4cval_10CValuation_13report_client_4__del__(struct __pyx_obj
 static PyObject *__pyx_pf_4cval_10CValuation_17stock_info_client___get__(struct __pyx_obj_4cval_CValuation *__pyx_v_self); /* proto */
 static int __pyx_pf_4cval_10CValuation_17stock_info_client_2__set__(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_value); /* proto */
 static int __pyx_pf_4cval_10CValuation_17stock_info_client_4__del__(struct __pyx_obj_4cval_CValuation *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_4cval_10CValuation_18__reduce_cython__(struct __pyx_obj_4cval_CValuation *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_4cval_10CValuation_20__setstate_cython__(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v___pyx_state); /* proto */
+static PyObject *__pyx_pf_4cval_10CValuation_16__reduce_cython__(struct __pyx_obj_4cval_CValuation *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_4cval_10CValuation_18__setstate_cython__(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v___pyx_state); /* proto */
 static PyObject *__pyx_pf_4cval___pyx_unpickle_CValuation(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v___pyx_type, long __pyx_v___pyx_checksum, PyObject *__pyx_v___pyx_state); /* proto */
 static int __pyx_pf_5numpy_7ndarray___getbuffer__(PyArrayObject *__pyx_v_self, Py_buffer *__pyx_v_info, int __pyx_v_flags); /* proto */
 static void __pyx_pf_5numpy_7ndarray_2__releasebuffer__(PyArrayObject *__pyx_v_self, Py_buffer *__pyx_v_info); /* proto */
@@ -7756,7 +7753,7 @@ static PyObject *__pyx_pf_4cval_10CValuation_6get_vertical_data(struct __pyx_obj
  *         df = df.reset_index(drop = True)
  *         return df             # <<<<<<<<<<<<<<
  * 
- *     cpdef object get_horizontal_data(self, str code, list dtype_list):
+ *     cdef object get_horizontal_data(self, str code, list dtype_list):
  */
   __Pyx_XDECREF(__pyx_r);
   __Pyx_INCREF(__pyx_v_df);
@@ -7795,103 +7792,21 @@ static PyObject *__pyx_pf_4cval_10CValuation_6get_vertical_data(struct __pyx_obj
 /* "cval.pyx":282
  *         return df
  * 
- *     cpdef object get_horizontal_data(self, str code, list dtype_list):             # <<<<<<<<<<<<<<
+ *     cdef object get_horizontal_data(self, str code, list dtype_list):             # <<<<<<<<<<<<<<
  *         cdef object df = self.get_report_items(code)
  *         df = df[dtype_list]
  */
 
-static PyObject *__pyx_pw_4cval_10CValuation_9get_horizontal_data(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_f_4cval_10CValuation_get_horizontal_data(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code, PyObject *__pyx_v_dtype_list, int __pyx_skip_dispatch) {
+static PyObject *__pyx_f_4cval_10CValuation_get_horizontal_data(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code, PyObject *__pyx_v_dtype_list) {
   PyObject *__pyx_v_df = 0;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
-  PyObject *__pyx_t_2 = NULL;
-  PyObject *__pyx_t_3 = NULL;
-  PyObject *__pyx_t_4 = NULL;
-  int __pyx_t_5;
-  PyObject *__pyx_t_6 = NULL;
   __Pyx_RefNannySetupContext("get_horizontal_data", 0);
-  /* Check if called by wrapper */
-  if (unlikely(__pyx_skip_dispatch)) ;
-  /* Check if overridden in Python */
-  else if (unlikely((Py_TYPE(((PyObject *)__pyx_v_self))->tp_dictoffset != 0) || (Py_TYPE(((PyObject *)__pyx_v_self))->tp_flags & (Py_TPFLAGS_IS_ABSTRACT | Py_TPFLAGS_HEAPTYPE)))) {
-    #if CYTHON_USE_DICT_VERSIONS && CYTHON_USE_PYTYPE_LOOKUP && CYTHON_USE_TYPE_SLOTS
-    static PY_UINT64_T __pyx_tp_dict_version = __PYX_DICT_VERSION_INIT, __pyx_obj_dict_version = __PYX_DICT_VERSION_INIT;
-    if (unlikely(!__Pyx_object_dict_version_matches(((PyObject *)__pyx_v_self), __pyx_tp_dict_version, __pyx_obj_dict_version))) {
-      PY_UINT64_T __pyx_type_dict_guard = __Pyx_get_tp_dict_version(((PyObject *)__pyx_v_self));
-      #endif
-      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_get_horizontal_data); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 282, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_1);
-      if (!PyCFunction_Check(__pyx_t_1) || (PyCFunction_GET_FUNCTION(__pyx_t_1) != (PyCFunction)(void*)__pyx_pw_4cval_10CValuation_9get_horizontal_data)) {
-        __Pyx_XDECREF(__pyx_r);
-        __Pyx_INCREF(__pyx_t_1);
-        __pyx_t_3 = __pyx_t_1; __pyx_t_4 = NULL;
-        __pyx_t_5 = 0;
-        if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_3))) {
-          __pyx_t_4 = PyMethod_GET_SELF(__pyx_t_3);
-          if (likely(__pyx_t_4)) {
-            PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_3);
-            __Pyx_INCREF(__pyx_t_4);
-            __Pyx_INCREF(function);
-            __Pyx_DECREF_SET(__pyx_t_3, function);
-            __pyx_t_5 = 1;
-          }
-        }
-        #if CYTHON_FAST_PYCALL
-        if (PyFunction_Check(__pyx_t_3)) {
-          PyObject *__pyx_temp[3] = {__pyx_t_4, __pyx_v_code, __pyx_v_dtype_list};
-          __pyx_t_2 = __Pyx_PyFunction_FastCall(__pyx_t_3, __pyx_temp+1-__pyx_t_5, 2+__pyx_t_5); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 282, __pyx_L1_error)
-          __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
-          __Pyx_GOTREF(__pyx_t_2);
-        } else
-        #endif
-        #if CYTHON_FAST_PYCCALL
-        if (__Pyx_PyFastCFunction_Check(__pyx_t_3)) {
-          PyObject *__pyx_temp[3] = {__pyx_t_4, __pyx_v_code, __pyx_v_dtype_list};
-          __pyx_t_2 = __Pyx_PyCFunction_FastCall(__pyx_t_3, __pyx_temp+1-__pyx_t_5, 2+__pyx_t_5); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 282, __pyx_L1_error)
-          __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
-          __Pyx_GOTREF(__pyx_t_2);
-        } else
-        #endif
-        {
-          __pyx_t_6 = PyTuple_New(2+__pyx_t_5); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 282, __pyx_L1_error)
-          __Pyx_GOTREF(__pyx_t_6);
-          if (__pyx_t_4) {
-            __Pyx_GIVEREF(__pyx_t_4); PyTuple_SET_ITEM(__pyx_t_6, 0, __pyx_t_4); __pyx_t_4 = NULL;
-          }
-          __Pyx_INCREF(__pyx_v_code);
-          __Pyx_GIVEREF(__pyx_v_code);
-          PyTuple_SET_ITEM(__pyx_t_6, 0+__pyx_t_5, __pyx_v_code);
-          __Pyx_INCREF(__pyx_v_dtype_list);
-          __Pyx_GIVEREF(__pyx_v_dtype_list);
-          PyTuple_SET_ITEM(__pyx_t_6, 1+__pyx_t_5, __pyx_v_dtype_list);
-          __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_t_6, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 282, __pyx_L1_error)
-          __Pyx_GOTREF(__pyx_t_2);
-          __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-        }
-        __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-        __pyx_r = __pyx_t_2;
-        __pyx_t_2 = 0;
-        __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-        goto __pyx_L0;
-      }
-      #if CYTHON_USE_DICT_VERSIONS && CYTHON_USE_PYTYPE_LOOKUP && CYTHON_USE_TYPE_SLOTS
-      __pyx_tp_dict_version = __Pyx_get_tp_dict_version(((PyObject *)__pyx_v_self));
-      __pyx_obj_dict_version = __Pyx_get_object_dict_version(((PyObject *)__pyx_v_self));
-      if (unlikely(__pyx_type_dict_guard != __pyx_tp_dict_version)) {
-        __pyx_tp_dict_version = __pyx_obj_dict_version = __PYX_DICT_VERSION_INIT;
-      }
-      #endif
-      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-      #if CYTHON_USE_DICT_VERSIONS && CYTHON_USE_PYTYPE_LOOKUP && CYTHON_USE_TYPE_SLOTS
-    }
-    #endif
-  }
 
   /* "cval.pyx":283
  * 
- *     cpdef object get_horizontal_data(self, str code, list dtype_list):
+ *     cdef object get_horizontal_data(self, str code, list dtype_list):
  *         cdef object df = self.get_report_items(code)             # <<<<<<<<<<<<<<
  *         df = df[dtype_list]
  *         return df
@@ -7902,7 +7817,7 @@ static PyObject *__pyx_f_4cval_10CValuation_get_horizontal_data(struct __pyx_obj
   __pyx_t_1 = 0;
 
   /* "cval.pyx":284
- *     cpdef object get_horizontal_data(self, str code, list dtype_list):
+ *     cdef object get_horizontal_data(self, str code, list dtype_list):
  *         cdef object df = self.get_report_items(code)
  *         df = df[dtype_list]             # <<<<<<<<<<<<<<
  *         return df
@@ -7928,7 +7843,7 @@ static PyObject *__pyx_f_4cval_10CValuation_get_horizontal_data(struct __pyx_obj
   /* "cval.pyx":282
  *         return df
  * 
- *     cpdef object get_horizontal_data(self, str code, list dtype_list):             # <<<<<<<<<<<<<<
+ *     cdef object get_horizontal_data(self, str code, list dtype_list):             # <<<<<<<<<<<<<<
  *         cdef object df = self.get_report_items(code)
  *         df = df[dtype_list]
  */
@@ -7936,104 +7851,10 @@ static PyObject *__pyx_f_4cval_10CValuation_get_horizontal_data(struct __pyx_obj
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_XDECREF(__pyx_t_2);
-  __Pyx_XDECREF(__pyx_t_3);
-  __Pyx_XDECREF(__pyx_t_4);
-  __Pyx_XDECREF(__pyx_t_6);
   __Pyx_AddTraceback("cval.CValuation.get_horizontal_data", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = 0;
   __pyx_L0:;
   __Pyx_XDECREF(__pyx_v_df);
-  __Pyx_XGIVEREF(__pyx_r);
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-/* Python wrapper */
-static PyObject *__pyx_pw_4cval_10CValuation_9get_horizontal_data(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_pw_4cval_10CValuation_9get_horizontal_data(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  PyObject *__pyx_v_code = 0;
-  PyObject *__pyx_v_dtype_list = 0;
-  PyObject *__pyx_r = 0;
-  __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("get_horizontal_data (wrapper)", 0);
-  {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_code,&__pyx_n_s_dtype_list,0};
-    PyObject* values[2] = {0,0};
-    if (unlikely(__pyx_kwds)) {
-      Py_ssize_t kw_args;
-      const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
-      switch (pos_args) {
-        case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
-        CYTHON_FALLTHROUGH;
-        case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
-        CYTHON_FALLTHROUGH;
-        case  0: break;
-        default: goto __pyx_L5_argtuple_error;
-      }
-      kw_args = PyDict_Size(__pyx_kwds);
-      switch (pos_args) {
-        case  0:
-        if (likely((values[0] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_code)) != 0)) kw_args--;
-        else goto __pyx_L5_argtuple_error;
-        CYTHON_FALLTHROUGH;
-        case  1:
-        if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_dtype_list)) != 0)) kw_args--;
-        else {
-          __Pyx_RaiseArgtupleInvalid("get_horizontal_data", 1, 2, 2, 1); __PYX_ERR(0, 282, __pyx_L3_error)
-        }
-      }
-      if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_horizontal_data") < 0)) __PYX_ERR(0, 282, __pyx_L3_error)
-      }
-    } else if (PyTuple_GET_SIZE(__pyx_args) != 2) {
-      goto __pyx_L5_argtuple_error;
-    } else {
-      values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
-      values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
-    }
-    __pyx_v_code = ((PyObject*)values[0]);
-    __pyx_v_dtype_list = ((PyObject*)values[1]);
-  }
-  goto __pyx_L4_argument_unpacking_done;
-  __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("get_horizontal_data", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 282, __pyx_L3_error)
-  __pyx_L3_error:;
-  __Pyx_AddTraceback("cval.CValuation.get_horizontal_data", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __Pyx_RefNannyFinishContext();
-  return NULL;
-  __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_code), (&PyUnicode_Type), 1, "code", 1))) __PYX_ERR(0, 282, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_dtype_list), (&PyList_Type), 1, "dtype_list", 1))) __PYX_ERR(0, 282, __pyx_L1_error)
-  __pyx_r = __pyx_pf_4cval_10CValuation_8get_horizontal_data(((struct __pyx_obj_4cval_CValuation *)__pyx_v_self), __pyx_v_code, __pyx_v_dtype_list);
-
-  /* function exit code */
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  __pyx_r = NULL;
-  __pyx_L0:;
-  __Pyx_RefNannyFinishContext();
-  return __pyx_r;
-}
-
-static PyObject *__pyx_pf_4cval_10CValuation_8get_horizontal_data(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code, PyObject *__pyx_v_dtype_list) {
-  PyObject *__pyx_r = NULL;
-  __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  __Pyx_RefNannySetupContext("get_horizontal_data", 0);
-  __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __pyx_f_4cval_10CValuation_get_horizontal_data(__pyx_v_self, __pyx_v_code, __pyx_v_dtype_list, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 282, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_r = __pyx_t_1;
-  __pyx_t_1 = 0;
-  goto __pyx_L0;
-
-  /* function exit code */
-  __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("cval.CValuation.get_horizontal_data", __pyx_clineno, __pyx_lineno, __pyx_filename);
-  __pyx_r = NULL;
-  __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
@@ -10531,7 +10352,7 @@ static float __pyx_f_4cval_10CValuation_ttm(struct __pyx_obj_4cval_CValuation *_
  * 
  */
 
-static PyObject *__pyx_pw_4cval_10CValuation_11get_actual_report_item(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyObject *__pyx_pw_4cval_10CValuation_9get_actual_report_item(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
 static PyObject *__pyx_f_4cval_10CValuation_get_actual_report_item(struct __pyx_obj_4cval_CValuation *__pyx_v_self, int __pyx_v_mdate, PyObject *__pyx_v_code, int __pyx_v_timeToMarket, int __pyx_skip_dispatch) {
   int __pyx_v_report_date;
   PyObject *__pyx_v_item = 0;
@@ -10562,7 +10383,7 @@ static PyObject *__pyx_f_4cval_10CValuation_get_actual_report_item(struct __pyx_
       #endif
       __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_get_actual_report_item); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 417, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
-      if (!PyCFunction_Check(__pyx_t_1) || (PyCFunction_GET_FUNCTION(__pyx_t_1) != (PyCFunction)(void*)__pyx_pw_4cval_10CValuation_11get_actual_report_item)) {
+      if (!PyCFunction_Check(__pyx_t_1) || (PyCFunction_GET_FUNCTION(__pyx_t_1) != (PyCFunction)(void*)__pyx_pw_4cval_10CValuation_9get_actual_report_item)) {
         __Pyx_XDECREF(__pyx_r);
         __pyx_t_3 = __Pyx_PyInt_From_int(__pyx_v_mdate); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 417, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_3);
@@ -11850,9 +11671,9 @@ static PyObject *__pyx_f_4cval_10CValuation_get_actual_report_item(struct __pyx_
 }
 
 /* Python wrapper */
-static PyObject *__pyx_pw_4cval_10CValuation_11get_actual_report_item(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static char __pyx_doc_4cval_10CValuation_10get_actual_report_item[] = "\n        \346\240\271\346\215\256\345\275\223\345\211\215\347\232\204\345\256\236\351\231\205\346\227\245\346\234\237\350\216\267\345\217\226\346\234\200\346\226\260\350\264\242\346\212\245\344\277\241\346\201\257\n        :param mdate:\n        :param code:\n        :return:\n        ";
-static PyObject *__pyx_pw_4cval_10CValuation_11get_actual_report_item(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+static PyObject *__pyx_pw_4cval_10CValuation_9get_actual_report_item(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static char __pyx_doc_4cval_10CValuation_8get_actual_report_item[] = "\n        \346\240\271\346\215\256\345\275\223\345\211\215\347\232\204\345\256\236\351\231\205\346\227\245\346\234\237\350\216\267\345\217\226\346\234\200\346\226\260\350\264\242\346\212\245\344\277\241\346\201\257\n        :param mdate:\n        :param code:\n        :return:\n        ";
+static PyObject *__pyx_pw_4cval_10CValuation_9get_actual_report_item(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   int __pyx_v_mdate;
   PyObject *__pyx_v_code = 0;
   int __pyx_v_timeToMarket;
@@ -11916,7 +11737,7 @@ static PyObject *__pyx_pw_4cval_10CValuation_11get_actual_report_item(PyObject *
   return NULL;
   __pyx_L4_argument_unpacking_done:;
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_code), (&PyUnicode_Type), 1, "code", 1))) __PYX_ERR(0, 417, __pyx_L1_error)
-  __pyx_r = __pyx_pf_4cval_10CValuation_10get_actual_report_item(((struct __pyx_obj_4cval_CValuation *)__pyx_v_self), __pyx_v_mdate, __pyx_v_code, __pyx_v_timeToMarket);
+  __pyx_r = __pyx_pf_4cval_10CValuation_8get_actual_report_item(((struct __pyx_obj_4cval_CValuation *)__pyx_v_self), __pyx_v_mdate, __pyx_v_code, __pyx_v_timeToMarket);
 
   /* function exit code */
   goto __pyx_L0;
@@ -11927,7 +11748,7 @@ static PyObject *__pyx_pw_4cval_10CValuation_11get_actual_report_item(PyObject *
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_4cval_10CValuation_10get_actual_report_item(struct __pyx_obj_4cval_CValuation *__pyx_v_self, int __pyx_v_mdate, PyObject *__pyx_v_code, int __pyx_v_timeToMarket) {
+static PyObject *__pyx_pf_4cval_10CValuation_8get_actual_report_item(struct __pyx_obj_4cval_CValuation *__pyx_v_self, int __pyx_v_mdate, PyObject *__pyx_v_code, int __pyx_v_timeToMarket) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -11959,8 +11780,8 @@ static PyObject *__pyx_pf_4cval_10CValuation_10get_actual_report_item(struct __p
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_4cval_10CValuation_13get_stock_pledge_info(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_pw_4cval_10CValuation_13get_stock_pledge_info(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+static PyObject *__pyx_pw_4cval_10CValuation_11get_stock_pledge_info(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyObject *__pyx_pw_4cval_10CValuation_11get_stock_pledge_info(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   PyObject *__pyx_v_code = 0;
   PyObject *__pyx_v_mdate = 0;
   PyObject *__pyx_v_dformat = 0;
@@ -12033,7 +11854,7 @@ static PyObject *__pyx_pw_4cval_10CValuation_13get_stock_pledge_info(PyObject *_
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_4cval_10CValuation_12get_stock_pledge_info(((struct __pyx_obj_4cval_CValuation *)__pyx_v_self), __pyx_v_code, __pyx_v_mdate, __pyx_v_dformat);
+  __pyx_r = __pyx_pf_4cval_10CValuation_10get_stock_pledge_info(((struct __pyx_obj_4cval_CValuation *)__pyx_v_self), __pyx_v_code, __pyx_v_mdate, __pyx_v_dformat);
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
@@ -12115,7 +11936,7 @@ static PyObject *__pyx_lambda_funcdef_lambda1(CYTHON_UNUSED PyObject *__pyx_self
  *         if int(mdate) < 20180304: return None
  */
 
-static PyObject *__pyx_pf_4cval_10CValuation_12get_stock_pledge_info(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code, PyObject *__pyx_v_mdate, PyObject *__pyx_v_dformat) {
+static PyObject *__pyx_pf_4cval_10CValuation_10get_stock_pledge_info(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code, PyObject *__pyx_v_mdate, PyObject *__pyx_v_dformat) {
   PyObject *__pyx_v_cfrom_ = NULL;
   PyObject *__pyx_v_cto_ = NULL;
   PyObject *__pyx_v_filename = NULL;
@@ -13132,8 +12953,8 @@ static PyObject *__pyx_pf_4cval_10CValuation_12get_stock_pledge_info(struct __py
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_4cval_10CValuation_15get_stock_valuation(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_pw_4cval_10CValuation_15get_stock_valuation(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+static PyObject *__pyx_pw_4cval_10CValuation_13get_stock_valuation(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyObject *__pyx_pw_4cval_10CValuation_13get_stock_valuation(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   PyObject *__pyx_v_code = 0;
   PyObject *__pyx_v_mdate = 0;
   PyObject *__pyx_r = 0;
@@ -13185,14 +13006,14 @@ static PyObject *__pyx_pw_4cval_10CValuation_15get_stock_valuation(PyObject *__p
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_4cval_10CValuation_14get_stock_valuation(((struct __pyx_obj_4cval_CValuation *)__pyx_v_self), __pyx_v_code, __pyx_v_mdate);
+  __pyx_r = __pyx_pf_4cval_10CValuation_12get_stock_valuation(((struct __pyx_obj_4cval_CValuation *)__pyx_v_self), __pyx_v_code, __pyx_v_mdate);
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_4cval_10CValuation_14get_stock_valuation(CYTHON_UNUSED struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code, PyObject *__pyx_v_mdate) {
+static PyObject *__pyx_pf_4cval_10CValuation_12get_stock_valuation(CYTHON_UNUSED struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code, PyObject *__pyx_v_mdate) {
   PyObject *__pyx_v_stock_obj = 0;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
@@ -13994,7 +13815,7 @@ static PyObject *__pyx_f_4cval_10CValuation_index_dr(CYTHON_UNUSED struct __pyx_
  *         cdef dict data
  */
 
-static PyObject *__pyx_pw_4cval_10CValuation_17set_index_valuation(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyObject *__pyx_pw_4cval_10CValuation_15set_index_valuation(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
 static PyObject *__pyx_f_4cval_10CValuation_set_index_valuation(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code, PyObject *__pyx_v_mdate, int __pyx_skip_dispatch) {
   PyObject *__pyx_v_data = 0;
   PyObject *__pyx_v_df = 0;
@@ -14033,7 +13854,7 @@ static PyObject *__pyx_f_4cval_10CValuation_set_index_valuation(struct __pyx_obj
       #endif
       __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_set_index_valuation); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 544, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
-      if (!PyCFunction_Check(__pyx_t_1) || (PyCFunction_GET_FUNCTION(__pyx_t_1) != (PyCFunction)(void*)__pyx_pw_4cval_10CValuation_17set_index_valuation)) {
+      if (!PyCFunction_Check(__pyx_t_1) || (PyCFunction_GET_FUNCTION(__pyx_t_1) != (PyCFunction)(void*)__pyx_pw_4cval_10CValuation_15set_index_valuation)) {
         __Pyx_XDECREF(__pyx_r);
         __Pyx_INCREF(__pyx_t_1);
         __pyx_t_3 = __pyx_t_1; __pyx_t_4 = NULL;
@@ -14536,8 +14357,8 @@ static PyObject *__pyx_f_4cval_10CValuation_set_index_valuation(struct __pyx_obj
 }
 
 /* Python wrapper */
-static PyObject *__pyx_pw_4cval_10CValuation_17set_index_valuation(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_pw_4cval_10CValuation_17set_index_valuation(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+static PyObject *__pyx_pw_4cval_10CValuation_15set_index_valuation(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyObject *__pyx_pw_4cval_10CValuation_15set_index_valuation(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   PyObject *__pyx_v_code = 0;
   PyObject *__pyx_v_mdate = 0;
   PyObject *__pyx_r = 0;
@@ -14591,7 +14412,7 @@ static PyObject *__pyx_pw_4cval_10CValuation_17set_index_valuation(PyObject *__p
   __pyx_L4_argument_unpacking_done:;
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_code), (&PyUnicode_Type), 1, "code", 1))) __PYX_ERR(0, 544, __pyx_L1_error)
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_mdate), (&PyUnicode_Type), 1, "mdate", 1))) __PYX_ERR(0, 544, __pyx_L1_error)
-  __pyx_r = __pyx_pf_4cval_10CValuation_16set_index_valuation(((struct __pyx_obj_4cval_CValuation *)__pyx_v_self), __pyx_v_code, __pyx_v_mdate);
+  __pyx_r = __pyx_pf_4cval_10CValuation_14set_index_valuation(((struct __pyx_obj_4cval_CValuation *)__pyx_v_self), __pyx_v_code, __pyx_v_mdate);
 
   /* function exit code */
   goto __pyx_L0;
@@ -14602,7 +14423,7 @@ static PyObject *__pyx_pw_4cval_10CValuation_17set_index_valuation(PyObject *__p
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_4cval_10CValuation_16set_index_valuation(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code, PyObject *__pyx_v_mdate) {
+static PyObject *__pyx_pf_4cval_10CValuation_14set_index_valuation(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v_code, PyObject *__pyx_v_mdate) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -15336,19 +15157,19 @@ static int __pyx_pf_4cval_10CValuation_17stock_info_client_4__del__(struct __pyx
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_4cval_10CValuation_19__reduce_cython__(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
-static PyObject *__pyx_pw_4cval_10CValuation_19__reduce_cython__(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
+static PyObject *__pyx_pw_4cval_10CValuation_17__reduce_cython__(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
+static PyObject *__pyx_pw_4cval_10CValuation_17__reduce_cython__(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__reduce_cython__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_4cval_10CValuation_18__reduce_cython__(((struct __pyx_obj_4cval_CValuation *)__pyx_v_self));
+  __pyx_r = __pyx_pf_4cval_10CValuation_16__reduce_cython__(((struct __pyx_obj_4cval_CValuation *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_4cval_10CValuation_18__reduce_cython__(struct __pyx_obj_4cval_CValuation *__pyx_v_self) {
+static PyObject *__pyx_pf_4cval_10CValuation_16__reduce_cython__(struct __pyx_obj_4cval_CValuation *__pyx_v_self) {
   PyObject *__pyx_v_state = 0;
   PyObject *__pyx_v__dict = 0;
   int __pyx_v_use_setstate;
@@ -15622,19 +15443,19 @@ static PyObject *__pyx_pf_4cval_10CValuation_18__reduce_cython__(struct __pyx_ob
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_4cval_10CValuation_21__setstate_cython__(PyObject *__pyx_v_self, PyObject *__pyx_v___pyx_state); /*proto*/
-static PyObject *__pyx_pw_4cval_10CValuation_21__setstate_cython__(PyObject *__pyx_v_self, PyObject *__pyx_v___pyx_state) {
+static PyObject *__pyx_pw_4cval_10CValuation_19__setstate_cython__(PyObject *__pyx_v_self, PyObject *__pyx_v___pyx_state); /*proto*/
+static PyObject *__pyx_pw_4cval_10CValuation_19__setstate_cython__(PyObject *__pyx_v_self, PyObject *__pyx_v___pyx_state) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__setstate_cython__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_4cval_10CValuation_20__setstate_cython__(((struct __pyx_obj_4cval_CValuation *)__pyx_v_self), ((PyObject *)__pyx_v___pyx_state));
+  __pyx_r = __pyx_pf_4cval_10CValuation_18__setstate_cython__(((struct __pyx_obj_4cval_CValuation *)__pyx_v_self), ((PyObject *)__pyx_v___pyx_state));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_4cval_10CValuation_20__setstate_cython__(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v___pyx_state) {
+static PyObject *__pyx_pf_4cval_10CValuation_18__setstate_cython__(struct __pyx_obj_4cval_CValuation *__pyx_v_self, PyObject *__pyx_v___pyx_state) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -18690,13 +18511,12 @@ static PyMethodDef __pyx_methods_4cval_CValuation[] = {
   {"convert", (PyCFunction)__pyx_pw_4cval_10CValuation_3convert, METH_NOARGS, 0},
   {"set_stock_valuation", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_4cval_10CValuation_5set_stock_valuation, METH_VARARGS|METH_KEYWORDS, 0},
   {"get_vertical_data", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_4cval_10CValuation_7get_vertical_data, METH_VARARGS|METH_KEYWORDS, 0},
-  {"get_horizontal_data", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_4cval_10CValuation_9get_horizontal_data, METH_VARARGS|METH_KEYWORDS, 0},
-  {"get_actual_report_item", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_4cval_10CValuation_11get_actual_report_item, METH_VARARGS|METH_KEYWORDS, __pyx_doc_4cval_10CValuation_10get_actual_report_item},
-  {"get_stock_pledge_info", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_4cval_10CValuation_13get_stock_pledge_info, METH_VARARGS|METH_KEYWORDS, 0},
-  {"get_stock_valuation", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_4cval_10CValuation_15get_stock_valuation, METH_VARARGS|METH_KEYWORDS, 0},
-  {"set_index_valuation", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_4cval_10CValuation_17set_index_valuation, METH_VARARGS|METH_KEYWORDS, 0},
-  {"__reduce_cython__", (PyCFunction)__pyx_pw_4cval_10CValuation_19__reduce_cython__, METH_NOARGS, 0},
-  {"__setstate_cython__", (PyCFunction)__pyx_pw_4cval_10CValuation_21__setstate_cython__, METH_O, 0},
+  {"get_actual_report_item", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_4cval_10CValuation_9get_actual_report_item, METH_VARARGS|METH_KEYWORDS, __pyx_doc_4cval_10CValuation_8get_actual_report_item},
+  {"get_stock_pledge_info", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_4cval_10CValuation_11get_stock_pledge_info, METH_VARARGS|METH_KEYWORDS, 0},
+  {"get_stock_valuation", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_4cval_10CValuation_13get_stock_valuation, METH_VARARGS|METH_KEYWORDS, 0},
+  {"set_index_valuation", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_4cval_10CValuation_15set_index_valuation, METH_VARARGS|METH_KEYWORDS, 0},
+  {"__reduce_cython__", (PyCFunction)__pyx_pw_4cval_10CValuation_17__reduce_cython__, METH_NOARGS, 0},
+  {"__setstate_cython__", (PyCFunction)__pyx_pw_4cval_10CValuation_19__setstate_cython__, METH_O, 0},
   {0, 0, 0, 0}
 };
 
@@ -19167,7 +18987,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_get_components_data, __pyx_k_get_components_data, sizeof(__pyx_k_get_components_data), 0, 0, 1, 1},
   {&__pyx_n_s_get_css_tcs, __pyx_k_get_css_tcs, sizeof(__pyx_k_get_css_tcs), 0, 0, 1, 1},
   {&__pyx_n_s_get_dividend_rate, __pyx_k_get_dividend_rate, sizeof(__pyx_k_get_dividend_rate), 0, 0, 1, 1},
-  {&__pyx_n_s_get_horizontal_data, __pyx_k_get_horizontal_data, sizeof(__pyx_k_get_horizontal_data), 0, 0, 1, 1},
   {&__pyx_n_s_get_next_date, __pyx_k_get_next_date, sizeof(__pyx_k_get_next_date), 0, 0, 1, 1},
   {&__pyx_n_s_get_pre_date, __pyx_k_get_pre_date, sizeof(__pyx_k_get_pre_date), 0, 0, 1, 1},
   {&__pyx_n_s_get_report_data, __pyx_k_get_report_data, sizeof(__pyx_k_get_report_data), 0, 0, 1, 1},
@@ -19615,7 +19434,7 @@ static int __Pyx_modinit_type_init_code(void) {
   __pyx_vtable_4cval_CValuation.get_reports_data = (PyObject *(*)(struct __pyx_obj_4cval_CValuation *))__pyx_f_4cval_10CValuation_get_reports_data;
   __pyx_vtable_4cval_CValuation.get_css_tcs = (__pyx_ctuple_float__and_float (*)(struct __pyx_obj_4cval_CValuation *, PyObject *, int, PyObject *))__pyx_f_4cval_10CValuation_get_css_tcs;
   __pyx_vtable_4cval_CValuation.get_css_tcs_mv = (__pyx_ctuple_float__and_float (*)(struct __pyx_obj_4cval_CValuation *, float, float, float))__pyx_f_4cval_10CValuation_get_css_tcs_mv;
-  __pyx_vtable_4cval_CValuation.get_horizontal_data = (PyObject *(*)(struct __pyx_obj_4cval_CValuation *, PyObject *, PyObject *, int __pyx_skip_dispatch))__pyx_f_4cval_10CValuation_get_horizontal_data;
+  __pyx_vtable_4cval_CValuation.get_horizontal_data = (PyObject *(*)(struct __pyx_obj_4cval_CValuation *, PyObject *, PyObject *))__pyx_f_4cval_10CValuation_get_horizontal_data;
   __pyx_vtable_4cval_CValuation.get_report_items = (PyObject *(*)(struct __pyx_obj_4cval_CValuation *, PyObject *))__pyx_f_4cval_10CValuation_get_report_items;
   __pyx_vtable_4cval_CValuation.get_report_item = (PyObject *(*)(struct __pyx_obj_4cval_CValuation *, int, PyObject *))__pyx_f_4cval_10CValuation_get_report_item;
   __pyx_vtable_4cval_CValuation.get_year_report_item = (PyObject *(*)(struct __pyx_obj_4cval_CValuation *, int, PyObject *, int))__pyx_f_4cval_10CValuation_get_year_report_item;
@@ -19910,7 +19729,7 @@ if (!__Pyx_RefNanny) {
 
   /* "cval.pyx":3
  * # -*- coding: utf-8 -*-
- * # cython: language_level=3, boundscheck=False, nonecheck=False, infer_types=True
+ * # cython: language_level=3, wraparound=False, boundscheck=False, nonecheck=False, infer_types=True
  * import os             # <<<<<<<<<<<<<<
  * import xlrd
  * import calendar
@@ -19921,7 +19740,7 @@ if (!__Pyx_RefNanny) {
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
   /* "cval.pyx":4
- * # cython: language_level=3, boundscheck=False, nonecheck=False, infer_types=True
+ * # cython: language_level=3, wraparound=False, boundscheck=False, nonecheck=False, infer_types=True
  * import os
  * import xlrd             # <<<<<<<<<<<<<<
  * import calendar
@@ -20568,7 +20387,7 @@ if (!__Pyx_RefNanny) {
 
   /* "cval.pyx":1
  * # -*- coding: utf-8 -*-             # <<<<<<<<<<<<<<
- * # cython: language_level=3, boundscheck=False, nonecheck=False, infer_types=True
+ * # cython: language_level=3, wraparound=False, boundscheck=False, nonecheck=False, infer_types=True
  * import os
  */
   __pyx_t_1 = __Pyx_PyDict_NewPresized(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 1, __pyx_L1_error)
