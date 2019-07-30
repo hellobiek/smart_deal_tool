@@ -66,12 +66,12 @@ fig.quad(top='top', bottom='bottom', left='left', right='right', fill_color="nav
 
 stock_df = stock_info_client.get()
 industries = list(set(stock_df.industry.tolist()))
-columns = ['roa', 'roe']
+columns = ['roa', 'dar']
 industries.append("所有")
 
 date_picker = DatePicker(title='日期', value = date.today() - timedelta(days = 200), min_date = date(2004,1,1), max_date = date.today())
 industry_select = Select(title='行业', value='所有', options=sorted(industries), height=50)
-value_select = Select(title='类型', value='roe', options=sorted(columns), height=50)
+value_select = Select(title='类型', value='roa', options=sorted(columns), height=50)
 
 controls = row(industry_select, value_select, date_picker)
 layout = column(controls, fig)

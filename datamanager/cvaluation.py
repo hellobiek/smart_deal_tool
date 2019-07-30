@@ -444,7 +444,7 @@ class CValuation(object):
             all_df = pd.DataFrame()
             cfunc = partial(cget, mdate)
             for code_data in obj_pool.imap_unordered(cfunc, code_list):
-                if not code_data[1].empty:
+                if code_data[1] is not None and not code_data[1].empty:
                     tem_df = code_data[1]
                     tem_df['code'] = code_data[0]
                     all_df = all_df.append(tem_df)
@@ -458,6 +458,7 @@ class CValuation(object):
         except Exception as e:
             self.logger.error(e)
             traceback.print_exc()
+            return False
 
     def get_r_financial_data(self, mdate):
         file_name = self.get_r_financial_name(mdate)
@@ -490,10 +491,7 @@ class CValuation(object):
             code_list = code_data['code'].tolist()
             ori_code_list = code_list
         df = self.get_stocks_info(mdate, code_list)
-        if df.empty:
-            import pdb
-            pdb.set_trace()
-            return False
+        if df.empty: return False
         pe = self.index_val(df, 'pe')
         pb = self.index_val(df, 'pb')
         ttm = self.index_val(df, 'ttm')
@@ -510,7 +508,7 @@ class CValuation(object):
         df = df.reset_index(drop = True)
         return df
 
-    def update_val(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 500):
+    def update_val(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 7000):
         succeed = True
         start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
         date_array = get_dates_array(start_date, end_date)
@@ -522,7 +520,7 @@ class CValuation(object):
                         succeed = False
         return succeed
 
-    def update(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 3000):
+    def update(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 7):
         succeed = True
         base_df = self.stock_info_client.get_basics()
         code_list = base_df.code.tolist()
@@ -536,13 +534,13 @@ class CValuation(object):
         return succeed
         
 if __name__ == '__main__':
-    #df = cvaluation.get_stock_pledge_info(mdate = '20180708')
-    cvaluation = CValuation()
     try:
+        cvaluation = CValuation()
+        #df = cvaluation.get_stock_pledge_info(mdate = '20180708')
         #cvaluation.set_financial_data('2019-07-08')
         #cvaluation.collect_financial_data()
         #cvaluation.get_r_financial_data('2016-05-30')
-        cvaluation.update('2010-12-22')
-        #cvaluation.update_val('2019-07-12')
+        #cvaluation.update('2019-07-16')
+        cvaluation.update_val('2019-07-29')
     except Exception as e:
         print(e)

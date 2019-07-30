@@ -7,17 +7,19 @@ import datetime
 import traceback
 import const as ct
 import pandas as pd
+from pathlib import Path
 from cstock import CStock
-from cindex import CIndex, TdxFgIndex
-from base.clog import getLogger 
+from gevent.pool import Pool
 from functools import partial
 from datetime import datetime
 from rstock import RIndexStock
+from base.clog import getLogger 
 from ccalendar import CCalendar
 from animation import CAnimation
 from index_info import IndexInfo
 from cstock_info import CStockInfo
 from combination import Combination
+from cindex import CIndex, TdxFgIndex
 from industry_info import IndustryInfo
 from datamanager.margin  import Margin
 from datamanager.emotion import Emotion
@@ -283,19 +285,28 @@ class DataManager:
             self.set_update_info(16, exec_date, cdate)
 
         if finished_step < 17:
+            if not self.init_rvaluation_info(cdate):
+                self.logger.error("init r stock valuation info failed")
+                return False
             self.set_update_info(17, exec_date, cdate)
 
         if finished_step < 18:
-            if not self.rindex_stock_data_client.update(exec_date, num = ndays):
-                self.logger.error("rstock data set failed")
+            if not self.init_rindex_valuation_info(cdate):
+                self.logger.error("init r index valuation info failed")
                 return False
             self.set_update_info(18, exec_date, cdate)
 
         if finished_step < 19:
+            if not self.rindex_stock_data_client.update(exec_date, num = ndays):
+                self.logger.error("rstock data set failed")
+                return False
+            self.set_update_info(19, exec_date, cdate)
+
+        if finished_step < 20:
             if not self.set_bull_stock_ratio(exec_date, num = ndays):
                 self.logger.error("bull ratio set failed")
                 return False
-            self.set_update_info(19, exec_date, cdate) 
+            self.set_update_info(20, exec_date, cdate) 
 
         self.logger.info("updating succeed")
         return True
@@ -353,6 +364,38 @@ class DataManager:
         if df.empty: return False
         failed_list = df.code.tolist()
         return process_concurrent_run(_set_base_float_profit, failed_list, num = 8)
+
+    def init_rindex_valuation_info(self, cdate):
+        for code in ct.INDEX_DICT:
+            if not self.cvaluation_client.set_index_valuation(code, cdate):
+                self.logger.error("{} set {} data for rvaluation failed".format(code, mdate))
+                return False
+        return True
+
+    def init_rvaluation_info(self, cdate = None):
+        def cget(mdate, code):
+            return code, CStock(code).get_val_data(mdate)
+        df = self.stock_info_client.get()
+        code_list = df.code.tolist()
+        try:
+            obj_pool = Pool(5000)
+            all_df = pd.DataFrame()
+            cfunc = partial(cget, cdate)
+            for code_data in obj_pool.imap_unordered(cfunc, code_list):
+                if code_data[1] is not None and not code_data[1].empty:
+                    tem_df = code_data[1]
+                    tem_df['code'] = code_data[0]
+                    all_df = all_df.append(tem_df)
+            obj_pool.join(timeout = 5)
+            obj_pool.kill()
+            all_df = all_df.reset_index(drop = True)
+            file_name = "{}.csv".format(cdate)
+            file_path = Path(ct.RVALUATION_DIR) / file_name
+            all_df.to_csv(file_path, index=False, header=True, mode='w', encoding='utf8')
+            return True
+        except Exception as e:
+            self.logger.error(e)
+            return False
 
     def init_valuation_info(self, cdate = None):
         df = self.stock_info_client.get()
@@ -501,11 +544,13 @@ if __name__ == '__main__':
     dm = DataManager()
     mdate = '2019-07-25' 
     dm.logger.info("start compute!")
+    #dm.init_rindex_valuation_info(mdate)
+    #dm.init_rvaluation_info(mdate)
     #dm.init_valuation_info(mdate)
     #dm.set_bull_stock_ratio(mdate, num = 10)
     #dm.clear_network_env()
     #dm.init_base_float_profit()
     #dm.init_stock_info(mdate)
     #dm.bootstrap(exec_date = '2019-03-26')
-    dm.bootstrap(cdate = mdate, exec_date = mdate)
+    #dm.bootstrap(cdate = mdate, exec_date = mdate)
     dm.logger.info("end compute!")

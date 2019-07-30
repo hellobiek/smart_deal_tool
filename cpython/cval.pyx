@@ -9,7 +9,9 @@ import numpy as np
 cimport numpy as np
 import pandas as pd
 from pandas import Series
+from cindex import CIndex
 from cstock import CStock
+from pathlib import Path
 from pandas import DataFrame
 from datetime import datetime
 from base.clog import getLogger
@@ -17,37 +19,27 @@ from cstock_info import CStockInfo
 from datamanager.cbonus import CBonus
 from datamanager.creport import CReport
 from base.cdate import quarter, report_date_with, int_to_datetime, prev_report_date_with, get_pre_date, get_next_date
-DATA_COLUMS = ['date', 'code', 'bps', 'eps', 'np', 'ccs', 'tcs', 'roa', 'roe', 'publish']
-DTYPE_DICT = {'date': int, 'code':str, 'bps':float, 'eps': float, 'np': float, 'ccs': float, 'tcs': float, 'roa': float, 'roe': float, 'publish': int}
-DTYPE_LIST = [('date', 'S10'),\
-              ('open', 'f4'),\
-              ('high', 'f4'),\
-              ('close', 'f4'),\
-              ('preclose', 'f4'),\
-              ('low', 'f4'),\
-              ('volume', 'i8'),\
-              ('amount', 'f4'),\
-              ('outstanding', 'i8'),\
-              ('totals', 'i8'),\
-              ('adj', 'f4'),\
-              ('aprice', 'f4'),\
-              ('pchange', 'f4'),\
-              ('turnover', 'f4'),\
-              ('sai', 'f4'),\
-              ('sri', 'f4'),\
-              ('uprice', 'f4'),\
-              ('sprice', 'f4'),\
-              ('mprice', 'f4'),\
-              ('lprice', 'f4'),\
-              ('ppercent', 'f4'),\
-              ('npercent', 'f4'),\
-              ('base', 'f4'),\
-              ('ibase', 'i8'),\
-              ('breakup', 'i4'),\
-              ('ibreakup', 'i8'),\
-              ('pday', 'i4'),\
-              ('profit', 'f4'),\
-              ('gamekline', 'f4')]
+DATA_COLUMS = ['date', 'code', 'bps', 'eps', 'np', 'ccs', 'tcs', 'roa', 'npm', 'fa', 'dar', 'gpr', 'publish']
+DTYPE_DICT = {'date': int,
+              'code':str, 
+              'bps':float, 
+              'eps': float, 
+              'np': float, 
+              'ccs': float, 
+              'tcs': float, 
+              'roa': float,
+              'fa': float, #fixed assets
+              'npm': float, #net profit margin
+              'gpr': float, #gross profit ratio
+              'dar': float, #debt asset ratio
+              'cfpsfo': float, #cash flow per share from operations
+              'micc': float, #main income cash content
+              'crr': float, #cash recovery rate of all assets
+              'ncf': float, #net cash flow to net profit ratio
+              'revenue': float, #revenue
+              'igr': float, #increase growth rate
+              'ngr': float, #net growth rate
+              'publish': int}
 
 cdef str PRE_CUR_CODE = '', PRE_YEAR_CODE = ''
 cdef dict PRE_YEAR_ITEM = dict(), PRE_CUR_ITEM = dict()
@@ -67,13 +59,13 @@ cdef class CValuation(object):
 
     cdef object get_reports_data(self):
         cdef object df
-        #self.convert()
+        if not Path(self.report_data_path).exists(): return None 
         df = pd.read_csv(self.report_data_path, header = 0, encoding = "utf8", usecols = DATA_COLUMS, dtype = DTYPE_DICT)
         df = df.drop_duplicates()
         df = df.reset_index(drop = True)
         return df.to_records(index = False)
 
-    cdef convert(self, mdate = None):
+    def convert(self):
         #date, code, 1.基本每股收益(earnings per share)、2.扣非每股收益(non-earnings per share)、
         #4.每股净资产(book value per share)、6.净资产回报率(roa)、72.所有者权益（或股东权益）合计(net assert)、
         #96.归属于母公司所有者的净利润(net profit)、238.总股本(total capital share)、239.已上市流通A股(circulating capital share)、
@@ -98,24 +90,86 @@ cdef class CValuation(object):
         #202.销售毛利率(gross profit ratio)、225.每股现金流量净额(cash flow per share)
         #220.营业收入现金含量(main income cash content)、229.全部资产现金回收率(cash recovery rate of all assets)、
         #228.经营活动现金净流量与净利润比率(net cash flow to net profit ratio)、159.流动比率(working capital ratio)、
-        #160.速动比率(quick ratio)、161.现金比率(currency ratio)、197.净资产收益率(roe)
+        #160.速动比率(quick ratio)、161.现金比率(currency ratio)、219.每股经营性现金(cash flow per share from operations)
         #财报披露时间(publish)
-        mcols = ['date','code','eps','neps','bps',
-                 'roa','na','np','tcs','ccs',
-                 'mf','br','ar','prepayments','or',
-                 'rfrc','rtr','dso','inventory','ta',
-                 'stb','bp','ap','aria','pp',
-                 'tadp','aip','cwa','ltl','tl',
-                 'se','mc','ec','fc','it',
-                 'dsoi','dar','iar','cip','de',
-                 'revenue','opr','goodwill','holders','largest_holding',
-                 'qfii_holders','qfii_holding','broker_holders','broker_holding','insurance_holders',
-                 'insurance_holding','fund_holders','fund_holding','social_security_holders','social_security_holding',
-                 'private_holders','private_holding','financial_company_holders', 'financial_company_holding','annuity_holders',
-                 'annuity_holding','igr','ngr','pgr','npr',
-                 'ca', 'fa', 'npm', 'gpr', 'cfps', 
-                 'micc', 'crr', 'ncf', 'wcr', 'qr', 'cr', 'roe', 'publish']
-        date_list = self.report_client.get_all_report_list() if mdate is None else list(mdate)
+        mcols = ['date','code',
+                 'eps', #earnings per share
+                 'neps', #non-earnings per share
+                 'bps', #book value per share
+                 'roa',
+                 'na', #net assert
+                 'np', #net profit
+                 'tcs', #(total capital share
+                 'ccs', #circulating capital share
+                 'mf', #money funds
+                 'br', #bill receivable
+                 'ar', #accounts receivable
+                 'prepayments', #prepayments
+                 'or', #other receivables
+                 'rfrc', #receivables from related companies
+                 'rtr', #receivables turnover ratio
+                 'dso', #days sales outstanding
+                 'inventory',
+                 'ta', #total assets
+                 'stb', #short term borrowing
+                 'bp', #bills payable
+                 'ap', #accounts payable
+                 'aria', #accounts received in advance
+                 'pp', #payroll payable
+                 'tadp', #taxes and dues payable
+                 'aip', #accrued interest payable
+                 'cwa', #coping with affiliates
+                 'ltl', #long term loan
+                 'tl', #total liabilities
+                 'se', #selling expenses
+                 'mc', #managing costs
+                 'ec', #exploration cost
+                 'fc', #financing costs
+                 'it', #inventory turnover
+                 'dsoi', #days sales of inventory
+                 'dar', #debt asset ratio
+                 'iar', #inventory asset ratio
+                 'cip', #construction in process
+                 'de', #development expenditure
+                 'revenue',
+                 'opr', #operating profit ratio
+                 'goodwill',
+                 'holders',
+                 'largest_holding', #第一大股东的持股数量
+                 'qfii_holders', #QFII机构数
+                 'qfii_holding', #QFII持股量
+                 'broker_holders', #券商机构数
+                 'broker_holding', #券商持股量
+                 'insurance_holders', #保险机构数
+                 'insurance_holding', #保险持股量
+                 'fund_holders', #基金机构数
+                 'fund_holding', #基金持股量
+                 'social_security_holders', #社保机构数
+                 'social_security_holding', #社保持股量
+                 'private_holders', #私募机构数
+                 'private_holding', #私募持股量
+                 'financial_company_holders', #财务公司机构数
+                 'financial_company_holding', #财务公司持股量
+                 'annuity_holders', #年金机构数
+                 'annuity_holding', #年金持股量
+                 'igr', #increase growth rate
+                 'ngr', #net growth rate
+                 'pgr', #profit growth rate
+                 'npr', #non-net profit rate
+                 'ca', #current assets
+                 'fa', #fixed assets
+                 'npm', #net profit margin
+                 'gpr', #gross profit ratio
+                 'cfps', #cash flow per share
+                 'micc', #main income cash content
+                 'crr', #cash recovery rate of all assets
+                 'ncf', #net cash flow to net profit ratio
+                 'wcr', #working capital ratio
+                 'qr', #quick ratio
+                 'cr', #currency ratio
+                 'cfpsfo', #cash flow per share from operations
+                 'publish']
+        date_list = self.report_client.get_all_report_list()
         is_first = True
         prefix = "col%s"
         for mdate in date_list:
@@ -138,7 +192,7 @@ cdef class CValuation(object):
                             row[prefix%263], row[prefix%183], row[prefix%184], row[prefix%189], row[prefix%191],
                             row[prefix%21], row[prefix%27], row[prefix%199], row[prefix%202], row[prefix%225],
                             row[prefix%220], row[prefix%229], row[prefix%228], row[prefix%159], row[prefix%160],
-                            row[prefix%161], row[prefix%197], pdate])
+                            row[prefix%161], row[prefix%219], pdate])
             result_df = DataFrame(report_list, columns = mcols)
             result_df = result_df.sort_values(['code'], ascending = 1)
             result_df['code'] = result_df['code'].map(lambda x: str(x).zfill(6))
@@ -199,7 +253,7 @@ cdef class CValuation(object):
         if df.empty: return (code, True)
         df = df.reset_index(drop = True)
         vfunc = np.vectorize(compute)
-        data = [item for item in zip(*vfunc(df['date'].valuesdf['close'].values))]
+        data = [item for item in zip(*vfunc(df['date'].values, df['close'].values))]
         vdf = DataFrame(data, columns=["date", "pe", "ttm", "pb", "roe", "dr", "ccs", "tcs", "ccs_mv", "tcs_mv"])
         vdf['code'] = code
         return (code, stock_obj.set_val_data(vdf, mdate))
@@ -462,29 +516,58 @@ cdef class CValuation(object):
         cdef object stock_obj = CStock(code)
         return stock_obj.get_val_data(mdate)
 
-    cdef str get_r_financial_name(self, int mdate):
-        cdates = mdate.split('-')
-        return "%s_%s_%s.csv" % ("rval", cdates[0], (int(cdates[1])-1)//3 + 1)
+    cdef str get_r_financial_name(self, str mdate):
+        return "%s.csv" % mdate
 
-    def set_r_financial_data(self, int mdate):
+    cdef object get_r_financial_data(self, str mdate):
         cdef str file_name = self.get_r_financial_name(mdate)
-        cdef str file_path = os.path.join("/data/valuation/rstock", file_name)
-        try:
-            base_df = self.stock_info_client.get_basics()
-            code_list = base_df.code.tolist()
-            all_df = DataFrame()
-            for code in base_df.code.tolist():
-                df = self.get_stock_valuation(code, mdate)
-                if not df.empey: all_df.append(df)
-            if not os.path.exists(file_path):
-                all_df.to_csv(file_path, index=False, header=True, mode='w', encoding='utf8')
-            else:
-                all_df.to_csv(file_path, index=False, header=False, mode='a+', encoding='utf8')
-        except Exception as e:
-            self.logger.info(e)
-            traceback.print_exc()
+        cdef object file_path = Path("/data/valuation/rstock") / file_name
+        if file_path.exists():
+            use_cols = ['code', 'date', 'pe', 'pb', 'ttm', 'dr', 'ccs', 'tcs', 'ccs_mv', 'tcs_mv']
+            dtype_dict = {'code':str, 'date': str, 'pe': float, 'pb': float, 'ttm': float, 'dr': float, 'ccs': float, 'tcs': float, 'ccs_mv': float, 'tcs_mv': float}
+            return pd.read_csv(file_path, header = 0, encoding = "utf8", usecols = use_cols, dtype = dtype_dict)
+        return DataFrame()
 
-    def get_r_financial_data(self, int mdate):
-        cdef str file_name = self.get_r_financial_name(mdate)
-        cdef str file_path = os.path.join("/data/valuation/rstock", file_name)
-        return pd.read_csv(file_path, header = 0, encoding = "utf8")
+    cdef object index_val(self, object df, str dtype = 'pe'):
+        cdef float total_mv = df['tcs_mv'].sum()
+        cdef float total_profit = 0
+        cdef object row
+        for _, row in df.iterrows():
+            total_profit += row['tcs_mv'] / row[dtype] if 0 != row[dtype] else 0 
+        return total_mv / total_profit
+
+    cdef object index_dr(self, object df):
+        cdef float total_mv = df['tcs_mv'].sum()
+        cdef float total_divide = df['dr'].dot(df['tcs_mv'])
+        return total_divide / total_mv
+
+    cpdef set_index_valuation(self, str code, str mdate):
+        global ori_code_list
+        cdef dict data
+        cdef object df, ndf
+        cdef float pe, pb, ttm, roe, dr
+        cdef object index_obj = CIndex(code)
+        cdef object code_data = index_obj.get_components_data(mdate)
+        if code_data is None or code_data.empty:
+            code_list = ori_code_list
+        else:
+            code_list = code_data['code'].tolist()
+            ori_code_list = code_list
+        df = self.get_stocks_info(mdate, code_list)
+        if df.empty: return False
+        pe = self.index_val(df, 'pe')
+        pb = self.index_val(df, 'pb')
+        ttm = self.index_val(df, 'ttm')
+        roe = pb / ttm if ttm != 0.0 else 0.0
+        dr = self.index_dr(df)
+        data = {'code':[code], 'date':[mdate], 'pe':[pe], 'pb':[pb], 'ttm':[ttm], 'roe':[roe], 'dr':[dr]}
+        ndf = DataFrame.from_dict(data)
+        return index_obj.set_val_data(ndf, mdate)
+
+    cdef object get_stocks_info(self, str mdate, list code_list):
+        cdef object df
+        cdef object all_df = self.get_r_financial_data(mdate)
+        if all_df.empty: return all_df
+        df = all_df.loc[all_df.code.isin(code_list)]
+        df = df.reset_index(drop = True)
+        return df

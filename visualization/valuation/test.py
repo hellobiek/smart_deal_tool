@@ -11,13 +11,13 @@ from cpython.cval import CValuation
 from scipy.stats import percentileofscore
 if __name__ == '__main__':
     mdate = 20190110
-    dtype_list = ['roe']
+    dtype_list = ['dar']
     val_client = CValuation()
     stock_client = CStockInfo()
     df = stock_client.get()
     starttime = datetime.datetime.now()
     vdf = val_client.get_vertical_data(df, dtype_list, mdate)
-    values = vdf['roe'].tolist()
+    values = vdf['dar'].tolist()
     hist, edges = np.histogram(values, density=False, bins=100)
     import pdb
     pdb.set_trace()

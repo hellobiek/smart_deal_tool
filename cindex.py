@@ -271,8 +271,7 @@ class CIndex(CMysqlObj):
         if mdate is None:
             return df
         else:
-            tdate = transfer_date_string_to_int(mdate)
-            return df.loc[df.date == tdate].reset_index(drop = True)
+            return df.loc[df.date == mdate].reset_index(drop = True)
 
     def set_val_data(self, df, mdate = '', fpath = "/data/valuation/indexs"):
         index_val_path = os.path.join(fpath, self.get_val_filename())
