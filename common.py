@@ -185,10 +185,12 @@ def queue_process_concurrent_run(mfunc, all_list, redis_client = None, process_n
     redis_client = create_redis_obj(host = 'redis-proxy-container', port = 6579)
     init_unfinished_workers(redis_client, ct.UNFINISHED_QUEUE_WORKS, copy.deepcopy(all_list))
     todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_QUEUE_WORKS)
-    logger.info("all queue code list length:%s", len(todo_list))
-    if len(todo_list) == 0: return None
     last_length = len(todo_list)
-    q = Queue(last_length)
+    logger.info("all queue code list length:{}".format(last_length))
+    if last_length == 0: return None
+    if len(black_list) > 0: remove_blacklist(redis_client, ct.UNFINISHED_QUEUE_WORKS, black_list)
+    q_length = num * process_num
+    q = Queue(q_length)
     all_df = pd.DataFrame()
     while last_length > 0:
         i_start = 0
@@ -198,28 +200,19 @@ def queue_process_concurrent_run(mfunc, all_list, redis_client = None, process_n
             p = Process(target = queue_thread_concurrent_run, args=(mfunc, todo_list[i_start:i_end], redis_client, ct.UNFINISHED_QUEUE_WORKS, q), kwargs={'num': num})
             jobs.append(p)
             i_start = i_end
-
         for j in jobs: j.start()
-
-        #for j in jobs: j.join()
         liveprocs = jobs
         while liveprocs:
             while not q.empty():
                 all_df = all_df.append(q.get(False))
-            time.sleep(0.1)    # Give tasks a chance to put more data in
             liveprocs = [p for p in jobs if p.is_alive()]
-
-        if len(black_list) > 0:
-            remove_blacklist(redis_client, ct.UNFINISHED_QUEUE_WORKS, black_list)
-            black_list = list()
         todo_list = get_unfinished_workers(redis_client, ct.UNFINISHED_QUEUE_WORKS)
         if len(todo_list) == last_length:
-            logger.error("left todo list:%s" % todo_list)
-            time.sleep(100)
+            logger.error("left todo list:{} to do".format(todo_list))
             return None
         else:
             last_length = len(todo_list)
-            time.sleep(3)
+            logger.debug("left {} to do".format(last_length))
     return all_df 
 
 def queue_thread_concurrent_run(mfunc, todo_list, redis_client, key, q, num = 10):
@@ -238,9 +231,8 @@ def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, black_lis
     init_unfinished_workers(redis_client, redis_key_name, copy.deepcopy(all_list))
     todo_list = get_unfinished_workers(redis_client, redis_key_name)
     logger.info("all code list length:%s, all length:%s" % (len(todo_list), len(all_list)))
-    if len(todo_list) == 0: return False
     last_length = len(todo_list)
-
+    if last_length == 0: return False
     if len(black_list) > 0: remove_blacklist(redis_client, redis_key_name, black_list)
     while last_length > 0:
         i_start = 0

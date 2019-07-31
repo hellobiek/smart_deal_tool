@@ -11,7 +11,7 @@ from cstock_info import CStockInfo
 from cpython.cval import CValuation
 from datetime import date, timedelta
 from bokeh.layouts import row, column
-from base.cdate import datetime_to_str
+from base.cdate import datetime_to_int
 from bokeh.plotting import curdoc, figure
 from bokeh.document import without_document_lock
 from concurrent.futures import ThreadPoolExecutor
@@ -21,7 +21,13 @@ def update(industry, dtype, mdate):
     if industry == '所有':
         df = stock_df
         print(mdate, dtype_list)
-        return cvaluation.get_vertical_data(df, dtype_list, mdate)
+        if dtype == '质押率':
+            pdf = cvaluation.get_stock_pledge_info(df, dtype_list, mdate)
+            vdf = pdf.loc[pdf.code.isin(df.code.tolist())]
+            vdf = vdf.reset_index(drop = True)
+            return vdf
+        else:
+            return cvaluation.get_vertical_data(df, dtype_list, mdate)
     else:
         df = stock_df.loc[stock_df.industry == industry]
         df = df.reset_index(drop = True)
@@ -42,7 +48,7 @@ def unlocked_task():
     mdate = date_picker.value
     dtype = value_select.value
     industry = industry_select.value
-    mdate = int(datetime_to_str(mdate))
+    mdate = datetime_to_int(mdate)
     vdata = yield executor.submit(update, industry, dtype, mdate)
     cdoc.add_next_tick_callback(partial(locked_update, data=vdata, dtype = dtype))
 

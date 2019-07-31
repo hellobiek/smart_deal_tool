@@ -13,11 +13,11 @@ from cindex import CIndex
 from cstock import CStock
 from pathlib import Path
 from pandas import DataFrame
-from datetime import datetime
 from base.clog import getLogger
 from cstock_info import CStockInfo
 from datamanager.cbonus import CBonus
 from datamanager.creport import CReport
+from datetime import datetime, timedelta
 from base.cdate import quarter, report_date_with, int_to_datetime, prev_report_date_with, get_pre_date, get_next_date
 DATA_COLUMS = ['date', 'code', 'bps', 'eps', 'np', 'ccs', 'tcs', 'roa', 'npm', 'fa', 'dar', 'gpr', 'publish']
 DTYPE_DICT = {'date': int,
@@ -207,16 +207,14 @@ cdef class CValuation(object):
         if len(item) > 0:
             ccs, tcs = item["ccs"], item["tcs"] #流通股, 总股本
             if ccs == 0 or tcs == 0:
-                self.logger.debug("get code:%s, tdate:%s failed. ccs:%s, tcs:%s" % (code, tdate, ccs, tcs))
+                self.logger.debug("get code:{}, tdate:{} failed. ccs:{}, tcs:{}".format(code, tdate, ccs, tcs))
                 ccs, tcs = self.bonus_client.get_css_tcs(code, tdate)
                 if ccs == 0 or tcs == 0:
-                    self.logger.error("unexpected css tcs code:%s, tdate:%s for item is not None" % (code, tdate))
-                    #sys.exit(0)
+                    self.logger.error("unexpected css tcs code:{}, tdate:{} for item is not None".format(code, tdate))
         else:
             ccs, tcs = self.bonus_client.get_css_tcs(code, tdate)
             if ccs == 0 or tcs == 0:
-                self.logger.error("unexpected css tcs code:%s, tdate:%s for item is None" % (code, tdate))
-                #sys.exit(0)
+                self.logger.error("unexpected css tcs code:{}, tdate:{} for item is None".format(code, tdate))
         return ccs, tcs
 
     cdef (float, float) get_css_tcs_mv(self, float close, float ccs, float tcs):
@@ -484,7 +482,7 @@ cdef class CValuation(object):
         return PRE_CUR_ITEM
 
     def get_stock_pledge_info(self, code = None, mdate = None, dformat = '%Y%m%d'):
-        if mdate is None: mdate = datetime.now().strftime(dformat)
+        if mdate is None: mdate = (datetime.now() - timedelta(days = 7)).strftime(dformat)
         if int(mdate) < 20180304: return None
         if datetime.strptime(mdate, dformat).weekday() == calendar.SUNDAY:
             cfrom_ = get_pre_date(mdate, target_day = calendar.SUNDAY, dformat = dformat)
@@ -503,6 +501,7 @@ cdef class CValuation(object):
             name_list = ['date', 'code', 'name', 'counts', 'unlimited_quantity', 'limited_quantity', 'total_capital_share', 'pledge_rate']
             df = pd.read_excel(wb, sheet_name = 'Sheet1', engine = 'xlrd', header = 0, names = name_list, skiprows = [1,2])
             df['code'] = df['code'].map(lambda x: str(x).zfill(6))
+            df = df[['date', 'code', 'pledge_rate']]
             df = df.reset_index(drop = True)
             if code is None:
                 return df
@@ -517,7 +516,9 @@ cdef class CValuation(object):
         return stock_obj.get_val_data(mdate)
 
     cdef str get_r_financial_name(self, str mdate):
-        return "%s.csv" % mdate
+        #cdates = cdate.split('-')
+        #return "%s_%s_%s.csv" % ("rval", cdates[0], (int(cdates[1])-1)//3 + 1)
+        return "{}.csv".format(mdate)
 
     cdef object get_r_financial_data(self, str mdate):
         cdef str file_name = self.get_r_financial_name(mdate)

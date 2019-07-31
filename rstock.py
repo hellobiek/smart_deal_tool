@@ -1,4 +1,7 @@
-#coding=utf-8
+# -*- coding: utf-8 -*-
+from gevent import monkey
+monkey.patch_all()
+
 import time
 import datetime
 import const as ct
@@ -6,6 +9,7 @@ import numpy as np
 import pandas as pd
 from cmysql import CMySQL
 from cstock import CStock
+from gevent.pool import Pool
 from functools import partial
 from datetime import datetime
 from base.clog import getLogger
@@ -111,14 +115,13 @@ class RIndexStock:
     def get_stock_data(self, cdate, code):
         return (code, CStock(code).get_k_data(cdate))
 
-    def generate_all_data_1(self, cdate, black_list = list()):
+    def generate_all_data_1(self, cdate, black_list = ct.BLACK_LIST):
         failed_list = CStockInfo(redis_host = self.redis_host).get(redis = self.redis).code.tolist()
         if len(black_list) > 0: failed_list = list(set(failed_list).difference(set(black_list)))
         cfunc = partial(self.get_stock_data, cdate)
-        return queue_process_concurrent_run(cfunc, failed_list)
+        return queue_process_concurrent_run(cfunc, failed_list, num = 500)
 
     def generate_all_data(self, cdate, black_list = ct.BLACK_LIST):
-        from gevent.pool import Pool
         obj_pool = Pool(5000)
         failed_list = CStockInfo(redis_host = self.redis_host).get(redis = self.redis).code.tolist()
         if len(black_list) > 0:
@@ -177,5 +180,11 @@ class RIndexStock:
         return False
 
 if __name__ == '__main__':
-    ris = RIndexStock(ct.OUT_DB_INFO, redis_host = '127.0.0.1')
-    ris.update(end_date = '2019-03-16', num = 20000)
+    ris = RIndexStock()
+    cdate = '2019-07-29'
+    ris.logger.info("start compute")
+    df = ris.generate_all_data(cdate)
+    #df = ris.generate_all_data_1(cdate)
+    ris.logger.info("end compute")
+    print("AAAAAAAA01")
+    #ris.update(end_date = '2019-03-16', num = 20000)
