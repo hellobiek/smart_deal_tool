@@ -26,6 +26,7 @@ class MValuation(object):
     def __init__(self):
         self.logger = getLogger(__name__)
         self.cval_client = CValuation()
+        self.stock_info_client = CStockInfo()
 
     def collect_financial_data(self, spath = "/data/crawler/china_security_industry_valuation/stock", tpath = '/data/valuation/cstocks'):
         def myfunc(code, mdate):
@@ -44,7 +45,7 @@ class MValuation(object):
             vfunc = np.vectorize(myfunc)
             vfunc(df['code'].values, df['date'].values)
 
-    def set_financial_data(self, mdate = ''):
+    def set_financial_data(self, code = '688122', mdate = '2019-07-30'):
         '''
         计算PE、PB、ROE、股息率、流通股本、总股本、流通市值、总市值
         1.基本每股收益、4.每股净资产、96.归属于母公司所有者的净利润、238.总股本、239.已上市流通A股
@@ -54,19 +55,11 @@ class MValuation(object):
             ROE=利润/每股净资产=PB/PE : 财报中已有静态的净资产收益率数据, 这里通过TTM计算一个大概的ROE作为参考
         '''
         try:
-            base_df = self.stock_info_client.get_basics()
-            #fpath = "/tmp/succeed_list"
-            #with open(fpath) as f: succeed_list = f.read().strip().split()
-            for row in base_df.itertuples():
-                code = row.code
-                #if code not in succeed_list:
-                if code == '000693':
-                    timeToMarket = row.timeToMarket
-                    self.set_stock_valuation(mdate, code, timeToMarket)
-                    #if self.set_stock_valuation(mdate, code, timeToMarket):
-                    #    succeed_list.append(code)
-                    #    with open(fpath, 'a+') as f: f.write(code + '\n')
-                    #    pass
+            df = self.stock_info_client.get()
+            code_list = df['code'].tolist()
+            time2market_list = df['timeToMarket'].tolist()
+            code2timedict = dict(zip(code_list, time2market_list))
+            self.cval_client.set_stock_valuation(code2timedict, mdate, code)
         except Exception as e:
             self.logger.error(e)
             traceback.print_exc()
@@ -119,14 +112,14 @@ class MValuation(object):
                     self.logger.error("set %s data for rvaluation failed" % mdate)
                     succeed = False
         return succeed
-        
+
 if __name__ == '__main__':
     try:
         mval_client = MValuation()
-        stock_client = CStockInfo()
+        mval_client.set_financial_data()
         black_list = list(ct.BLACK_DICT.keys())
         white_list = list(ct.WHITE_DICT.keys())
-        df = stock_client.get()
+        df = mval_client.stock_info_client.get()
         df = df.loc[~df.code.isin(black_list)]
         #质押信息
         pledge_info = mval_client.cval_client.get_stock_pledge_info()

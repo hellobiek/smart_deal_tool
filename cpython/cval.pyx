@@ -235,7 +235,6 @@ cdef class CValuation(object):
                         #年报比当前的财报公布的还晚
                         self.logger.error("code:%s, tdate:%s, year report publish date:%s, cur report publish date:%s" % (code, tdate, year_item['publish'], cur_item['publish']))
                         return tdate, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
-                        #sys.exit(0)
                 pe_value = self.pe(cur_item, year_item, close)
                 ttm_value = self.ttm(cur_item, code, close)
                 pb_value = self.pb(cur_item, close)
@@ -419,8 +418,8 @@ cdef class CValuation(object):
         :param code:
         :return:
         """
-        cdef int report_date
         cdef dict item
+        cdef int report_date
         global PRE_CUR_CODE, PRE_CUR_REPORT_DATE, PRE_CUR_ITEM
         report_date = report_date_with(mdate)
 
@@ -429,55 +428,32 @@ cdef class CValuation(object):
         PRE_CUR_CODE = code
         PRE_CUR_REPORT_DATE = report_date
 
-        if timeToMarket > report_date:
-            self.logger.debug("%s timeToMarket %s, report_date:%s" % (code, timeToMarket, report_date))
-            PRE_CUR_ITEM = dict()
-            return PRE_CUR_ITEM
-
         item = self.get_report_item(report_date, code)
         # 判断当前日期是否大于标准财报的披露时间，否则取用前一个财报信息
         if len(item) > 0 and item['publish'] <= mdate:
             PRE_CUR_ITEM = item
             return PRE_CUR_ITEM
-        self.logger.debug("%s has not publish report for normal months from %s, report_date:%s" % (code, mdate, report_date))
-
-        report_date = prev_report_date_with(report_date)
-        if timeToMarket > report_date:
-            self.logger.debug("%s timeToMarket %s, report_date:%s" % (code, timeToMarket, report_date))
+        elif len(item) == 0 and timeToMarket > report_date:
+            self.logger.debug("{} timeToMarket {}, report_date:%{}".format(code, timeToMarket, report_date))
             PRE_CUR_ITEM = dict()
             return PRE_CUR_ITEM
-        item = self.get_report_item(report_date, code)
-        # 判断当前日期是否大于前一个财报披露时间
-        if len(item) > 0  and item['publish'] <= mdate:
-            PRE_CUR_ITEM = item
-            return PRE_CUR_ITEM
-
-        self.logger.debug("%s has not publish report for 3 months from %s, report_date:%s" % (code, mdate, report_date))
+            
+        self.logger.debug("{} has not publish report for normal months from {}, report_date:{}".format(code, mdate, report_date))
 
         report_date = prev_report_date_with(report_date)
-        if timeToMarket > report_date:
-            self.logger.debug("%s timeToMarket %s, report_date:%s" % (code, timeToMarket, report_date))
-            PRE_CUR_ITEM = dict()
-            return PRE_CUR_ITEM
         item = self.get_report_item(report_date, code)
         # 判断当前日期是否大于前一个财报披露时间
         if len(item) > 0 and item['publish'] <= mdate:
             PRE_CUR_ITEM = item
             return PRE_CUR_ITEM
-        self.logger.debug("%s has not publish report for 6 months from %sreport_date:%s" % (code, mdate, report_date))
-        #000035 20041231日的年报，一直到20050815好才发布
-
-        report_date = prev_report_date_with(report_date)
-        if timeToMarket > report_date:
-            self.logger.debug("%s timeToMarket %s, report_date:%s" % (code, timeToMarket, report_date))
+        elif len(item) == 0 and timeToMarket > report_date:
+            self.logger.debug("{} timeToMarket {}, report_date:%{}".format(code, timeToMarket, report_date))
             PRE_CUR_ITEM = dict()
             return PRE_CUR_ITEM
-        item = self.get_report_item(report_date, code)
-        # 判断当前日期是否大于前一个财报披露时间
-        if len(item) > 0 and item['publish'] <= mdate:
-            PRE_CUR_ITEM = item
-            return PRE_CUR_ITEM
-        self.logger.debug("%s has not publish report for 9 months from %s, report_date:%s" % (code, mdate, report_date))
+
+        self.logger.debug("{} has not publish report for 3 months from {}, report_date:{}".format(code, mdate, report_date))
+        #只有这些垃圾股需要继续求取后面的日期，这些股票，不要也罢。
+        #000048, 000939, 000995, 002260, 002604, 002680, 300028, 300104, 300216, 600074, 600610k
         PRE_CUR_ITEM = dict()
         return PRE_CUR_ITEM
 
