@@ -42,14 +42,14 @@ class CCalendar:
         df = _pickle.loads(df_byte)
         return df if _date is None else df.loc[df.calendarDate == _date]
 
-    def pre_trading_day(self, _date):
+    def pre_trading_day(self, mdate):
         df = self.get()
-        _index = df[df.calendarDate == _date].index.tolist()[0]
-        if _index > 0:
-            _tindex = _index
-            while _tindex > 0:
-                _tindex -= 1
-                if df.isOpen[_tindex] == 1: return df.calendarDate[_tindex]
+        index = df[df.calendarDate == mdate].index.tolist()[0]
+        if index > 0:
+            tindex = index
+            while tindex > 0:
+                tindex -= 1
+                if df.isOpen[tindex] == 1: return df.calendarDate[tindex]
         return None
 
 if __name__ == '__main__':

@@ -406,9 +406,9 @@ class DataManager:
         return process_concurrent_run(cfun, code_list, num = 15, black_list = list())
 
     def init_stock_info(self, cdate = None):
-        def _set_stock_info(_date, bonus_info, index_info, code_id):
+        def _set_stock_info(_date, pre_bonus_info, bonus_info, index_info, code_id):
             try:
-                if CStock(code_id).set_k_data(bonus_info, index_info, _date):
+                if CStock(code_id).set_k_data(pre_bonus_info, bonus_info, index_info, _date):
                     self.logger.info("%s set k data success for date:%s", code_id, _date)
                     return (code_id, True)
                 else:
@@ -420,7 +420,16 @@ class DataManager:
 
         #get stock bonus info
         bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',',
-                      dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
+                      dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 
+                            'price': float, 'count': float, 'rate': float, 'date': int})
+        pre_date = self.cal_client.pre_trading_day(cdate)
+
+        filename = "{}.csv".format(transfer_date_string_to_int(cdate))
+        pre_bonus_info = pd.read_csv("/data/tdx/base/bonus/{}".format(filename), sep = ',', 
+                                    dtype = {'code' : str, 'market': int, 'type': int, 
+                                    'money': float, 'price': float, 'count': float, 
+                                    'rate': float, 'date': int})
+
 
         index_info = CIndex('000001').get_k_data()
         if index_info is None or index_info.empty: return False
@@ -428,10 +437,10 @@ class DataManager:
         if df.empty: return False
         failed_list = df.code.tolist()
         if cdate is None:
-            cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
+            cfunc = partial(_set_stock_info, cdate, pre_bonus_info, bonus_info, index_info)
             return process_concurrent_run(cfunc, failed_list, num = 8)
         else:
-            cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
+            cfunc = partial(_set_stock_info, cdate, pre_bonus_info, bonus_info, index_info)
             succeed = True
             if not process_concurrent_run(cfunc, failed_list, num = 8):
                 succeed = False
@@ -542,7 +551,7 @@ if __name__ == '__main__':
     #sys.exit(0)
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
-    mdate = '2019-08-01' 
+    mdate = '2019-08-02' 
     dm.logger.info("start compute!")
     #dm.init_rindex_valuation_info(mdate)
     #dm.init_rvaluation_info(mdate)
@@ -550,7 +559,7 @@ if __name__ == '__main__':
     #dm.set_bull_stock_ratio(mdate, num = 10)
     #dm.clear_network_env()
     #dm.init_base_float_profit()
-    #dm.init_stock_info(mdate)
+    dm.init_stock_info(mdate)
     #dm.bootstrap(exec_date = '2019-03-26')
-    dm.bootstrap(cdate = mdate, exec_date = mdate)
+    #dm.bootstrap(cdate = mdate, exec_date = mdate)
     dm.logger.info("end compute!")

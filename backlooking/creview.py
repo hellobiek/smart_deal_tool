@@ -1,7 +1,4 @@
 #-*- coding: utf-8 -*-
-import gevent
-from gevent import monkey
-monkey.patch_all(thread = True)
 import os
 import sys
 from os.path import abspath, dirname
