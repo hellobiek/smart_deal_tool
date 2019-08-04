@@ -19,26 +19,43 @@ from datamanager.cbonus import CBonus
 from datamanager.creport import CReport
 from datetime import datetime, timedelta
 from base.cdate import quarter, report_date_with, int_to_datetime, prev_report_date_with, get_pre_date, get_next_date
-DATA_COLUMS = ['date', 'code', 'bps', 'eps', 'np', 'ccs', 'tcs', 'roa', 'npm', 'fa', 'dar', 'gpr', 'publish']
 DTYPE_DICT = {'date': int,
-              'code':str, 
-              'bps':float, 
-              'eps': float, 
-              'np': float, 
-              'ccs': float, 
-              'tcs': float, 
-              'roa': float,
-              'fa': float, #fixed assets
-              'npm': float, #net profit margin
-              'gpr': float, #gross profit ratio
-              'dar': float, #debt asset ratio
-              'cfpsfo': float, #cash flow per share from operations
-              'micc': float, #main income cash content
-              'crr': float, #cash recovery rate of all assets
-              'ncf': float, #net cash flow to net profit ratio
-              'revenue': float, #revenue
-              'igr': float, #increase growth rate
-              'ngr': float, #net growth rate
+              'code': str, 
+              'bps': float, #每股净资产(book value per share)
+              'eps': float, #基本每股收益(earnings per share)
+              'np': float, #归属于母公司所有者的净利润(net profit)
+              'ccs': float, #已上市流通A股(circulating capital share) 
+              'tcs': float, #总股本(total capital share)
+              'roa': float, #净资产回报率(roa)
+              'mf': float, #货币资金(money funds)
+              'stb': float, #短期借款(short term borrowing)
+              'ar': float, #应收账款(accounts receivable)
+              'br': float, #应收票据(bill receivable)
+              'ta': float, #资产总计(total assets)
+              'fa': float, #固定资产(fixed assets)
+              'ca': float, #流动资产合计(current assets)
+              'pp': float, #应付职工薪酬(payroll payable)
+              'npm': float, #销售净利率(net profit margin)
+              'gpr': float, #销售毛利率(gross profit ratio)
+              'dar': float, #资产负债率(debt asset ratio)
+              'iar': float, #存货比率(inventory asset ratio)
+              'cfpsfo': float, #每股经营性现金(cash flow per share from operations)
+              'micc': float, #营业收入现金含量(main income cash content)
+              'crr': float, #全部资产现金回收率(cash recovery rate of all assets)
+              'ncf': float, #经营活动现金净流量与净利润比率(net cash flow to net profit ratio)
+              'cip': float, #在建工程(construction in process)
+              'igr': float, #营业收入增长率(increase growth rate)
+              'ngr': float, #净利润增长率(net growth rate)
+              'ncdr': float, #非流动负债比率(non-current debt ratio)
+              'cdr': float, #流动负债比率(current debt ratio)
+              'cdbr': float, #现金到期债务比率(cash due debt ratio)
+              'goodwill': float, #商誉(goodwill)
+              'revenue': float, #营业收入(revenue)
+              'inventory': float, #存货(inventory)
+              'qfii_holders': float, #QFII机构数
+              'qfii_holding': float, #QFII持股量
+              'social_security_holders': float, #社保机构数
+              'social_security_holding': float, #社保持股量
               'publish': int}
 
 cdef str PRE_CUR_CODE = '', PRE_YEAR_CODE = ''
@@ -60,7 +77,7 @@ cdef class CValuation(object):
     cdef object get_reports_data(self):
         cdef object df
         if not Path(self.report_data_path).exists(): return None 
-        df = pd.read_csv(self.report_data_path, header = 0, encoding = "utf8", usecols = DATA_COLUMS, dtype = DTYPE_DICT)
+        df = pd.read_csv(self.report_data_path, header = 0, encoding = "utf8", usecols = DTYPE_DICT.keys(), dtype = DTYPE_DICT)
         df = df.drop_duplicates()
         df = df.reset_index(drop = True)
         return df.to_records(index = False)
@@ -91,31 +108,32 @@ cdef class CValuation(object):
         #220.营业收入现金含量(main income cash content)、229.全部资产现金回收率(cash recovery rate of all assets)、
         #228.经营活动现金净流量与净利润比率(net cash flow to net profit ratio)、159.流动比率(working capital ratio)、
         #160.速动比率(quick ratio)、161.现金比率(currency ratio)、219.每股经营性现金(cash flow per share from operations)
+        #163.非流动负债比率(non-current debt ratio)、#164.流动负债比率(current debt ratio)、#165.现金到期债务比率(cash due debt ratio)
         #财报披露时间(publish)
         mcols = ['date','code',
-                 'eps', #earnings per share
-                 'neps', #non-earnings per share
-                 'bps', #book value per share
-                 'roa',
-                 'na', #net assert
-                 'np', #net profit
-                 'tcs', #(total capital share
-                 'ccs', #circulating capital share
-                 'mf', #money funds
-                 'br', #bill receivable
-                 'ar', #accounts receivable
-                 'prepayments', #prepayments
-                 'or', #other receivables
-                 'rfrc', #receivables from related companies
-                 'rtr', #receivables turnover ratio
+                 'eps', #基本每股收益(earnings per share)
+                 'neps', #扣非每股收益(non-earnings per share)
+                 'bps', #每股净资产(book value per share)
+                 'roa', #净资产回报率(roa)
+                 'na', #所有者权益(net assert)
+                 'np', #归属于母公司所有者的净利润(net profit)
+                 'tcs', #总股本(total capital share)
+                 'ccs', #已上市流通A股(circulating capital share)
+                 'mf', #货币资金(money funds)
+                 'br', #应收票据(bill receivable)
+                 'ar', #应收账款(accounts receivable)
+                 'prepayments', #预付款项(prepayments)
+                 'or', #其他应收款(other receivables)
+                 'rfrc', #应收关联公司款(receivables from related companies)
+                 'rtr', #应收帐款周转率(receivables turnover ratio)
                  'dso', #days sales outstanding
-                 'inventory',
+                 'inventory',#存货(inventory)
                  'ta', #total assets
-                 'stb', #short term borrowing
+                 'stb', #短期借款(short term borrowing)
                  'bp', #bills payable
                  'ap', #accounts payable
                  'aria', #accounts received in advance
-                 'pp', #payroll payable
+                 'pp', #应付职工薪酬(payroll payable)
                  'tadp', #taxes and dues payable
                  'aip', #accrued interest payable
                  'cwa', #coping with affiliates
@@ -127,13 +145,13 @@ cdef class CValuation(object):
                  'fc', #financing costs
                  'it', #inventory turnover
                  'dsoi', #days sales of inventory
-                 'dar', #debt asset ratio
-                 'iar', #inventory asset ratio
-                 'cip', #construction in process
+                 'dar', #资产负债率(debt asset ratio)
+                 'iar', #存货比率(inventory asset ratio)
+                 'cip', #在建工程(construction in process)
                  'de', #development expenditure
-                 'revenue',
+                 'revenue',#营业收入(revenue)
                  'opr', #operating profit ratio
-                 'goodwill',
+                 'goodwill', #商誉(goodwill)
                  'holders',
                  'largest_holding', #第一大股东的持股数量
                  'qfii_holders', #QFII机构数
@@ -152,22 +170,25 @@ cdef class CValuation(object):
                  'financial_company_holding', #财务公司持股量
                  'annuity_holders', #年金机构数
                  'annuity_holding', #年金持股量
-                 'igr', #increase growth rate
-                 'ngr', #net growth rate
-                 'pgr', #profit growth rate
-                 'npr', #non-net profit rate
-                 'ca', #current assets
-                 'fa', #fixed assets
-                 'npm', #net profit margin
-                 'gpr', #gross profit ratio
-                 'cfps', #cash flow per share
-                 'micc', #main income cash content
-                 'crr', #cash recovery rate of all assets
-                 'ncf', #net cash flow to net profit ratio
-                 'wcr', #working capital ratio
-                 'qr', #quick ratio
-                 'cr', #currency ratio
-                 'cfpsfo', #cash flow per share from operations
+                 'igr', #营业收入增长率(increase growth rate)
+                 'ngr', #净利润增长率(net growth rate)
+                 'pgr', #营业利润增长率(profit growth rate)
+                 'npr', #扣非净利润同比(non-net profit rate)
+                 'ca', #流动资产合计(current assets)
+                 'fa', #固定资产(fixed assets)
+                 'npm', #销售净利率(net profit margin)
+                 'gpr', #销售毛利率(gross profit ratio)
+                 'cfps', #每股现金流量净额(cash flow per share)
+                 'micc', #营业收入现金含量(main income cash content)
+                 'crr', #全部资产现金回收率(cash recovery rate of all assets)
+                 'ncf', #经营活动现金净流量与净利润比率(net cash flow to net profit ratio)
+                 'wcr', #流动比率(working capital ratio)
+                 'qr', #速动比率(quick ratio)
+                 'cr', #现金比率(currency ratio)
+                 'cfpsfo', #每股经营性现金(cash flow per share from operations)
+                 'ncdr', #非流动负债比率(non-current debt ratio)
+                 'cdr', #流动负债比率(current debt ratio)
+                 'cdbr', #现金到期债务比率(cash due debt ratio)
                  'publish']
         date_list = self.report_client.get_all_report_list()
         is_first = True
@@ -192,7 +213,7 @@ cdef class CValuation(object):
                             row[prefix%263], row[prefix%183], row[prefix%184], row[prefix%189], row[prefix%191],
                             row[prefix%21], row[prefix%27], row[prefix%199], row[prefix%202], row[prefix%225],
                             row[prefix%220], row[prefix%229], row[prefix%228], row[prefix%159], row[prefix%160],
-                            row[prefix%161], row[prefix%219], pdate])
+                            row[prefix%161], row[prefix%219], row[prefix%163], row[prefix%164], row[prefix%165], pdate])
             result_df = DataFrame(report_list, columns = mcols)
             result_df = result_df.sort_values(['code'], ascending = 1)
             result_df['code'] = result_df['code'].map(lambda x: str(x).zfill(6))
@@ -233,7 +254,7 @@ cdef class CValuation(object):
                 if len(year_item) > 0 and len(cur_item) > 0:
                     if year_item['publish'] > cur_item['publish']:
                         #年报比当前的财报公布的还晚
-                        self.logger.error("code:%s, tdate:%s, year report publish date:%s, cur report publish date:%s" % (code, tdate, year_item['publish'], cur_item['publish']))
+                        self.logger.error("code:{}, tdate:{}, year report publish date:{}, cur report publish date:{}".format(code, tdate, year_item['publish'], cur_item['publish']))
                         return tdate, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
                 pe_value = self.pe(cur_item, year_item, close)
                 ttm_value = self.ttm(cur_item, code, close)
@@ -255,7 +276,7 @@ cdef class CValuation(object):
         vdf['code'] = code
         return (code, stock_obj.set_val_data(vdf, mdate))
 
-    def get_vertical_data(self, object df, list dtype_list, int mdate, str industry = '所有'):
+    def update_vertical_data(self, object df, list dtype_list, int mdate):
         cdef str dtype
         cdef dict item
         cdef object dval
@@ -271,10 +292,6 @@ cdef class CValuation(object):
         else:
             for dtype, dval in zip(dtype_list, vfunc(df['code'].values, df['timeToMarket'].values)):
                 df[dtype] = dval
-        df = df.dropna(subset = dtype_list)
-        df = df[(df[dtype_list] > 0).all(axis=1)]
-        df = df.reset_index(drop = True)
-        return df
 
     cdef object get_horizontal_data(self, str code, list dtype_list):
         cdef object df = self.get_report_items(code)
@@ -310,7 +327,7 @@ cdef class CValuation(object):
         report_item = self.get_report_item(report_date, code)
         if 0 == len(report_item):
             #获取不到年报
-            self.logger.debug("%s year report is empty for %s" % (report_date, code))
+            self.logger.debug("{} year report is empty for {}".format(report_date, code))
         else:
             if report_item["publish"] > mdate:
                 #年报实际公布时间晚于当前时间
@@ -320,7 +337,7 @@ cdef class CValuation(object):
                     return PRE_YEAR_ITEM
                 report_item = self.get_report_item(report_date, code)
                 if 0 == len(report_item):
-                    self.logger.debug("get 2 years before report error., code:%s, date:%s" % (code, mdate))
+                    self.logger.debug("get 2 years before report error., code:{}, date:{}".format(code, mdate))
         PRE_YEAR_ITEM = report_item
         return PRE_YEAR_ITEM
 
@@ -372,9 +389,9 @@ cdef class CValuation(object):
             if len(year_report) == 0 or len(q3_report) == 0:
                 # 上市不足一年
                 if len(year_report) == 0:
-                    self.logger.debug("report_quarter == 2, code:%s, year_report:%s is None" % (code, "%d1231" % (year-1)))
+                    self.logger.debug("report_quarter == 2, code:{}, year_report:{} is None".format(code, "%d1231" % (year-1)))
                 else:
-                    self.logger.debug("report_quarter == 2, code:%s, q3_report:%s is None" % (code, "%d0930" % (year-1)))
+                    self.logger.debug("report_quarter == 2, code:{}, q3_report:{} is None".format(code, "%d0930" % (year-1)))
                 return (price * cur_item['tcs'])/ cur_item['np']
     
             current_eps = (year_report['np'] - q3_report['np'] + cur_item['np']) / cur_item['tcs']
@@ -401,14 +418,13 @@ cdef class CValuation(object):
             if len(year_report) == 0 or len(q1_report) == 0:
                 # 上市不足一年
                 if len(year_report) == 0:
-                    self.logger.debug("report_quarter == 0, code:%s, year_report:%s is None" % (code, "%d1231" % (year-1)))
+                    self.logger.debug("report_quarter == 0, code:{}, year_report:{} is None".format(code, "%d1231" % (year-1)))
                 else:
-                    self.logger.debug("report_quarter == 0, code:%s, q1_report:%s is None" % (code, "%d0331" % (year-1)))
+                    self.logger.debug("report_quarter == 0, code:{}, q1_report:{} is None".format(code, "%d0331" % (year-1)))
                 return (price * cur_item['tcs'])/ cur_item['np']
             current_eps = (year_report['np'] - q1_report['np'] + cur_item['np']) / cur_item['tcs']
             return 0.0 if current_eps == 0 else price / current_eps
-        self.logger.error("unexpected pe for code:%s, price:%s, date:%s" % (code, price, cur_item['date']))
-        #sys.exit(0)
+        self.logger.error("unexpected pe for code:%s, price:{}, date:{}".format(code, price, cur_item['date']))
         return 0.0
 
     cpdef dict get_actual_report_item(self, int mdate, str code, int timeToMarket):
@@ -453,7 +469,7 @@ cdef class CValuation(object):
 
         self.logger.debug("{} has not publish report for 3 months from {}, report_date:{}".format(code, mdate, report_date))
         #只有这些垃圾股需要继续求取后面的日期，这些股票，不要也罢。
-        #000048, 000939, 000995, 002260, 002604, 002680, 300028, 300104, 300216, 600074, 600610k
+        #000048, 000939, 000995, 002260, 002604, 002680, 300028, 300104, 300216, 600074, 600610
         PRE_CUR_ITEM = dict()
         return PRE_CUR_ITEM
 

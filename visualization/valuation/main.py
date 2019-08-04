@@ -24,15 +24,17 @@ def update(industry, dtype, mdate):
         if dtype == '质押率':
             pdf = cvaluation.get_stock_pledge_info(df, dtype_list, mdate)
             vdf = pdf.loc[pdf.code.isin(df.code.tolist())]
-            vdf = vdf.reset_index(drop = True)
-            return vdf
+            df = vdf.reset_index(drop = True)
         else:
-            return cvaluation.get_vertical_data(df, dtype_list, mdate)
+            cvaluation.update_vertical_data(df, dtype_list, mdate)
     else:
         df = stock_df.loc[stock_df.industry == industry]
         df = df.reset_index(drop = True)
         print(mdate, dtype_list, industry)
-        return cvaluation.get_vertical_data(df, dtype_list, mdate, industry)
+        cvaluation.update_vertical_data(df, dtype_list, mdate)
+    df = df.dropna(subset = dtype_list)
+    df = df.reset_index(drop = True)
+    return df
 
 @gen.coroutine
 def locked_update(data, dtype):
@@ -49,7 +51,9 @@ def unlocked_task():
     dtype = value_select.value
     industry = industry_select.value
     mdate = datetime_to_int(mdate)
-    vdata = yield executor.submit(update, industry, dtype, mdate)
+    if dtpye not in vdata.columns:
+        vdata = yield executor.submit(update, industry, dtype, mdate)
+        vdata = vdata[vdata[dtype] > -30]
     cdoc.add_next_tick_callback(partial(locked_update, data=vdata, dtype = dtype))
 
 #initialize figure
@@ -66,6 +70,7 @@ cdoc = curdoc()
 cvaluation = CValuation()
 stock_info_client = CStockInfo()
 vsource = ColumnDataSource(dict(bottom = list(), top = list(), left = list(), right = list(), percentile = list()))
+vdata = pd.DataFrame()
 
 fig = make_plot()
 fig.quad(top='top', bottom='bottom', left='left', right='right', fill_color="navy", line_color="white", alpha=0.5, source = vsource)
@@ -85,5 +90,5 @@ layout = column(controls, fig)
 executor = ThreadPoolExecutor(max_workers=2)
 
 cdoc.add_root(layout)
-cdoc.add_periodic_callback(unlocked_task, 30000)
+cdoc.add_periodic_callback(unlocked_task, 10000)
 cdoc.title = "指标分布"
