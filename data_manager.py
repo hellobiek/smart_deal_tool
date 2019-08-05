@@ -185,7 +185,7 @@ class DataManager:
         if cdate not in step_info: return (0, exec_date)
         return (step_info[cdate]['step'], step_info[cdate]['date'])
 
-    def bootstrap(self, cdate = None, exec_date = datetime.now().strftime('%Y-%m-%d'), ndays = 2):
+    def bootstrap(self, cdate = None, exec_date = datetime.now().strftime('%Y-%m-%d'), ndays = 3):
         finished_step, exec_date = self.get_update_info(cdate, exec_date)
         self.logger.info("enter updating.%s" % finished_step)
         if finished_step < 1:
@@ -219,7 +219,7 @@ class DataManager:
             self.set_update_info(5, exec_date, cdate)
 
         if finished_step < 6:
-            if not self.init_tdx_index_info(cdate, num = ndays):
+            if not self.init_tdx_index_info(cdate):
                 self.logger.error("init tdx index info failed")
                 return False
             self.set_update_info(6, exec_date, cdate)
@@ -243,7 +243,7 @@ class DataManager:
             self.set_update_info(9, exec_date, cdate)
 
         if finished_step < 10:
-            if not self.init_industry_info(cdate, num = ndays):
+            if not self.init_industry_info(cdate):
                 self.logger.error("init industry info failed")
                 return False
             self.set_update_info(10, exec_date, cdate)
@@ -455,7 +455,7 @@ class DataManager:
             #            return False
             #return True
 
-    def init_industry_info(self, cdate, num):
+    def init_industry_info(self, cdate, num = 1):
         def _set_industry_info(cdate, code_id):
             return (code_id, CIndex(code_id).set_k_data(cdate))
         df = self.industry_info_client.get()
@@ -509,7 +509,7 @@ class DataManager:
         index_codes = self.get_concerned_index_codes()
         return concurrent_run(_set_bull_stock_ratio, index_codes)
 
-    def init_tdx_index_info(self, cdate = None, num = 10):
+    def init_tdx_index_info(self, cdate = None, num = 1):
         def _set_index_info(cdate, code_id):
             try:
                 if code_id in self.index_objs:
@@ -551,15 +551,16 @@ if __name__ == '__main__':
     #sys.exit(0)
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
-    mdate = '2019-08-02' 
-    dm.logger.info("start compute!")
+    mdate = '2019-08-05' 
+    #dm.logger.info("start compute!")
     #dm.init_rindex_valuation_info(mdate)
     #dm.init_rvaluation_info(mdate)
     #dm.init_valuation_info(mdate)
     #dm.set_bull_stock_ratio(mdate, num = 10)
     #dm.clear_network_env()
     #dm.init_base_float_profit()
-    dm.init_stock_info(mdate)
+    #dm.init_stock_info(mdate)
     #dm.bootstrap(exec_date = '2019-03-26')
-    #dm.bootstrap(cdate = mdate, exec_date = mdate)
+    dm.bootstrap(cdate = mdate, exec_date = mdate)
+    #dm.margin_client.update(mdate, num = 2000)
     dm.logger.info("end compute!")

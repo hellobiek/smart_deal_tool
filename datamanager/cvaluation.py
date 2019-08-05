@@ -22,6 +22,9 @@ from base.clog import getLogger
 from cstock_info import CStockInfo
 from cpython.cval import CValuation
 from base.cdate import quarter, report_date_with, int_to_datetime, prev_report_date_with, get_pre_date, get_next_date, get_day_nday_ago, get_dates_array
+TYPE_LIST = ['bps', 'tcs', 'roa', 'dar', 'npm', 'gpr', 'revenue', 'cfpsfo', 'ngr', 'igr', 'crr', 
+            'ncf', 'ta', 'fa', 'ca', 'micc', 'iar', 'cip', 'ar', 'br', 'stb', 'inventory', 'mf', 
+            'goodwill', 'pp', 'qfii_holders', 'qfii_holding', 'social_security_holding', 'social_security_holders']
 class MValuation(object):
     def __init__(self):
         self.logger = getLogger(__name__)
@@ -115,10 +118,7 @@ def get_hist_val(black_set, white_set, code):
 
 if __name__ == '__main__':
     try:
-        mdate = 20190802
-        dtype_list = ['bps', 'tcs', 'roa', 'dar', 'npm', 'gpr', 'revenue', 'cfpsfo', 'ngr', 'igr', 'crr', 
-                      'ncf', 'ta', 'fa', 'ca', 'micc', 'iar', 'cip', 'ar', 'br', 'stb', 'inventory', 'mf', 
-                      'goodwill', 'pp', 'qfii_holders', 'qfii_holding', 'social_security_holding']
+        mdate = 20190802 
         mval_client = MValuation()
         #黑名单
         black_set = set(ct.BLACK_DICT.keys())
@@ -132,7 +132,7 @@ if __name__ == '__main__':
         df = pd.merge(df, pledge_info, how='inner', on=['code'])
         df = df.reset_index(drop = True)
         #净资产收益率
-        mval_client.cval_client.update_vertical_data(df, dtype_list, mdate)
+        mval_client.cval_client.update_vertical_data(df, TYPE_LIST, mdate)
 
         #应收款率 = (应收帐款 + 应收票据) / 总资产
         df['arr'] = 100 * (df['ar'] + df['br']) / df['ta']
@@ -147,7 +147,7 @@ if __name__ == '__main__':
         #应付职工薪酬占比
         df['ppr'] = 100 * df['pp'] / df['ta']
         #开始选股
-        df = df.dropna(subset = dtype_list)
+        df = df.dropna(subset = TYPE_LIST)
         df = df[(df['timeToMarket'] < 20151231) | df.code.isin(list(ct.WHITE_DICT.keys()))]
         df = df[df['pledge_rate'] < 30]
         df = df[df['roa'] > 2]

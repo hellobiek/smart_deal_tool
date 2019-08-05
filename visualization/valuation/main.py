@@ -8,7 +8,7 @@ import pandas as pd
 from tornado import gen
 from functools import partial
 from cstock_info import CStockInfo
-from cpython.cval import CValuation
+from cpython.cval import CValuation, DTYPE_DICT
 from datetime import date, timedelta
 from bokeh.layouts import row, column
 from base.cdate import datetime_to_int
@@ -17,6 +17,7 @@ from bokeh.document import without_document_lock
 from concurrent.futures import ThreadPoolExecutor
 from bokeh.models import ColumnDataSource, Select, DatePicker, HoverTool
 def update(industry, dtype, mdate):
+    if dtype == 'industry': return stock_df
     dtype_list = [dtype]
     if industry == '所有':
         df = stock_df
@@ -51,9 +52,8 @@ def unlocked_task():
     dtype = value_select.value
     industry = industry_select.value
     mdate = datetime_to_int(mdate)
-    if dtpye not in vdata.columns:
-        vdata = yield executor.submit(update, industry, dtype, mdate)
-        vdata = vdata[vdata[dtype] > -30]
+    vdata = yield executor.submit(update, industry, dtype, mdate)
+    if dtype != 'industry': vdata = vdata[vdata[dtype] > -30]
     cdoc.add_next_tick_callback(partial(locked_update, data=vdata, dtype = dtype))
 
 #initialize figure
@@ -70,19 +70,19 @@ cdoc = curdoc()
 cvaluation = CValuation()
 stock_info_client = CStockInfo()
 vsource = ColumnDataSource(dict(bottom = list(), top = list(), left = list(), right = list(), percentile = list()))
-vdata = pd.DataFrame()
 
 fig = make_plot()
 fig.quad(top='top', bottom='bottom', left='left', right='right', fill_color="navy", line_color="white", alpha=0.5, source = vsource)
 
 stock_df = stock_info_client.get()
 industries = list(set(stock_df.industry.tolist()))
-columns = ['roa', 'dar']
 industries.append("所有")
 
 date_picker = DatePicker(title='日期', value = date.today() - timedelta(days = 200), min_date = date(2004,1,1), max_date = date.today())
 industry_select = Select(title='行业', value='所有', options=sorted(industries), height=50)
-value_select = Select(title='类型', value='roa', options=sorted(columns), height=50)
+cols = list(DTYPE_DICT.keys())
+cols.append('industry')
+value_select = Select(title='类型', value='roa', options=sorted(cols), height=50)
 
 controls = row(industry_select, value_select, date_picker)
 layout = column(controls, fig)

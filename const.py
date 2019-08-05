@@ -166,14 +166,11 @@ const.REDIS_PORT = 6379
 const.GEARMAND_HOST = 'gearman-container'
 const.GEARMAND_PORT = 4730
 #############################
-const.TONG_DA_XIN_INDUSTRY_PATH = "/tongdaxin/incon.dat"
-const.TONG_DA_XIN_CODE_PATH = "/tongdaxin/T0002/hq_cache/tdxhy.cfg"
 const.TONG_DA_XIN_INDEX_PATH = "/tongdaxin/T0002/hq_cache/tdxzs.cfg"
 const.TONG_DA_XIN_SELF_PATH = "/tongdaxin/T0002/blocknew"
 const.TONG_DA_XIN_FG_INDEX_PATH = "/tongdaxin/T0002/hq_cache/block_fg.dat"
 const.TONG_DA_XIN_IP = '221.231.141.60'
 const.TONG_DA_XIN_PORT = 7709
-const.TONG_DA_XIN_CODE_FILE = "/data/tdx/base/stocks.csv"
 const.VALUATION_PATH = "/data/valuation/reports.csv"
 const.RVALUATION_DIR = "/data/valuation/rstock"
 const.RINDEX_DIR = "/data/valuation/indexs"
@@ -4711,6 +4708,7 @@ const.WHITE_DICT = {
     "300628": "亿联网络",
     "300750": "宁德时代",
     "600309": "万华化学",
+    "600486": "扬农化工",
     "300760": "迈瑞医疗"
 }
 ####################################################

@@ -4,11 +4,16 @@ import _pickle
 import cmysql
 import const as ct
 import pandas as pd
+from pathlib import Path
 from cindex import CIndex
 from pandas import DataFrame
 from base.clog import getLogger
 from common import create_redis_obj, concurrent_run
 logger = getLogger(__name__)
+TONG_DA_XIN_INDUSTRY_PATH = "/tongdaxin/incon.dat"
+TONG_DA_XIN_CODE_FILE = "/data/tdx/base/stocks.csv"
+TONG_DA_XIN_CODE_PATH = "/tongdaxin/T0002/hq_cache/tdxhy.cfg"
+CSI_INDUSRT_DIR = "/data/crawler/china_security_industry_valuation/stock"
 class IndustryInfo(object):
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.table = ct.INDUSTRY_INFO
@@ -78,8 +83,18 @@ class IndustryInfo(object):
         return industry_dict
 
     @staticmethod
-    def get_tdx_industry_code(fname = ct.TONG_DA_XIN_CODE_FILE):
-        data = pd.read_csv(ct.TONG_DA_XIN_CODE_FILE, sep = ',', dtype = {'code' : str, 'market': int, 'name': str})
+    def get_csi_industry_data(mdate, fdir = CSI_INDUSRT_DIR):
+        # china_security_industry
+        file_name = "{}.csv".format(mdate)
+        file_path = Path(fdir) / file_name
+        dtype_dict = {'code' : str, 'pind_code': int, 'pind_name': str,
+                      'sind_code': int, 'sind_name': str, 'tind_code': int, 
+                      'tind_name': str, 'find_code': int, 'find_name': str}
+        return pd.read_csv(file_path, sep = ',', usecols = dtype_dict.keys(), dtype = dtype_dict)
+
+    @staticmethod
+    def get_tdx_industry_code(fname = TONG_DA_XIN_CODE_FILE):
+        data = pd.read_csv(TONG_DA_XIN_CODE_FILE, sep = ',', dtype = {'code' : str, 'market': int, 'name': str})
         data = data[['code', 'name']]
         data = data[data.code.str.startswith('880')]
         data = data.reset_index(drop = True)
@@ -87,8 +102,8 @@ class IndustryInfo(object):
 
     @staticmethod
     def get_industry():
-        industry_code_dict = IndustryInfo.get_industry_code_dict_from_tongdaxin(ct.TONG_DA_XIN_CODE_PATH)
-        industry_name_dict = IndustryInfo.get_industry_name_dict_from_tongdaxin(ct.TONG_DA_XIN_INDUSTRY_PATH)
+        industry_code_dict = IndustryInfo.get_industry_code_dict_from_tongdaxin(TONG_DA_XIN_CODE_PATH)
+        industry_name_dict = IndustryInfo.get_industry_name_dict_from_tongdaxin(TONG_DA_XIN_INDUSTRY_PATH)
         industre_tdx_df = IndustryInfo.get_tdx_industry_code()
         name_list = list()
         for key in industry_code_dict:

@@ -472,11 +472,166 @@
                 - 使用线程来完成更新，而不会阻塞主进程(done)
             - 可视化，选中显示，不选中则不显示(done)
                 - value出现了新的问题(done)
-        - 估值框架加入个股固定资产, 每股经营性现金流, 营业收入现金含量(%), 每股现金流量净额, 经营活动现金净流量与净利润比率, 全部资产现金回收率。
+        - 估值框架加入个股固定资产, 每股经营性现金流, 营业收入现金含量(%), 每股现金流量净额, 经营活动现金净流量与净利润比率, 全部资产现金回收率。(done)
         - 回测框架支持如果开盘涨停则不买入。
     - CTA量化策略开发
         - 股票池维护
             - 通过最基本的财务数据过滤垃圾，获取最基本的股票池
+            - 绘制
+                - https://realpython.com/python-data-visualization-bokeh
+                - https://bokeh.pydata.org/en/latest/docs/gallery/histogram.html
+                - https://bokeh.pydata.org/en/latest/docs/user_guide/server.html
+            - 根据指标进行可视化排序选股
+                - 优质选取方法
+                    - 指标
+                        - 固定资产
+                        - 销售净利率
+                        - 销售毛利率
+                        - 资产负债率
+                        - 每股经营性现金
+                        - 营业收入现金含量
+                        - 全部资产现金回收率
+                        - 经营活动现金净流量与净利润比率
+                    - 方法
+                        - https://www.weibo.com/ttarticle/p/show?id=2309404384566361072823&mod=zwenzhang
+                            - 货币资金与资产总额的比值 > 20%
+                            - 存货占资产总额的比例 < 30%
+                            - 货币资金和应收票据及应收账款的比例
+                                - 货币资金 > 应收票据 + 应收账款
+                            - 资产负债率 < 45%
+                            - 净资产收益率稳定在15%左右
+                            - 毛利率在20%，营收要递增，净利率增长率。
+                        - https://www.weibo.com/ttarticle/p/show?id=2309404386746073803242&mod=zwenzhang
+                        - https://www.weibo.com/ttarticle/p/show?id=2309404399780112499017&mod=zwenzhang
+                            - 消费标的出击的标准:
+                                - 业绩必须创历史新高
+                                - 业绩增幅 > 15%
+                            周期类的公司乘以三；科技类的公司乘以二
+                        - https://www.weibo.com/ttarticle/p/show?id=2309404399429401575616&mod=zwenzhang
+                            - 垃圾的标准
+                                - 短期借款 高
+                                - 在建工程 高
+                                - 应收帐款 高
+                                - 商誉     高
+                                - 存货     高
+                                - 应付职工薪酬 高
+                                - 股票质押率   高
+                        - 科技股的标准
+                            - 行业小而美，集中优势、深耕单一领域；
+                            - 高景气度产业链的中游，直接对核心品牌供货；
+                            - 高研发经费，多研发人员，产品高毛利率；
+                            - 财报健康、低负债； 
+                - 垃圾排除方法
+                    - https://www.weibo.com/ttarticle/p/show?id=2309404399429401575616#_0
+                    - https://www.weibo.com/ttarticle/p/show?id=2309404337045160987894&mod=zwenzhang
+                    - 指标
+                        - 存货比率
+                        - 商誉
+                        - 质押率
+                        - 速动比率
+                        - 流动比率
+                        - 现金比率
+                        - 资产负债率
+                        - 应收账款率
+                        - 应付职工薪酬
+                        - 在建工程 / 净资产
+                        - 净资产收益率 > 6%
+                    - 方法
+                        - 超高商誉，特别是高科技行业，利益输送很严重，传统销售行业可以再分析。
+                        - 超高负债，特别是动不动就90%以上的负债（银行，地产可去除）。
+                        - 超高质押，大股东或者二股东把股票都质押了，这种大部分可能有问题。
+                        - 超高关联交易，大部分收入都是关联交易来的。要注意了。
+                        - 超高担保，把自己的子公司担保了一大堆，要注意。
+                        - 前5大客户，前5大客户占比超过90%要注意了，因为客户单一，风险很大（具体再分析）。
+                        - 大额应收账款，和利润不匹配。比如，今年赚了10亿，应收帐款增加了20亿。
+                        - 大额存货。比如今年赚了10个，存货突然增加了20亿，要注意了。
+                        - 工资支出，高管工资动不动就5000万，8000万的，要注意。 
+                        - 在建工程绝对量大的、在建工程/固定资产比例高的、在建工程/净资产比例高的公司
+                        - 资产负债率不断上升，而流动比率、速动比率、现金比率逐渐降低。
+                        - 东北股买入之前要谨慎。尽量不买。
+        - 策略开发
+            - 趋势策略
+                - 海龟交易模型(done)：
+                - DualThrust模型：
+                - 三关模型：
+                    - 使用TD指标
+                - MACD背离模型：
+                    - 性能调优
+                - 双均线策略模型：
+                    - 性能调优
+                - 五三战法模型：
+                    - 资金流入前3的板块
+                    - 这些板块的资金需要连续3天保持前3
+                    - 只选者前3个板块中的前3个
+                    - 前3板块的股票必须连续3天保持前3
+                    - 买入是最好筹码状态比较好，满足90:3，且不能放量太大。
+                - 获利纵横模型
+            - 震荡策略
+                - RSI模型
+                - KDJ模型
+                - 网格模型
+                - 牛熊股比模型
+                - 超跌反弹模型
+            - 其他模型
+                - https://www.bilibili.com/video/av35706220?spm_id_from=333.338.b_5f5f626f667169.9
+                - 鳄鱼交易法则
+                - 羊驼交易法则
+        - 信号处理与开发
+            - 滤波
+                - 卡曼滤波器
+                - EMD(Empirical Mode Decomposition)滤波器
+        - 策略参数优化
+            - 关键在于是否有平滑的参数条有效果
+            - 如果出现孤岛的效果，该如何优化
+        - DeepTrading
+            - 开发日内交易模型
+    - 机器学习
+        - EM算法(done)
+            - 手推EM算法
+            - EM的loss函数
+            - 手推EM算法在GMM中的应用
+        - 贝叶斯网络(done)
+            - 贝叶斯网络的学习
+        - HMM算法(done)
+            - HMM算法
+        - SVM(done)
+        - Logistic(done)
+        - Boosting(done)
+            - GBDT
+            - XBoost
+            - AdaBoost
+        - GeneticAlgorithm(done)
+            - 实践
+        - DeepLearning(done)
+            - DNN(done)
+            - CNN(done)
+        - SemiSuperversiedLearning(done)
+        - UnSupervisedLearning(doing)
+            - LieanerMethod(done)
+            - WordEmbeding(done)
+            - NeibortherEmbeding(done)
+            - GenerativeModel
+                - PixelRNN
+                - VAE
+                - GAN
+        - TransferLearning(done)
+        - RNN
+        - DeepRefLearning
+##2019-08-05
+    - 专业知识
+        - 中股复盘: 日复盘(done)
+        - 美股复盘: 日复盘(done)
+    - 系统开发与维护
+        - 沪港通数据有问题，每周只有四天有数据(done)
+        - 尽量不用redis存储Dataframe
+        - 回测框架支持如果开盘涨停则不买入。
+    - CTA量化策略开发
+        - 股票池维护
+            - 通过最基本的财务数据过滤垃圾，获取最基本的股票池
+            - 通过活点地图反向选股：
+                - 查找牛股
+                - 通过细分行业总结出成群结对的行业
+                - 针对行业进行选股
             - 绘制
                 - https://realpython.com/python-data-visualization-bokeh
                 - https://bokeh.pydata.org/en/latest/docs/gallery/histogram.html
