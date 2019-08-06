@@ -17,6 +17,7 @@ from common import create_redis_obj
 from collections import OrderedDict
 from industry_info import IndustryInfo
 from base.cdate import get_day_nday_ago, get_dates_array
+RINDEX_INDUSTRY_INFO_DB = "rindex_industry"
 class RIndexIndustryInfo:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
@@ -27,7 +28,7 @@ class RIndexIndustryInfo:
 
     @staticmethod
     def get_dbname():
-        return ct.RINDEX_INDUSTRY_INFO_DB
+        return RINDEX_INDUSTRY_INFO_DB
 
     def get_table_name(self, cdate):
         cdates = cdate.split('-')

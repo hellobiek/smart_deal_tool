@@ -406,9 +406,9 @@ class DataManager:
         return process_concurrent_run(cfun, code_list, num = 15, black_list = list())
 
     def init_stock_info(self, cdate = None):
-        def _set_stock_info(mdate, pre_bonus_info, bonus_info, index_info, code_id):
+        def _set_stock_info(mdate, bonus_info, index_info, code_id):
             try:
-                if CStock(code_id).set_k_data(pre_bonus_info, bonus_info, index_info, mdate):
+                if CStock(code_id).set_k_data(bonus_info, index_info, mdate):
                     self.logger.info("%s set k data success for date:%s", code_id, mdate)
                     return (code_id, True)
                 else:

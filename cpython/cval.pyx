@@ -23,7 +23,7 @@ DTYPE_DICT = {'date': int,
               'code': str, 
               'bps': float, #每股净资产(book value per share)
               'eps': float, #基本每股收益(earnings per share)
-              'np': float, #归属于母公司所有者的净利润(net profit)
+              'npbo': float, #归属于母公司所有者的净利润(net profit belonging to owner)
               'ccs': float, #已上市流通A股(circulating capital share) 
               'tcs': float, #总股本(total capital share)
               'roa': float, #净资产回报率(roa)
@@ -52,6 +52,8 @@ DTYPE_DICT = {'date': int,
               'goodwill': float, #商誉(goodwill)
               'revenue': float, #营业收入(revenue)
               'inventory': float, #存货(inventory)
+              'np': float, #净利润(net profit)
+              'rnp': float, #扣除非经常性损益后的净利润(recurrent net profit)
               'qfii_holders': float, #QFII机构数
               'qfii_holding': float, #QFII持股量
               'social_security_holders': float, #社保机构数
@@ -85,7 +87,7 @@ cdef class CValuation(object):
     def convert(self):
         #date, code, 1.基本每股收益(earnings per share)、2.扣非每股收益(non-earnings per share)、
         #4.每股净资产(book value per share)、6.净资产回报率(roa)、72.所有者权益（或股东权益）合计(net assert)、
-        #96.归属于母公司所有者的净利润(net profit)、238.总股本(total capital share)、239.已上市流通A股(circulating capital share)、
+        #96.归属于母公司所有者的净利润(net profit belonging to owner)、238.总股本(total capital share)、239.已上市流通A股(circulating capital share)、
         #8.货币资金(money funds)、10.应收票据(bill receivable)、11.应收账款(accounts receivable)、12.预付款项(prepayments)、
         #13.其他应收款(other receivables)、14.应收关联公司款(receivables from related companies)、
         #172.应收帐款周转率(receivables turnover ratio)、177.应收帐款周转天数(days sales outstanding)、
@@ -108,7 +110,8 @@ cdef class CValuation(object):
         #220.营业收入现金含量(main income cash content)、229.全部资产现金回收率(cash recovery rate of all assets)、
         #228.经营活动现金净流量与净利润比率(net cash flow to net profit ratio)、159.流动比率(working capital ratio)、
         #160.速动比率(quick ratio)、161.现金比率(currency ratio)、219.每股经营性现金(cash flow per share from operations)
-        #163.非流动负债比率(non-current debt ratio)、#164.流动负债比率(current debt ratio)、#165.现金到期债务比率(cash due debt ratio)
+        #163.非流动负债比率(non-current debt ratio)、#164.流动负债比率(current debt ratio)、#165.现金到期债务比率(cash due debt ratio)、
+        #95.净利润(net profit)、232.扣除非经常性损益后的净利润(recurrent net profit)、
         #财报披露时间(publish)
         mcols = ['date','code',
                  'eps', #基本每股收益(earnings per share)
@@ -116,7 +119,7 @@ cdef class CValuation(object):
                  'bps', #每股净资产(book value per share)
                  'roa', #净资产回报率(roa)
                  'na', #所有者权益(net assert)
-                 'np', #归属于母公司所有者的净利润(net profit)
+                 'npbo', #归属于母公司所有者的净利润(net profit belonging to owner)
                  'tcs', #总股本(total capital share)
                  'ccs', #已上市流通A股(circulating capital share)
                  'mf', #货币资金(money funds)
@@ -150,7 +153,7 @@ cdef class CValuation(object):
                  'cip', #在建工程(construction in process)
                  'de', #development expenditure
                  'revenue',#营业收入(revenue)
-                 'opr', #operating profit ratio
+                 'opr', #营业利润(operating profit ratio)
                  'goodwill', #商誉(goodwill)
                  'holders',
                  'largest_holding', #第一大股东的持股数量
@@ -189,6 +192,8 @@ cdef class CValuation(object):
                  'ncdr', #非流动负债比率(non-current debt ratio)
                  'cdr', #流动负债比率(current debt ratio)
                  'cdbr', #现金到期债务比率(cash due debt ratio)
+                 'np', #净利润(net profit)
+                 'rnp', #扣除非经常性损益后的净利润(recurrent net profit)
                  'publish']
         date_list = self.report_client.get_all_report_list()
         is_first = True
@@ -213,7 +218,8 @@ cdef class CValuation(object):
                             row[prefix%263], row[prefix%183], row[prefix%184], row[prefix%189], row[prefix%191],
                             row[prefix%21], row[prefix%27], row[prefix%199], row[prefix%202], row[prefix%225],
                             row[prefix%220], row[prefix%229], row[prefix%228], row[prefix%159], row[prefix%160],
-                            row[prefix%161], row[prefix%219], row[prefix%163], row[prefix%164], row[prefix%165], pdate])
+                            row[prefix%161], row[prefix%219], row[prefix%163], row[prefix%164], row[prefix%165], 
+                            row[prefix%95], row[prefix%232], pdate])
             result_df = DataFrame(report_list, columns = mcols)
             result_df = result_df.sort_values(['code'], ascending = 1)
             result_df['code'] = result_df['code'].map(lambda x: str(x).zfill(6))
@@ -392,9 +398,9 @@ cdef class CValuation(object):
                     self.logger.debug("report_quarter == 2, code:{}, year_report:{} is None".format(code, "%d1231" % (year-1)))
                 else:
                     self.logger.debug("report_quarter == 2, code:{}, q3_report:{} is None".format(code, "%d0930" % (year-1)))
-                return (price * cur_item['tcs'])/ cur_item['np']
+                return (price * cur_item['tcs'])/ cur_item['npbo']
     
-            current_eps = (year_report['np'] - q3_report['np'] + cur_item['np']) / cur_item['tcs']
+            current_eps = (year_report['npbo'] - q3_report['npbo'] + cur_item['npbo']) / cur_item['tcs']
             return 0.0 if current_eps == 0 else price / current_eps
     
         if report_quarter == 1:
@@ -407,8 +413,8 @@ cdef class CValuation(object):
                     self.logger.debug("report_quarter == 1, code:%s, year_report:%s is None" % (code, "%d1231" % (year-1)))
                 else:
                     self.logger.debug("report_quarter == 1, code:%s, q2_report:%s is None" % (code, "%d0630" % (year-1)))
-                return (price * cur_item['tcs'])/ cur_item['np']
-            current_eps = (year_report['np'] - q2_report['np'] + cur_item['np']) / cur_item['tcs']
+                return (price * cur_item['tcs'])/ cur_item['npbo']
+            current_eps = (year_report['npbo'] - q2_report['npbo'] + cur_item['npbo']) / cur_item['tcs']
             return 0.0 if current_eps == 0 else price / current_eps
     
         if report_quarter == 0:
@@ -421,8 +427,8 @@ cdef class CValuation(object):
                     self.logger.debug("report_quarter == 0, code:{}, year_report:{} is None".format(code, "%d1231" % (year-1)))
                 else:
                     self.logger.debug("report_quarter == 0, code:{}, q1_report:{} is None".format(code, "%d0331" % (year-1)))
-                return (price * cur_item['tcs'])/ cur_item['np']
-            current_eps = (year_report['np'] - q1_report['np'] + cur_item['np']) / cur_item['tcs']
+                return (price * cur_item['tcs'])/ cur_item['npbo']
+            current_eps = (year_report['npbo'] - q1_report['npbo'] + cur_item['npbo']) / cur_item['tcs']
             return 0.0 if current_eps == 0 else price / current_eps
         self.logger.error("unexpected pe for code:%s, price:{}, date:{}".format(code, price, cur_item['date']))
         return 0.0
