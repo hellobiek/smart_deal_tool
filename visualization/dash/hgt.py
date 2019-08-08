@@ -24,10 +24,10 @@ class HGT(object):
             df = self.sz_connect_client.get_k_data(dtype = ct.HGT_CAPITAL)
             total_buy = 231568
         df['net_buy'] = df['buy_turnover'] - df['sell_turnover']
-        df['net_buy'] = df['buy_turnover'] - df['sell_turnover']
         df['cum_buy'] = df['net_buy'].cumsum()
         df['cum_buy'] = df['cum_buy'] + total_buy
         df['cum_buy'] = df['cum_buy'] / 100
+        df['net_buy'] = df['net_buy'] / 100
         df = df.loc[(df.date >= start_date) & (df.date <= end_date)]
         df = df.reset_index(drop = True)
         return df

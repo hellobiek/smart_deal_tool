@@ -127,6 +127,62 @@ def update_stock(attr, old, new):
     print("code:", code, start_date, end_date)
     stock_layout.children[1] = create_stock_figure_column(code, start_date, end_date)
 
+def create_hgt_figure(sh_df, sz_df):
+    if sh_df is None or sz_df is None: return None
+    y_dict = dict()
+    y_dict['cum_buy'] = ((sh_df['cum_buy'] + sz_df['cum_buy'])).round(2).tolist()
+    yval_max = max(y_dict['cum_buy'])
+    y_dict['date'] = sh_df.date.tolist()
+    y_dict['index'] = sh_df.index.tolist()
+    data = {
+        'index': sh_df.index.tolist(),
+        'y': (10 * (sh_df['net_buy'] + sz_df['net_buy'])).round(2).tolist()
+    }
+    source = ColumnDataSource(data)
+    p = figure(plot_height=400, plot_width=600, tools="", toolbar_location=None, sizing_mode="scale_both",
+                                x_range=(0, len(y_dict['date'])), y_range=(-yval_max * 0.2, yval_max * 1.3))
+
+    mline = p.line(x = y_dict['index'], y = y_dict['cum_buy'], line_width=2, color=Spectral11[0], alpha=0.8, legend="沪港通买入累计余额")
+    mapper = linear_cmap(field_name='y', palette=['red', 'green'], low=0, high=0, low_color = 'green', high_color = 'red')
+    p.vbar(x='index', bottom=0, top='y', color=mapper, width=1, legend='融资变化', source = data)
+
+    p.add_tools(HoverTool(tooltips=[("value", "@y")]))
+    p.yaxis.axis_label = "沪港通数据概况"
+    p.xaxis.major_label_overrides = {i: mdate for i, mdate in enumerate(y_dict['date'])}
+
+    p.legend.location = "top_left"
+    p.legend.click_policy = "hide"
+    p.legend.orientation = "horizontal"
+    return p
+
+def create_rzrq_figure(sh_df, sz_df):
+    if sh_df is None or sz_df is None: return None
+    y_dict = dict()
+    y_dict['rzrqye'] = ((sh_df['rzrqye'] + sz_df['rzrqye'])).round(2).tolist()
+    yval_max = max(y_dict['rzrqye'])
+    y_dict['date'] = sh_df.date.tolist()
+    y_dict['index'] = sh_df.index.tolist()
+    data = {
+        'index': sh_df.index.tolist(),
+        'y': (10*((sh_df['rzmre'] + sz_df['rzmre']) - (sh_df['rzche'] + sz_df['rzche']))).round(2).tolist()
+    }
+    source = ColumnDataSource(data)
+    p = figure(plot_height=400, plot_width=600, tools="", toolbar_location=None, sizing_mode="scale_both",
+                                x_range=(0, len(y_dict['date'])), y_range=(-yval_max * 0.2, yval_max * 1.3))
+
+    mline = p.line(x = y_dict['index'], y = y_dict['rzrqye'], line_width=2.5, color=Spectral11[0], alpha=0.8, legend="融资融券余额")
+    mapper = linear_cmap(field_name='y', palette=['red', 'green'], low=0, high=0, low_color = 'green', high_color = 'red')
+    p.vbar(x='index', bottom=0, top='y', color=mapper, width=1, legend='融资变化', source = data)
+
+    p.add_tools(HoverTool(tooltips=[("value", "@y")]))
+    p.yaxis.axis_label = "融资融券概况"
+    p.xaxis.major_label_overrides = {i: mdate for i, mdate in enumerate(y_dict['date'])}
+
+    p.legend.location = "top_left"
+    p.legend.click_policy = "hide"
+    p.legend.orientation = "horizontal"
+    return p
+
 def create_market_figure(sh_df, sz_df, ycolumn):
     if sh_df is None or sz_df is None: return None
     y_dict = dict()
@@ -181,15 +237,17 @@ def update_market(attr, old, new):
     market_layout.children[1] = create_market_figure_column(start_date, end_date)
 
 def create_capital_figure_column():
-    rzrq_fig = create_market_figure(dboard.rzrq_client.sh_df, dboard.rzrq_client.sz_df, 'rzrqye')
-    hgt_fig = create_market_figure(dboard.hgt_client.sh_df, dboard.hgt_client.sz_df, 'cum_buy')
+    rzrq_fig = create_rzrq_figure(dboard.rzrq_client.sh_df, dboard.rzrq_client.sz_df)
+    #start_date = '2019-01-01'
+    #end_date = '2019-08-01'
+    #dboard.hgt_client.update(start_date, end_date)
+    hgt_fig = create_hgt_figure(dboard.hgt_client.sh_df, dboard.hgt_client.sz_df)
     if rzrq_fig is None or hgt_fig is None:
         return row(figure(), figure())
     return row(rzrq_fig, hgt_fig)
 
 @gen.coroutine
 def update_capital():
-    #def update_capital(attr, old, new):
     capital_layout.children[1] = create_capital_figure_column()
 
 def create_stats_figure(mdate):
