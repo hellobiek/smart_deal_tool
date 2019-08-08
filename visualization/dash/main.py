@@ -343,7 +343,7 @@ def get_valuation_data(code_dict, start_date, end_date):
 def create_valuation_figure(data_dict, code_dict, dtype):
     line_list = list()
     mypalette = Spectral11[0:len(code_dict)]
-    p = figure(plot_height=400, plot_width=600, tools="", toolbar_location=None, sizing_mode="scale_both", x_range=(0, len(data_dict['date'])), y_range=(0, 130))
+    p = figure(tools="", toolbar_location=None, x_range=(0, len(data_dict['date'])), y_range=(0, 130))
     for code, color in zip(code_dict.keys(), mypalette):
         name = code_dict[code]
         index_list = data_dict[code].index.tolist()
@@ -417,7 +417,8 @@ def update_investors(attr, old, new):
 
 # Overview Data
 def get_overview_data():
-    cdate = (datetime.now() - timedelta(days = 1)).strftime('%Y-%m-%d')
+    #cdate = (datetime.now() - timedelta(days = 1)).strftime('%Y-%m-%d')
+    cdate = datetime.now().strftime('%Y-%m-%d')
     code_dict = {
         '000001': '上证指数',
         '399001': '深证成指',
