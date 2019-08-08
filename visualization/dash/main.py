@@ -23,7 +23,7 @@ from scipy.stats import percentileofscore
 from datamanager.investor import CInvestor
 from bokeh.models.tools import CustomJSHover
 from datetime import date, datetime, timedelta
-from bokeh.layouts import row, column, gridplot
+from bokeh.layouts import row, column, grid, gridplot
 from datamanager.sexchange import StockExchange
 from algotrade.technical.ma import ma, ewma, macd
 from bokeh.transform import linear_cmap, transform
@@ -139,8 +139,7 @@ def create_hgt_figure(sh_df, sz_df):
         'y': (10 * (sh_df['net_buy'] + sz_df['net_buy'])).round(2).tolist()
     }
     source = ColumnDataSource(data)
-    p = figure(plot_height=400, plot_width=600, tools="", toolbar_location=None, sizing_mode="scale_both",
-                                x_range=(0, len(y_dict['date'])), y_range=(-yval_max * 0.2, yval_max * 1.3))
+    p = figure(tools="", toolbar_location=None, x_range=(0, len(y_dict['date'])), y_range=(-yval_max * 0.2, yval_max * 1.3))
 
     mline = p.line(x = y_dict['index'], y = y_dict['cum_buy'], line_width=2, color=Spectral11[0], alpha=0.8, legend="沪港通买入累计余额")
     mapper = linear_cmap(field_name='y', palette=['red', 'green'], low=0, high=0, low_color = 'green', high_color = 'red')
@@ -167,8 +166,7 @@ def create_rzrq_figure(sh_df, sz_df):
         'y': (10*((sh_df['rzmre'] + sz_df['rzmre']) - (sh_df['rzche'] + sz_df['rzche']))).round(2).tolist()
     }
     source = ColumnDataSource(data)
-    p = figure(plot_height=400, plot_width=600, tools="", toolbar_location=None, sizing_mode="scale_both",
-                                x_range=(0, len(y_dict['date'])), y_range=(-yval_max * 0.2, yval_max * 1.3))
+    p = figure(tools="", toolbar_location=None, x_range=(0, len(y_dict['date'])), y_range=(-yval_max * 0.2, yval_max * 1.3))
 
     mline = p.line(x = y_dict['index'], y = y_dict['rzrqye'], line_width=2.5, color=Spectral11[0], alpha=0.8, legend="融资融券余额")
     mapper = linear_cmap(field_name='y', palette=['red', 'green'], low=0, high=0, low_color = 'green', high_color = 'red')
@@ -236,19 +234,16 @@ def update_market(attr, old, new):
     end_date = market_pckr_end.value
     market_layout.children[1] = create_market_figure_column(start_date, end_date)
 
-def create_capital_figure_column():
+def create_capital_figure_row():
     rzrq_fig = create_rzrq_figure(dboard.rzrq_client.sh_df, dboard.rzrq_client.sz_df)
-    #start_date = '2019-01-01'
-    #end_date = '2019-08-01'
-    #dboard.hgt_client.update(start_date, end_date)
     hgt_fig = create_hgt_figure(dboard.hgt_client.sh_df, dboard.hgt_client.sz_df)
     if rzrq_fig is None or hgt_fig is None:
         return row(figure(), figure())
-    return row(rzrq_fig, hgt_fig)
+    return row(children = [rzrq_fig, hgt_fig])
 
 @gen.coroutine
 def update_capital():
-    capital_layout.children[1] = create_capital_figure_column()
+    capital_layout.children[1] = create_capital_figure_row()
 
 def create_stats_figure(mdate):
     limit_info = CLimit().get_data(mdate)
@@ -308,9 +303,9 @@ def generate_technique_row(mdate):
 
 def update_technique(attr, old, new):
     mdate = technique_pckr.value
-    technique_layout.children[1] = create_technique_figure_column(mdate)
+    technique_layout.children[1] = create_technique_figure_row(mdate)
 
-def create_technique_figure_column(mdate):
+def create_technique_figure_row(mdate):
     mdate = mdate.strftime('%Y-%m-%d')
     return generate_technique_row(mdate)
 
@@ -385,19 +380,20 @@ def create_valuation_figure_column(start_date, end_date):
 def generate_investors_fig(df, dtype):
     clegend = '个人' if dtype == 'nature' else '机构'
     ckey = 'final_natural_a_person' if dtype == 'nature' else 'final_non_natural_a_person'
-    cdates_list = df.index.tolist()
     value_list = df[ckey].tolist()
+    cdates_list = df['date'].tolist()
+    cdates_str_list = df['date_str'].tolist()
     data = {
         'date': cdates_list,
-        'value': value_list
+        'value': value_list,
+        'date_str': cdates_str_list
     }
     source = ColumnDataSource(data)
-    p = figure(plot_height=300, plot_width=350, tools="", toolbar_location=None, sizing_mode="scale_both")
+    p = figure(tools="", toolbar_location=None, x_axis_type='datetime')
     p.xaxis.axis_label = "时间"
     p.yaxis.axis_label = "数量"
-    p.xaxis.major_label_overrides = {i: mdate for i, mdate in enumerate(df["date"])}
-    p.line(x = 'date', y = 'value', line_width=3, line_alpha=1.0, source=source)
-    p.add_tools(HoverTool(tooltips=[("数量", "@value")]))
+    p.line(x = 'date', y = 'value', line_width = 2, line_alpha = 1.0, source = source)
+    p.add_tools(HoverTool(tooltips=[("日期", "@date_str"), ("数量", "@value")]))
     return p
 
 def create_investors_row(start_date, end_date):
@@ -407,6 +403,8 @@ def create_investors_row(start_date, end_date):
     end_date = end_date.strftime('%Y-%m-%d')
     df = CInvestor().get_data_in_range(start_date, end_date)
     df = df.loc[df.final_investor > 0]
+    df['date_str'] = df['date']
+    df['date'] = df['date'].apply(lambda x:str_to_datetime(x, dformat = "%Y-%m"))
     df = df.reset_index(drop = True)
     nature_fig = generate_investors_fig(df, 'nature')
     unnature_fig = generate_investors_fig(df, 'unnature')
@@ -498,7 +496,7 @@ capital_title = Div(text="资金面概况", width=120, height=40, margin=[25, 0,
 capital_pckr_start = DatePicker(title='开始日期', value = date.today() - timedelta(days = 200), min_date = date(2000,1,1), max_date = date.today())
 capital_pckr_end = DatePicker(title='股票日期', value = date.today(), min_date = date(2000,1,1), max_date = date.today())
 capital_select_row = row(capital_title, capital_pckr_start, capital_pckr_end)
-capital_layout = column(capital_select_row, create_capital_figure_column())
+capital_layout = column(capital_select_row, create_capital_figure_row())
 
 #capital_pckr_start.on_change('value', update_capital)
 #capital_pckr_end.on_change('value', update_capital)
@@ -508,7 +506,7 @@ technique_title = Div(text="技术面概况", width=120, height=40, margin=[25, 
 technique_pckr = DatePicker(title='开始日期', value = date.today(), min_date = date(2000,1,1), max_date = date.today())
 
 technique_select_row = row(technique_title, technique_pckr)
-technique_layout = column(technique_select_row, create_technique_figure_column(technique_pckr.value))
+technique_layout = column(technique_select_row, create_technique_figure_row(technique_pckr.value))
 technique_pckr.on_change('value', update_technique)
 
 # Valuation Data
@@ -531,7 +529,7 @@ investors_pckr_end.on_change('value', update_investors)
 
 layout = column(index_layout, investors_layout, market_layout, 
                 capital_layout, valuation_layout, technique_layout, 
-                stock_layout, sizing_mode="scale_width", name="layout")
+                stock_layout, sizing_mode="scale_both", name="layout")
 
 def blocking_task():
     while True:
