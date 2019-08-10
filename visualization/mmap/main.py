@@ -1,40 +1,149 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+import traceback
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
-import traceback
-import const as ct
-import pandas as pd
-from rstock import RIndexStock
-from cstock_info import CStockInfo
-from industry_info import IndustryInfo
-from common import is_df_has_unexpected_data
-if __name__ == '__main__':
-    try:
-        mdate = '2019-08-02'
-        cobj = CStockInfo()
-        robj = RIndexStock()
-        iobj = IndustryInfo()
-        black_list = list(ct.BLACK_DICT.keys())
+from cstock import CStock
+from datetime import date
+from bokeh.io import curdoc
+from bokeh.plotting import figure
+from bokeh.events import DoubleTap
+from bokeh.layouts import row, column
+from bokeh.transform import linear_cmap, transform
+from visualization.marauder_map import MarauderMap
+from bokeh.models.widgets import DatePicker, DataTable, TableColumn, TextInput
+from bokeh.models import WheelZoomTool, BoxZoomTool, HoverTool, ColumnDataSource, Div, LinearColorMapper, ColorBar, ResetTool, CustomJS, LassoSelectTool, BoxSelectTool, PanTool, TapTool
+def update_mmap(attr, old, new):
+    mdate = mmap_pckr.value
+    layout.children[1] = create_mmap_figure_row(mdate)
 
-        bdf = cobj.get()
-        stock_info = robj.get_data(mdate)
-        idf = iobj.get_csi_industry_data(mdate)
-        df = pd.merge(bdf, idf, how='left', on=['code'])
-        df = pd.merge(stock_info, df, how='inner', on=['code'])
-        df = df[~df.code.isin(black_list)]
-        df = df[(df.profit > 1) & (df.profit < 3) & (df.pday > 30) & (df.timeToMarket < 20150101)]
-        df = df.reset_index(drop = True)
-        #df = df[['code', 'name', 'industry', 'profit', 'pday', 'pind_name', 'sind_name', 'tind_name', 'find_name']]
-        df = df[['code', 'name', 'profit', 'pday', 'find_name']]
-        for name, contains in df.groupby('find_name'):
-            if len(contains) > 2:
-                print("--------------------")
-                print(name)
-                print(contains)
-                print("====================")
-        print("total num", len(df))
-    except Exception as e:
-        print(e)
-        traceback.print_exc()
+#add a dot where the click happened
+def scallback(event):
+    global dist_source, dist_fig
+    code = code_text.value
+    sobj = CStock(code)
+    mdate = stock_source.data['date'][int(event.x)]
+    print(code, mdate)
+    ddf = sobj.get_chip_distribution(mdate)
+    dist_source = ColumnDataSource(ddf)
+    dist_fig = create_dist_figure(dist_source)
+    layout.children[4] = row(stock_fig, dist_fig)
+
+def create_mmap_figure(mdate):
+    df = mmap.get_data(mdate)
+    TOOLTIPS = [("code", "@code"), ("(pday, profit)", "(@pday, @profit)")]
+    TOOLS = [TapTool(), PanTool(), BoxZoomTool(), WheelZoomTool(), ResetTool(), BoxSelectTool(), HoverTool(tooltips = TOOLTIPS)]
+    p = figure(plot_height=800, plot_width=1300, x_axis_label='时间', y_axis_label='强度', tools=TOOLS, toolbar_location="above", title="活点地图")
+    if df is None or df.empty: return p
+    mdict = {'code': df.code.tolist(), 'profit': df.profit.tolist(), 'pday': df.pday.tolist()}
+    global msource
+    msource = ColumnDataSource(mdict)
+    color_mapper = LinearColorMapper(palette = "Viridis256", low = min(mdict['profit']), high = max(mdict['profit']))
+    p.circle(x = 'pday', y = 'profit', color = transform('profit', color_mapper), size = 5, alpha = 0.6, source = msource)
+    color_bar = ColorBar(color_mapper = color_mapper, label_standoff = 12, location = (0,0), title = '强度')
+    p.add_layout(color_bar, 'right')
+    callback = CustomJS(args=dict(msource = msource, tsource = tsource, mtable = mtable), code="""
+            var inds = cb_obj.indices;
+            var d1 = msource.data;
+            var d2 = tsource.data;
+            d2['code'] = []
+            d2['pday'] = []
+            d2['profit'] = []
+            for (var i = 0; i < inds.length; i++) {
+                d2['code'].push(d1['code'][inds[i]])
+                d2['profit'].push(d1['profit'][inds[i]])
+                d2['pday'].push(d1['pday'][inds[i]])
+            }
+            tsource.change.emit();
+            mtable.change.emit()
+        """)
+    msource.selected.js_on_change('indices', callback)
+    return p
+
+def create_mmap_figure_row(mdate):
+    mdate = mdate.strftime('%Y-%m-%d')
+    return row(create_mmap_figure(mdate))
+
+def update_stock(attr, old, new):
+    code = code_text.value
+    if code is None: return
+    sobj = CStock(code)
+    sdf = sobj.get_k_data()
+    if sdf is None: return
+    global stock_fig, dist_fig, stock_source, dist_source
+    mdate = mmap_pckr.value
+    mdate = mdate.strftime('%Y-%m-%d')
+    ddf = sobj.get_chip_distribution(mdate)
+    stock_source = ColumnDataSource(sdf)
+    dist_source = ColumnDataSource(ddf)
+    stock_fig = create_stock_figure(stock_source)
+    dist_fig = create_dist_figure(dist_source)
+    stock_fig.on_event(DoubleTap, scallback)
+    layout.children[4] = row(stock_fig, dist_fig)
+
+def create_dist_figure(dist_source):
+    fig = figure(plot_width = 300, plot_height = stock_fig.plot_height, y_range = (stock_source.data['low'].min(), stock_source.data['high'].max()))
+    fig.segment(x0 = 0, y0 = 'price', x1 = 'volume', y1 = 'price', line_width = 1, color = 'black', source = dist_source)
+    fig.xaxis.axis_label = None
+    fig.yaxis.axis_label = None
+    fig.xaxis.major_tick_line_color = None
+    fig.xaxis.minor_tick_line_color = None
+    fig.yaxis.major_tick_line_color = None
+    fig.yaxis.minor_tick_line_color = None
+    fig.xaxis.major_label_text_color = None
+    fig.yaxis.major_label_text_color = None
+    return fig
+
+def create_stock_figure(stock_source):
+    mapper = linear_cmap(field_name='pchange', palette=['red', 'green'], low=0, high=0, low_color = 'green', high_color = 'red')
+    TOOLTIPS = [("open", "@open"), ("high", "high"), ("low", "@low"), ("close", "@close"), ("pchange", "@pchange"), ("date", "@date")]
+    TOOLS = [TapTool(), PanTool(), BoxZoomTool(), WheelZoomTool(), ResetTool(), BoxSelectTool(), HoverTool(tooltips = TOOLTIPS)]
+    fig = figure(plot_height=500, plot_width=1000, x_axis_label='时间', y_axis_label='价格', tools=TOOLS, toolbar_location="above",
+                x_range = (stock_source.data['index'].min(), stock_source.data['index'].max()),
+                y_range = (stock_source.data['low'].min(), stock_source.data['high'].max()))
+    fig.line(x = 'index', y = 'uprice', color = 'blue', line_width = 2, source = stock_source, name = '无穷成本均线')
+    fig.segment(x0 = 'index', y0 = 'low', x1 = 'index', y1 = 'high', line_width = 1.5, color = 'black', source = stock_source)
+    fig.vbar(x = 'index', bottom = 'open', top = 'close', width = 1, color = mapper, source = stock_source)
+    fig.xaxis.major_label_overrides = {i: mdate for i, mdate in enumerate(stock_source.data["date"])}
+    return fig
+
+cdoc = curdoc()
+mmap = MarauderMap()
+cdoc.title = "活点地图"
+code_text = TextInput(value = None, title = "代码:", width = 420)
+code_text.on_change('value', update_stock)
+msource = ColumnDataSource(dict(code = list(), pday = list(), profit = list()))
+mmap_title = Div(text="股票分析", width=120, height=40, margin=[25, 0, 0, 0], style={'font-size': '150%', 'color': 'blue'})
+mmap_pckr = DatePicker(title='开始日期', value = date.today(), min_date = date(2000,1,1), max_date = date.today())
+mmap_pckr.on_change('value', update_mmap)
+mmap_select_row = row(mmap_title, mmap_pckr)
+columns = [TableColumn(field = "code",title = "代码"), TableColumn(field = "pday",title = "牛熊天数"), TableColumn(field = "profit",title = "牛熊程度")]
+tsource = ColumnDataSource(dict(code = list(), pday = list(), profit = list()))
+source_code = """
+    row = cb_obj.indices[0]
+    text_row.value = String(source.data['code'][row]);
+"""
+callback = CustomJS(args = dict(source = tsource, text_row = code_text), code = source_code)
+tsource.selected.js_on_change('indices', callback)
+mtable = DataTable(source = tsource, columns = columns, width = 1300, height = 200)
+
+dist_fig = figure()
+stock_fig = figure()
+
+stock_source = ColumnDataSource()
+dist_source = ColumnDataSource()
+
+#sobj = CStock('600900')
+#sdf = sobj.get_k_data()
+#mdate = '2019-08-08'
+#ddf = sobj.get_chip_distribution(mdate)
+#stock_source = ColumnDataSource(sdf)
+#dist_source = ColumnDataSource(ddf)
+#stock_fig = create_stock_figure(stock_source)
+#dist_fig = create_dist_figure(dist_source)
+
+stock_row = row(stock_fig, dist_fig)
+
+layout = column(mmap_select_row, create_mmap_figure_row(mmap_pckr.value), mtable, code_text, stock_row, name = "layout")
+cdoc.add_root(layout)

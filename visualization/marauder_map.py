@@ -5,19 +5,19 @@ import time
 import copy
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
-from cstock import CStock
-from functools import partial
+import matplotlib
+import matplotlib.pyplot as plt
 from rstock import RIndexStock
 from base.clog import getLogger
 from common import get_chinese_font
 from base.cdate import get_day_nday_ago
-import matplotlib
-import pandas as pd
-import matplotlib.pyplot as plt
 class MarauderMap():
     def __init__(self):
         self.ris = RIndexStock()
         self.logger = getLogger(__name__)
+
+    def get_data(self, mdate):
+        return self.ris.get_data(mdate)
 
     def plot(self, cdate, fdir, fname):
         df = self.ris.get_data(cdate)
