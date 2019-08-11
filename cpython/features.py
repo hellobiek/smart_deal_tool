@@ -35,7 +35,7 @@ DTYPE_LIST = [('date', 'S10'),\
               ('gamekline', 'f4')]
 
 def shift(arr, num, fill_value = 0):
-    result = np.empty_like(arr, dtype = float)
+    result = np.empty_like(arr, dtype = int)
     if num > 0:
         result[:num] = fill_value
         result[num:] = arr[:-num]
@@ -57,12 +57,14 @@ def get_breakup_data(df):
     return break_array
 
 def get_effective_breakup_index(break_index_lists, df, break_array):
-    effective_breakup_index_list = array.array('l', [])
     break_index = 0
     pre_break_index_value = 0
+    effective_breakup_index_list = array.array('l', [])
     while break_index < len(break_index_lists):
-        mdate = df['date'][break_index_lists[break_index]]
+        #sdate = df['date'][break_index_lists[break_index]]
+        #tdate = df['date'][break_index_lists[break_index + 1]]
         pre_price = df['uprice'][break_index_lists[break_index]]
+        #print(sdate, tdate, pre_price, break_index_lists[break_index], break_index_lists[break_index + 1], effective_breakup_index_list)
         if break_index < len(break_index_lists) - 1:
             low_price  = np.amin(df['close'][break_index_lists[break_index]:break_index_lists[break_index + 1]])
             high_price = np.amax(df['close'][break_index_lists[break_index]:break_index_lists[break_index + 1]])
@@ -78,10 +80,10 @@ def get_effective_breakup_index(break_index_lists, df, break_array):
                     pre_break_index_value = -1
             else:
                 if break_index_lists[break_index + 1] - break_index_lists[break_index] > PRE_DAYS_NUM:
-                    if pre_break_index_value * break_array[break_index] < 0:
-                        df['breakup'][break_index_lists[break_index]] = break_array[break_index] 
+                    if pre_break_index_value * break_array[break_index_lists[break_index]] < 0:
+                        df['breakup'][break_index_lists[break_index]] = break_array[break_index_lists[break_index]]
                         effective_breakup_index_list.append(break_index_lists[break_index])
-                        pre_break_index_value = -1 * break_array[break_index]
+                        pre_break_index_value = break_array[break_index_lists[break_index]]
         else:
             high_price = np.amax(df['close'][break_index_lists[break_index]:])
             low_price  = np.amin(df['close'][break_index_lists[break_index]:])
@@ -97,10 +99,10 @@ def get_effective_breakup_index(break_index_lists, df, break_array):
                     pre_break_index_value = -1
             else:
                 if len(df) - break_index_lists[break_index] > PRE_DAYS_NUM:
-                    if pre_break_index_value * break_array[break_index] < 0:
-                        df['breakup'][break_index_lists[break_index]] = break_array[break_index] 
+                    if pre_break_index_value * break_array[break_index_lists[break_index]] < 0:
+                        df['breakup'][break_index_lists[break_index]] = break_array[break_index_lists[break_index]]
                         effective_breakup_index_list.append(break_index_lists[break_index])
-                        pre_break_index_value = -1 * break_array[break_index]
+                        pre_break_index_value = break_array[break_index_lists[break_index]]
         break_index += 1
 
     pre_index = 0
@@ -108,7 +110,7 @@ def get_effective_breakup_index(break_index_lists, df, break_array):
         if _index != 0 and breakup != 0: pre_index = _index
         df['ibreakup'][_index] = pre_index
 
-    #ibase means inex of base(effective break up points)
+    #ibase means index of base(effective break up points)
     df['ibase'] = 0
     pre_base_index = 0
     for _index, ibase in enumerate(df['ibase']):

@@ -9,7 +9,7 @@ from datetime import date
 from bokeh.io import curdoc
 from bokeh.plotting import figure
 from bokeh.events import DoubleTap
-from bokeh.layouts import row, column
+from bokeh.layouts import row, column, gridplot
 from bokeh.transform import linear_cmap, transform
 from visualization.marauder_map import MarauderMap
 from bokeh.models.widgets import DatePicker, DataTable, TableColumn, TextInput
@@ -20,7 +20,7 @@ def update_mmap(attr, old, new):
 
 #add a dot where the click happened
 def scallback(event):
-    global dist_source, dist_fig
+    global dist_source, dist_fig, profit_fig
     code = code_text.value
     sobj = CStock(code)
     mdate = stock_source.data['date'][int(event.x)]
@@ -28,7 +28,7 @@ def scallback(event):
     ddf = sobj.get_chip_distribution(mdate)
     dist_source = ColumnDataSource(ddf)
     dist_fig = create_dist_figure(dist_source)
-    layout.children[4] = row(stock_fig, dist_fig)
+    layout.children[4] = gridplot([[stock_fig, dist_fig], [profit_fig, None]])
 
 def create_mmap_figure(mdate):
     df = mmap.get_data(mdate)
@@ -71,20 +71,23 @@ def update_stock(attr, old, new):
     sobj = CStock(code)
     sdf = sobj.get_k_data()
     if sdf is None: return
-    global stock_fig, dist_fig, stock_source, dist_source
+    global stock_fig, profit_fig, dist_fig, stock_source, dist_source
     mdate = mmap_pckr.value
     mdate = mdate.strftime('%Y-%m-%d')
     ddf = sobj.get_chip_distribution(mdate)
     stock_source = ColumnDataSource(sdf)
     dist_source = ColumnDataSource(ddf)
     stock_fig = create_stock_figure(stock_source)
+    profit_fig = create_profit_figure(stock_source)
     dist_fig = create_dist_figure(dist_source)
     stock_fig.on_event(DoubleTap, scallback)
-    layout.children[4] = row(stock_fig, dist_fig)
+    layout.children[4] = gridplot([[stock_fig, dist_fig], [profit_fig, None]])
 
-def create_dist_figure(dist_source):
-    fig = figure(plot_width = 300, plot_height = stock_fig.plot_height, y_range = (stock_source.data['low'].min(), stock_source.data['high'].max()))
-    fig.segment(x0 = 0, y0 = 'price', x1 = 'volume', y1 = 'price', line_width = 1, color = 'black', source = dist_source)
+def create_profit_figure(stock_source):
+    mapper = linear_cmap(field_name='profit', palette=['red', 'green'], low=0, high=0, low_color = 'green', high_color = 'red')
+    fig = figure(plot_height=200, plot_width=1000, x_range = (stock_source.data['index'].min(), stock_source.data['index'].max()),
+                 y_range = (stock_source.data['profit'].min(), stock_source.data['profit'].max()))
+    fig.segment(x0='index', y0=0, x1='index', y1='profit', line_width=1, color=mapper, alpha=0.5, source=stock_source)
     fig.xaxis.axis_label = None
     fig.yaxis.axis_label = None
     fig.xaxis.major_tick_line_color = None
@@ -106,6 +109,19 @@ def create_stock_figure(stock_source):
     fig.segment(x0 = 'index', y0 = 'low', x1 = 'index', y1 = 'high', line_width = 1.5, color = 'black', source = stock_source)
     fig.vbar(x = 'index', bottom = 'open', top = 'close', width = 1, color = mapper, source = stock_source)
     fig.xaxis.major_label_overrides = {i: mdate for i, mdate in enumerate(stock_source.data["date"])}
+    return fig
+
+def create_dist_figure(dist_source):
+    fig = figure(plot_width = 300, plot_height = stock_fig.plot_height, y_range = (stock_source.data['low'].min(), stock_source.data['high'].max()))
+    fig.segment(x0 = 0, y0 = 'price', x1 = 'volume', y1 = 'price', line_width = 1, color = 'black', source = dist_source)
+    fig.xaxis.axis_label = None
+    fig.yaxis.axis_label = None
+    fig.xaxis.major_tick_line_color = None
+    fig.xaxis.minor_tick_line_color = None
+    fig.yaxis.major_tick_line_color = None
+    fig.yaxis.minor_tick_line_color = None
+    fig.xaxis.major_label_text_color = None
+    fig.yaxis.major_label_text_color = None
     return fig
 
 cdoc = curdoc()
@@ -130,6 +146,7 @@ mtable = DataTable(source = tsource, columns = columns, width = 1300, height = 2
 
 dist_fig = figure()
 stock_fig = figure()
+profit_fig = figure()
 
 stock_source = ColumnDataSource()
 dist_source = ColumnDataSource()
@@ -142,8 +159,9 @@ dist_source = ColumnDataSource()
 #dist_source = ColumnDataSource(ddf)
 #stock_fig = create_stock_figure(stock_source)
 #dist_fig = create_dist_figure(dist_source)
+#profit_fig = create_profit_figure(stock_source)
 
-stock_row = row(stock_fig, dist_fig)
+stock_row = column(row(stock_fig, dist_fig), profit_fig)
 
 layout = column(mmap_select_row, create_mmap_figure_row(mmap_pckr.value), mtable, code_text, stock_row, name = "layout")
 cdoc.add_root(layout)

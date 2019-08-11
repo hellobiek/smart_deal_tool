@@ -543,15 +543,15 @@ if __name__ == '__main__':
     #sys.exit(0)
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
-    mdate = '2019-08-05' 
+    mdate = '2019-08-05'
     #dm.logger.info("start compute!")
     #dm.init_rindex_valuation_info(mdate)
     #dm.init_rvaluation_info(mdate)
     #dm.init_valuation_info(mdate)
     #dm.set_bull_stock_ratio(mdate, num = 10)
     #dm.clear_network_env()
-    #dm.init_base_float_profit()
+    dm.init_base_float_profit()
     #dm.init_stock_info(mdate)
     #dm.bootstrap(exec_date = '2019-03-26')
-    dm.bootstrap(cdate = mdate, exec_date = mdate)
+    #dm.bootstrap(cdate = mdate, exec_date = mdate)
     dm.logger.info("end compute!")

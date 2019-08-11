@@ -622,13 +622,18 @@
         - 中股复盘: 日复盘(done)
         - 美股复盘: 日复盘(done)
     - 系统开发与维护
-        - 涨跌停比例
         - 尽量不用redis存储Dataframe
         - 回测框架支持如果开盘涨停则不买入
         - 沪港通数据有问题，每周只有四天有数据(done)
+        - 涨跌停比例数据收集
         - 创历史新高的股票列表，创历史新低的股票列表，成交额创历史新高的列表
+        - 股票的财报数据显示
+        - 股票的基础浮动盈利图的绘制(done)
+        - 创业板的估值的图像绘制有问题
     - CTA量化策略开发
         - 股票池维护
+            - 经营现金流净额基本与净利润的比值应该一致
+            - 营业收入基本与主营业务收入保持一致
             - 科技股选股标准：
                 - ROE > 6%
                 - 不要选择特别黑的黑马
@@ -678,6 +683,9 @@
             - 如果出现孤岛的效果，该如何优化
         - DeepTrading
             - 开发日内交易模型
+        - StockEmbeding
+            - https://github.com/talolard/MarketVectors/blob/master/preparedata.ipynb
+            - https://medium.com/@TalPerry/deep-learning-the-stock-market-df853d139e02
     - 机器学习
         - EM算法(done)
             - 手推EM算法
@@ -710,6 +718,107 @@
         - TransferLearning(done)
         - RNN
         - DeepRefLearning
+##2019-08-12
+    - 专业知识
+        - 中股复盘: 日复盘(done)
+        - 美股复盘: 日复盘(done)
+    - 系统开发与维护
+        - 尽量不用redis存储Dataframe
+        - 回测框架支持如果开盘涨停则不买入
+        - 涨跌停比例数据收集
+        - 股票的财报数据显示
+        - 创业板的估值的图像绘制有问题
+        - DataTable增加save和load
+        - 创历史新高的股票列表，创历史新低的股票列表，成交额创历史新高的列表
+    - CTA量化策略开发
+        - 股票池维护
+            - 经营现金流净额基本与净利润的比值应该一致
+            - 营业收入基本与主营业务收入保持一致
+            - 科技股选股标准：
+                - ROE > 6%
+                - 不要选择特别黑的黑马
+                - 剔除高负债，高质押
+                - 高存货，高应收不该出现
+                - 未结算的应收收入
+                - 价格严重超跌
+            - 通过最基本的财务数据过滤垃圾，获取最基本的股票池
+            - 通过活点地图反向选股：
+                - 指数分解为行业
+                - 根据每天的行情选择板块分析行业目标
+                - 通过细分行业总结出成群出现的资金
+                - 根据基本面查找牛股和垃圾股
+        - 策略开发
+            - 趋势策略
+                - 海龟交易模型(done)：
+                - DualThrust模型：
+                - 三关模型：
+                    - 使用TD指标
+                - MACD背离模型：
+                    - 性能调优
+                - 双均线策略模型：
+                    - 性能调优
+                - 五三战法模型：
+                    - 资金流入前3的板块
+                    - 这些板块的资金需要连续3天保持前3
+                    - 只选者前3个板块中的前3个
+                    - 前3板块的股票必须连续3天保持前3
+                    - 买入是最好筹码状态比较好，满足90:3，且不能放量太大。
+                - 获利纵横模型
+            - 震荡策略
+                - RSI模型
+                - KDJ模型
+                - 网格模型
+                - 牛熊股比模型
+                - 超跌反弹模型
+            - 其他模型
+                - https://www.bilibili.com/video/av35706220?spm_id_from=333.338.b_5f5f626f667169.9
+                - 鳄鱼交易法则
+                - 羊驼交易法则
+        - 信号处理与开发
+            - 滤波
+                - 卡曼滤波器
+                - EMD(Empirical Mode Decomposition)滤波器
+        - 策略参数优化
+            - 关键在于是否有平滑的参数条有效果
+            - 如果出现孤岛的效果，该如何优化
+        - DeepTrading
+            - 开发日内交易模型
+        - StockEmbeding
+            - https://github.com/talolard/MarketVectors/blob/master/preparedata.ipynb
+            - https://medium.com/@TalPerry/deep-learning-the-stock-market-df853d139e02
+    - 机器学习
+        - EM算法(done)
+            - 手推EM算法
+            - EM的loss函数
+            - 手推EM算法在GMM中的应用
+        - 贝叶斯网络(done)
+            - 贝叶斯网络的学习
+        - HMM算法(done)
+            - HMM算法
+        - SVM(done)
+        - Logistic(done)
+        - Boosting(done)
+            - GBDT
+            - XBoost
+            - AdaBoost
+        - GeneticAlgorithm(done)
+            - 实践
+        - DeepLearning(done)
+            - DNN(done)
+            - CNN(done)
+        - SemiSuperversiedLearning(done)
+        - UnSupervisedLearning(doing)
+            - LieanerMethod(done)
+            - WordEmbeding(done)
+            - NeibortherEmbeding(done)
+            - GenerativeModel
+                - PixelRNN
+                - VAE
+                - GAN
+        - TransferLearning(done)
+        - RNN
+        - DeepRefLearning
+
 ##TODO
     - 软件维护
         - 爬虫scrapy化(done)

@@ -72,8 +72,8 @@ def get_effective_breakup_index(np.ndarray[long] break_index_lists, np.ndarray d
     while break_index < len(break_index_lists):
         pre_price = df['uprice'][break_index_lists[break_index]]
         if break_index < len(break_index_lists) - 1:
-            high_price = np.amax(df['close'][break_index_lists[break_index]:break_index_lists[break_index + 1]])
             low_price  = np.amin(df['close'][break_index_lists[break_index]:break_index_lists[break_index + 1]])
+            high_price = np.amax(df['close'][break_index_lists[break_index]:break_index_lists[break_index + 1]])
             if high_price > pre_price * 1.21:
                 if pre_break_index_value <= 0: 
                     df['breakup'][break_index_lists[break_index]] = 1
@@ -86,10 +86,10 @@ def get_effective_breakup_index(np.ndarray[long] break_index_lists, np.ndarray d
                     pre_break_index_value = -1
             else:
                 if break_index_lists[break_index + 1] - break_index_lists[break_index] > PRE_DAYS_NUM:
-                    if pre_break_index_value * break_array[break_index] < 0:
-                        df['breakup'][break_index_lists[break_index]] = break_array[break_index] 
+                    if pre_break_index_value * break_array[break_index_lists[break_index]] < 0:
+                        df['breakup'][break_index_lists[break_index]] = break_array[break_index_lists[break_index]]
                         effective_breakup_index_list = cyappend(effective_breakup_index_list, break_index_lists[break_index])
-                        pre_break_index_value = -1 * break_array[break_index]
+                        pre_break_index_value = break_array[break_index_lists[break_index]]
         else:
             high_price = np.amax(df['close'][break_index_lists[break_index]:])
             low_price  = np.amin(df['close'][break_index_lists[break_index]:])
@@ -105,10 +105,10 @@ def get_effective_breakup_index(np.ndarray[long] break_index_lists, np.ndarray d
                     pre_break_index_value = -1
             else:
                 if len(df) - break_index_lists[break_index] > PRE_DAYS_NUM:
-                    if pre_break_index_value * break_array[break_index] < 0:
-                        df['breakup'][break_index_lists[break_index]] = break_array[break_index] 
+                    if pre_break_index_value * break_array[break_index_lists[break_index]] < 0:
+                        df['breakup'][break_index_lists[break_index]] = break_array[break_index_lists[break_index]]
                         effective_breakup_index_list = cyappend(effective_breakup_index_list, break_index_lists[break_index])
-                        pre_break_index_value = -1 * break_array[break_index]
+                        pre_break_index_value = break_array[break_index_lists[break_index]]
         break_index += 1
 
     pre_index = 0

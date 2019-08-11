@@ -56,7 +56,7 @@ class DataPreparer:
         while True:
             try:
                 self.logger.debug("enter update")
-                if self.cal_client.is_trading_day(): 
+                if self.cal_client.is_trading_day(redis = self.cal_client.redis):
                     if self.is_collecting_time():
                         ndate = get_latest_data_date(filepath = "/Volumes/data/quant/stock/data/stockdatainfo.json")
                         mdate = transfer_date_string_to_int(datetime.now().strftime('%Y-%m-%d'))
