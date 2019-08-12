@@ -299,10 +299,8 @@ cdef class CValuation(object):
             for dtype, dval in zip(dtype_list, vfunc(df['code'].values, df['timeToMarket'].values)):
                 df[dtype] = dval
 
-    cdef object get_horizontal_data(self, str code, list dtype_list):
-        cdef object df = self.get_report_items(code)
-        df = df[dtype_list]
-        return df
+    cpdef object get_horizontal_data(self, str code):
+        return self.get_report_items(code)
 
     cdef object get_report_items(self, str code):
         cdef object data = self.valuation_data[np.where(self.valuation_data["code"] == code)]

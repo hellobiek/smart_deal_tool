@@ -22,7 +22,6 @@ class CStockInfo(object):
         self.mysql_dbs = self.mysql_client.get_all_databases()
         self.stocks_dir = stocks_dir
         self.stock_path = stock_path
-        self.industry_info = IndustryInfo.get_industry()
         #self.trigger = ct.SYNCSTOCK2REDIS
         #if not self.create(): raise Exception("create stock info table:%s failed" % self.table)
         #if not self.register(): raise Exception("create trigger info table:%s failed" % self.trigger)
@@ -114,7 +113,8 @@ class CStockInfo(object):
 
     def get_industry(self, code):
         """获取沪深股股票通达信行业信息"""
-        rdf = self.industry_info[self.industry_info.content.str.contains(code)]
+        rdf = IndustryInfo.get_industry()
+        rdf = rdf[rdf.content.str.contains(code)]
         return rdf['name'].values[0] if not rdf.empty else None
 
     def get_base_stock_info(self):

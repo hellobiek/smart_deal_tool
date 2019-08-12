@@ -9,6 +9,8 @@ from datetime import date
 from bokeh.io import curdoc
 from bokeh.plotting import figure
 from bokeh.events import DoubleTap
+from cpython.cval import CValuation
+from base.cdate import int_to_datetime
 from bokeh.layouts import row, column, gridplot
 from bokeh.transform import linear_cmap, transform
 from visualization.marauder_map import MarauderMap
@@ -20,7 +22,7 @@ def update_mmap(attr, old, new):
 
 #add a dot where the click happened
 def scallback(event):
-    global dist_source, dist_fig, profit_fig
+    global dist_source, dist_fig, roe_fig, profit_fig
     code = code_text.value
     sobj = CStock(code)
     mdate = stock_source.data['date'][int(event.x)]
@@ -28,7 +30,7 @@ def scallback(event):
     ddf = sobj.get_chip_distribution(mdate)
     dist_source = ColumnDataSource(ddf)
     dist_fig = create_dist_figure(dist_source)
-    layout.children[4] = gridplot([[stock_fig, dist_fig], [profit_fig, None]])
+    layout.children[4] = gridplot([[stock_fig, dist_fig], [profit_fig, roe_fig]])
 
 def create_mmap_figure(mdate):
     df = mmap.get_data(mdate)
@@ -65,23 +67,34 @@ def create_mmap_figure_row(mdate):
     mdate = mdate.strftime('%Y-%m-%d')
     return row(create_mmap_figure(mdate))
 
+def get_val_data(code):
+    vdf = val_client.get_horizontal_data(code)
+    vdf = vdf[(vdf['date'] - 1231) % 10000 == 0]
+    vdf = vdf[-5:]
+    vdf = vdf.reset_index()
+    vdf['date'] = vdf['date'].apply(lambda x:int_to_datetime(x))
+    return vdf
+
 def update_stock(attr, old, new):
     code = code_text.value
     if code is None: return
     sobj = CStock(code)
     sdf = sobj.get_k_data()
     if sdf is None: return
-    global stock_fig, profit_fig, dist_fig, stock_source, dist_source
+    vdf = get_val_data(code)
+    global stock_fig, profit_fig, dist_fig, roe_fig, stock_source, dist_source, val_source
     mdate = mmap_pckr.value
     mdate = mdate.strftime('%Y-%m-%d')
     ddf = sobj.get_chip_distribution(mdate)
     stock_source = ColumnDataSource(sdf)
     dist_source = ColumnDataSource(ddf)
+    val_source = ColumnDataSource(vdf)
     stock_fig = create_stock_figure(stock_source)
     profit_fig = create_profit_figure(stock_source)
     dist_fig = create_dist_figure(dist_source)
+    roe_fig = create_roe_figure(val_source)
     stock_fig.on_event(DoubleTap, scallback)
-    layout.children[4] = gridplot([[stock_fig, dist_fig], [profit_fig, None]])
+    layout.children[4] = gridplot([[stock_fig, dist_fig], [profit_fig, roe_fig]])
 
 def create_profit_figure(stock_source):
     mapper = linear_cmap(field_name='profit', palette=['red', 'green'], low=0, high=0, low_color = 'green', high_color = 'red')
@@ -124,6 +137,14 @@ def create_dist_figure(dist_source):
     fig.yaxis.major_label_text_color = None
     return fig
 
+def create_roe_figure(val_source):
+    TOOLTIPS = [("roa", "@roa")]
+    TOOLS = [HoverTool(tooltips = TOOLTIPS)]
+    fig = figure(plot_height = profit_fig.plot_height, plot_width = dist_fig.plot_width,
+                            x_axis_type='datetime', tools=TOOLS, toolbar_location=None)
+    fig.vbar(x = 'date', bottom = 0, top = 'roa', width = 50, color = 'blue', source = val_source)
+    return fig
+
 cdoc = curdoc()
 mmap = MarauderMap()
 cdoc.title = "活点地图"
@@ -134,7 +155,6 @@ mmap_title = Div(text="股票分析", width=120, height=40, margin=[25, 0, 0, 0]
 mmap_pckr = DatePicker(title='开始日期', value = date.today(), min_date = date(2000,1,1), max_date = date.today())
 mmap_pckr.on_change('value', update_mmap)
 mmap_select_row = row(mmap_title, mmap_pckr)
-columns = [TableColumn(field = "code",title = "代码"), TableColumn(field = "pday",title = "牛熊天数"), TableColumn(field = "profit",title = "牛熊程度")]
 tsource = ColumnDataSource(dict(code = list(), pday = list(), profit = list()))
 source_code = """
     row = cb_obj.indices[0]
@@ -142,26 +162,35 @@ source_code = """
 """
 callback = CustomJS(args = dict(source = tsource, text_row = code_text), code = source_code)
 tsource.selected.js_on_change('indices', callback)
+columns = [TableColumn(field = "code", title = "代码"), TableColumn(field = "pday", title = "牛熊天数", sortable = True), TableColumn(field = "profit",title = "牛熊程度", sortable = True)]
 mtable = DataTable(source = tsource, columns = columns, width = 1300, height = 200)
 
+val_client = CValuation()
+
+roe_fig = figure()
 dist_fig = figure()
 stock_fig = figure()
 profit_fig = figure()
 
-stock_source = ColumnDataSource()
+val_source = ColumnDataSource()
 dist_source = ColumnDataSource()
+stock_source = ColumnDataSource()
 
-#sobj = CStock('600900')
-#sdf = sobj.get_k_data()
+#code = '600900'
 #mdate = '2019-08-08'
+#sobj = CStock(code)
+#sdf = sobj.get_k_data()
 #ddf = sobj.get_chip_distribution(mdate)
 #stock_source = ColumnDataSource(sdf)
 #dist_source = ColumnDataSource(ddf)
+#vdf = get_val_data(code)
+#val_source = ColumnDataSource(vdf)
 #stock_fig = create_stock_figure(stock_source)
 #dist_fig = create_dist_figure(dist_source)
 #profit_fig = create_profit_figure(stock_source)
+#roe_fig = create_roe_figure(val_source)
 
-stock_row = column(row(stock_fig, dist_fig), profit_fig)
+stock_row = gridplot([[stock_fig, dist_fig], [profit_fig, roe_fig]])
 
 layout = column(mmap_select_row, create_mmap_figure_row(mmap_pckr.value), mtable, code_text, stock_row, name = "layout")
 cdoc.add_root(layout)

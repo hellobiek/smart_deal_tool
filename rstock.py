@@ -15,6 +15,7 @@ from cstock_info import CStockInfo
 from collections import OrderedDict
 from base.cdate import get_day_nday_ago, delta_days, get_dates_array
 from common import create_redis_obj, queue_process_concurrent_run, is_df_has_unexpected_data
+RINDEX_STOCK_INFO_DB = "rstock"
 class RIndexStock:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
@@ -26,7 +27,7 @@ class RIndexStock:
 
     @staticmethod
     def get_dbname():
-        return ct.RINDEX_STOCK_INFO_DB
+        return RINDEX_STOCK_INFO_DB
 
     def get_table_name(self, cdate):
         cdates = cdate.split('-')
@@ -177,11 +178,10 @@ class RIndexStock:
         return False
 
 if __name__ == '__main__':
-    ris = RIndexStock()
-    cdate = '2019-07-29'
+    #ris.mysql_client.delete_db(RINDEX_STOCK_INFO_DB)
+    #ris = RIndexStock()
+    mdate = '2019-08-09'
+    ris = RIndexStock(dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
     ris.logger.info("start compute")
-    df = ris.generate_all_data(cdate)
-    #df = ris.generate_all_data_1(cdate)
+    ris.update(end_date = mdate, num = 30000)
     ris.logger.info("end compute")
-    print("AAAAAAAA01")
-    #ris.update(end_date = '2019-03-16', num = 20000)
