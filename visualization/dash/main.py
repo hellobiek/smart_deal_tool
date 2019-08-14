@@ -25,7 +25,6 @@ from bokeh.models.tools import CustomJSHover
 from datetime import date, datetime, timedelta
 from bokeh.layouts import row, column, grid, gridplot
 from datamanager.sexchange import StockExchange
-from algotrade.technical.ma import ma, ewma, macd
 from bokeh.transform import linear_cmap, transform
 from bokeh.palettes import Spectral11, Category20_13
 from datamanager.bull_stock_ratio import BullStockRatio
@@ -54,41 +53,29 @@ def create_index_figure_column(code, dtype, start_date, end_date):
     if dtype == 'K线图': 
         obj = CIndex(code)
         df = obj.get_k_data_in_range(start_date, end_date)
-        df['date'] = df['date'].apply(lambda x:str_to_datetime(x, dformat = "%Y-%m-%d"))
-        df = ma(df, 5)
-        df = ma(df, 10)
-        df = ma(df, 20)
-        df = macd(df)
         source = ColumnDataSource(df)
         mapper = linear_cmap(field_name='pchange', palette=['red', 'green'], low=0, high=0, low_color = 'green', high_color = 'red')
         p = figure(plot_height=500, plot_width=1200, tools="", toolbar_location=None, sizing_mode="scale_both", x_range=(0, len(df)))
         p.xaxis.axis_label = "时间"
         p.yaxis.axis_label = "点数"
-
-        p.segment(x0='index', y0='low', x1='index', y1='high', line_width=2, color='black', source=source)
+        p.xaxis.major_label_overrides = {i: mdate for i, mdate in enumerate(df['date'])}
+        p.segment(x0='index', y0='low', x1='date', y1='high', line_width=2, color='black', source=source)
         p.vbar(x='index', bottom='open', top='close', width = 50 / delta_days, color=mapper, source=source)
-        p.xaxis.major_label_overrides = {i: mdate.strftime('%Y-%m-%d') for i, mdate in enumerate(df["date"])}
-
+        p.add_tools(HoverTool(tooltips=[("数量", "@close"), ("时间", "@date")]))
         volume_p = figure(plot_height=150, plot_width=1200, tools="", toolbar_location=None, sizing_mode="scale_both")
         volume_p.x_range = p.x_range
-        volume_p.vbar(x='index', top='volume', width = 50 / delta_days, color=mapper, source=source)
-        volume_p.xaxis.major_label_overrides = {i: mdate.strftime('%Y-%m-%d') for i, mdate in enumerate(df["date"])}
+        volume_p.vbar(x='date', top='volume', width = 50 / delta_days, color=mapper, source=source)
         return column(p, volume_p)
     else:
-        df = BullStockRatio(code).get_k_data_between(start_date, end_date)
-        cdates_list = df.index.tolist()
-        value_list = df['ratio'].tolist()
-        data = {
-            'date': cdates_list,
-            'value': value_list
-        }
-        source = ColumnDataSource(data)
+        obj = BullStockRatio(code)
+        df = obj.get_k_data_between(start_date, end_date)
+        source = ColumnDataSource(df)
         p = figure(plot_height=500, plot_width=1200, tools="", toolbar_location=None, sizing_mode="scale_both")
         p.xaxis.axis_label = "时间"
         p.yaxis.axis_label = "比例"
-        p.xaxis.major_label_overrides = {i: mdate for i, mdate in enumerate(df["date"])}
-        p.line(x = 'date', y = 'value', line_width=3, line_alpha=1.0, source=source)
-        p.add_tools(HoverTool(tooltips=[("数量", "@value")]))
+        p.line(x = 'index', y = 'ratio', line_width = 3, line_alpha = 1.0, source = source)
+        p.xaxis.major_label_overrides = {i: mdate for i, mdate in enumerate(df['date'])}
+        p.add_tools(HoverTool(tooltips=[("比例", "@ratio"), ("时间", "@date")]))
         return column(p)
 
 def create_stock_figure_column(code, start_date, end_date):
@@ -100,10 +87,6 @@ def create_stock_figure_column(code, start_date, end_date):
     df = obj.get_k_data_in_range(start_date, end_date)
     if df is None: return None
     df['date'] = df['date'].apply(lambda x:str_to_datetime(x, dformat = "%Y-%m-%d"))
-    df = ma(df, 5)
-    df = ma(df, 10)
-    df = ma(df, 20)
-    df = macd(df)
     source = ColumnDataSource(df)
     mapper = linear_cmap(field_name='pchange', palette=['red', 'green'], low=0, high=0, low_color = 'green', high_color = 'red')
     p = figure(plot_height=500, plot_width=1300, tools="", toolbar_location=None, sizing_mode="scale_both", x_range=(0, len(df)))
@@ -128,54 +111,44 @@ def update_stock(attr, old, new):
     stock_layout.children[1] = create_stock_figure_column(code, start_date, end_date)
 
 def create_hgt_figure(sh_df, sz_df):
-    if sh_df is None or sz_df is None: return None
-    y_dict = dict()
-    y_dict['cum_buy'] = ((sh_df['cum_buy'] + sz_df['cum_buy'])).round(2).tolist()
-    yval_max = max(y_dict['cum_buy'])
-    y_dict['date'] = sh_df.date.tolist()
-    y_dict['index'] = sh_df.index.tolist()
+    if sh_df is None or sz_df is None: return figure()
     data = {
+        'date': sh_df.date.tolist(),
         'index': sh_df.index.tolist(),
-        'y': (10 * (sh_df['net_buy'] + sz_df['net_buy'])).round(2).tolist()
+        'cum_buy': ((sh_df['cum_buy'] + sz_df['cum_buy'])).round(2).tolist(),
+        'net_buy': (10 * (sh_df['net_buy'] + sz_df['net_buy'])).round(2).tolist()
     }
     source = ColumnDataSource(data)
-    p = figure(tools="", toolbar_location=None, x_range=(0, len(y_dict['date'])), y_range=(-yval_max * 0.2, yval_max * 1.3))
-
-    mline = p.line(x = y_dict['index'], y = y_dict['cum_buy'], line_width=2, color=Spectral11[0], alpha=0.8, legend="沪港通买入累计余额")
-    mapper = linear_cmap(field_name='y', palette=['red', 'green'], low=0, high=0, low_color = 'green', high_color = 'red')
-    p.vbar(x='index', bottom=0, top='y', color=mapper, width=1, legend='融资变化', source = data)
-
-    p.add_tools(HoverTool(tooltips=[("value", "@y")]))
-    p.yaxis.axis_label = "沪港通数据概况"
-    p.xaxis.major_label_overrides = {i: mdate for i, mdate in enumerate(y_dict['date'])}
-
+    yval_max = max(data['cum_buy'])
+    p = figure(tools="", toolbar_location=None, x_range=(0, len(data['date'])), y_range=(-yval_max * 0.2, yval_max * 1.3))
+    mapper = linear_cmap(field_name='net_buy', palette=['red', 'green'], low=0, high=0, low_color = 'green', high_color = 'red')
+    p.line(x = 'index', y = 'cum_buy', line_width=2, color=Spectral11[0], alpha=0.8, legend="沪港通买入累计余额", source = source)
+    p.vbar(x = 'index', bottom=0, top='net_buy', color=mapper, width=1, legend='融资变化', source = source)
+    p.add_tools(HoverTool(tooltips=[("value", "@cum_buy"), ("date", "@date")]))
     p.legend.location = "top_left"
     p.legend.click_policy = "hide"
     p.legend.orientation = "horizontal"
+    p.yaxis.axis_label = "沪港通数据概况"
+    p.xaxis.major_label_overrides = {i: mdate for i, mdate in enumerate(data['date'])}
     return p
 
 def create_rzrq_figure(sh_df, sz_df):
-    if sh_df is None or sz_df is None: return None
-    y_dict = dict()
-    y_dict['rzrqye'] = ((sh_df['rzrqye'] + sz_df['rzrqye'])).round(2).tolist()
-    yval_max = max(y_dict['rzrqye'])
-    y_dict['date'] = sh_df.date.tolist()
-    y_dict['index'] = sh_df.index.tolist()
+    if sh_df is None or sz_df is None: return figure()
     data = {
         'index': sh_df.index.tolist(),
-        'y': (10*((sh_df['rzmre'] + sz_df['rzmre']) - (sh_df['rzche'] + sz_df['rzche']))).round(2).tolist()
+        'date': sh_df.date.tolist(),
+        'rzrqye': ((sh_df['rzrqye'] + sz_df['rzrqye'])).round(2).tolist(),
+        'rzzl': (10*((sh_df['rzmre'] + sz_df['rzmre']) - (sh_df['rzche'] + sz_df['rzche']))).round(2).tolist()
     }
+    yval_max = max(data['rzrqye'])
     source = ColumnDataSource(data)
-    p = figure(tools="", toolbar_location=None, x_range=(0, len(y_dict['date'])), y_range=(-yval_max * 0.2, yval_max * 1.3))
-
-    mline = p.line(x = y_dict['index'], y = y_dict['rzrqye'], line_width=2.5, color=Spectral11[0], alpha=0.8, legend="融资融券余额")
-    mapper = linear_cmap(field_name='y', palette=['red', 'green'], low=0, high=0, low_color = 'green', high_color = 'red')
-    p.vbar(x='index', bottom=0, top='y', color=mapper, width=1, legend='融资变化', source = data)
-
-    p.add_tools(HoverTool(tooltips=[("value", "@y")]))
+    mapper = linear_cmap(field_name='rzzl', palette=['red', 'green'], low=0, high=0, low_color = 'green', high_color = 'red')
+    p = figure(tools="", toolbar_location=None, x_range=(0, len(data['date'])), y_range=(-yval_max * 0.2, yval_max * 1.3))
+    p.line(x = 'index', y = 'rzrqye', line_width = 2.5, color = Spectral11[0], alpha = 0.8, legend = "融资融券余额", source = source)
+    p.vbar(x = 'index', bottom = 0, top = 'rzzl', color = mapper, width = 1, legend = '融资变化', source = source)
+    p.add_tools(HoverTool(tooltips=[("value", "@rzrqye"), ("date", "@date")]))
+    p.xaxis.major_label_overrides = {i: mdate for i, mdate in enumerate(data['date'])}
     p.yaxis.axis_label = "融资融券概况"
-    p.xaxis.major_label_overrides = {i: mdate for i, mdate in enumerate(y_dict['date'])}
-
     p.legend.location = "top_left"
     p.legend.click_policy = "hide"
     p.legend.orientation = "horizontal"
@@ -343,31 +316,32 @@ def get_valuation_data(code_dict, start_date, end_date):
 def create_valuation_figure(data_dict, code_dict, dtype):
     line_list = list()
     mypalette = Spectral11[0:len(code_dict)]
-    p = figure(tools="", toolbar_location=None, x_range=(0, len(data_dict['date'])), y_range=(0, 130))
+    p = figure(tools="", toolbar_location=None, x_range=(0, len(data_dict['date'])), y_range=(0, 120))
     for code, color in zip(code_dict.keys(), mypalette):
         name = code_dict[code]
         index_list = data_dict[code].index.tolist()
         value_list = data_dict[code][dtype].tolist()
-        sorted_value_list = sorted(value_list)
-        percentile_list = data_dict[code][dtype].apply(lambda x: percentileofscore(sorted_value_list, x))
-        mline = p.line(x = index_list, y = percentile_list, line_width=2, color=color, alpha=0.8, legend=name)
+        #sorted_value_list = sorted(value_list)
+        #percentile_list = data_dict[code][dtype].apply(lambda x: percentileofscore(sorted_value_list, x))
+        #mline = p.line(x = index_list, y = percentile_list, line_width = 2, color = color, alpha = 0.8, legend = name)
+        mline = p.line(x = index_list, y = value_list, line_width = 2, color = color, alpha = 0.8, legend = name)
         line_list.append(mline)
-    p.legend.click_policy="hide"
+    p.legend.click_policy = "hide"
     p.legend.location = "top_left"
     p.legend.orientation = "horizontal"
     p.xaxis.axis_label = "时间"
     p.yaxis.axis_label = dtype
-    p.add_tools(HoverTool(tooltips=[("value", "@y")], renderers=line_list))
+    p.add_tools(HoverTool(tooltips = [("date", "@x"), ("value", "@y")], renderers = line_list))
     p.xaxis.major_label_overrides = {i: mdate for i, mdate in enumerate(data_dict["date"])}
     return p
 
 def generate_valuation_row(start_date, end_date):
     code_dict = {'000016':'上证50', '000300':'沪深300', '000905':'中证500', '399006':'创业板指'}
-    df = get_valuation_data(code_dict, start_date, end_date)
-    pe_fig = create_valuation_figure(df, code_dict, 'pe')
-    pb_fig = create_valuation_figure(df, code_dict, 'pb')
-    roe_fig = create_valuation_figure(df, code_dict, 'roe')
-    dr_fig = create_valuation_figure(df, code_dict, 'dr')
+    data_dict = get_valuation_data(code_dict, start_date, end_date)
+    pe_fig = create_valuation_figure(data_dict, code_dict, 'pe')
+    pb_fig = create_valuation_figure(data_dict, code_dict, 'pb')
+    roe_fig = create_valuation_figure(data_dict, code_dict, 'roe')
+    dr_fig = create_valuation_figure(data_dict, code_dict, 'dr')
     return gridplot([[pe_fig, pb_fig], [roe_fig, dr_fig]])
 
 def create_valuation_figure_column(start_date, end_date):

@@ -14,7 +14,6 @@ from cstock import CStock
 from pathlib import Path
 from pandas import DataFrame
 from base.clog import getLogger
-from cstock_info import CStockInfo
 from datamanager.cbonus import CBonus
 from datamanager.creport import CReport
 from datetime import datetime, timedelta
@@ -67,12 +66,11 @@ cdef int PRE_YEAR_REPORT_DATE = 0, PRE_CUR_REPORT_DATE = 0
 cdef class CValuation(object):
     cdef public str report_data_path
     cdef public np.ndarray valuation_data
-    cdef public object logger, bonus_client, report_client, stock_info_client
+    cdef public object logger, bonus_client, report_client
     def __init__(self, str valution_path = ct.VALUATION_PATH):
         self.logger = getLogger(__name__)
         self.bonus_client = CBonus()
         self.report_client = CReport()
-        self.stock_info_client = CStockInfo()
         self.report_data_path = valution_path
         self.valuation_data = self.get_reports_data()
 

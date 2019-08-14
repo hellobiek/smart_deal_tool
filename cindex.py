@@ -1,4 +1,4 @@
-#coding=utf-8
+# -*- coding: utf-8 -*-
 import os
 import _pickle
 import const as ct
@@ -8,6 +8,7 @@ from datetime import datetime
 from base.cobj import CMysqlObj
 from base.clog import getLogger
 from pytdx.reader import BlockReader
+from jqdatasdk import get_index_stocks, auth
 from base.cdate import transfer_date_string_to_int
 # http://blog.sina.com.cn/s/blog_623d2d280102vt8y.html
 from common import float_random, is_df_has_unexpected_data, smart_get
@@ -26,7 +27,6 @@ class CIndex(CMysqlObj):
         '399006': (SZ_URL_HEAD % ('399006', float_random()), [0, 1, 5], ['code', 'name', 'weight']),
         '399673': (SZ_URL_HEAD % ('399673', float_random()), [0, 1, 5], ['code', 'name', 'weight'])
     }
-
     def __init__(self, code, dbinfo = ct.DB_INFO, redis_host = None, should_create_influxdb = False, should_create_mysqldb = False):
         super(CIndex, self).__init__(code, self.get_dbname(code), dbinfo, redis_host)
         self.code = code
@@ -120,6 +120,38 @@ class CIndex(CMysqlObj):
         if not self.is_table_exists(table_name): return pd.DataFrame()
         sql = "select * from %s where date=\"%s\"" % (table_name, cdate)
         return self.mysql_client.get(sql)
+
+    def set_components_data_from_joinquant(self, basic_dict, cdate):
+        table_name = self.get_components_table_name(cdate)
+        if not self.is_table_exists(table_name):
+            if not self.create_components_table(table_name):
+                logger.error("create components table failed")
+                return False
+        
+        if self.is_date_exists(table_name, cdate): 
+            logger.debug("existed table:%s, date:%s" % (table_name, cdate))
+            return True
+
+        code = "{}.XSHG".format(self.code) if self.code.startswith("6") else "{}.XSHE".format(self.code)
+        stocks = get_index_stocks(code, date = cdate)
+        df = pd.DataFrame(stocks, columns =['code'])
+        df['code'] = df['code'].str.split('.', expand=True)[0]
+        if not df[~df.code.isin(basic_dict)].empty:
+            logger.error("code from juquant is not in basic in data {}".format(df[~df.code.isin(basic_dict)]))
+            return False
+        df['name'] = df['code'].apply(lambda x: basic_dict[x])
+        df['date'] = cdate
+        if 'wieight' not in df.columns:
+            df['weight'] = 1/len(df)
+        if 'flag' not in df.columns:
+            df['flag'] = 1
+        df = df.reset_index(drop = True)
+        if is_df_has_unexpected_data(df):
+            logger.error("data for %s is not clear" % self.code)
+            return False
+        if self.mysql_client.set(df, table_name):
+            if self.redis.sadd(table_name, cdate): return True
+        return False
 
     def set_components_data(self, cdate = datetime.now().strftime('%Y-%m-%d')):
         table_name = self.get_components_table_name(cdate)
