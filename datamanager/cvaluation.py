@@ -83,7 +83,7 @@ class MValuation(object):
             traceback.print_exc()
             return False
 
-    def update_index(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 5703):
+    def update_index(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 3361):
         succeed = True
         start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
         date_array = get_dates_array(start_date, end_date, asending = True)

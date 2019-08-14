@@ -13328,7 +13328,7 @@ static PyObject *__pyx_f_4cval_10CValuation_index_val(CYTHON_UNUSED struct __pyx
  *         cdef object row
  *         for _, row in df.iterrows():             # <<<<<<<<<<<<<<
  *             total_profit += row['tcs_mv'] / row[dtype] if 0 != row[dtype] else 0
- *         return total_mv / total_profit
+ *         return total_mv / total_profit if total_profit != 0 else 0
  */
   __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v_df, __pyx_n_s_iterrows); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 530, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
@@ -13442,7 +13442,7 @@ static PyObject *__pyx_f_4cval_10CValuation_index_val(CYTHON_UNUSED struct __pyx
  *         cdef object row
  *         for _, row in df.iterrows():
  *             total_profit += row['tcs_mv'] / row[dtype] if 0 != row[dtype] else 0             # <<<<<<<<<<<<<<
- *         return total_mv / total_profit
+ *         return total_mv / total_profit if total_profit != 0 else 0
  * 
  */
     __pyx_t_1 = PyFloat_FromDouble(__pyx_v_total_profit); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 531, __pyx_L1_error)
@@ -13482,7 +13482,7 @@ static PyObject *__pyx_f_4cval_10CValuation_index_val(CYTHON_UNUSED struct __pyx
  *         cdef object row
  *         for _, row in df.iterrows():             # <<<<<<<<<<<<<<
  *             total_profit += row['tcs_mv'] / row[dtype] if 0 != row[dtype] else 0
- *         return total_mv / total_profit
+ *         return total_mv / total_profit if total_profit != 0 else 0
  */
   }
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
@@ -13490,17 +13490,24 @@ static PyObject *__pyx_f_4cval_10CValuation_index_val(CYTHON_UNUSED struct __pyx
   /* "cval.pyx":532
  *         for _, row in df.iterrows():
  *             total_profit += row['tcs_mv'] / row[dtype] if 0 != row[dtype] else 0
- *         return total_mv / total_profit             # <<<<<<<<<<<<<<
+ *         return total_mv / total_profit if total_profit != 0 else 0             # <<<<<<<<<<<<<<
  * 
  *     cdef object index_dr(self, object df):
  */
   __Pyx_XDECREF(__pyx_r);
-  if (unlikely(__pyx_v_total_profit == 0)) {
-    PyErr_SetString(PyExc_ZeroDivisionError, "float division");
-    __PYX_ERR(0, 532, __pyx_L1_error)
+  if (((__pyx_v_total_profit != 0.0) != 0)) {
+    if (unlikely(__pyx_v_total_profit == 0)) {
+      PyErr_SetString(PyExc_ZeroDivisionError, "float division");
+      __PYX_ERR(0, 532, __pyx_L1_error)
+    }
+    __pyx_t_11 = PyFloat_FromDouble((__pyx_v_total_mv / __pyx_v_total_profit)); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 532, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_11);
+    __pyx_t_3 = __pyx_t_11;
+    __pyx_t_11 = 0;
+  } else {
+    __Pyx_INCREF(__pyx_int_0);
+    __pyx_t_3 = __pyx_int_0;
   }
-  __pyx_t_3 = PyFloat_FromDouble((__pyx_v_total_mv / __pyx_v_total_profit)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 532, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
   __pyx_r = __pyx_t_3;
   __pyx_t_3 = 0;
   goto __pyx_L0;
@@ -13532,7 +13539,7 @@ static PyObject *__pyx_f_4cval_10CValuation_index_val(CYTHON_UNUSED struct __pyx
 }
 
 /* "cval.pyx":534
- *         return total_mv / total_profit
+ *         return total_mv / total_profit if total_profit != 0 else 0
  * 
  *     cdef object index_dr(self, object df):             # <<<<<<<<<<<<<<
  *         cdef float total_mv = df['tcs_mv'].sum()
@@ -13635,7 +13642,7 @@ static PyObject *__pyx_f_4cval_10CValuation_index_dr(CYTHON_UNUSED struct __pyx_
   goto __pyx_L0;
 
   /* "cval.pyx":534
- *         return total_mv / total_profit
+ *         return total_mv / total_profit if total_profit != 0 else 0
  * 
  *     cdef object index_dr(self, object df):             # <<<<<<<<<<<<<<
  *         cdef float total_mv = df['tcs_mv'].sum()

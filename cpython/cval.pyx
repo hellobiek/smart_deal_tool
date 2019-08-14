@@ -529,7 +529,7 @@ cdef class CValuation(object):
         cdef object row
         for _, row in df.iterrows():
             total_profit += row['tcs_mv'] / row[dtype] if 0 != row[dtype] else 0 
-        return total_mv / total_profit
+        return total_mv / total_profit if total_profit != 0 else 0
 
     cdef object index_dr(self, object df):
         cdef float total_mv = df['tcs_mv'].sum()
