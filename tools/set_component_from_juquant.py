@@ -20,12 +20,12 @@ if __name__ == '__main__':
     start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
     date_array = get_dates_array(start_date, end_date)
     auth('18701683341', '52448oo78')
-    for code in ['399006']:
+    for code in ['000001', '000016', '000300', '000905', '399001', '399005', '399673']:
         obj = CIndex(code)
-        #for mdate in date_array:
-        #    if CCalendar.is_trading_day(mdate):
-        #        table_name = obj.get_components_table_name(mdate)
-        #        if obj.is_table_exists(table_name): obj.mysql_client.delete(table_name)
+        for mdate in date_array:
+            if CCalendar.is_trading_day(mdate):
+                table_name = obj.get_components_table_name(mdate)
+                if obj.is_table_exists(table_name): obj.mysql_client.delete(table_name)
             
         for mdate in date_array:
             if CCalendar.is_trading_day(mdate):

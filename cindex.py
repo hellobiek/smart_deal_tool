@@ -119,7 +119,7 @@ class CIndex(CMysqlObj):
         table_name = self.get_components_table_name(cdate)
         if not self.is_table_exists(table_name): return pd.DataFrame()
         sql = "select * from %s where date=\"%s\"" % (table_name, cdate)
-        return self.mysql_client.get(sql)
+        return self.mysql_client.get(sql, retry_times = 3)
 
     def set_components_data_from_joinquant(self, basic_dict, cdate):
         table_name = self.get_components_table_name(cdate)
@@ -132,13 +132,15 @@ class CIndex(CMysqlObj):
             logger.debug("existed table:%s, date:%s" % (table_name, cdate))
             return True
 
-        code = "{}.XSHG".format(self.code) if self.code.startswith("6") else "{}.XSHE".format(self.code)
+        code = "{}.XSHG".format(self.code) if self.code.startswith("0") else "{}.XSHE".format(self.code)
         stocks = get_index_stocks(code, date = cdate)
-        df = pd.DataFrame(stocks, columns =['code'])
-        df['code'] = df['code'].str.split('.', expand=True)[0]
-        if not df[~df.code.isin(basic_dict)].empty:
-            logger.error("code from juquant is not in basic in data {}".format(df[~df.code.isin(basic_dict)]))
+        if len(stocks) == 0:
+            logger.debug("get {} codes for {} empty".format(self.code, cdate))
             return False
+
+        df = pd.DataFrame(stocks, columns = ['code'])
+        df['code'] = df['code'].str.split('.', expand = True)[0]
+        df = df[df.code.isin(basic_dict)]
         df['name'] = df['code'].apply(lambda x: basic_dict[x])
         df['date'] = cdate
         if 'wieight' not in df.columns:

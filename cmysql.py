@@ -182,9 +182,9 @@ class CMySQL:
         logger.error("write to db:%s, table:%s failed afer try %d times" % (self.dbname, table, ct.RETRY_TIMES))
         return res 
 
-    def get(self, sql):
+    def get(self, sql, retry_times = ct.RETRY_TIMES):
         res = False
-        for i in range(ct.RETRY_TIMES):
+        for i in range(retry_times):
             try:
                 conn = self.engine.connect()
                 data = pd.read_sql_query(sql, conn)
@@ -196,7 +196,8 @@ class CMySQL:
                 logger.error(e)
                 if 'conn' in dir(): conn.close()
             if True == res: return data
-        logger.error("%s %s failed afer try %d times" % (self.dbname, sql, ct.RETRY_TIMES))
+            time.sleep(i)
+        logger.error("{} {} failed afer try {} times".format(self.dbname, sql, retry_times))
         return None
 
     def exec_sql(self, sql, params = None):

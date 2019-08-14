@@ -83,15 +83,15 @@ class MValuation(object):
             traceback.print_exc()
             return False
 
-    def update_val(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 7000):
+    def update_index(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 5703):
         succeed = True
         start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
-        date_array = get_dates_array(start_date, end_date)
+        date_array = get_dates_array(start_date, end_date, asending = True)
         for mdate in date_array:
             if CCalendar.is_trading_day(mdate):
                 for code in ct.INDEX_DICT:
-                    if not self.set_index_valuation(code, mdate):
-                        self.logger.error("%s set %s data for rvaluation failed" % (code, mdate))
+                    if not self.cval_client.set_index_valuation(code, mdate):
+                        self.logger.error("{} set {} data for rvaluation failed".format(code, mdate))
                         succeed = False
         return succeed
 
@@ -117,55 +117,59 @@ def get_hist_val(black_set, white_set, code):
         return 0
 
 if __name__ == '__main__':
-    try:
-        mdate = 20190802 
-        mval_client = MValuation()
-        #黑名单
-        black_set = set(ct.BLACK_DICT.keys())
-        white_set = set(ct.WHITE_DICT.keys())
-        if len(black_set.intersection(white_set)) > 0: raise Exception("black and white has intersection.")
-        df = mval_client.stock_info_client.get()
-        df['history'] = df.apply(lambda row: get_hist_val(black_set, white_set, row['code']), axis = 1)
-        #质押信息
-        pledge_info = mval_client.cval_client.get_stock_pledge_info()
-        pledge_info = pledge_info[['code', 'pledge_rate']]
-        df = pd.merge(df, pledge_info, how='inner', on=['code'])
-        df = df.reset_index(drop = True)
-        #净资产收益率
-        mval_client.cval_client.update_vertical_data(df, TYPE_LIST, mdate)
+    mval_client = MValuation()
+    mval_client.update_index(end_date = '2019-08-13')
 
-        #应收款率 = (应收帐款 + 应收票据) / 总资产
-        df['arr'] = 100 * (df['ar'] + df['br']) / df['ta']
-        #商誉占比
-        df['gwr'] = 100 * df['goodwill'] / df['ta']
-        #货币资金达到资产总额
-        df['mfr'] = 100 * (df['mf'] - df['stb']) / df['ta']
-        #短期借款占比
-        df['stbr'] = 100 * df['stb'] / df['ta']
-        #在建工程占比
-        df['cipr'] = 100 * df['cip'] / df['ta']
-        #应付职工薪酬占比
-        df['ppr'] = 100 * df['pp'] / df['ta']
-        #开始选股
-        df = df.dropna(subset = TYPE_LIST)
-        df = df[(df['timeToMarket'] < 20151231) | df.code.isin(list(ct.WHITE_DICT.keys()))]
-        df = df[df['pledge_rate'] < 30]
-        df = df[df['roa'] > 2]
-        df = df[df['dar'] < 45]
-        df = df[df['history'] > -1]
-        df = df[df['gwr'] < 30]
-        df = df[df['iar'] < 30]
-        df = df[df['ppr'] < 3]
-        df = df[df['arr'] < 30]
-        df = df[df['mfr'] > 10]
-        df = df.reset_index(drop = True)
-        df = df[['code', 'name', 'industry', 'history', 'roa', 'pledge_rate', 'arr', 'dar', 'iar', 'gwr', 'mfr', 'ppr', 'cipr', 'stbr', 'qfii_holders', 'qfii_holding', 'social_security_holding']]
-        for name, contains in df.groupby('industry'):
-            print("--------------------")
-            print(name)
-            print(contains)
-            print("====================")
-        print("total num", len(df))
-    except Exception as e:
-        print(e)
-        traceback.print_exc()
+#if __name__ == '__main__':
+#    try:
+#        mdate = 20190802 
+#        mval_client = MValuation()
+#        #黑名单
+#        black_set = set(ct.BLACK_DICT.keys())
+#        white_set = set(ct.WHITE_DICT.keys())
+#        if len(black_set.intersection(white_set)) > 0: raise Exception("black and white has intersection.")
+#        df = mval_client.stock_info_client.get()
+#        df['history'] = df.apply(lambda row: get_hist_val(black_set, white_set, row['code']), axis = 1)
+#        #质押信息
+#        pledge_info = mval_client.cval_client.get_stock_pledge_info()
+#        pledge_info = pledge_info[['code', 'pledge_rate']]
+#        df = pd.merge(df, pledge_info, how='inner', on=['code'])
+#        df = df.reset_index(drop = True)
+#        #净资产收益率
+#        mval_client.cval_client.update_vertical_data(df, TYPE_LIST, mdate)
+#
+#        #应收款率 = (应收帐款 + 应收票据) / 总资产
+#        df['arr'] = 100 * (df['ar'] + df['br']) / df['ta']
+#        #商誉占比
+#        df['gwr'] = 100 * df['goodwill'] / df['ta']
+#        #货币资金达到资产总额
+#        df['mfr'] = 100 * (df['mf'] - df['stb']) / df['ta']
+#        #短期借款占比
+#        df['stbr'] = 100 * df['stb'] / df['ta']
+#        #在建工程占比
+#        df['cipr'] = 100 * df['cip'] / df['ta']
+#        #应付职工薪酬占比
+#        df['ppr'] = 100 * df['pp'] / df['ta']
+#        #开始选股
+#        df = df.dropna(subset = TYPE_LIST)
+#        df = df[(df['timeToMarket'] < 20151231) | df.code.isin(list(ct.WHITE_DICT.keys()))]
+#        df = df[df['pledge_rate'] < 30]
+#        df = df[df['roa'] > 2]
+#        df = df[df['dar'] < 45]
+#        df = df[df['history'] > -1]
+#        df = df[df['gwr'] < 30]
+#        df = df[df['iar'] < 30]
+#        df = df[df['ppr'] < 3]
+#        df = df[df['arr'] < 30]
+#        df = df[df['mfr'] > 10]
+#        df = df.reset_index(drop = True)
+#        df = df[['code', 'name', 'industry', 'history', 'roa', 'pledge_rate', 'arr', 'dar', 'iar', 'gwr', 'mfr', 'ppr', 'cipr', 'stbr', 'qfii_holders', 'qfii_holding', 'social_security_holding']]
+#        for name, contains in df.groupby('industry'):
+#            print("--------------------")
+#            print(name)
+#            print(contains)
+#            print("====================")
+#        print("total num", len(df))
+#    except Exception as e:
+#        print(e)
+#        traceback.print_exc()

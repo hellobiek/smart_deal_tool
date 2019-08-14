@@ -537,17 +537,15 @@ cdef class CValuation(object):
         return total_divide / total_mv
 
     cpdef set_index_valuation(self, str code, str mdate):
-        global ori_code_list
         cdef dict data
         cdef object df, ndf
         cdef float pe, pb, ttm, roe, dr
         cdef object index_obj = CIndex(code)
         cdef object code_data = index_obj.get_components_data(mdate)
         if code_data is None or code_data.empty:
-            code_list = ori_code_list
-        else:
-            code_list = code_data['code'].tolist()
-            ori_code_list = code_list
+            self.logger.debug("get code:{}, mdate:{} empty.".format(code, mdate))
+            return False
+        code_list = code_data['code'].tolist()
         df = self.get_stocks_info(mdate, code_list)
         if df.empty: return False
         pe = self.index_val(df, 'pe')

@@ -184,7 +184,9 @@ def get_dates_array(start_date, end_date, dformat = "%Y-%m-%d", asending = False
     num_days = delta_days(start_date, end_date, dformat)
     start_date_dmy_format = time.strftime("%m/%d/%Y", time.strptime(start_date, dformat))
     data_times = pd.date_range(start_date_dmy_format, periods=num_days, freq='D')
-    date_only_array = np.vectorize(lambda s: s.strftime(dformat))(data_times.to_pydatetime())
+    vfunc = np.vectorize(lambda s: s.strftime(dformat))
+    date_only_array = vfunc(data_times.to_pydatetime())
+    date_only_array = [str(date_str) for date_str in date_only_array]
     if asending: return date_only_array
     date_only_array = date_only_array[::-1]
     return date_only_array
