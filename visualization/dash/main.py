@@ -314,24 +314,28 @@ def get_valuation_data(code_dict, start_date, end_date):
     return data_dict
 
 def create_valuation_figure(data_dict, code_dict, dtype):
-    line_list = list()
+    source_dict = dict()
     mypalette = Spectral11[0:len(code_dict)]
     p = figure(tools="", toolbar_location=None, x_range=(0, len(data_dict['date'])), y_range=(0, 120))
-    for code, color in zip(code_dict.keys(), mypalette):
+    for code in code_dict.keys():
         name = code_dict[code]
+        date_list = data_dict[code].date.tolist()
         index_list = data_dict[code].index.tolist()
         value_list = data_dict[code][dtype].tolist()
-        #sorted_value_list = sorted(value_list)
-        #percentile_list = data_dict[code][dtype].apply(lambda x: percentileofscore(sorted_value_list, x))
-        #mline = p.line(x = index_list, y = percentile_list, line_width = 2, color = color, alpha = 0.8, legend = name)
-        mline = p.line(x = index_list, y = value_list, line_width = 2, color = color, alpha = 0.8, legend = name)
+        sorted_value_list = sorted(value_list)
+        percentile_list = data_dict[code][dtype].apply(lambda x: percentileofscore(sorted_value_list, x))
+        data = {'date': date_list, 'index': index_list, 'value': value_list, 'percentile': percentile_list} 
+        source_dict[name] = ColumnDataSource(data)
+    line_list = list()
+    for name, color in zip(source_dict.keys(), mypalette):
+        mline = p.line(x = 'index', y = 'percentile', line_width = 2, color = color, alpha = 0.8, legend = name, source = source_dict[name])
         line_list.append(mline)
     p.legend.click_policy = "hide"
     p.legend.location = "top_left"
     p.legend.orientation = "horizontal"
     p.xaxis.axis_label = "时间"
     p.yaxis.axis_label = dtype
-    p.add_tools(HoverTool(tooltips = [("date", "@x"), ("value", "@y")], renderers = line_list))
+    p.add_tools(HoverTool(tooltips = [("date", "@date"), ("value", "@value")], renderers = line_list))
     p.xaxis.major_label_overrides = {i: mdate for i, mdate in enumerate(data_dict["date"])}
     return p
 

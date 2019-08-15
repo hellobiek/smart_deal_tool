@@ -246,13 +246,13 @@ def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, black_lis
         for j in jobs: j.join()
         todo_list = get_unfinished_workers(redis_client, redis_key_name)
         if len(todo_list) == last_length:
-            logger.error("left todo length:%s" % len(todo_list))
+            logger.error("left todo length:{}".format(len(todo_list)))
             time.sleep(600)
             return False
         else:
             last_length = len(todo_list)
-            logger.debug("failed list count:%s" % last_length)
-            time.sleep(1)
+            logger.debug("failed list count:{}".format(last_length))
+            time.sleep(60)
     return True
 
 def thread_concurrent_run(mfunc, todo_list, redis_client, key, num = 10):
