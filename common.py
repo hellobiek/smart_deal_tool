@@ -252,7 +252,6 @@ def process_concurrent_run(mfunc, all_list, process_num = 2, num = 10, black_lis
         else:
             last_length = len(todo_list)
             logger.debug("failed list count:{}".format(last_length))
-            time.sleep(60)
     return True
 
 def thread_concurrent_run(mfunc, todo_list, redis_client, key, num = 10):

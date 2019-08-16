@@ -67,11 +67,12 @@ cdef class CValuation(object):
     cdef public str report_data_path
     cdef public np.ndarray valuation_data
     cdef public object logger, bonus_client, report_client
-    def __init__(self, str valution_path = ct.VALUATION_PATH):
+    def __init__(self, str valution_path = ct.VALUATION_PATH, needUpdate = False):
         self.logger = getLogger(__name__)
         self.bonus_client = CBonus()
         self.report_client = CReport()
         self.report_data_path = valution_path
+        if needUpdate: self.convert()
         self.valuation_data = self.get_reports_data()
 
     cdef object get_reports_data(self):
@@ -81,6 +82,9 @@ cdef class CValuation(object):
         df = df.drop_duplicates()
         df = df.reset_index(drop = True)
         return df.to_records(index = False)
+
+    def covert_one(self):
+        
 
     def convert(self):
         #date, code, 1.基本每股收益(earnings per share)、2.扣非每股收益(non-earnings per share)、

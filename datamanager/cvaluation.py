@@ -17,11 +17,12 @@ from cstock import CStock
 from gevent.pool import Pool
 from functools import partial
 from datetime import datetime
+from rstock import RIndexStock
 from ccalendar import CCalendar
 from base.clog import getLogger
 from cstock_info import CStockInfo
 from cpython.cval import CValuation
-from base.cdate import quarter, report_date_with, int_to_datetime, prev_report_date_with, get_pre_date, get_next_date, get_day_nday_ago, get_dates_array
+from base.cdate import get_day_nday_ago, get_dates_array, transfer_int_to_date_string
 TYPE_LIST = ['bps', 'tcs', 'roa', 'dar', 'npm', 'gpr', 'revenue', 'cfpsfo', 'ngr', 'igr', 'crr', 
             'ncf', 'ta', 'fa', 'ca', 'micc', 'iar', 'cip', 'ar', 'br', 'stb', 'inventory', 'mf', 
             'goodwill', 'pp', 'qfii_holders', 'qfii_holding', 'social_security_holding', 'social_security_holders']
@@ -108,6 +109,12 @@ class MValuation(object):
                     succeed = False
         return succeed
 
+    def get_min_val_in_range(self, dtype, code):
+        vdf = self.cval_client.get_horizontal_data(code)
+        vdf = vdf[(vdf['date'] - 1231) % 10000 == 0]
+        vdf = vdf[-5:]
+        return vdf[dtype].median()
+
 def get_hist_val(black_set, white_set, code):
     if code in white_set:
         return 1
@@ -122,26 +129,42 @@ def get_hist_val(black_set, white_set, code):
 
 if __name__ == '__main__':
     try:
-        mdate = 20190802 
+        mdate = 20190815
         mval_client = MValuation()
+        rindex_client = RIndexStock()
+        df = rindex_client.get_data(transfer_int_to_date_string(mdate))
+        df['mv'] = df['totals'] * df['close']
+        df['mv'] = df['mv'] / 100000000
+        df = df[df.mv > 100]
+        df = df[(df.profit > 1) & (df.profit < 6.5)]
         #黑名单
         black_set = set(ct.BLACK_DICT.keys())
         white_set = set(ct.WHITE_DICT.keys())
         if len(black_set.intersection(white_set)) > 0: raise Exception("black and white has intersection.")
-        df = mval_client.stock_info_client.get()
         df['history'] = df.apply(lambda row: get_hist_val(black_set, white_set, row['code']), axis = 1)
+        df = df[df['history'] > -1]
+        #basic_info
+        base_df = mval_client.stock_info_client.get()
+        base_df = base_df[['code', 'timeToMarket', 'industry', 'name']]
+        df = pd.merge(df, base_df, how='inner', on=['code'])
+        df = df[(df['timeToMarket'] < 20141231) | df.code.isin(list(ct.WHITE_DICT.keys()))]
         #质押信息
         pledge_info = mval_client.cval_client.get_stock_pledge_info()
         pledge_info = pledge_info[['code', 'pledge_rate']]
-        df = pd.merge(df, pledge_info, how='inner', on=['code'])
-        df = df.reset_index(drop = True)
-        #净资产收益率
+        df = pd.merge(df, pledge_info, how='left', on=['code'])
+        df = df.fillna(value = {'pledge_rate': 0})
+        df = df[df['pledge_rate'] < 50]
+        #get min roa
+        df['min_roa'] = df.apply(lambda row: mval_client.get_min_val_in_range('roa', row['code']), axis = 1)
+        df = df[df['min_roa'] >= 7]
+        #fininal analysis
         mval_client.cval_client.update_vertical_data(df, TYPE_LIST, mdate)
-
         #应收款率 = (应收帐款 + 应收票据) / 总资产
-        df['arr'] = 100 * (df['ar'] + df['br']) / df['ta']
+        #df['arr'] = 100 * (df['ar'] + df['br']) / df['ta']
+        #df = df[df['arr'] < 35]
         #商誉占比
         df['gwr'] = 100 * df['goodwill'] / df['ta']
+        df = df[df['gwr'] < 35]
         #货币资金达到资产总额
         df['mfr'] = 100 * (df['mf'] - df['stb']) / df['ta']
         #短期借款占比
@@ -152,24 +175,13 @@ if __name__ == '__main__':
         df['ppr'] = 100 * df['pp'] / df['ta']
         #开始选股
         df = df.dropna(subset = TYPE_LIST)
-        df = df[(df['timeToMarket'] < 20151231) | df.code.isin(list(ct.WHITE_DICT.keys()))]
-        df = df[df['pledge_rate'] < 30]
-        df = df[df['roa'] > 2]
-        df = df[df['dar'] < 45]
-        df = df[df['history'] > -1]
-        df = df[df['gwr'] < 30]
-        df = df[df['iar'] < 30]
-        df = df[df['ppr'] < 3]
-        df = df[df['arr'] < 30]
-        df = df[df['mfr'] > 10]
         df = df.reset_index(drop = True)
-        df = df[['code', 'name', 'industry', 'history', 'roa', 'pledge_rate', 'arr', 'dar', 'iar', 'gwr', 'mfr', 'ppr', 'cipr', 'stbr', 'qfii_holders', 'qfii_holding', 'social_security_holding']]
         for name, contains in df.groupby('industry'):
             print("--------------------")
             print(name)
             print(contains)
             print("====================")
-        print("total num", len(df))
+        print("total:", len(df))
     except Exception as e:
         print(e)
         traceback.print_exc()

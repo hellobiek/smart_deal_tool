@@ -458,9 +458,9 @@ class CStock(CMysqlObj):
         return self.mysql_client.upsert(df, self.get_day_table(), pri_keys = ['date'])
 
     def set_k_data(self, bonus_info, index_info, cdate = None):
-        if not self.has_on_market(cdate):
-            logger.error("%s not on market %s" % (self.code, cdate))
-            return False
+        #if not self.has_on_market(cdate):
+        #    logger.error("%s not on market %s" % (self.code, cdate))
+        #    return False
         quantity_change_info, price_change_info = self.collect_right_info(bonus_info)
         if cdate is None or self.is_need_reright(cdate, price_change_info): 
             return self.set_all_data(quantity_change_info, price_change_info, index_info)
