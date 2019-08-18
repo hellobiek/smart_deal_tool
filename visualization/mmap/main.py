@@ -4,11 +4,14 @@ import sys
 import traceback
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
+import const as ct
+import pandas as pd
 from cstock import CStock
 from datetime import date
 from bokeh.io import curdoc
 from bokeh.plotting import figure
 from bokeh.events import DoubleTap
+from cstock_info import CStockInfo
 from cpython.cval import CValuation
 from base.cdate import int_to_datetime
 from bokeh.layouts import row, column, gridplot
@@ -34,6 +37,8 @@ def scallback(event):
 
 def create_mmap_figure(mdate):
     df = mmap.get_data(mdate)
+    df = pd.merge(df, base_df, how='inner', on=['code'])
+    df = df[(df['timeToMarket'] < 20141231) | df.code.isin(list(ct.WHITE_DICT.keys()))]
     TOOLTIPS = [("code", "@code"), ("(pday, profit)", "(@pday, @profit)")]
     TOOLS = [TapTool(), PanTool(), BoxZoomTool(), WheelZoomTool(), ResetTool(), BoxSelectTool(), HoverTool(tooltips = TOOLTIPS)]
     p = figure(plot_height=800, plot_width=1300, x_axis_label='时间', y_axis_label='强度', tools=TOOLS, toolbar_location="above", title="活点地图")
@@ -147,6 +152,8 @@ def create_roe_figure(val_source):
 
 cdoc = curdoc()
 mmap = MarauderMap()
+stock_info_client = CStockInfo()
+base_df = stock_info_client.get()
 cdoc.title = "活点地图"
 code_text = TextInput(value = None, title = "代码:", width = 420)
 code_text.on_change('value', update_stock)

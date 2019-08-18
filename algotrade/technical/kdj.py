@@ -23,3 +23,15 @@ def kdj(data, N1=9, N2=3, N3=3):
     data['d'] = d
     data['j'] = j
     return data
+
+def kdj1(data, N1=9, N2=3, N3=3):
+    low  = data.low.rolling(N1, min_periods = N1).min()
+    high = data.high.rolling(N1, min_periods = N1).max()
+    rsv  = (data.close - low) / (high - low) * 100
+    k = rsv.ewm(com=2).mean()
+    d = k.ewm(com=2).mean()
+    j = k * 3 - d * 2
+    data['k'] = k
+    data['d'] = d
+    data['j'] = j
+    return data

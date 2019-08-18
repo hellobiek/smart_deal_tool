@@ -169,9 +169,15 @@ const.TONG_DA_XIN_SELF_PATH = "/tongdaxin/T0002/blocknew"
 const.TONG_DA_XIN_FG_INDEX_PATH = "/tongdaxin/T0002/hq_cache/block_fg.dat"
 const.TONG_DA_XIN_IP = '221.231.141.60'
 const.TONG_DA_XIN_PORT = 7709
-const.VALUATION_PATH = "/data/valuation/reports.csv"
-const.RVALUATION_DIR = "/data/valuation/rstock"
+const.REPORT_DIR = '/data/tdx/report'
 const.RINDEX_DIR = "/data/valuation/indexs"
+const.STOCKS_DIR = '/data/tdx/history/days'
+const.BONUS_PATH = '/data/tdx/base/bonus.csv'
+const.RVALUATION_DIR = "/data/valuation/rstock"
+const.BASE_STOCK_PATH = '/data/tdx/base/stocks.csv'
+const.VALUATION_PATH = "/data/valuation/reports.csv"
+const.REPORT_PUBLISH_DIR = '/data/crawler/stock/financial/report_announcement_date'
+const.PLEDGE_FILE_DIR = "/data/tdx/history/weeks/pledge"
 #############################
 const.MARKET_SH   = 1
 const.MARKET_SZ   = 0
@@ -4692,7 +4698,6 @@ const.WHITE_DICT = {
     "300271": "华宇软件",
     "300316": "晶盛机电",
     "002027": "分众传媒",
-    "300367": "东方网力",
     "300418": "昆仑万维",
     "300450": "先导智能",
     "300454": "深信服",
@@ -4712,6 +4717,7 @@ const.BLACK_DICT = {
     "601127": "小康股份: 主营业务大幅退坡，新能源汽车项目又吞噬了大笔资金",
     "300269": "联建光电：财务造假",
     "300117": "嘉寓股份：财务造假",
+    "300367": "东方网力: 公司部分银行账户被冻结, 应收账款巨额",
     "300187": "永清环保：实控人刘正军行贿被刑拘，上市公司不发公告",
     "300743": "天地数码：大股东减持，利润率下降",
     "300719": "安达维尔：股东减持不超过4%",
@@ -4786,6 +4792,7 @@ const.BLACK_DICT = {
     "000798": "中水渔业：并购猫腻，巨额亏损",
     "600710": "苏美达：主业亏损，财务猫腻",
     "600812": "华北制药：主业亏损，财务猫腻",
+    "002731": "萃华珠宝：H1净利转亏, 华南收入减半大股东减持凶猛, 应收账款却大幅增长, 内生增长动力不足，押注外延并购",
     "300255": "常山药业：大股东套路减持",
     "300072": "三聚环保：财务有问题，经营现金流为负",
     "300137": "先河环保：管理混乱，3500万收购零收入公司涉嫌利益输送",
@@ -5409,6 +5416,7 @@ const.BLACK_DICT = {
     "300275": "梅安森: 2015-2018年业绩常年亏损, 关联交易明显",
     "000890": "法尔胜: 卷入罗静案，涉及34亿元供应链融资及近29亿元商业保理融资。",
     "600781": "辅仁药业: 账面18亿却拿不出6000万分红。",
+    "002407": "多氟多: 红星汽车陷停产, 多氟多持有红星汽车72.5%股权",
     "600747": "ST大控: 2015年度、2016 年度经审计的净利润均为负值，且被会计师事务所出具无法表示意见的审计报告。",
     "002349": "精华制药: 董事长59岁离任后套现千万。",
     "002220": "ST天宝: 董事长黄作庆先生因涉嫌虚开发票罪，经大连市人民检察院批准，已被大连市公安局正式逮捕。",

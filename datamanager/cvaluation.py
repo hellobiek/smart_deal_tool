@@ -23,14 +23,13 @@ from base.clog import getLogger
 from cstock_info import CStockInfo
 from cpython.cval import CValuation
 from base.cdate import get_day_nday_ago, get_dates_array, transfer_int_to_date_string
-TYPE_LIST = ['bps', 'tcs', 'roa', 'dar', 'npm', 'gpr', 'revenue', 'cfpsfo', 'ngr', 'igr', 'crr', 
-            'ncf', 'ta', 'fa', 'ca', 'micc', 'iar', 'cip', 'ar', 'br', 'stb', 'inventory', 'mf', 
-            'goodwill', 'pp', 'qfii_holders', 'qfii_holding', 'social_security_holding', 'social_security_holders']
 class MValuation(object):
     def __init__(self):
         self.logger = getLogger(__name__)
         self.cval_client = CValuation()
         self.stock_info_client = CStockInfo()
+        self.TYPE_LIST = ['bps', 'tcs', 'roa', 'dar', 'npm', 'gpr', 'revenue', 'cfpsfo', 'ngr','igr', 'crr', 'ncf', 'ta', 'fa', 'ca', 'micc', 'iar', 'cip', 'ar',
+                          'br', 'stb', 'inventory', 'mf', 'goodwill', 'pp', 'qfii_holders', 'qfii_holding', 'social_security_holding', 'social_security_holders']
 
     def collect_financial_data(self, spath = "/data/crawler/china_security_industry_valuation/stock", tpath = '/data/valuation/cstocks'):
         def myfunc(code, mdate):
@@ -109,79 +108,6 @@ class MValuation(object):
                     succeed = False
         return succeed
 
-    def get_min_val_in_range(self, dtype, code):
-        vdf = self.cval_client.get_horizontal_data(code)
-        vdf = vdf[(vdf['date'] - 1231) % 10000 == 0]
-        vdf = vdf[-5:]
-        return vdf[dtype].median()
-
-def get_hist_val(black_set, white_set, code):
-    if code in white_set:
-        return 1
-    elif code in black_set:
-        return -1
-    else:
-        return 0
-
-#if __name__ == '__main__':
-#    mval_client = MValuation()
-#    mval_client.update_index(end_date = '2019-08-13')
-
 if __name__ == '__main__':
-    try:
-        mdate = 20190815
-        mval_client = MValuation()
-        rindex_client = RIndexStock()
-        df = rindex_client.get_data(transfer_int_to_date_string(mdate))
-        df['mv'] = df['totals'] * df['close']
-        df['mv'] = df['mv'] / 100000000
-        df = df[df.mv > 100]
-        df = df[(df.profit > 1) & (df.profit < 6.5)]
-        #黑名单
-        black_set = set(ct.BLACK_DICT.keys())
-        white_set = set(ct.WHITE_DICT.keys())
-        if len(black_set.intersection(white_set)) > 0: raise Exception("black and white has intersection.")
-        df['history'] = df.apply(lambda row: get_hist_val(black_set, white_set, row['code']), axis = 1)
-        df = df[df['history'] > -1]
-        #basic_info
-        base_df = mval_client.stock_info_client.get()
-        base_df = base_df[['code', 'timeToMarket', 'industry', 'name']]
-        df = pd.merge(df, base_df, how='inner', on=['code'])
-        df = df[(df['timeToMarket'] < 20141231) | df.code.isin(list(ct.WHITE_DICT.keys()))]
-        #质押信息
-        pledge_info = mval_client.cval_client.get_stock_pledge_info()
-        pledge_info = pledge_info[['code', 'pledge_rate']]
-        df = pd.merge(df, pledge_info, how='left', on=['code'])
-        df = df.fillna(value = {'pledge_rate': 0})
-        df = df[df['pledge_rate'] < 50]
-        #get min roa
-        df['min_roa'] = df.apply(lambda row: mval_client.get_min_val_in_range('roa', row['code']), axis = 1)
-        df = df[df['min_roa'] >= 7]
-        #fininal analysis
-        mval_client.cval_client.update_vertical_data(df, TYPE_LIST, mdate)
-        #应收款率 = (应收帐款 + 应收票据) / 总资产
-        #df['arr'] = 100 * (df['ar'] + df['br']) / df['ta']
-        #df = df[df['arr'] < 35]
-        #商誉占比
-        df['gwr'] = 100 * df['goodwill'] / df['ta']
-        df = df[df['gwr'] < 35]
-        #货币资金达到资产总额
-        df['mfr'] = 100 * (df['mf'] - df['stb']) / df['ta']
-        #短期借款占比
-        df['stbr'] = 100 * df['stb'] / df['ta']
-        #在建工程占比
-        df['cipr'] = 100 * df['cip'] / df['ta']
-        #应付职工薪酬占比
-        df['ppr'] = 100 * df['pp'] / df['ta']
-        #开始选股
-        df = df.dropna(subset = TYPE_LIST)
-        df = df.reset_index(drop = True)
-        for name, contains in df.groupby('industry'):
-            print("--------------------")
-            print(name)
-            print(contains)
-            print("====================")
-        print("total:", len(df))
-    except Exception as e:
-        print(e)
-        traceback.print_exc()
+    mval_client = MValuation()
+    mval_client.update_index(end_date = '2019-08-13')

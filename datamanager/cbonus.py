@@ -6,7 +6,7 @@ import const as ct
 import pandas as pd
 from base.cdate import str_to_datetime, int_to_datetime, years_ago, datetime_to_int
 class CBonus(object):
-    def __init__(self, fpath = '/data/tdx/base/bonus.csv'):
+    def __init__(self, fpath = ct.BONUS_PATH):
         self.fpath = fpath
         self.data = self.init()
 

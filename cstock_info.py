@@ -15,13 +15,13 @@ from industry_info import IndustryInfo
 from common import create_redis_obj, concurrent_run, smart_get
 logger = getLogger(__name__)
 class CStockInfo(object):
-    def __init__(self, dbinfo = ct.DB_INFO, redis_host = None, stocks_dir = '/data/tdx/history/days', stock_path = '/data/tdx/base/stocks.csv'):
+    def __init__(self, dbinfo = ct.DB_INFO, redis_host = None, stocks_dir = ct.STOCKS_DIR, base_stock_path = ct.BASE_STOCK_PATH):
         self.table = ct.STOCK_INFO_TABLE
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
         self.mysql_client = cmysql.CMySQL(dbinfo, iredis = self.redis)
         self.mysql_dbs = self.mysql_client.get_all_databases()
         self.stocks_dir = stocks_dir
-        self.stock_path = stock_path
+        self.base_stock_path = base_stock_path
         #self.trigger = ct.SYNCSTOCK2REDIS
         #if not self.create(): raise Exception("create stock info table:%s failed" % self.table)
         #if not self.register(): raise Exception("create trigger info table:%s failed" % self.trigger)
@@ -120,7 +120,7 @@ class CStockInfo(object):
     def get_base_stock_info(self):
         """获取沪深股票列表"""
         try:
-            base_df = pd.read_csv(self.stock_path, header=0)
+            base_df = pd.read_csv(self.base_stock_path, header=0)
             base_df['name'] = base_df['name'].map(lambda x: str(x))
             base_df['code'] = base_df['code'].map(lambda x: str(x).zfill(6))
             filter_df = base_df[((base_df['code'].str.startswith("00")) & (base_df['market'] == 0)) |

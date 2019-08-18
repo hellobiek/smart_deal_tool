@@ -2410,8 +2410,6 @@ static void __pyx_pf_7cpython_5array_5array_2__releasebuffer__(CYTHON_UNUSED arr
 static PyObject *__pyx_tp_new_6cstock___pyx_scope_struct__compute_profit(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static PyObject *__pyx_float_0_92;
 static PyObject *__pyx_float_1_08;
-static PyObject *__pyx_float_0_925;
-static PyObject *__pyx_float_1_075;
 static PyObject *__pyx_int_0;
 static PyObject *__pyx_int_1;
 static PyObject *__pyx_int_60;
@@ -8787,7 +8785,7 @@ static PyObject *__pyx_pf_6cstock_12pro_nei_chip(CYTHON_UNUSED PyObject *__pyx_s
  *             outstanding = drow['outstanding']
  *             group = groups.get_group(cdate)             # <<<<<<<<<<<<<<
  *             p_val = 100 * group[group.price < close_price].volume.sum() / outstanding
- *             n_val = 100 * group[(group.price < close_price * 1.075) & (group.price > close_price * 0.925)].volume.sum() / outstanding
+ *             n_val = 100 * group[(group.price < close_price * 1.08) & (group.price > close_price * 0.92)].volume.sum() / outstanding
  */
       __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_groups, __pyx_n_s_get_group); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 274, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
@@ -8813,7 +8811,7 @@ static PyObject *__pyx_pf_6cstock_12pro_nei_chip(CYTHON_UNUSED PyObject *__pyx_s
  *             outstanding = drow['outstanding']
  *             group = groups.get_group(cdate)
  *             p_val = 100 * group[group.price < close_price].volume.sum() / outstanding             # <<<<<<<<<<<<<<
- *             n_val = 100 * group[(group.price < close_price * 1.075) & (group.price > close_price * 0.925)].volume.sum() / outstanding
+ *             n_val = 100 * group[(group.price < close_price * 1.08) & (group.price > close_price * 0.92)].volume.sum() / outstanding
  *             p_profit_vol_list.append(p_val)
  */
       __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_group, __pyx_n_s_price); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 275, __pyx_L1_error)
@@ -8856,20 +8854,20 @@ static PyObject *__pyx_pf_6cstock_12pro_nei_chip(CYTHON_UNUSED PyObject *__pyx_s
       /* "cstock.pyx":276
  *             group = groups.get_group(cdate)
  *             p_val = 100 * group[group.price < close_price].volume.sum() / outstanding
- *             n_val = 100 * group[(group.price < close_price * 1.075) & (group.price > close_price * 0.925)].volume.sum() / outstanding             # <<<<<<<<<<<<<<
+ *             n_val = 100 * group[(group.price < close_price * 1.08) & (group.price > close_price * 0.92)].volume.sum() / outstanding             # <<<<<<<<<<<<<<
  *             p_profit_vol_list.append(p_val)
  *             p_neighbor_vol_list.append(n_val)
  */
       __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_group, __pyx_n_s_price); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 276, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_6 = PyNumber_Multiply(__pyx_v_close_price, __pyx_float_1_075); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 276, __pyx_L1_error)
+      __pyx_t_6 = PyNumber_Multiply(__pyx_v_close_price, __pyx_float_1_08); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 276, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_6);
       __pyx_t_11 = PyObject_RichCompare(__pyx_t_4, __pyx_t_6, Py_LT); __Pyx_XGOTREF(__pyx_t_11); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 276, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
       __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_v_group, __pyx_n_s_price); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 276, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_6);
-      __pyx_t_4 = PyNumber_Multiply(__pyx_v_close_price, __pyx_float_0_925); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 276, __pyx_L1_error)
+      __pyx_t_4 = PyNumber_Multiply(__pyx_v_close_price, __pyx_float_0_92); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 276, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
       __pyx_t_12 = PyObject_RichCompare(__pyx_t_6, __pyx_t_4, Py_GT); __Pyx_XGOTREF(__pyx_t_12); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 276, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
@@ -8913,7 +8911,7 @@ static PyObject *__pyx_pf_6cstock_12pro_nei_chip(CYTHON_UNUSED PyObject *__pyx_s
 
       /* "cstock.pyx":277
  *             p_val = 100 * group[group.price < close_price].volume.sum() / outstanding
- *             n_val = 100 * group[(group.price < close_price * 1.075) & (group.price > close_price * 0.925)].volume.sum() / outstanding
+ *             n_val = 100 * group[(group.price < close_price * 1.08) & (group.price > close_price * 0.92)].volume.sum() / outstanding
  *             p_profit_vol_list.append(p_val)             # <<<<<<<<<<<<<<
  *             p_neighbor_vol_list.append(n_val)
  *         df['ppercent'] = p_profit_vol_list
@@ -8921,7 +8919,7 @@ static PyObject *__pyx_pf_6cstock_12pro_nei_chip(CYTHON_UNUSED PyObject *__pyx_s
       __pyx_t_13 = __Pyx_PyList_Append(__pyx_v_p_profit_vol_list, __pyx_v_p_val); if (unlikely(__pyx_t_13 == ((int)-1))) __PYX_ERR(0, 277, __pyx_L1_error)
 
       /* "cstock.pyx":278
- *             n_val = 100 * group[(group.price < close_price * 1.075) & (group.price > close_price * 0.925)].volume.sum() / outstanding
+ *             n_val = 100 * group[(group.price < close_price * 1.08) & (group.price > close_price * 0.92)].volume.sum() / outstanding
  *             p_profit_vol_list.append(p_val)
  *             p_neighbor_vol_list.append(n_val)             # <<<<<<<<<<<<<<
  *         df['ppercent'] = p_profit_vol_list
@@ -13152,8 +13150,6 @@ static CYTHON_SMALL_CODE int __Pyx_InitGlobals(void) {
   if (__Pyx_InitStrings(__pyx_string_tab) < 0) __PYX_ERR(0, 1, __pyx_L1_error);
   __pyx_float_0_92 = PyFloat_FromDouble(0.92); if (unlikely(!__pyx_float_0_92)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_float_1_08 = PyFloat_FromDouble(1.08); if (unlikely(!__pyx_float_1_08)) __PYX_ERR(0, 1, __pyx_L1_error)
-  __pyx_float_0_925 = PyFloat_FromDouble(0.925); if (unlikely(!__pyx_float_0_925)) __PYX_ERR(0, 1, __pyx_L1_error)
-  __pyx_float_1_075 = PyFloat_FromDouble(1.075); if (unlikely(!__pyx_float_1_075)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_int_0 = PyInt_FromLong(0); if (unlikely(!__pyx_int_0)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_int_1 = PyInt_FromLong(1); if (unlikely(!__pyx_int_1)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_int_60 = PyInt_FromLong(60); if (unlikely(!__pyx_int_60)) __PYX_ERR(0, 1, __pyx_L1_error)

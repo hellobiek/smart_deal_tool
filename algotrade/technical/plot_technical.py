@@ -3,6 +3,7 @@ import os
 import sys
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
+import pandas as pd
 import const as ct
 from ma import sma, ewma, macd
 from kdj import kdj
@@ -14,6 +15,9 @@ from boll import boll
 from admi import admi
 from cindex import CIndex
 import matplotlib.pyplot as plt
+pd.options.mode.chained_assignment = None #default='warn'
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
 COLORS = ['#F5DEB3', '#A0522D', '#1E90FF', '#FFE4C4', '#00FFFF', '#DAA520', '#3CB371', '#808080', '#ADFF2F', '#4B0082']
 def get_index_data(start_date, end_date, index_code):
     iobj = CIndex(index_code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
@@ -89,8 +93,8 @@ def plot_admi(data):
 
 if __name__ == '__main__':
     index_code = '000300'
-    start = '2005-01-04'
-    end = '2006-06-01'
+    start = '2015-01-01'
+    end = '2016-06-01'
     data = get_index_data(start, end, index_code)
     #plot_kdj(data)
     #plot_cci(data)
@@ -100,6 +104,6 @@ if __name__ == '__main__':
     #plot_boll(data)
     #plot_ewma(data)
     #plot_sma(data)
-    plot_macd(data)
+    #plot_macd(data)
     #plot_obv(data)
     #plot_admi(data)

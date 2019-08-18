@@ -150,12 +150,12 @@ class MACDStrategy(strategy.BacktestingStrategy):
         adjustSignalList.extend(newSignalList)
         return adjustSignalList
 
-    def onBars(self, bars):
-        self.updateHighestPrice(bars)
-        signalList = self.getSignalDict(bars)
-        for info in signalList:
+    def onbars(self, bars):
+        self.updatehighestprice(bars)
+        signallist = self.getsignaldict(bars)
+        for info in signallist:
             for instrument, shares in info.items():
-                self.marketOrder(instrument, shares, allOrNone = True)
+                self.marketorder(instrument, shares, allornone = true)
             
 def get_feed(all_df, codes, start_date, end_date, peried):
     feed = dataFramefeed.Feed()

@@ -3,19 +3,18 @@ import sys
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import os
-import shutil
 import tempfile
+import const as ct
 import pandas as pd
 from zipfile import ZipFile
 from base.clog import getLogger
 from struct import unpack, calcsize
-from base.cdate import report_date_with, prev_report_date_with, str_to_datetime, quarter
 class CReport(object):
-    def __init__(self, report_path = "/data/tdx/report", publish_date_path = "/data/crawler/stock/financial/report_announcement_date"):
+    def __init__(self, report_dir = ct.REPORT_DIR, report_publish_dir = ct.REPORT_PUBLISH_DIR):
         self.publish_data = dict()
-        self.report_path = report_path
+        self.report_dir = report_dir
         self.logger = getLogger(__name__)
-        self.publish_date_path = publish_date_path
+        self.report_publish_dir = report_publish_dir
 
     def to_df(self, data):
         if len(data) == 0: return None
@@ -34,7 +33,7 @@ class CReport(object):
         """
         item_all_list = list()
         file_name = 'gpcw%s' % mdate.replace('-', '')
-        file_path = "%s/%s.zip" % (self.report_path, file_name)
+        file_path = "%s/%s.zip" % (self.report_dir, file_name)
         if not os.path.isfile(file_path): return None
         with ZipFile(file_path) as myzip:
             with tempfile.TemporaryDirectory() as tmpdirname:
@@ -70,7 +69,7 @@ class CReport(object):
         获取所有财报信息
         """
         all_date_list = []   # 所有财报日期
-        file_list = os.listdir(self.report_path)
+        file_list = os.listdir(self.report_dir)
         for file_name in file_list:
             if file_name.startswith("."): continue
             file_name = file_name.split('.')[0]
@@ -97,7 +96,7 @@ class CReport(object):
         """
         result_df = self.publish_data.get(mdate, None)
         if result_df is None or len(result_df) <= 0:
-            fpath = os.path.join(self.publish_date_path, "%s.csv" % mdate)
+            fpath = os.path.join(self.report_publish_dir, "{}.csv".format(mdate))
             if not os.path.exists(fpath): return mdate
             self.publish_data[mdate] = pd.read_csv(fpath, header=0)
             self.publish_data[mdate]['code'] = self.publish_data[mdate]['code'].map(lambda x: str(x).zfill(6))

@@ -62,15 +62,18 @@ DTYPE_DICT = {'date': int,
 cdef str PRE_CUR_CODE = '', PRE_YEAR_CODE = ''
 cdef dict PRE_YEAR_ITEM = dict(), PRE_CUR_ITEM = dict()
 cdef int PRE_YEAR_REPORT_DATE = 0, PRE_CUR_REPORT_DATE = 0
-
 cdef class CValuation(object):
-    cdef public str report_data_path
     cdef public np.ndarray valuation_data
+    cdef public str report_data_path, rvaluation_dir, pledge_file_dir
     cdef public object logger, bonus_client, report_client
-    def __init__(self, str valution_path = ct.VALUATION_PATH, needUpdate = False):
+    def __init__(self, str valution_path = ct.VALUATION_PATH, str bonus_path = ct.BONUS_PATH, 
+            str report_dir = ct.REPORT_DIR, str report_publish_dir = ct.REPORT_PUBLISH_DIR, 
+            str pledge_file_dir = ct.PLEDGE_FILE_DIR, str rvaluation_dir = ct.RVALUATION_DIR, needUpdate = False):
         self.logger = getLogger(__name__)
-        self.bonus_client = CBonus()
-        self.report_client = CReport()
+        self.rvaluation_dir = rvaluation_dir
+        self.pledge_file_dir = pledge_file_dir
+        self.bonus_client = CBonus(bonus_path)
+        self.report_client = CReport(report_dir, report_publish_dir)
         self.report_data_path = valution_path
         if needUpdate: self.convert()
         self.valuation_data = self.get_reports_data()
@@ -82,9 +85,6 @@ cdef class CValuation(object):
         df = df.drop_duplicates()
         df = df.reset_index(drop = True)
         return df.to_records(index = False)
-
-    def covert_one(self):
-        
 
     def convert(self):
         #date, code, 1.基本每股收益(earnings per share)、2.扣非每股收益(non-earnings per share)、
@@ -493,7 +493,7 @@ cdef class CValuation(object):
                 cfrom_ = get_pre_date(mdate, target_day = calendar.SUNDAY, dformat = dformat)
                 cto_ = get_next_date(mdate, target_day = calendar.SATURDAY, dformat = dformat)
         filename = "%s_%s.xls" % (cfrom_, cto_)
-        filepath = os.path.join("/data/tdx/history/weeks/pledge", filename)
+        filepath = os.path.join(self.pledge_file_dir, filename)
         try:
             wb = xlrd.open_workbook(filepath, encoding_override="cp1252")
             name_list = ['date', 'code', 'name', 'counts', 'unlimited_quantity', 'limited_quantity', 'total_capital_share', 'pledge_rate']
@@ -520,7 +520,7 @@ cdef class CValuation(object):
 
     cdef object get_r_financial_data(self, str mdate):
         cdef str file_name = self.get_r_financial_name(mdate)
-        cdef object file_path = Path("/data/valuation/rstock") / file_name
+        cdef object file_path = Path(self.rvaluation_dir) / file_name
         if file_path.exists():
             use_cols = ['code', 'date', 'pe', 'pb', 'ttm', 'dr', 'ccs', 'tcs', 'ccs_mv', 'tcs_mv']
             dtype_dict = {'code':str, 'date': str, 'pe': float, 'pb': float, 'ttm': float, 'dr': float, 'ccs': float, 'tcs': float, 'ccs_mv': float, 'tcs_mv': float}

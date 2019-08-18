@@ -36,6 +36,16 @@ class CMySQL:
             for _db in all_dbs: self.redis.sadd(ALL_DATABASES, _db)
             return all_dbs
 
+    def is_exists(self, table_name):
+        if self.redis.exists(self.dbname):
+            return self.redis.sismember(self.dbname, table_name)
+        else:
+            all_tables = self._get('SHOW TABLES', 'Tables_in_{}'.format(self.dbname.lower()))
+            if table_name in all_tables:
+                self.redis.sadd(self.dbname, table)
+                return True
+            return False
+
     def get_all_tables(self):
         if self.redis.exists(self.dbname):
             return set(table.decode() for table in self.redis.smembers(self.dbname))

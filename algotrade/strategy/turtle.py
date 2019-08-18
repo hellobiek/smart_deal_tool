@@ -106,7 +106,7 @@ class MACDStrategy(strategy.BacktestingStrategy):
         if dealPrice is None: return False
         if dealPrice <= closePrice - atr * STOP_LOSS_ATR:
             # 当前价格小于等于最高价回撤 STOP_LOSS_ATR 倍ATR，进行止损卖出
-            self.info("%s stop loss, price:%s, result:%s" % (instrument, closePrice, dealPrice - atr * STOP_LOSS_ATR))
+            self.info("{} stop loss, price:{}, result:{}".format(instrument, closePrice, dealPrice - atr * STOP_LOSS_ATR))
             return True
         return False
 
