@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 import abc
-from algotrade.feed import bar, tickds
 from pyalgotrade import feed
 from pyalgotrade import dispatchprio
-Frequency = bar.Frequency
-
+from algotrade.feed import bar, tickds
 class BaseBarFeed(feed.BaseFeed):
     def __init__(self, frequency, maxLen=None):
         super(BaseBarFeed, self).__init__(maxLen)

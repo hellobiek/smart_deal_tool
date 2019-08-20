@@ -110,6 +110,7 @@ class Subscriber:
         return ret, data
 
     def subscribe(self, code_list, dtype, callback = None):
+        if len(code_list) == 0: return 0
         if dtype in self.sub_dict and set(code_list).issubset(set(self.sub_dict[dtype])): return 0
         if callback is not None: self.quote_ctx.set_handler(callback)
         ret, msg = self.quote_ctx.subscribe(code_list, dtype)
@@ -117,7 +118,7 @@ class Subscriber:
             if dtype not in self.sub_dict: self.sub_dict[dtype] = list()
             self.sub_dict[dtype].extend(code_list)
         else:
-            logger.error("%s subscrbe failed, msg:%s, dtype:%s" % (code, msg, dtype))
+            logger.error("{} subscrbe failed, msg:{}, dtype:{}".format(code_list, msg, dtype))
         return ret
 
     def unsubscribe(self, code_list, subtype):

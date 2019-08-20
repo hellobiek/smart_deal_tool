@@ -5,18 +5,17 @@ sys.path.insert(0, dirname(abspath(__file__)))
 import bar
 import time
 import queue
-import threading
 import const as ct
 import dataFramefeed
-from datetime import timedelta, datetime
-from base.base import PollingThread, localnow, get_today_time
-from pyalgotrade.dataseries import DEFAULT_MAX_LEN
-from algotrade.broker.futu.subscriber import Subscriber, StockQuoteHandler, OrderBookHandler
 from base.clog import getLogger
-logger = getLogger(__name__)
+from futu.common.constant import SubType
+from datetime import timedelta, datetime
+from pyalgotrade.dataseries import DEFAULT_MAX_LEN
+from algotrade.broker.futu.subscriber import Subscriber
+from base.base import PollingThread, localnow, get_today_time
+ON_END  = 1
+ON_BARS = 2
 class GetBarThread(PollingThread):
-    ON_END  = 1
-    ON_BARS = 2
     def __init__(self, mqueue, identifiers, start_time, end_time, frequency, timezone):
         PollingThread.__init__(self)
         self.__queue       = mqueue
@@ -55,11 +54,11 @@ class GetBarThread(PollingThread):
                 if res is not None: bar_dict[identifier] = res
         if len(bar_dict) > 0:
             bars = bar.Ticks(bar_dict)
-            self.__queue.put((GetBarThread.ON_BARS, bars))
+            self.__queue.put((ON_BARS, bars))
         if localnow(self.__timezone) >= self.__end_time:
             self.stop()
 
-    def init_real_trading(self):
+    def init_instruments(self):
         quote_ret = self.__subscriber.subscribe(self.__identifiers, SubType.QUOTE)
         order_ret = self.__subscriber.subscribe(self.__identifiers, SubType.ORDER_BOOK)
         if 0 != order_ret or 0 != quote_ret: return False
@@ -73,7 +72,7 @@ class GetBarThread(PollingThread):
 
     def start(self):
         if not self.__subscriber.status(): self.__subscriber.start(host = ct.FUTU_HOST_LOCAL)
-        if not self.init_real_trading(): raise Exception("init_real_trading subscribe failed")
+        if not self.init_instruments(): raise Exception("instruments subscribe failed")
         PollingThread.start(self)
 
     def run(self):
@@ -102,9 +101,10 @@ class FutuFeed(dataFramefeed.TickFeed):
         dataFramefeed.TickFeed.__init__(self, bar.Frequency.TRADE, None, maxLen)
         if not isinstance(identifiers, list): raise Exception("identifiers must be a list")
         self.__timezone = timezone
+        self.__queue  = queue.Queue()
         self.__start_time = dealtime['start']
         self.__end_time   = dealtime['end']
-        self.__queue  = queue.Queue()
+        self.logger = getLogger(__name__)
         self.__thread = GetBarThread(self.__queue, identifiers, self.__start_time, self.__end_time, timedelta(seconds = frequency), self.__timezone)
         for instrument in identifiers: self.registerInstrument(instrument)
 
@@ -135,13 +135,13 @@ class FutuFeed(dataFramefeed.TickFeed):
         ret = None
         try:
             eventType, eventData = self.__queue.get(True, FutuFeed.QUEUE_TIMEOUT)
-            if eventType == GetBarThread.ON_BARS:
+            if eventType == ON_BARS:
                 ret = eventData
-            elif eventType == GetBarThread.ON_END:
+            elif eventType == ON_END:
                 ret = eventData
                 self.stop()
             else:
-                logger.error("Invalid event received: %s - %s" % (eventType, eventData))
+                self.logger.error("invalid event received: {} - {}".format(eventType, eventData))
         except queue.Empty:
-            pass
+            self.logger.debug("get empty queue")
         return ret

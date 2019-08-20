@@ -173,6 +173,7 @@ const.REPORT_DIR = '/data/tdx/report'
 const.RINDEX_DIR = "/data/valuation/indexs"
 const.STOCKS_DIR = '/data/tdx/history/days'
 const.BONUS_PATH = '/data/tdx/base/bonus.csv'
+const.CALENDAR_PATH = '/conf/calAll.csv'
 const.RVALUATION_DIR = "/data/valuation/rstock"
 const.BASE_STOCK_PATH = '/data/tdx/base/stocks.csv'
 const.VALUATION_PATH = "/data/valuation/reports.csv"
@@ -5417,6 +5418,7 @@ const.BLACK_DICT = {
     "000890": "法尔胜: 卷入罗静案，涉及34亿元供应链融资及近29亿元商业保理融资。",
     "600781": "辅仁药业: 账面18亿却拿不出6000万分红。",
     "002407": "多氟多: 红星汽车陷停产, 多氟多持有红星汽车72.5%股权",
+    "002716": "金贵银业: 董事长曹永贵四处举债官司缠身, 跳船式减持, 大股东质押危机",
     "600747": "ST大控: 2015年度、2016 年度经审计的净利润均为负值，且被会计师事务所出具无法表示意见的审计报告。",
     "002349": "精华制药: 董事长59岁离任后套现千万。",
     "002220": "ST天宝: 董事长黄作庆先生因涉嫌虚开发票罪，经大连市人民检察院批准，已被大连市公安局正式逮捕。",

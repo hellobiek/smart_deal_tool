@@ -5,8 +5,8 @@ import const as ct
 import pandas as pd
 from datetime import datetime
 from common import create_redis_obj, df_delta
-class CCalendar:
-    def __init__(self, dbinfo = ct.DB_INFO, without_init = False, redis_host = None, filepath = '/conf/calAll.csv'):
+class CCalendar(object):
+    def __init__(self, dbinfo = ct.DB_INFO, without_init = False, redis_host = None, filepath = ct.CALENDAR_PATH):
         self.fpath = filepath 
         self.table = ct.CALENDAR_TABLE
         self.trigger = ct.SYNCCAL2REDIS

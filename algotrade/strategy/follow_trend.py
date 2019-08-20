@@ -6,17 +6,10 @@ import traceback
 import const as ct
 import numpy as np
 import pandas as pd
-from cstock import CStock
-from ccalendar import CCalendar
 from pyalgotrade import strategy
-from common import create_redis_obj
 from algotrade.plotter import plotter
-from algotrade.technical.kdj import kdj
-from algotrade.feed import dataFramefeed
 from algotrade.strategy import gen_broker
-from common import is_df_has_unexpected_data
 from pyalgotrade.stratanalyzer import returns, sharpe
-from base.cdate import str_to_datetime, get_dates_array
 from algotrade.model.follow_trend import FollowTrendModel
 class FollowTrendStrategy(strategy.BacktestingStrategy):
     def __init__(self, instruments, df, feed, cash, stockNum, duaration, totalRisk):
@@ -119,35 +112,6 @@ class FollowTrendStrategy(strategy.BacktestingStrategy):
         for instrument, shares in signalList.items():
             self.marketOrder(instrument, shares, allOrNone = True)
 
-def get_feed(cal_client, model, start_date, end_date):
-    all_df = pd.DataFrame()
-    feed = dataFramefeed.Feed()
-    date_array = get_dates_array(start_date, end_date, asending = True)
-    is_first = True
-    code_list = list()
-    for mdate in date_array:
-        if cal_client.is_trading_day(mdate, redis = cal_client.redis):
-            df = model.compute_stock_pool(mdate)
-            if is_first:
-               code_list = df.code.tolist()
-               is_first = False
-            all_df = all_df.append(df)
-    codes = list(set(all_df.code.tolist()))
-    all_df = all_df.set_index('date')
-    all_df.index = pd.to_datetime(all_df.index)
-    for code in codes:
-        data = CStock(code).get_k_data()
-        data = kdj(data)
-        data = data[(data.date >= start_date) & (data.date <= end_date)]
-        data = data.sort_values(by=['date'], ascending = True)
-        data = data.reset_index(drop = True)
-        data = data.set_index('date')
-        if is_df_has_unexpected_data(data): return None, None, None
-        data.index = pd.to_datetime(data.index)
-        data = data.dropna(how='any')
-        feed.addBarsFromDataFrame(code, data)
-    return all_df, feed, code_list
-
 def main(df, feed, codes):
     #每只股票可投资的金额
     cash = 250000
@@ -176,7 +140,6 @@ if __name__ == '__main__':
         end_date   = '2019-08-16'
         dbinfo = ct.OUT_DB_INFO
         redis_host = '127.0.0.1'
-        cal_file_path = "/Volumes/data/quant/stock/conf/calAll.csv"
         report_dir = "/Volumes/data/quant/stock/data/tdx/report"
         stocks_dir = "/Volumes/data/quant/stock/data/tdx/history/days"
         bonus_path = "/Volumes/data/quant/stock/data/tdx/base/bonus.csv"
@@ -185,9 +148,9 @@ if __name__ == '__main__':
         valuation_path = "/Volumes/data/quant/stock/data/valuation/reports.csv"
         pledge_file_dir = "/Volumes/data/quant/stock/data/tdx/history/weeks/pledge"
         report_publish_dir = "/Volumes/data/quant/stock/data/crawler/stock/financial/report_announcement_date"
-        cal_client = CCalendar(dbinfo = dbinfo, redis_host = redis_host, filepath = cal_file_path)
+        cal_file_path = "/Volumes/data/quant/stock/conf/calAll.csv"
         model = FollowTrendModel('follow_trend', valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir, dbinfo = dbinfo, redis_host = redis_host)
-        df, feed, code_list = get_feed(cal_client, model, start_date, end_date)
+        df, feed, code_list = model.generate_feed(start_date, end_date)
         main(df, feed, code_list)
     except Exception as e:
         print(e)
