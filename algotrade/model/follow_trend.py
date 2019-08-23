@@ -157,6 +157,7 @@ if __name__ == '__main__':
     redis_host = "127.0.0.1"
     dbinfo = ct.OUT_DB_INFO
     report_dir = "/Volumes/data/quant/stock/data/tdx/report"
+    cal_file_path = "/Volumes/data/quant/stock/conf/calAll.csv"
     stocks_dir = "/Volumes/data/quant/stock/data/tdx/history/days"
     bonus_path = "/Volumes/data/quant/stock/data/tdx/base/bonus.csv"
     rvaluation_dir = "/Volumes/data/quant/stock/data/valuation/rstock"
@@ -164,6 +165,5 @@ if __name__ == '__main__':
     valuation_path = "/Volumes/data/quant/stock/data/valuation/reports.csv"
     pledge_file_dir = "/Volumes/data/quant/stock/data/tdx/history/weeks/pledge"
     report_publish_dir = "/Volumes/data/quant/stock/data/crawler/stock/financial/report_announcement_date"
-    cal_file_path = "/Volumes/data/quant/stock/conf/calAll.csv"
     ftm = FollowTrendModel('follow_trend', valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir, cal_file_path, dbinfo = dbinfo, redis_host = redis_host)
     df, feed, code_list = ftm.generate_feed(start_date, end_date)

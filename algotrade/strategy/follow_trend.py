@@ -7,23 +7,22 @@ import const as ct
 import numpy as np
 import pandas as pd
 from pyalgotrade import strategy
+from pyalgotrade.broker import Order
 from algotrade.plotter import plotter
 from algotrade.strategy import gen_broker
 from pyalgotrade.stratanalyzer import returns, sharpe
 from algotrade.model.follow_trend import FollowTrendModel
-class FollowTrendStrategy(strategy.BacktestingStrategy):
-    def __init__(self, instruments, df, feed, cash, stockNum, duaration, totalRisk):
-        self.cash = cash
+#class FollowTrendStrategy(strategy.BacktestingStrategy):
+class FollowTrendStrategy(strategy.BaseStrategy):
+    def __init__(self, instruments, df, feed, brk, stockNum, duaration):
+        super(FollowTrendStrategy, self).__init__(feed, brk)
         self.data = df
         self.tradingDays = 0
         self.positions = dict()
         self.totalNum = stockNum
         self.duaration = duaration
-        self.totalRisk = totalRisk
         self.instruments = instruments
-        #self.model = FollowTrendModel('follow_trend')
-        strategy.BacktestingStrategy.__init__(self, feed, gen_broker(feed, cash * stockNum))
-        self.setUseAdjustedValues(False)
+        self.setUseEventDateTimeInLogs(True)
 
     def getExpectdShares(self, price, cash):
         #成交量获取到的单位是股
@@ -49,11 +48,14 @@ class FollowTrendStrategy(strategy.BacktestingStrategy):
                 self.info("can not buy for actualNum {} >= totalNum {}".format(acutalNum, self.totalNum))
                 continue
             if k < 15 and d < 15 and code not in actualPostion and row['ppercent'] > row['npercent']:
-                price = bar.getPrice()
+                price = bar.getPrice() * 1.02
                 cash = self.getCash()
                 cash = cash / (self.totalNum - acutalNum)
-                position[code] = self.getExpectdShares(price, cash)
-                self.info("buy: {} {} at {}".format(code, position[code], price))
+                position[code] = dict()
+                position[code]['price'] = price
+                position[code]['quantity'] = self.getExpectdShares(price, cash)
+                self.info("buy: {} {} at {}".format(code, position[code]['quantity'], position[code]['price']))
+
         for code in actualPostion:
             bar = bars.getBar(code)
             if bar is None:continue
@@ -62,26 +64,35 @@ class FollowTrendStrategy(strategy.BacktestingStrategy):
             k, d = row['k'], row['d']
             if k is None or d is None: continue
             if row['ppercent'] <= row['npercent']:
-                position[code] = -1 * actualPostion[code]
+                position[code] = dict()
+                position[code]['price'] = price * 0.98
+                position[code]['quantity'] = -1 * actualPostion[code]
                 self.info("sell: {} {} for ppercent {} <= npercent {} at price: {}".format(code, 
                                         position[code], row['ppercent'], row['npercent'], price))
+                continue
 
             if self.positions[code]['price'] > price * 1.2:
                 assert(self.positions[code]['quantity'] == actualPostion[code])
+                position[code] = dict()
+                position[code]['price'] = price * 0.98
                 position[code] = -1 * actualPostion[code]
-                self.info("sell: {} {} for hold_price {} > 1.2 * cur_price {}".format(code, position[code], 
-                                    row['ppercent'], row['npercent'], self.positions[code]['price'], price))
+                self.info("sell: {} {} for hold_price {} > 1.2 * cur_price {}".format(code,
+                                    position[code], self.positions[code]['price'], price))
+                continue
                 
             if k > 80 and d > 80:
-                position[code] = -1 * actualPostion[code]
-                self.info("sell: {} {} for kdj > 80 at price: {}".format(code, position[code], price))
+                position[code] = dict()
+                position[code]['price'] = price * 0.98
+                position[code]['quantity'] = -1 * actualPostion[code]
+                self.info("sell: {} {} for kdj > 80 at price: {}".format(code, position[code]['quantity'], position[code]['price']))
+                continue
         return position
 
     def onOrderUpdated(self, order):
         if order.isFilled():
             instrument = order.getInstrument()
             price = order.getAvgFillPrice()
-            quantity =  order.getQuantity()
+            quantity = order.getQuantity()
             if order.isBuy():
                 if instrument in self.positions:
                     self.positions[instrument]['price'] = (self.positions[instrument]['quantity'] * self.positions[instrument]['price'] 
@@ -99,7 +110,7 @@ class FollowTrendStrategy(strategy.BacktestingStrategy):
                                                            - price * quantity) / (self.positions[instrument]['quantity'] - quantity)
                     self.positions[instrument]['quantity'] = self.positions[instrument]['quantity'] - quantity
 
-    def onBars(self, bars):
+    def updateInstruments(self, bars):
         self.tradingDays += 1
         if self.tradingDays % self.duaration == 0:
             today = bars.getDateTime()
@@ -108,17 +119,24 @@ class FollowTrendStrategy(strategy.BacktestingStrategy):
                 self.instruments = list(val)
             else:
                 self.instruments = self.data.loc[today]['code'].tolist()
+
+    def onBars(self, bars):
+        self.updateInstruments(bars)
         signalList = self.getSignalDict(bars)
-        for instrument, shares in signalList.items():
-            self.marketOrder(instrument, shares, allOrNone = True)
+        for instrument, info in signalList.items():
+            price = info['price']
+            quantity = info['quantity']
+            action = Order.Action.BUY if quantity > 0 else Order.Action.SELL
+            order = self.getBroker().createLimitOrder(action, instrument, price, abs(quantity))
+            self.getBroker().submitOrder(order)
 
 def main(df, feed, codes):
     #每只股票可投资的金额
-    cash = 250000
-    stockNum = 2
-    totalRisk = 0.1
+    cash = 125000
+    stockNum = 4
     duaration = 10 #调仓周期
-    mStrategy = FollowTrendStrategy(codes, df, feed, cash, stockNum, duaration, totalRisk)
+    brk = gen_broker(feed, cash * stockNum)
+    mStrategy = FollowTrendStrategy(codes, df, feed, brk, stockNum, duaration)
     # Attach a returns analyzers to the strategy
     returnsAnalyzer = returns.Returns()
     mStrategy.attachAnalyzer(returnsAnalyzer)
@@ -141,6 +159,7 @@ if __name__ == '__main__':
         dbinfo = ct.OUT_DB_INFO
         redis_host = '127.0.0.1'
         report_dir = "/Volumes/data/quant/stock/data/tdx/report"
+        cal_file_path = "/Volumes/data/quant/stock/conf/calAll.csv"
         stocks_dir = "/Volumes/data/quant/stock/data/tdx/history/days"
         bonus_path = "/Volumes/data/quant/stock/data/tdx/base/bonus.csv"
         rvaluation_dir = "/Volumes/data/quant/stock/data/valuation/rstock"
@@ -148,8 +167,9 @@ if __name__ == '__main__':
         valuation_path = "/Volumes/data/quant/stock/data/valuation/reports.csv"
         pledge_file_dir = "/Volumes/data/quant/stock/data/tdx/history/weeks/pledge"
         report_publish_dir = "/Volumes/data/quant/stock/data/crawler/stock/financial/report_announcement_date"
-        cal_file_path = "/Volumes/data/quant/stock/conf/calAll.csv"
-        model = FollowTrendModel('follow_trend', valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir, dbinfo = dbinfo, redis_host = redis_host)
+        model = FollowTrendModel('follow_trend', valuation_path, bonus_path, stocks_dir,
+                       base_stock_path, report_dir, report_publish_dir, pledge_file_dir,
+                       rvaluation_dir, cal_file_path, dbinfo = dbinfo, redis_host = redis_host)
         df, feed, code_list = model.generate_feed(start_date, end_date)
         main(df, feed, code_list)
     except Exception as e:

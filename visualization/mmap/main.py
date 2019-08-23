@@ -2,7 +2,7 @@
 import os
 import sys
 import traceback
-from os.path import abspath, dirname
+from os.path import abspath, dirname, join
 sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
 import const as ct
 import pandas as pd
@@ -15,10 +15,10 @@ from cstock_info import CStockInfo
 from cpython.cval import CValuation
 from base.cdate import int_to_datetime
 from bokeh.layouts import row, column, gridplot
-from bokeh.transform import linear_cmap, transform
 from visualization.marauder_map import MarauderMap
-from bokeh.models.widgets import DatePicker, DataTable, TableColumn, TextInput
-from bokeh.models import WheelZoomTool, BoxZoomTool, HoverTool, ColumnDataSource, Div, LinearColorMapper, ColorBar, ResetTool, CustomJS, LassoSelectTool, BoxSelectTool, PanTool, TapTool
+from bokeh.transform import linear_cmap, transform
+from bokeh.models.widgets import DatePicker, DataTable, TableColumn, TextInput, Button
+from bokeh.models import WheelZoomTool, BoxZoomTool, HoverTool, ColumnDataSource, Div, LinearColorMapper, ColorBar, ResetTool, CustomJS, BoxSelectTool, PanTool, TapTool
 def update_mmap(attr, old, new):
     mdate = mmap_pckr.value
     layout.children[1] = create_mmap_figure_row(mdate)
@@ -145,8 +145,7 @@ def create_dist_figure(dist_source):
 def create_roe_figure(val_source):
     TOOLTIPS = [("roa", "@roa")]
     TOOLS = [HoverTool(tooltips = TOOLTIPS)]
-    fig = figure(plot_height = profit_fig.plot_height, plot_width = dist_fig.plot_width,
-                            x_axis_type='datetime', tools=TOOLS, toolbar_location=None)
+    fig = figure(plot_height = profit_fig.plot_height, plot_width = dist_fig.plot_width, x_axis_type='datetime', tools=TOOLS, toolbar_location=None)
     fig.vbar(x = 'date', bottom = 0, top = 'roa', width = 50, color = 'blue', source = val_source)
     return fig
 
@@ -171,6 +170,11 @@ callback = CustomJS(args = dict(source = tsource, text_row = code_text), code = 
 tsource.selected.js_on_change('indices', callback)
 columns = [TableColumn(field = "code", title = "代码"), TableColumn(field = "pday", title = "牛熊天数", sortable = True), TableColumn(field = "profit",title = "牛熊程度", sortable = True)]
 mtable = DataTable(source = tsource, columns = columns, width = 1300, height = 200)
+
+button = Button(label="Download", button_type="success")
+button.callback = CustomJS(args=dict(source=tsource), code=open(join(dirname(__file__), "download.js")).read())
+
+table_column = column(button, mtable)
 
 val_client = CValuation()
 
@@ -198,6 +202,5 @@ stock_source = ColumnDataSource()
 #roe_fig = create_roe_figure(val_source)
 
 stock_row = gridplot([[stock_fig, dist_fig], [profit_fig, roe_fig]])
-
-layout = column(mmap_select_row, create_mmap_figure_row(mmap_pckr.value), mtable, code_text, stock_row, name = "layout")
+layout = column(mmap_select_row, create_mmap_figure_row(mmap_pckr.value), table_column, code_text, stock_row, name = "layout")
 cdoc.add_root(layout)
