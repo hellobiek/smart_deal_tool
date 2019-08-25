@@ -19,7 +19,3 @@ if __name__ == '__main__':
     vdf = val_client.get_vertical_data(df, dtype_list, mdate)
     values = vdf['dar'].tolist()
     hist, edges = np.histogram(values, density=False, bins=100)
-    import pdb
-    pdb.set_trace()
-    endtime = datetime.datetime.now()
-    print((endtime - starttime).seconds)

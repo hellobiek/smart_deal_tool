@@ -4481,7 +4481,7 @@ const.FL = "飞龙"
 ##################################################
 const.SH_MARKET_SYMBOL = "SH"
 const.SZ_MARKET_SYMBOL = "SZ"
-const.CN_MARKET_SYMBOL = "CN"
+const.CN_MARKET_SYMBOL = "HKCC"
 const.HK_MARKET_SYMBOL = "HK"
 const.US_MARKET_SYMBOL = "US"
 const.TIMEZONE_DICT = {

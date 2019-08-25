@@ -8,6 +8,7 @@ from cstock import CStock
 from rstock import RIndexStock
 from ccalendar import CCalendar
 from base.cobj import CMysqlObj
+from base.clog import getLogger 
 from cstock_info import CStockInfo
 from cpython.cval import CValuation
 from algotrade.technical.kdj import kdj
@@ -26,6 +27,7 @@ class FollowTrendModel(CMysqlObj):
         self.cal_client = CCalendar(dbinfo = dbinfo, redis_host = redis_host, filepath = cal_file_path)
         self.val_client = CValuation(valuation_path, bonus_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir)
         self.rindex_client = RIndexStock(dbinfo, redis_host)
+        self.logger = getLogger(__name__)
         self.stock_info_client = CStockInfo(dbinfo, redis_host, stocks_dir, base_stock_path)
         if not self.create(should_create_mysqldb):
             raise Exception("create model {} table failed".format(self.code))
@@ -46,6 +48,10 @@ class FollowTrendModel(CMysqlObj):
     @staticmethod
     def get_dbname():
         return "model"
+
+    def get_table_name(self, mdate):
+        mdates = mdate.split('-')
+        return "{}_{}".format(self.code, mdates[0])
 
     def get_hist_val(self, black_set, white_set, code):
         if code in white_set:
@@ -101,10 +107,6 @@ class FollowTrendModel(CMysqlObj):
         df = df[['date', 'code', 'name', 'industry']]
         return df
 
-    def get_table_name(self, mdate):
-        mdates = mdate.split('-')
-        return "{}_{}".format(self.code, mdates[0])
-
     def generate_feed(self, start_date, end_date):
         all_df = pd.DataFrame()
         feed = dataFramefeed.Feed()
@@ -113,36 +115,50 @@ class FollowTrendModel(CMysqlObj):
         code_list = list()
         for mdate in date_array:
             if self.cal_client.is_trading_day(mdate, redis = self.cal_client.redis):
-                df = self.compute_stock_pool(mdate)
+                df = self.get_data(mdate)
                 if is_first:
                    code_list = df.code.tolist()
                    is_first = False
-                all_df = all_df.append(df)
+                if not df.empty: all_df = all_df.append(df)
         codes = list(set(all_df.code.tolist()))
-        all_df = all_df.set_index('date')
-        all_df.index = pd.to_datetime(all_df.index)
         for code in codes:
             data = CStock(code).get_k_data()
-            data = kdj(data)
             data = data[(data.date >= start_date) & (data.date <= end_date)]
             data = data.sort_values(by=['date'], ascending = True)
             data = data.reset_index(drop = True)
             data = data.set_index('date')
-            if is_df_has_unexpected_data(data): return None, None, None
+            if is_df_has_unexpected_data(data): return None, list()
+            data = kdj(data)
             data.index = pd.to_datetime(data.index)
             data = data.dropna(how='any')
             feed.addBarsFromDataFrame(code, data)
-        return all_df, feed, code_list
+        return feed, code_list
+
+    def generate_data(self, start_date, end_date):
+        succeed = True
+        date_array = get_dates_array(start_date, end_date)
+        for mdate in date_array:
+             if self.cal_client.is_trading_day(mdate, redis = self.cal_client.redis):
+                 if not self.set_data(mdate):
+                     self.logger.error("set {} data for model failed".format(mdate))
+                     succeed = False
+        return succeed
+
+    def get_data(self, mdate):
+        table_name = self.get_table_name(mdate)
+        if not self.is_date_exists(table_name, mdate): return pd.DataFrame()
+        sql = "select * from %s where date=\"%s\"" % (table_name, mdate)
+        return self.mysql_client.get(sql)
 
     def set_data(self, mdate):
         table_name = self.get_table_name(mdate)
         if not self.is_table_exists(table_name):
             if not self.create_table(table_name):
-                logger.error("create chip table:{} failed".format(table_name))
-                return (myear, False)
+                self.logger.error("create chip table:{} failed".format(table_name))
+                return False
 
         if self.is_date_exists(table_name, mdate):
-            logger.debug("existed data for code:{}, date:{}".format(self.code, mdate))
+            self.logger.debug("existed data for code:{}, date:{}".format(self.code, mdate))
             return True
 
         df = self.compute_stock_pool(mdate)
@@ -152,8 +168,8 @@ class FollowTrendModel(CMysqlObj):
         return False
 
 if __name__ == '__main__':
-    start_date = '2019-06-01'
-    end_date   = '2019-08-16'
+    start_date = '2017-06-01'
+    end_date   = '2019-08-23'
     redis_host = "127.0.0.1"
     dbinfo = ct.OUT_DB_INFO
     report_dir = "/Volumes/data/quant/stock/data/tdx/report"
@@ -166,4 +182,5 @@ if __name__ == '__main__':
     pledge_file_dir = "/Volumes/data/quant/stock/data/tdx/history/weeks/pledge"
     report_publish_dir = "/Volumes/data/quant/stock/data/crawler/stock/financial/report_announcement_date"
     ftm = FollowTrendModel('follow_trend', valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir, cal_file_path, dbinfo = dbinfo, redis_host = redis_host)
-    df, feed, code_list = ftm.generate_feed(start_date, end_date)
+    ftm.generate_data(start_date, end_date)
+    #feed, code_list = ftm.generate_feed(start_date, end_date)

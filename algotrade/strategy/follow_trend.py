@@ -6,17 +6,21 @@ import traceback
 import const as ct
 import numpy as np
 import pandas as pd
+from futu import TrdEnv
 from pyalgotrade import strategy
 from pyalgotrade.broker import Order
 from algotrade.plotter import plotter
+from base.cdate import datetime_to_str
 from algotrade.strategy import gen_broker
+from algotrade.feed.localfeed import LocalFeed
 from pyalgotrade.stratanalyzer import returns, sharpe
+from algotrade.broker.futu.futubroker import FutuBroker
 from algotrade.model.follow_trend import FollowTrendModel
 #class FollowTrendStrategy(strategy.BacktestingStrategy):
 class FollowTrendStrategy(strategy.BaseStrategy):
-    def __init__(self, instruments, df, feed, brk, stockNum, duaration):
+    def __init__(self, model, instruments, feed, brk, stockNum, duaration):
         super(FollowTrendStrategy, self).__init__(feed, brk)
-        self.data = df
+        self.model = model
         self.tradingDays = 0
         self.positions = dict()
         self.totalNum = stockNum
@@ -113,12 +117,14 @@ class FollowTrendStrategy(strategy.BaseStrategy):
     def updateInstruments(self, bars):
         self.tradingDays += 1
         if self.tradingDays % self.duaration == 0:
-            today = bars.getDateTime()
-            val = self.data.loc[today]['code']
+            today = datetime_to_str(bars.getDateTime(), dformat = "%Y-%m-%d")
+            data = self.model.get_data(today)
+            if data.empty: return list()
+            val = data.loc[data.date == today]['code']
             if type(val) == str:
                 self.instruments = list(val)
             else:
-                self.instruments = self.data.loc[today]['code'].tolist()
+                self.instruments = val.tolist()
 
     def onBars(self, bars):
         self.updateInstruments(bars)
@@ -130,13 +136,8 @@ class FollowTrendStrategy(strategy.BaseStrategy):
             order = self.getBroker().createLimitOrder(action, instrument, price, abs(quantity))
             self.getBroker().submitOrder(order)
 
-def main(df, feed, codes):
-    #每只股票可投资的金额
-    cash = 125000
-    stockNum = 4
-    duaration = 10 #调仓周期
-    brk = gen_broker(feed, cash * stockNum)
-    mStrategy = FollowTrendStrategy(codes, df, feed, brk, stockNum, duaration)
+def main(model, feed, brk, codes, stock_num, duaration):
+    mStrategy = FollowTrendStrategy(model, codes, feed, brk, stock_num, duaration)
     # Attach a returns analyzers to the strategy
     returnsAnalyzer = returns.Returns()
     mStrategy.attachAnalyzer(returnsAnalyzer)
@@ -152,26 +153,55 @@ def main(df, feed, codes):
     mStrategy.info("Final portfolio value: $%.2f" % mStrategy.getResult())
     plt.plot()
 
+def paper_trading(cash = 125000, stock_num = 4, duaration = 10):
+    start_date = '2017-06-01'
+    end_date   = '2019-08-23'
+    dbinfo = ct.OUT_DB_INFO
+    redis_host = '127.0.0.1'
+    report_dir = "/Volumes/data/quant/stock/data/tdx/report"
+    cal_file_path = "/Volumes/data/quant/stock/conf/calAll.csv"
+    stocks_dir = "/Volumes/data/quant/stock/data/tdx/history/days"
+    bonus_path = "/Volumes/data/quant/stock/data/tdx/base/bonus.csv"
+    rvaluation_dir = "/Volumes/data/quant/stock/data/valuation/rstock"
+    base_stock_path = "/Volumes/data/quant/stock/data/tdx/history/days"
+    valuation_path = "/Volumes/data/quant/stock/data/valuation/reports.csv"
+    pledge_file_dir = "/Volumes/data/quant/stock/data/tdx/history/weeks/pledge"
+    report_publish_dir = "/Volumes/data/quant/stock/data/crawler/stock/financial/report_announcement_date"
+    model = FollowTrendModel('follow_trend', valuation_path, bonus_path, stocks_dir,
+                   base_stock_path, report_dir, report_publish_dir, pledge_file_dir,
+                   rvaluation_dir, cal_file_path, dbinfo = dbinfo, redis_host = redis_host)
+    feed, code_list = model.generate_feed(start_date, end_date)
+    broker = gen_broker(feed, cash * stock_num)
+    main(model, feed, broker, code_list, stock_num, duaration)
+
+def real_trading(stock_num = 4, duaration = 10):
+    market = ct.CN_MARKET_SYMBOL
+    deal_time = ct.MARKET_DEAL_TIME_DICT[market]
+    timezone = ct.TIMEZONE_DICT[market]
+    apath = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/futu.json"
+    dbinfo = ct.OUT_DB_INFO
+    redis_host = '127.0.0.1'
+    report_dir = "/Volumes/data/quant/stock/data/tdx/report"
+    cal_file_path = "/Volumes/data/quant/stock/conf/calAll.csv"
+    stocks_dir = "/Volumes/data/quant/stock/data/tdx/history/days"
+    bonus_path = "/Volumes/data/quant/stock/data/tdx/base/bonus.csv"
+    rvaluation_dir = "/Volumes/data/quant/stock/data/valuation/rstock"
+    base_stock_path = "/Volumes/data/quant/stock/data/tdx/history/days"
+    valuation_path = "/Volumes/data/quant/stock/data/valuation/reports.csv"
+    pledge_file_dir = "/Volumes/data/quant/stock/data/tdx/history/weeks/pledge"
+    report_publish_dir = "/Volumes/data/quant/stock/data/crawler/stock/financial/report_announcement_date"
+    model = FollowTrendModel('follow_trend', valuation_path, bonus_path, stocks_dir,
+                   base_stock_path, report_dir, report_publish_dir, pledge_file_dir,
+                   rvaluation_dir, cal_file_path, dbinfo = dbinfo, redis_host = redis_host)
+    code_list = list()
+    broker = FutuBroker(host = ct.FUTU_HOST_LOCAL, port = ct.FUTU_PORT, trd_env = TrdEnv.SIMULATE, #SIMULATE
+                        market = market, timezone = timezone, dealtime = deal_time, unlock_path = apath)
+    feed = LocalFeed(model, broker, code_list, dealtime = deal_time, timezone = timezone, frequency = 24 * 60 * 60)
+    main(model, feed, broker, code_list, stock_num, duaration)
+
 if __name__ == '__main__':
     try:
-        start_date = '2018-06-01'
-        end_date   = '2019-08-16'
-        dbinfo = ct.OUT_DB_INFO
-        redis_host = '127.0.0.1'
-        report_dir = "/Volumes/data/quant/stock/data/tdx/report"
-        cal_file_path = "/Volumes/data/quant/stock/conf/calAll.csv"
-        stocks_dir = "/Volumes/data/quant/stock/data/tdx/history/days"
-        bonus_path = "/Volumes/data/quant/stock/data/tdx/base/bonus.csv"
-        rvaluation_dir = "/Volumes/data/quant/stock/data/valuation/rstock"
-        base_stock_path = "/Volumes/data/quant/stock/data/tdx/history/days"
-        valuation_path = "/Volumes/data/quant/stock/data/valuation/reports.csv"
-        pledge_file_dir = "/Volumes/data/quant/stock/data/tdx/history/weeks/pledge"
-        report_publish_dir = "/Volumes/data/quant/stock/data/crawler/stock/financial/report_announcement_date"
-        model = FollowTrendModel('follow_trend', valuation_path, bonus_path, stocks_dir,
-                       base_stock_path, report_dir, report_publish_dir, pledge_file_dir,
-                       rvaluation_dir, cal_file_path, dbinfo = dbinfo, redis_host = redis_host)
-        df, feed, code_list = model.generate_feed(start_date, end_date)
-        main(df, feed, code_list)
+        real_trading()
     except Exception as e:
         print(e)
         traceback.print_exc()

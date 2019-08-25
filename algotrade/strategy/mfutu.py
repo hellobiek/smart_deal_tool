@@ -4,7 +4,7 @@ from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
 import const as ct
 from cstock import CStock
-from futu import TrdEnv, TrdSide
+from futu import TrdEnv
 from pyalgotrade import broker, strategy
 from algotrade.feed import dataFramefeed
 from algotrade.feed.futufeed import FutuFeed

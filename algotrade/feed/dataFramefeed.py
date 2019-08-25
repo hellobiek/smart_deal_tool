@@ -13,16 +13,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import datetime
 import numpy as np
 from algotrade.feed import bar
-from algotrade.feed import dataFrameBarfeed
-
 from pyalgotrade.utils import dt
 from pyalgotrade.barfeed import common
+from algotrade.feed import dataFrameBarfeed
 from pyalgotrade.dataseries import DEFAULT_MAX_LEN
-
+from base.cdate import parse_date, parse_date16, parse_date19
 ######################################################################
 # Each bar must be on its own line and fields must be separated by comma (,).
 #
@@ -30,56 +28,6 @@ from pyalgotrade.dataseries import DEFAULT_MAX_LEN
 # Date,Open,High,Low,Close,Volume,Adj Close
 #
 # The csv Date column must have the following format: YYYY-MM-DD
-
-def parse_date(date):
-    # Sample: 2005-12-30
-    # This custom parsing works faster than:
-    # datetime.datetime.strptime(date, "%Y-%m-%d")
-    year = int(date[0:4])
-    month = int(date[5:7])
-    day = int(date[8:10])
-    ret = datetime.datetime(year, month, day)
-    return ret
-
-def parse_date16(date):
-    # Sample: '%Y-%m-%d %H:%M'
-    # This custom parsing works faster than:
-    # datetime.datetime.strptime(date, "%Y-%m-%d")
-    year = int(date[0:4])
-    month = int(date[5:7])
-    day = int(date[8:10])
-    hour = int(date[11:13])
-    minute = int(date[14:16])
-    ret = datetime.datetime(year, month, day,hour,minute)
-    return ret
-
-def parse_date19(date):
-    # Sample: '%Y-%m-%d %H:%M:%S'
-    # This custom parsing works faster than:
-    # datetime.datetime.strptime(date, "%Y-%m-%d")
-    year = int(date[0:4])
-    month = int(date[5:7])
-    day = int(date[8:10])
-    hour = int(date[11:13])
-    minute = int(date[14:16])
-    second = int(date[17:19])
-    ret = datetime.datetime(year, month, day,hour,minute,second)
-    return ret
-
-def parse_date23(date):
-    # Sample: '%Y-%m-%d %H:%M:%S.000'
-    # This custom parsing works faster than:
-    # datetime.datetime.strptime(date, "%Y-%m-%d")
-    year = int(date[0:4])
-    month = int(date[5:7])
-    day = int(date[8:10])
-    hour = int(date[11:13])
-    minute = int(date[14:16])
-    second = int(date[17:19])
-    microsecond = int(date[20:23])*1000
-    ret = datetime.datetime(year, month, day,hour,minute,second,microsecond)
-    return ret
-
 class RowParser(dataFrameBarfeed.RowParser):
     def __init__(self, dailyBarTime, frequency, timezone=None, sanitize=False):
         self.__dailyBarTime = dailyBarTime

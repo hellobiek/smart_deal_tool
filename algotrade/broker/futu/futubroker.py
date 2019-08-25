@@ -117,6 +117,7 @@ class FutuBroker(broker.Broker):
         self.__stop          = False
         self.__trader        = None 
         self.__cash          = 0
+        self.__total_assert  = 0
         self.__shares        = dict()
         self.__host          = host
         self.__port          = port
@@ -134,6 +135,7 @@ class FutuBroker(broker.Broker):
         self.__stop   = True
         self.__cash   = self.__trader.get_cash()
         self.__shares = self.__trader.get_shares()
+        self.__total_assert = self.__trader.get_total_assets()
         self.__stop   = False
 
     def _registerOrder(self, order):
@@ -184,6 +186,9 @@ class FutuBroker(broker.Broker):
 
     def getPositions(self):
         return self.__shares
+
+    def getEquity(self):
+        return self.__total_assert 
 
     def getActiveOrders(self, instrument=None):
         raise Exception("get active orders are not supported")

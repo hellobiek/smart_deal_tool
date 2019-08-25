@@ -43,7 +43,7 @@ class CCalendar(object):
         return df if _date is None else df.loc[df.calendarDate == _date]
 
     def pre_trading_day(self, mdate):
-        df = self.get()
+        df = self.get(redis = self.redis)
         index = df[df.calendarDate == mdate].index.tolist()[0]
         if index > 0:
             tindex = index

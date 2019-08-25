@@ -190,3 +190,52 @@ def get_dates_array(start_date, end_date, dformat = "%Y-%m-%d", asending = False
     if asending: return date_only_array
     date_only_array = date_only_array[::-1]
     return date_only_array
+
+def parse_date(mdate):
+    # Sample: 2005-12-30
+    # This custom parsing works faster than:
+    # datetime.strptime(mdate, "%Y-%m-%d")
+    year = int(mdate[0:4])
+    month = int(mdate[5:7])
+    day = int(mdate[8:10])
+    ret = datetime(year, month, day)
+    return ret
+
+def parse_date16(mdate):
+    # Sample: '%Y-%m-%d %H:%M'
+    # This custom parsing works faster than:
+    # datetime.strptime(mdate, "%Y-%m-%d")
+    year = int(mdate[0:4])
+    month = int(mdate[5:7])
+    day = int(mdate[8:10])
+    hour = int(mdate[11:13])
+    minute = int(mdate[14:16])
+    ret = datetime(year, month, day, hour, minute)
+    return ret
+
+def parse_date19(mdate):
+    # Sample: '%Y-%m-%d %H:%M:%S'
+    # This custom parsing works faster than:
+    # datetime.strptime(mdate, "%Y-%m-%d")
+    year = int(mdate[0:4])
+    month = int(mdate[5:7])
+    day = int(mdate[8:10])
+    hour = int(mdate[11:13])
+    minute = int(mdate[14:16])
+    second = int(mdate[17:19])
+    ret = datetime(year, month, day, hour, minute, second)
+    return ret
+
+def parse_date23(mdate):
+    # Sample: '%Y-%m-%d %H:%M:%S.000'
+    # This custom parsing works faster than:
+    # datetime.strptime(mdate, "%Y-%m-%d")
+    year = int(mdate[0:4])
+    month = int(mdate[5:7])
+    day = int(mdate[8:10])
+    hour = int(mdate[11:13])
+    minute = int(mdate[14:16])
+    second = int(mdate[17:19])
+    microsecond = int(mdate[20:23])*1000
+    ret = datetime(year, month, day, hour, minute, second, microsecond)
+    return ret

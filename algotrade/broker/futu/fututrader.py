@@ -109,14 +109,15 @@ class FutuTrader:
         with open(fpath) as f: infos = json.load(f)
         return infos['unlock_pwd']
 
+    def get_total_assets(self):
+        ret, data = self.trd_ctx.accinfo_query(trd_env = self.trd_env)
+        if ret != 0: raise Exception("get total assets failed")
+        return data['total_assets'].values[0]
+
     def get_cash(self):
         ret, data = self.trd_ctx.accinfo_query(trd_env = self.trd_env)
         if ret != 0: raise Exception("get cash failed")
         return data['cash'].values[0]
-
-    def set_handler(self, mclass):
-        with self._lock:
-            self.trd_ctx.set_handler(mclass)
 
     def get_shares(self):
         mshares = dict()
@@ -125,7 +126,11 @@ class FutuTrader:
         for index, code in data.code.iteritems():
             mshares[code] = data.loc[index, 'qty']
         return mshares
-           
+
+    def set_handler(self, mclass):
+        with self._lock:
+            self.trd_ctx.set_handler(mclass)
+
     def get_order(self, id_ = "", filter_list = list()):
         orders = list()
         ret, data = self.trd_ctx.order_list_query(trd_env = TrdEnv.SIMULATE, order_id = id_, status_filter_list = filter_list)
