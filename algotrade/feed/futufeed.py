@@ -33,7 +33,7 @@ class GetBarThread(PollingThread):
         return self.__next_call_time
 
     def build_bar(self, quote_dict, order_dict):
-        time_str = "%s %s" % (quote_dict["date"][0], quote_dict["time"][0])
+        time_str = "{} {}".format(quote_dict["date"][0], quote_dict["time"][0])
         sdatetime = datetime.strptime(time_str, '%Y-%m-%d %H:%M:%S')
         if self.__last_response_time >= sdatetime: return None
         self.__last_response_time = sdatetime
@@ -96,7 +96,6 @@ class FutuFeed(dataFramefeed.TickFeed):
         :param frequency 每隔几秒钟请求一次，默认3秒钟
         :param maxLen:
     """
-    QUEUE_TIMEOUT = 0.01
     def __init__(self, identifiers, timezone, dealtime, frequency = 3, maxLen = DEFAULT_MAX_LEN):
         dataFramefeed.TickFeed.__init__(self, bar.Frequency.TRADE, None, maxLen)
         if not isinstance(identifiers, list): raise Exception("identifiers must be a list")
@@ -134,14 +133,14 @@ class FutuFeed(dataFramefeed.TickFeed):
     def getNextBars(self):
         ret = None
         try:
-            eventType, eventData = self.__queue.get(True, FutuFeed.QUEUE_TIMEOUT)
+            eventType, eventData = self.__queue.get(True, ct.QUEUE_TIMEOUT)
             if eventType == ON_BARS:
                 ret = eventData
             elif eventType == ON_END:
                 ret = eventData
                 self.stop()
             else:
-                self.logger.error("invalid event received: {} - {}".format(eventType, eventData))
+                self.logger.error("invalid event received: {}-{}".format(eventType, eventData))
         except queue.Empty:
             self.logger.debug("get empty queue")
         return ret

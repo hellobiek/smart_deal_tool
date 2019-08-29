@@ -29,20 +29,26 @@ class LiveTradingStrategy(strategy.BaseStrategy):
     def onExitCanceled(self, position):
         self.__position.exitMarket()
 
+    def onOrderUpdated(self, order):
+        if order.isFilled():
+            self.info("{} {} {} {} {} {}".format(order.getId(), order.getAction(), order.getInstrument(),
+                              order.getQuantity(), order.getLimitPrice(), order.getSubmitDateTime()))
+
     def onBars(self, bars):
         instrument  = self.__instruments[0]
         bar         = bars[instrument]
-        price       = bar.getOpen()
+        price       = bar.getClose()
         cash        = self.getBroker().getCash()
         shares      = self.getBroker().getPositions()
         self.info("code:{}, price:{}, cash:{}, shares:{}".format(instrument, price, cash, shares))
-        #action      = broker.Order.Action.BUY
-        #order       = self.getBroker().createLimitOrder(action, instrument, price, quantity)
-        #self.getBroker().submitOrder(order)
+        quantity    = 100
+        action      = broker.Order.Action.BUY
+        order       = self.getBroker().createLimitOrder(action, instrument, price, quantity)
+        self.getBroker().submitOrder(order)
 
 def main():
-    stocks = list()
-    market = ct.CN_MARKET_SYMBOL
+    stocks = ['HK.00700']
+    market = ct.HK_MARKET_SYMBOL
     deal_time = ct.MARKET_DEAL_TIME_DICT[market]
     timezone = ct.TIMEZONE_DICT[market]
     apath = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/futu.json"

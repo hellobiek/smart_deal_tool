@@ -134,6 +134,10 @@ class FollowTrendModel(CMysqlObj):
             feed.addBarsFromDataFrame(code, data)
         return feed, code_list
 
+    def record(self, order):
+        import pdb
+        pdb.set_trace()
+
     def generate_data(self, start_date, end_date):
         succeed = True
         date_array = get_dates_array(start_date, end_date)

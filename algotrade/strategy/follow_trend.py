@@ -22,6 +22,9 @@ class FollowTrendStrategy(strategy.BaseStrategy):
         super(FollowTrendStrategy, self).__init__(feed, brk)
         self.model = model
         self.tradingDays = 0
+        ###############################
+        #进程重启后，positions需要更新#
+        ###############################
         self.positions = dict()
         self.totalNum = stockNum
         self.duaration = duaration
@@ -97,6 +100,7 @@ class FollowTrendStrategy(strategy.BaseStrategy):
             instrument = order.getInstrument()
             price = order.getAvgFillPrice()
             quantity = order.getQuantity()
+            self.model.record(order)
             if order.isBuy():
                 if instrument in self.positions:
                     self.positions[instrument]['price'] = (self.positions[instrument]['quantity'] * self.positions[instrument]['price'] 

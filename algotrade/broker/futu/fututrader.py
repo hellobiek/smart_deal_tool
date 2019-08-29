@@ -3,7 +3,7 @@ import json
 import threading
 import const as ct
 from base.clog import getLogger
-from futu import OrderType, TrdSide, TrdEnv, OpenCNTradeContext, OpenUSTradeContext, OpenHKTradeContext
+from futu import OrderType, TrdSide, TrdEnv, OpenCNTradeContext, OpenUSTradeContext, OpenHKTradeContext, ModifyOrderOp
 logger = getLogger(__name__)
 class MDeal(object):
     def __init__(self, jsonDict):
@@ -20,6 +20,9 @@ class MDeal(object):
 
     def getCreateTime(self):
         return self.__jsonDict["create_time"]
+
+    def getUpdatedTime(self):
+        return self.__jsonDict["updated_time"]
 
     def getDealId(self):
         return self.__jsonDict["deal_id"]
@@ -52,14 +55,14 @@ class MOrder(object):
     def getCreateTime(self):
         return self.__jsonDict["create_time"]
 
-    def getLastUpdatedTime(self):
+    def getUpdatedTime(self):
         return self.__jsonDict["updated_time"]
-
-    def getStatus(self):
-        return self.__jsonDict["order_status"]
 
     def getId(self):
         return self.__jsonDict["order_id"]
+
+    def getStatus(self):
+        return self.__jsonDict["order_status"]
 
     def getPrice(self):
         return float(self.__jsonDict["price"])
@@ -79,7 +82,7 @@ class FutuTrader:
     def __init__(self, host, port, trd_env, market, unlock_path = ct.FUTU_PATH):
         if market != ct.CN_MARKET_SYMBOL and market != ct.US_MARKET_SYMBOL and market != ct.HK_MARKET_SYMBOL: raise Exception("not supported market:%s" % market)
         if ct.CN_MARKET_SYMBOL == market:
-            self.trd_ctx = OpenCNTradeContext(host, port)
+            self.trd_ctx = OpenHKCCTradeContext(host, port)
         elif ct.US_MARKET_SYMBOL == market:
             self.trd_ctx = OpenUSTradeContext(host, port)
         else:
@@ -141,21 +144,33 @@ class FutuTrader:
             orders.append(MOrder(mdict))
         return orders if id_ != "" else orders[0]
 
+    def cancel(self, order_id):
+        ret, data = self.trd_ctx.modify_order(ModifyOrderOp.CANCEL, order_id, 0, 0)
+        if ret != 0: logger.error("cancel order {} failed, ret:{}, data:{}".format(order_id, ret, data))
+        return ret, data
+
     def trade(self, order):
         code      = order.getInstrument()
         price     = order.getLimitPrice()
         quantity  = order.getQuantity()
         type_     = OrderType.NORMAL
         direction = TrdSide.BUY if order.isBuy() else TrdSide.SELL
-        ret, data = self.trd_ctx.place_order(price, quantity, code, trd_side = direction, order_type = type_, adjust_limit = 0, trd_env = self.trd_env, acc_id = self.acc_id)
-        if  ret  != 0: logger.error("trade failed, ret:%s, data:%s" % (ret, data))
-        #logger.info("trade %s success, ret:%s, data:%s" % (code, ret, data))
+        ret, data = self.trd_ctx.place_order(price, quantity, code, trd_side = direction, order_type = type_, 
+                                             adjust_limit = 0, trd_env = self.trd_env, acc_id = self.acc_id)
+        if ret != 0: logger.error("trade failed, ret:{}, data:{}".format(ret, data))
         return ret, data
+
+    def get_open_orders(self, code = "", start = "", end = "", status_filter_list = ["UNSUBMITTED", "WAITING_SUBMIT", "SUBMITTING", "WAITING_SUBMIT", "SUBMIT_FAILED", "SUBMITTED"]):
+        orders = list()
+        ret, data = self.trd_ctx.order_list_query(status_filter_list, code, start, end, trd_env = self.trd_env, acc_id = self.acc_id)
+        if ret != 0: raise Exception("get open orders failed.code:{}, start:{}, end:{}, ret:{}, msg:{}".format(code, start, end, ret, data))
+        if data.empty: return orders
+        return data
 
     def get_history_orders(self, code = "", start = "", end = "", status_filter_list = ["FILLED_ALL"]):
         orders = list()
         ret, data = self.trd_ctx.history_order_list_query(status_filter_list, code, start, end, trd_env = self.trd_env, acc_id = self.acc_id)
-        if ret != 0: raise Exception("get history orders failed.code:%s, start:%s, end:%s, ret:%s, msg:%s" % (code, start, end, ret, data))
+        if ret != 0: raise Exception("get history orders failed.code:{}, start:{}, end:{}, ret:{}, msg:{}".format(code, start, end, ret, data))
         if data.empty: return orders
         return data
         #data = data[self.ORDER_SCHEMA]

@@ -2,18 +2,14 @@
 import sys
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(dirname(dirname(abspath(__file__))))))
-import time
 import queue
-import random
-import datetime
 import threading
 import const as ct
-from base.clog import getLogger
 from pyalgotrade import broker
+from base.clog import getLogger
 from base.base import get_today_time, localnow
-from algotrade.broker.futu.fututrader import FutuTrader, MOrder, MDeal
-from futu import OrderStatus, OrderType, TrdEnv, TradeDealHandlerBase, TradeOrderHandlerBase
-logger = getLogger(__name__)
+from futu import OrderType, TradeDealHandlerBase, TradeOrderHandlerBase
+from algotrade.broker.futu.fututrader import FutuTrader, MOrder
 class EquityTraits(broker.InstrumentTraits):
     def roundQuantity(self, quantity):
         return int(quantity)
@@ -87,9 +83,9 @@ class StopLimitOrder(broker.StopLimitOrder, LiveOrder):
     def process(self, broker_, bar_):
         return broker_.getFillStrategy().fillStopLimitOrder(broker_, self, bar_)
 
-class TradeDealHandler(TradeOrderHandlerBase):
+class TradeOrderHandler(TradeOrderHandlerBase):
     def __init__(self):
-        super(TradeDealHandler, self).__init__()
+        super(TradeOrderHandler, self).__init__()
         self.__lock  = threading.Lock()
         self.__queue = queue.Queue()
 
@@ -102,47 +98,74 @@ class TradeDealHandler(TradeOrderHandlerBase):
             return self.__queue
 
     def on_recv_rsp(self, rsp_pb):
-        ret, data = super(TradeDealHandler, self).on_recv_rsp(rsp_pb)
+        ret, data = super(TradeOrderHandler, self).on_recv_rsp(rsp_pb)
         if ret != 0: return
-        data = data[['order_id', 'order_status', 'trd_side', 'code', 'qty', 'price', 'create_time', 'trd_env']]
+        data = data[['order_id', 'order_type', 'order_status', 'trd_side', 'code', 'qty',
+                     'price', 'dealt_avg_price', 'dealt_qty', 'create_time', 'updated_time']]
         data_dict = data.to_dict("records")
         with self.__lock:
             for mdict in data_dict:
                 if mdict['order_status'] in ["FILLED_PART", "FILLED_ALL"]:
-                    self.__queue.put(MDeal(mdict))
+                    self.__queue.put(MOrder(mdict))
+
+def build_order_from_open_order(order, instrumentTraits):
+    if order.isBuy():
+        action = broker.Order.Action.BUY
+    elif order.isSell():
+        action = broker.Order.Action.SELL
+    else:
+        raise Exception("Invalid order type")
+    ret = broker.LimitOrder(action, order.getInstrument(), order.getPrice(), order.getAmount(), instrumentTraits)
+    ret.setSubmitted(order.getId(), order.getDateTime())
+    ret.setState(broker.Order.State.ACCEPTED)
+    return ret
 
 class FutuBroker(broker.Broker):
     def __init__(self, host, port, trd_env, timezone, dealtime, order_type = OrderType.NORMAL, market = "CN", unlock_path = ct.FUTU_PATH):
         super(FutuBroker, self).__init__()
-        self.__stop          = False
-        self.__trader        = None 
         self.__cash          = 0
-        self.__total_assert  = 0
-        self.__shares        = dict()
+        self.__tassert       = 0
         self.__host          = host
         self.__port          = port
+        self.__trader        = None
+        self.__stop          = False
+        self.__shares        = dict()
+        self.__activeOrders  = dict()
         self.__market        = market
         self.__trd_env       = trd_env
-        self.__order_type    = order_type
         self.__timezone      = timezone
+        self.__order_type    = order_type
+        self.__unlock_path   = unlock_path
+        self.__deal_manager  = TradeOrderHandler()
+        self.__logger        = getLogger(__name__)
         self.__start_time    = get_today_time(dealtime['start'])
         self.__end_time      = get_today_time(dealtime['end'])
-        self.__activeOrders  = dict()
-        self.__unlock_path   = unlock_path
-        self.__deal_manager  = TradeDealHandler()
+
+    def refresh_open_orders(self):
+        self.__stop = True  # Stop running in case of errors.
+        self.__logger.info("get open orders.")
+        orders = self.__trader.get_open_orders()
+        for order in orders:
+            self._registerOrder(build_order_from_open_order(order, self.getInstrumentTraits(order.getInstrument())))
+        self.__logger.info("{} open order found".format(len(orders)))
+        self.__stop = False  # No errors. Keep running.
 
     def update_account_balance(self):
         self.__stop   = True
         self.__cash   = self.__trader.get_cash()
         self.__shares = self.__trader.get_shares()
-        self.__total_assert = self.__trader.get_total_assets()
+        self.__tassert = self.__trader.get_total_assets()
         self.__stop   = False
 
     def _registerOrder(self, order):
-        pass
+        assert(order.getId() is not None)
+        assert(order.getId() not in self.__activeOrders)
+        self.__activeOrders[order.getId()] = order
 
     def _unregisterOrder(self, order):
-        pass
+        assert(order.getId() is not None)
+        assert(order.getId() in self.__activeOrders)
+        del self.__activeOrders[order.getId()]
 
     # BEGIN observer.Subject interface
     def start(self):
@@ -164,9 +187,35 @@ class FutuBroker(broker.Broker):
             self.stop()
         return self.__stop
 
+    def _on_user_trades(self, morder):
+        order = self.__activeOrders.get(morder.getId())
+        if order is not None:
+            print(morder.getDict())
+            # Update the order.
+            orderExecutionInfo = broker.OrderExecutionInfo(morder.getDealtAvgPrice(), morder.getDealtQuantity(), 0, morder.getUpdatedTime())
+            order.addExecutionInfo(orderExecutionInfo)
+            if not order.isActive():
+                self._unregisterOrder(order)
+            # Notify that the order was updated.
+            if order.isFilled():
+                eventType = broker.OrderEvent.Type.FILLED
+            else:
+                eventType = broker.OrderEvent.Type.PARTIALLY_FILLED
+            self.notifyOrderEvent(broker.OrderEvent(order, eventType, orderExecutionInfo))
+        else:
+            self.__logger.info("order {} refered to futu order {} that is not active".format(order.getId(), morder.getId()))
+
     def dispatch(self):
+        # Switch orders from SUBMITTED to ACCEPTED.
+        ordersToProcess = list(self.__activeOrders.values())
+        for order in ordersToProcess:
+            if order.isSubmitted():
+                order.switchState(broker.Order.State.ACCEPTED)
+                self.notifyOrderEvent(broker.OrderEvent(order, broker.OrderEvent.Type.ACCEPTED, None))
+
         if not self.__deal_manager.empty():
-            self.__deal_manager.getQueue()
+            morder = self.__deal_manager.getQueue().get(True, ct.QUEUE_TIMEOUT)
+            self._on_user_trades(morder)
             self.update_account_balance()
 
     def peekDateTime(self):
@@ -188,17 +237,16 @@ class FutuBroker(broker.Broker):
         return self.__shares
 
     def getEquity(self):
-        return self.__total_assert 
+        return self.__tassert
 
     def getActiveOrders(self, instrument=None):
-        raise Exception("get active orders are not supported")
+        return list(self.__activeOrders.values())
 
     def createLimitOrder(self, action, instrument, limitPrice, quantity):
+        limitPrice = round(limitPrice, 2)
         instrumentTraits = self.getInstrumentTraits(instrument)
-        order = LimitOrder(action, instrument, limitPrice, quantity, instrumentTraits)
-        order.setAllOrNone(False)
-        order.setGoodTillCanceled(False)
-        return order
+        quantity = instrumentTraits.roundQuantity(quantity)
+        return LimitOrder(action, instrument, limitPrice, quantity, instrumentTraits)
 
     def createMarketOrder(self, action, instrument, quantity, onClose=False):
         raise Exception("market orders are not supported")
@@ -210,9 +258,38 @@ class FutuBroker(broker.Broker):
         raise Exception("stop limit orders are not supported")
 
     def submitOrder(self, order):
-        ret, data = self.__trader.trade(order)
-        if ret != 0: logger.error("submit order failed. ret:%s, output:%s" % (ret, data))
+        if order.isInitial():
+            # Override user settings based on Bitstamp limitations.
+            order.setAllOrNone(False)
+            order.setGoodTillCanceled(False)
+            ret, data = self.__trader.trade(order)
+            if ret != 0:
+                errMsg = "submit order failed. ret:{}, output:{}".format(ret, data)
+                self.__logger.error(errMsg)
+            else:
+                forder = data.to_dict('records')[0]
+                order.setSubmitted(forder['order_id'], forder['create_time'])
+                self._registerOrder(order)
+                # Switch from INITIAL -> SUBMITTED
+                # IMPORTANT: Do not emit an event for this switch because when using the position interface
+                # the order is not yet mapped to the position and Position.onOrderUpdated will get called.
+                order.switchState(broker.Order.State.SUBMITTED)
+        else:
+            raise Exception("The order was already processed")
 
     def cancelOrder(self, order):
-        raise Exception("cancel orders are not supported")
+        activeOrder = self.__activeOrders.get(order.getId())
+        if activeOrder is None:
+            raise Exception("The order is not active anymore")
+        if activeOrder.isFilled():
+            raise Exception("Can't cancel order that has already been filled")
+
+        ret, _ = self.__trader.cancel(order.getId())
+        if ret == 0:
+            self._unregisterOrder(order)
+            order.switchState(broker.Order.State.CANCELED)
+            # Update cash and shares.
+            self.update_account_balance()
+            # Notify that the order was canceled.
+            self.notifyOrderEvent(broker.OrderEvent(order, broker.OrderEvent.Type.CANCELED, "User requested cancellation"))
     # END broker.Broker interface
