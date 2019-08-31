@@ -163,7 +163,7 @@ def base_floating_profit(df, mdate = None):
                         np_data['base'][e_index:] = base
                         ppchange_array[e_index:] = ppchange
                         np_data['pday'][e_index:] = direction * (index_array[e_index:] - e_index + 1)
-            np_data['profit'] = abs(np.log(np_data['close']) - np.log(np_data['base'])) / np.log(ppchange_array)
+            np_data['profit'] = (np.log(np_data['close']) - np.log(np_data['base'])) / np.log(ppchange_array)
     df = DataFrame(data = np_data, columns = DATA_COLUMS)
     df.date = df.date.str.decode('utf-8')
     return df
