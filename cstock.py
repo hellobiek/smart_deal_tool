@@ -12,15 +12,15 @@ import tushare as ts
 from cinfluxdb import CInflux
 from datetime import datetime
 from functools import partial
-#from cpython.cstock import pro_nei_chip
 #from cpython.cchip import mac
+#from cpython.cstock import pro_nei_chip
 #from cpython.features import base_floating_profit
 #from cpython.mchip import compute_distribution, compute_oneday_distribution
 from base.clog import getLogger 
 from base.cobj import CMysqlObj
 from datamanager.ticks import read_tick
-from cpython.cstock import compute_profit, base_floating_profit, pro_nei_chip
-from common import create_redis_obj, is_df_has_unexpected_data, concurrent_run
+from common import is_df_has_unexpected_data, concurrent_run
+from cpython.cstock import base_floating_profit, pro_nei_chip
 from cpython.cchip import compute_distribution, compute_oneday_distribution, mac
 from base.cdate import get_years_between, transfer_date_string_to_int, transfer_int_to_date_string
 pd.set_option('display.max_columns', None)
@@ -668,13 +668,13 @@ class CStock(CMysqlObj):
 
 if __name__ == '__main__':
     from cindex import CIndex
-    #mdate = None
-    mdate = '2019-08-15'
+    mdate = None
+    #mdate = '2019-08-15'
     index_info = CIndex('000001').get_k_data(mdate)
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    cstock = CStock('002417', should_create_influxdb = False, should_create_mysqldb = False)
+    cstock = CStock('000001', should_create_influxdb = False, should_create_mysqldb = False)
     logger.info("start compute")
     cstock.set_k_data(bonus_info, index_info, cdate = mdate)
     logger.info("enter set base floating profit")
-    #cstock.set_base_floating_profit()
+    cstock.set_base_floating_profit()
     logger.info("end compute")

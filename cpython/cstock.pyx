@@ -127,12 +127,13 @@ def get_effective_breakup_index(np.ndarray[long] break_index_lists, np.ndarray d
 def base_floating_profit(df, mdate = None):
     cdef int direction = 0
     cdef float base, ppchange
-    cdef long s_index = 0, e_index = 0
     cdef np.ndarray np_data = df.to_records(index = False).astype(DTYPE_LIST, copy = False)
+    cdef long s_index = 0, e_index = 0, t_length = len(np_data)
     cdef np.ndarray break_index_lists
     cdef array.array effective_breakup_index_list
-    cdef np.ndarray index_array = np.arange(len(np_data))
-    cdef np.ndarray ppchange_array = np.zeros(len(np_data), dtype = float)
+    cdef np.ndarray index_array = np.arange(t_length)
+    cdef np.ndarray direction_array = np.zeros(t_length, dtype = int)
+    cdef np.ndarray ppchange_array = np.zeros(t_length, dtype = float)
     cdef np.ndarray[int] break_array
     if mdate is None:
         break_array = get_breakup_data(np_data)
@@ -148,12 +149,14 @@ def base_floating_profit(df, mdate = None):
                 direction = np_data['breakup'][s_index]
                 ppchange = 1.1 if direction > 0 else 0.9
                 if s_index == e_index and len(effective_breakup_index_list) == 1:
-                    np_data['base'][s_index] = base
+                    np_data['base'][s_index:] = base
                     ppchange_array[s_index:] = ppchange
+                    direction_array[s_index:] = direction
                     np_data['pday'][s_index:] = direction * (index_array[s_index:] - s_index + 1)
                 else:
                     np_data['base'][s_index:e_index] = base
                     ppchange_array[s_index:e_index] = ppchange
+                    direction_array[s_index:e_index] = direction
                     np_data['pday'][s_index:e_index] = -1 * direction * (index_array[s_index:e_index] - s_index + 1)
                     s_index = e_index
                     if e_index == effective_breakup_index_list[-1]:
@@ -162,8 +165,9 @@ def base_floating_profit(df, mdate = None):
                         ppchange = 1.1 if direction > 0 else 0.9
                         np_data['base'][e_index:] = base
                         ppchange_array[e_index:] = ppchange
+                        direction_array[e_index:] = direction
                         np_data['pday'][e_index:] = direction * (index_array[e_index:] - e_index + 1)
-            np_data['profit'] = (np.log(np_data['close']) - np.log(np_data['base'])) / np.log(ppchange_array)
+            np_data['profit'] = direction_array * (np.log(np_data['close']) - np.log(np_data['base'])) / np.log(ppchange_array)
     df = DataFrame(data = np_data, columns = DATA_COLUMS)
     df.date = df.date.str.decode('utf-8')
     return df
@@ -239,7 +243,7 @@ def compute_profit(df, mdate = None, pbase = 'lprice'):
                         base = np_data[pbase][s_index]
                         direction = np_data['breakup'][s_index]
                         ppchange = 1.1 if direction > 0 else 0.9
-                        np_data['base'][s_index] = base
+                        np_data['base'][s_index:] = base
                         ppchange_array[s_index:] = ppchange
                         np_data['pday'][s_index:] = direction * (index_array[s_index:] - s_index + 1)
                 else:
@@ -257,7 +261,7 @@ def compute_profit(df, mdate = None, pbase = 'lprice'):
                         np_data['base'][e_index:] = base
                         ppchange_array[e_index:] = ppchange
                         np_data['pday'][e_index:] = direction * (index_array[e_index:] - e_index + 1)
-            np_data['profit'] = abs(np.log(np_data['close']) - np.log(np_data['base'])) / np.log(ppchange_array)
+            np_data['profit'] = (np.log(np_data['close']) - np.log(np_data['base'])) / np.log(ppchange_array)
     df = DataFrame(data = np_data, columns = DATA_COLUMS)
     df.date = df.date.str.decode('utf-8')
     return df
@@ -281,7 +285,7 @@ def pro_nei_chip(df, dist_data, preday_df = None, mdate = None):
         df['gamekline'] = df['ppercent'] - df['ppercent'].shift(1)
         df.at[0, 'gamekline'] = df.loc[0, 'ppercent']
     else:
-        p_close     = df['close'].values[0]
+        p_close = df['close'].values[0]
         outstanding = df['outstanding'].values[0]
         p_val = 100 * dist_data[dist_data.price < p_close].volume.sum() / outstanding
         n_val = 100 * dist_data[(dist_data.price < p_close * 1.08) & (dist_data.price > p_close * 0.92)].volume.sum() / outstanding

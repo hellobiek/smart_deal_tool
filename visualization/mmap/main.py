@@ -187,7 +187,7 @@ val_source = ColumnDataSource()
 dist_source = ColumnDataSource()
 stock_source = ColumnDataSource()
 
-#code = '600900'
+#code = '300760'
 #mdate = '2019-08-08'
 #sobj = CStock(code)
 #sdf = sobj.get_k_data()

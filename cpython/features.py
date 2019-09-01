@@ -119,10 +119,12 @@ def get_effective_breakup_index(break_index_lists, df, break_array):
     return effective_breakup_index_list
 
 def base_floating_profit(df, mdate = None):
-    np_data = df.to_records(index = False).astype(DTYPE_LIST, copy = False)
-    index_array = np.arange(len(np_data))
-    ppchange_array = np.zeros(len(np_data), dtype = float)
     s_index = 0
+    np_data = df.to_records(index = False).astype(DTYPE_LIST, copy = False)
+    t_length = len(np_data)
+    index_array = np.arange(t_length)
+    ppchange_array = np.zeros(t_length, dtype = float)
+    direction_array = np.zeros(t_length, dtype = int)
     if mdate is None:
         break_array = get_breakup_data(np_data)
         break_index_lists = np.where(break_array != 0)[0]
@@ -137,12 +139,14 @@ def base_floating_profit(df, mdate = None):
                 direction = np_data['breakup'][s_index]
                 ppchange = 1.1 if direction > 0 else 0.9
                 if s_index == e_index and len(effective_breakup_index_list) == 1:
-                    np_data['base'][s_index] = base
+                    np_data['base'][s_index:] = base
                     ppchange_array[s_index:] = ppchange
+                    direction_array[s_index:] = direction
                     np_data['pday'][s_index:] = direction * (index_array[s_index:] - s_index + 1)
                 else:
                     np_data['base'][s_index:e_index] = base
                     ppchange_array[s_index:e_index] = ppchange
+                    direction_array[s_index:e_index] = direction
                     np_data['pday'][s_index:e_index] = -1 * direction * (index_array[s_index:e_index] - s_index + 1)
                     s_index = e_index
                     if e_index == effective_breakup_index_list[-1]:
@@ -151,8 +155,9 @@ def base_floating_profit(df, mdate = None):
                         ppchange = 1.1 if direction > 0 else 0.9
                         np_data['base'][e_index:] = base
                         ppchange_array[e_index:] = ppchange
+                        direction_array[e_index:] = direction
                         np_data['pday'][e_index:] = direction * (index_array[e_index:] - e_index + 1)
-            np_data['profit'] = abs(np.log(np_data['close']) - np.log(np_data['base'])) / np.log(ppchange_array)
+            np_data['profit'] = direction_array * (np.log(np_data['close']) - np.log(np_data['base'])) / np.log(ppchange_array)
     df = DataFrame(data = np_data, columns = DATA_COLUMS)
     df.date = df.date.str.decode('utf-8')
     return df
