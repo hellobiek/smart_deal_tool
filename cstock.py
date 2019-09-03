@@ -29,12 +29,13 @@ logger = getLogger(__name__)
 class CStock(CMysqlObj):
     def __init__(self, code, dbinfo = ct.DB_INFO, should_create_influxdb = False, should_create_mysqldb = False, redis_host = None):
         super(CStock, self).__init__(code, self.get_dbname(code), dbinfo, redis_host)
-        self.influx_client  = CInflux(ct.IN_DB_INFO, dbname = self.dbname, iredis = self.redis)
+        #self.influx_client = CInflux(ct.IN_DB_INFO, dbname = self.dbname, iredis = self.redis)
         if not self.create(should_create_influxdb, should_create_mysqldb):
             raise Exception("create stock %s table failed" % self.code)
 
     def __del__(self):
-        self.influx_client = None
+        #self.influx_client = None
+        pass
 
     @staticmethod
     def get_dbname(code):
@@ -149,7 +150,8 @@ class CStock(CMysqlObj):
         return influxdb_flag and mysql_flag
 
     def create_influx_db(self):
-        return self.influx_client.create()
+        #return self.influx_client.create()
+        return True
 
     def create_mysql_table(self, table_name):
         if table_name not in self.mysql_client.get_all_tables():
@@ -670,9 +672,9 @@ if __name__ == '__main__':
     from cindex import CIndex
     mdate = None
     #mdate = '2019-08-15'
-    index_info = CIndex('000001').get_k_data(mdate)
+    index_info = CIndex('601138').get_k_data(mdate)
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    cstock = CStock('000001', should_create_influxdb = False, should_create_mysqldb = False)
+    cstock = CStock('000001', should_create_influxdb = True, should_create_mysqldb = True)
     logger.info("start compute")
     cstock.set_k_data(bonus_info, index_info, cdate = mdate)
     logger.info("enter set base floating profit")

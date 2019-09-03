@@ -16,21 +16,22 @@ from algotrade.feed import dataFramefeed
 from datetime import datetime, timedelta
 from common import is_df_has_unexpected_data
 from base.cdate import transfer_date_string_to_int, get_dates_array
-class FollowTrendModel(CMysqlObj):
-    def __init__(self, code, valuation_path = ct.VALUATION_PATH, bonus_path = ct.BONUS_PATH, 
-                stocks_dir = ct.STOCKS_DIR, base_stock_path = ct.BASE_STOCK_PATH,
-                report_dir = ct.REPORT_DIR, report_publish_dir = ct.REPORT_PUBLISH_DIR,
-                pledge_file_dir = ct.PLEDGE_FILE_DIR, rvaluation_dir = ct.RVALUATION_DIR,
-                cal_file_path = ct.CALENDAR_PATH, 
-                dbinfo = ct.DB_INFO, should_create_mysqldb = False, redis_host = None):
-        super(FollowTrendModel, self).__init__(code, self.get_dbname(), dbinfo, redis_host)
-        self.cal_client = CCalendar(dbinfo = dbinfo, redis_host = redis_host, filepath = cal_file_path)
-        self.val_client = CValuation(valuation_path, bonus_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir)
-        self.rindex_client = RIndexStock(dbinfo, redis_host)
+class QModel(CMysqlObj):
+    def __init__(self, code, valuation_path = ct.VALUATION_PATH,
+                bonus_path = ct.BONUS_PATH, stocks_dir = ct.STOCKS_DIR, 
+                base_stock_path = ct.BASE_STOCK_PATH, report_dir = ct.REPORT_DIR,
+                report_publish_dir = ct.REPORT_PUBLISH_DIR, pledge_file_dir = ct.PLEDGE_FILE_DIR,
+                rvaluation_dir = ct.RVALUATION_DIR, cal_file_path = ct.CALENDAR_PATH, 
+                dbinfo = ct.DB_INFO, redis_host = None, should_create_mysqldb = False):
+        super(QModel, self).__init__(code, code, dbinfo, redis_host)
         self.logger = getLogger(__name__)
-        self.stock_info_client = CStockInfo(dbinfo, redis_host, stocks_dir, base_stock_path)
-        if not self.create(should_create_mysqldb):
-            raise Exception("create model {} table failed".format(self.code))
+        if should_create_mysqldb:
+            self.cal_client = CCalendar(dbinfo = dbinfo, redis_host = redis_host, filepath = cal_file_path)
+            self.val_client = CValuation(valuation_path, bonus_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir)
+            self.rindex_client = RIndexStock(dbinfo, redis_host)
+            self.stock_info_client = CStockInfo(dbinfo, redis_host, stocks_dir, base_stock_path)
+            if not self.create(should_create_mysqldb):
+                raise Exception("create model {} table failed".format(self.code))
 
     def create(self, should_create_mysqldb):
         return self.create_db(self.dbname) if should_create_mysqldb else True
@@ -44,10 +45,6 @@ class FollowTrendModel(CMysqlObj):
                                                  PRIMARY KEY(date, code))' % table_name 
             if not self.mysql_client.create(sql, table_name): return False
         return True
-
-    @staticmethod
-    def get_dbname():
-        return "model"
 
     def get_table_name(self, mdate):
         mdates = mdate.split('-')
@@ -149,12 +146,14 @@ class FollowTrendModel(CMysqlObj):
         return succeed
 
     def get_data(self, mdate):
+        if mdate is None: return pd.DataFrame()
         table_name = self.get_table_name(mdate)
         if not self.is_date_exists(table_name, mdate): return pd.DataFrame()
         sql = "select * from %s where date=\"%s\"" % (table_name, mdate)
         return self.mysql_client.get(sql)
 
     def set_data(self, mdate):
+        if mdate is None: return False
         table_name = self.get_table_name(mdate)
         if not self.is_table_exists(table_name):
             if not self.create_table(table_name):
@@ -172,8 +171,8 @@ class FollowTrendModel(CMysqlObj):
         return False
 
 if __name__ == '__main__':
-    start_date = '2017-06-01'
-    end_date   = '2019-08-23'
+    start_date = '2019-08-01'
+    end_date   = '2019-09-02'
     redis_host = "127.0.0.1"
     dbinfo = ct.OUT_DB_INFO
     report_dir = "/Volumes/data/quant/stock/data/tdx/report"
@@ -185,6 +184,6 @@ if __name__ == '__main__':
     valuation_path = "/Volumes/data/quant/stock/data/valuation/reports.csv"
     pledge_file_dir = "/Volumes/data/quant/stock/data/tdx/history/weeks/pledge"
     report_publish_dir = "/Volumes/data/quant/stock/data/crawler/stock/financial/report_announcement_date"
-    ftm = FollowTrendModel('follow_trend', valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir, cal_file_path, dbinfo = dbinfo, redis_host = redis_host)
+    ftm = QModel('follow_trend', valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir, cal_file_path, dbinfo = dbinfo, redis_host = redis_host, should_create_mysqldb = True)
     ftm.generate_data(start_date, end_date)
     #feed, code_list = ftm.generate_feed(start_date, end_date)

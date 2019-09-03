@@ -30,7 +30,7 @@ class CIndex(CMysqlObj):
     def __init__(self, code, dbinfo = ct.DB_INFO, redis_host = None, should_create_influxdb = False, should_create_mysqldb = False):
         super(CIndex, self).__init__(code, self.get_dbname(code), dbinfo, redis_host)
         self.code = code
-        self.influx_client = CInflux(ct.IN_DB_INFO, self.dbname, iredis = self.redis)
+        #self.influx_client = CInflux(ct.IN_DB_INFO, self.dbname, iredis = self.redis)
         #self.mysql_client.delete_db(self.dbname)
         if not self.create(should_create_influxdb, should_create_mysqldb):
             raise Exception("create index %s table failed" % self.code)
@@ -61,7 +61,8 @@ class CIndex(CMysqlObj):
         return "%s_day" % self.dbname
 
     def create_influx_db(self):
-        return self.influx_client.create()
+        #return self.influx_client.create()
+        return True
 
     def create(self, should_create_influxdb, should_create_mysqldb):
         influxdb_flag = self.create_influx_db() if should_create_influxdb else True

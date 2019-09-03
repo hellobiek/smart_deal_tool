@@ -13,9 +13,9 @@ class Combination(CMysqlObj):
     def __init__(self, code, should_create_db = False, dbinfo = ct.DB_INFO, redis_host = None):
         super(Combination, self).__init__(code, self.get_dbname(code), dbinfo, redis_host)
         self.code = code
-        self.influx_client = CInflux(ct.IN_DB_INFO, self.dbname, iredis = self.redis)
-        if should_create_db:
-            if not self.create(): raise Exception("%s create combination table failed" % code)
+        #self.influx_client = CInflux(ct.IN_DB_INFO, self.dbname, iredis = self.redis)
+        #if should_create_db:
+        #    if not self.create(): raise Exception("%s create combination table failed" % code)
 
     @staticmethod
     def get_dbname(code):
