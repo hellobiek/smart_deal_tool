@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
+import os
 import sys
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
-import os
 import time
 import _pickle
-import datetime
 import const as ct
 import pandas as pd
 import tushare as ts
-from cinfluxdb import CInflux
+#from cinfluxdb import CInflux
 from datetime import datetime
 from functools import partial
 #from cpython.cchip import mac
@@ -369,10 +368,13 @@ class CStock(CMysqlObj):
         #set chip distribution
         dist_df = df.append(preday_df, sort = False)
         dist_df = dist_df.sort_values(by = 'date', ascending = True)
+
         dist_data = self.compute_distribution(dist_df, cdate)
+
         if dist_data.empty:
             logger.error("%s chip distribution compute failed." % self.code)
             return False
+
         if self.set_chip_distribution(dist_data, zdate = cdate):
             df['uprice'] = mac(dist_data, 0)
             df['sprice'] = mac(dist_data, 5)
@@ -460,9 +462,6 @@ class CStock(CMysqlObj):
         return self.mysql_client.upsert(df, self.get_day_table(), pri_keys = ['date'])
 
     def set_k_data(self, bonus_info, index_info, cdate = None):
-        #if not self.has_on_market(cdate):
-        #    logger.error("%s not on market %s" % (self.code, cdate))
-        #    return False
         quantity_change_info, price_change_info = self.collect_right_info(bonus_info)
         if cdate is None or self.is_need_reright(cdate, price_change_info): 
             return self.set_all_data(quantity_change_info, price_change_info, index_info)
@@ -671,10 +670,10 @@ class CStock(CMysqlObj):
 if __name__ == '__main__':
     from cindex import CIndex
     mdate = None
-    #mdate = '2019-08-15'
-    index_info = CIndex('601138').get_k_data(mdate)
+    #mdate = '2019-04-02'
+    index_info = CIndex('000001').get_k_data(mdate)
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    cstock = CStock('000001', should_create_influxdb = True, should_create_mysqldb = True)
+    cstock = CStock('601318', should_create_influxdb = False, should_create_mysqldb = False)
     logger.info("start compute")
     cstock.set_k_data(bonus_info, index_info, cdate = mdate)
     logger.info("enter set base floating profit")

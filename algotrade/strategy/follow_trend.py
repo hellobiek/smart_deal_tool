@@ -11,12 +11,11 @@ from pyalgotrade import strategy
 from pyalgotrade.broker import Order
 from algotrade.plotter import plotter
 from base.cdate import datetime_to_str
+from algotrade.model.qmodel import QModel
 from algotrade.strategy import gen_broker
 from algotrade.feed.localfeed import LocalFeed
 from pyalgotrade.stratanalyzer import returns, sharpe
 from algotrade.broker.futu.futubroker import FutuBroker
-from algotrade.model.follow_trend import FollowTrendModel
-#class FollowTrendStrategy(strategy.BacktestingStrategy):
 class FollowTrendStrategy(strategy.BaseStrategy):
     def __init__(self, model, instruments, feed, brk, stockNum, duaration):
         super(FollowTrendStrategy, self).__init__(feed, brk)
@@ -122,7 +121,7 @@ class FollowTrendStrategy(strategy.BaseStrategy):
         self.tradingDays += 1
         if self.tradingDays % self.duaration == 0:
             today = datetime_to_str(bars.getDateTime(), dformat = "%Y-%m-%d")
-            data = self.model.get_data(today)
+            data = self.model.get_stock_pool(today)
             if data.empty: return list()
             val = data.loc[data.date == today]['code']
             if type(val) == str:
@@ -171,9 +170,10 @@ def paper_trading(cash = 125000, stock_num = 4, duaration = 10):
     valuation_path = "/Volumes/data/quant/stock/data/valuation/reports.csv"
     pledge_file_dir = "/Volumes/data/quant/stock/data/tdx/history/weeks/pledge"
     report_publish_dir = "/Volumes/data/quant/stock/data/crawler/stock/financial/report_announcement_date"
-    model = FollowTrendModel('follow_trend', valuation_path, bonus_path, stocks_dir,
+    model = QModel('follow_trend', valuation_path, bonus_path, stocks_dir,
                    base_stock_path, report_dir, report_publish_dir, pledge_file_dir,
-                   rvaluation_dir, cal_file_path, dbinfo = dbinfo, redis_host = redis_host)
+                   rvaluation_dir, cal_file_path, dbinfo = dbinfo, 
+                   redis_host = redis_host, should_create_mysqldb = True)
     feed, code_list = model.generate_feed(start_date, end_date)
     broker = gen_broker(feed, cash * stock_num)
     main(model, feed, broker, code_list, stock_num, duaration)
@@ -194,9 +194,10 @@ def real_trading(stock_num = 4, duaration = 10):
     valuation_path = "/Volumes/data/quant/stock/data/valuation/reports.csv"
     pledge_file_dir = "/Volumes/data/quant/stock/data/tdx/history/weeks/pledge"
     report_publish_dir = "/Volumes/data/quant/stock/data/crawler/stock/financial/report_announcement_date"
-    model = FollowTrendModel('follow_trend', valuation_path, bonus_path, stocks_dir,
+    model = QModel('follow_trend', valuation_path, bonus_path, stocks_dir,
                    base_stock_path, report_dir, report_publish_dir, pledge_file_dir,
-                   rvaluation_dir, cal_file_path, dbinfo = dbinfo, redis_host = redis_host)
+                   rvaluation_dir, cal_file_path, dbinfo = dbinfo,
+                   redis_host = redis_host, should_create_mysqldb = True)
     code_list = list()
     broker = FutuBroker(host = ct.FUTU_HOST_LOCAL, port = ct.FUTU_PORT, trd_env = TrdEnv.SIMULATE, #SIMULATE
                         market = market, timezone = timezone, dealtime = deal_time, unlock_path = apath)

@@ -68,4 +68,4 @@ class DataPreparer:
             time.sleep(sleep_time)
 
 dp = DataPreparer()
-dp.update(3500)
+dp.update(3000)

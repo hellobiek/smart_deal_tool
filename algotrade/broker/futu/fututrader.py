@@ -3,7 +3,7 @@ import json
 import threading
 import const as ct
 from base.clog import getLogger
-from futu import OrderType, TrdSide, TrdEnv, OpenCNTradeContext, OpenUSTradeContext, OpenHKTradeContext, ModifyOrderOp
+from futu import OrderType, TrdSide, TrdEnv, OpenCNTradeContext, OpenUSTradeContext, OpenHKTradeContext, ModifyOrderOp, OpenHKCCTradeContext
 logger = getLogger(__name__)
 class MDeal(object):
     def __init__(self, jsonDict):
@@ -82,7 +82,8 @@ class FutuTrader:
     def __init__(self, host, port, trd_env, market, unlock_path = ct.FUTU_PATH):
         if market != ct.CN_MARKET_SYMBOL and market != ct.US_MARKET_SYMBOL and market != ct.HK_MARKET_SYMBOL: raise Exception("not supported market:%s" % market)
         if ct.CN_MARKET_SYMBOL == market:
-            self.trd_ctx = OpenHKCCTradeContext(host, port)
+            #self.trd_ctx = OpenHKCCTradeContext(host, port)
+            self.trd_ctx = OpenCNTradeContext(host, port)
         elif ct.US_MARKET_SYMBOL == market:
             self.trd_ctx = OpenUSTradeContext(host, port)
         else:
@@ -117,10 +118,20 @@ class FutuTrader:
         if ret != 0: raise Exception("get total assets failed")
         return data['total_assets'].values[0]
 
+    def get_accinfo(self):
+        ret, data = self.trd_ctx.accinfo_query(trd_env = self.trd_env)
+        if ret != 0: raise Exception("get acc info failed")
+        return data
+
     def get_cash(self):
         ret, data = self.trd_ctx.accinfo_query(trd_env = self.trd_env)
         if ret != 0: raise Exception("get cash failed")
         return data['cash'].values[0]
+
+    def get_postitions(self):
+        ret, data = self.trd_ctx.position_list_query(trd_env = self.trd_env)
+        if ret != 0: raise Exception("get position failed")
+        return data
 
     def get_shares(self):
         mshares = dict()
@@ -160,9 +171,9 @@ class FutuTrader:
         if ret != 0: logger.error("trade failed, ret:{}, data:{}".format(ret, data))
         return ret, data
 
-    def get_open_orders(self, code = "", start = "", end = "", status_filter_list = ["UNSUBMITTED", "WAITING_SUBMIT", "SUBMITTING", "WAITING_SUBMIT", "SUBMIT_FAILED", "SUBMITTED"]):
+    def get_open_orders(self, order_id = "", code = "", start = "", end = "", status_filter_list = ["UNSUBMITTED", "WAITING_SUBMIT", "SUBMITTING", "WAITING_SUBMIT", "SUBMIT_FAILED", "SUBMITTED"]):
         orders = list()
-        ret, data = self.trd_ctx.order_list_query(status_filter_list, code, start, end, trd_env = self.trd_env, acc_id = self.acc_id)
+        ret, data = self.trd_ctx.order_list_query(order_id, status_filter_list, code, start, end, trd_env = self.trd_env, acc_id = self.acc_id)
         if ret != 0: raise Exception("get open orders failed.code:{}, start:{}, end:{}, ret:{}, msg:{}".format(code, start, end, ret, data))
         if data.empty: return orders
         return data

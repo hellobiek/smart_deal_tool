@@ -1,9 +1,10 @@
 # cython: language_level=3, boundscheck=False, nonecheck=False, infer_types=True
+import time
 import numpy as np
 from pandas import DataFrame
 CHIP_COLUMNS = ['pos', 'sdate', 'date', 'price', 'volume', 'outstanding']
 DTYPE_LIST = [('pos', 'i8'), ('sdate', 'S10'), ('date', 'S10'), ('price', 'f4'), ('volume', 'i8'), ('outstanding', 'i8')]
-def evenly_distributed_new_chip(volume_series, pre_outstanding, outstanding):
+def evenly_distributed_chip(volume_series, pre_outstanding, outstanding):
     volume_series = (outstanding * (volume_series / pre_outstanding)).astype(int)
     real_total_volume = np.sum(volume_series)
     delta_sum = outstanding - real_total_volume
@@ -35,11 +36,21 @@ def postive_normalization(series):
 def allocate_volume(volume, ratio_series, volume_series):
     while volume != 0:
         for (index, ), ratio in np.ndenumerate(ratio_series):
-            expected_volume = min(max(1, int(volume * ratio)), volume)
-            delta_volume = min(max(1, int(0.008 * volume_series[index])), expected_volume)
-            if volume_series[index] >= delta_volume:
-                volume -= delta_volume
-                volume_series[index] -= delta_volume
+            expected_volume = max(1, int(volume * ratio))
+            if volume >= expected_volume:
+                if volume_series[index] >= expected_volume:
+                    volume_series[index] -= expected_volume
+                    volume -= expected_volume
+                else:
+                    volume -= volume_series[index]
+                    volume_series[index] = 0
+            else:
+                if volume_series[index] >= volume:
+                    volume_series[index] -= volume
+                    volume = 0
+                else:
+                    volume -= volume_series[index]
+                    volume_series[index] = 0
             if 0 == volume: break
     return volume_series
 
@@ -47,19 +58,20 @@ def divide_according_price(price_series, volume_series, volume, price):
     delta_price_series = max_min_normalization(price - price_series)
     volume_normalization_series = (volume_series / max(volume_series)).astype(float)
     delta_volume_series = max_min_normalization(volume_normalization_series)
-    ratio_series = postive_normalization(delta_price_series + delta_volume_series)
+    ratio_series = postive_normalization(0.1 * delta_price_series + 0.9 * delta_volume_series)
     return allocate_volume(volume, ratio_series, volume_series)
 
 def divide_according_position(position_series, volume_series, volume, position):
     delta_position_series = max_min_normalization((position - position_series).astype(np.float32))
     volume_normalization_series = (volume_series / max(volume_series)).astype(np.float32)
     delta_volume_series = max_min_normalization(volume_normalization_series)
-    ratio_series = postive_normalization(delta_position_series + delta_volume_series)
+    ratio_series = postive_normalization(0.1 * delta_position_series + 0.9 * delta_volume_series)
     return allocate_volume(volume, ratio_series, volume_series)
 
+def number_of_days(pre_pos, pos):
+    return pos - pre_pos
+
 def divide_data(mdata, pos, price):
-    def number_of_days(pre_pos, pos):
-        return pos - pre_pos
     #short chip data
     s_data = mdata[np.apply_along_axis(number_of_days, 0, mdata['pos'], pos) <= 60]
     #short profit data
@@ -75,17 +87,18 @@ def divide_data(mdata, pos, price):
     return s_p_data, s_u_data, l_p_data, l_u_data
 
 def divide_volume(volume, s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total, volume_total):
-    if s_p_volume_total == max(s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total):
+    max_volume = max(s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total)
+    if s_p_volume_total == max_volume:
         l_p_volume = int(volume * (l_p_volume_total / volume_total))
         l_u_volume = int(volume * (l_u_volume_total / volume_total))
         s_u_volume = int(volume * (s_u_volume_total / volume_total))
         s_p_volume = volume - s_u_volume - l_p_volume - l_u_volume
-    elif s_u_volume_total == max(s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total):
+    elif s_u_volume_total == max_volume:
         s_p_volume = int(volume * (s_p_volume_total / volume_total))
         l_p_volume = int(volume * (l_p_volume_total / volume_total))
         l_u_volume = int(volume * (l_u_volume_total / volume_total))
         s_u_volume = volume - s_p_volume - l_p_volume - l_u_volume
-    elif l_p_volume_total == max(s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total):
+    elif l_p_volume_total == max_volume:
         s_p_volume = int(volume * (s_p_volume_total / volume_total))
         l_u_volume = int(volume * (l_u_volume_total / volume_total))
         s_u_volume = int(volume * (s_u_volume_total / volume_total))
@@ -99,9 +112,10 @@ def divide_volume(volume, s_p_volume_total, s_u_volume_total, l_p_volume_total, 
 
 def adjust_volume(mdata, pos, volume, price, pre_outstanding, outstanding): 
     if pre_outstanding != outstanding:
-        mdata['volume'] = evenly_distributed_new_chip(mdata['volume'], pre_outstanding, outstanding)
+        mdata['volume'] = evenly_distributed_chip(mdata['volume'], pre_outstanding, outstanding)
 
     s_p_data, s_u_data, l_p_data, l_u_data = divide_data(mdata, pos, price)
+
     #total volume
     volume_total = outstanding
     s_p_volume_total = np.sum(s_p_data['volume'])
@@ -109,13 +123,31 @@ def adjust_volume(mdata, pos, volume, price, pre_outstanding, outstanding):
     l_p_volume_total = np.sum(l_p_data['volume'])
     l_u_volume_total = np.sum(l_u_data['volume'])
 
-    #if s_p_volume_total + s_u_volume_total + l_p_volume_total + l_u_volume_total != outstanding:
-
     s_p_volume, s_u_volume, l_p_volume, l_u_volume = divide_volume(volume, s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total, volume_total)
-    if s_p_volume > 0:s_p_data['volume'] = divide_according_price(s_p_data['price'], s_p_data['volume'], s_p_volume, price)
-    if s_u_volume > 0:s_u_data['volume'] = divide_according_position(s_u_data['pos'], s_u_data['volume'], s_u_volume, pos)
-    if l_p_volume > 0:l_p_data['volume'] = divide_according_price(l_p_data['price'], l_p_data['volume'], l_p_volume, price)
-    if l_u_volume > 0:l_u_data['volume'] = divide_according_position(l_u_data['pos'], l_u_data['volume'], l_u_volume, pos)
+    if s_p_volume > 0:
+        s_p_data['volume'] = divide_according_price(s_p_data['price'], s_p_data['volume'], s_p_volume, price)
+        if len(s_p_data[np.where(s_p_data['volume'] < 0)]) > 0:
+            print("s_p_volume not equal")
+            import pdb
+            pdb.set_trace()
+    if s_u_volume > 0:
+        s_u_data['volume'] = divide_according_position(s_u_data['pos'], s_u_data['volume'], s_u_volume, pos)
+        if len(s_u_data[np.where(s_u_data['volume'] < 0)]) > 0:
+            print("s_u_volume not equal")
+            import pdb
+            pdb.set_trace()
+    if l_p_volume > 0:
+        l_p_data['volume'] = divide_according_price(l_p_data['price'], l_p_data['volume'], l_p_volume, price)
+        if len(l_p_data[np.where(l_p_data['volume'] < 0)]) > 0:
+            print("l_p_volume not equal")
+            import pdb
+            pdb.set_trace()
+    if l_u_volume > 0:
+        l_u_data['volume'] = divide_according_position(l_u_data['pos'], l_u_data['volume'], l_u_volume, pos)
+        if len(l_u_data[np.where(l_u_data['volume'] < 0)]) > 0:
+            print("l_u_volume not equal")
+            import pdb
+            pdb.set_trace()
     return np.concatenate((s_p_data, s_u_data, l_p_data, l_u_data), axis = 0)
 
 def compute_oneday_distribution(pre_date_dist, cdate, pos, volume, aprice, pre_outstanding, outstanding):
@@ -125,6 +157,8 @@ def compute_oneday_distribution(pre_date_dist, cdate, pos, volume, aprice, pre_o
     np_pre_data['date'] = cdate
     np_pre_data['outstanding'] = outstanding
     np_pre_data = np.concatenate((np_pre_data, np.array([(pos, cdate, cdate, aprice, volume, outstanding)], dtype = DTYPE_LIST)), axis=0)
+    if np_pre_data['volume'].sum() != outstanding:
+        print("one day after volume mismatched")
     df = DataFrame(data = np_pre_data, columns = CHIP_COLUMNS)
     df = df[df.volume != 0]
     df.date = df.date.str.decode('utf-8')

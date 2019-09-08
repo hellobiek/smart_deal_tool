@@ -15,8 +15,6 @@ def main():
     log.info("init succeed")
     #threadList.append(CThread(dm.run, 600))
     threadList.append(CThread(dm.update, 300))
-    #ctrader = CTrader(ct.DB_INFO)
-    #threadList.append(CThread(ctrader.buy_new_stock, 3600))
 
     for thread in threadList:
         thread.start()

@@ -25,8 +25,8 @@ class QModel(CMysqlObj):
                 dbinfo = ct.DB_INFO, redis_host = None, should_create_mysqldb = False):
         super(QModel, self).__init__(code, code, dbinfo, redis_host)
         self.logger = getLogger(__name__)
+        self.cal_client = CCalendar(dbinfo = dbinfo, redis_host = redis_host, filepath = cal_file_path)
         if should_create_mysqldb:
-            self.cal_client = CCalendar(dbinfo = dbinfo, redis_host = redis_host, filepath = cal_file_path)
             self.val_client = CValuation(valuation_path, bonus_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir)
             self.rindex_client = RIndexStock(dbinfo, redis_host)
             self.stock_info_client = CStockInfo(dbinfo, redis_host, stocks_dir, base_stock_path)
@@ -45,6 +45,56 @@ class QModel(CMysqlObj):
                                                  PRIMARY KEY(date, code))' % table_name 
             if not self.mysql_client.create(sql, table_name): return False
         return True
+
+    def create_account_table(self, table_name):
+        if not self.mysql_client.is_exists(table_name):
+            sql = 'create table if not exists %s(date varchar(10) not null,\
+                                                 power float not null,\
+                                                 total_assets float not null,\
+                                                 cash float not null,\
+                                                 market_val float not null,\
+                                                 frozen_cash float not null,\
+                                                 avl_withdrawal_cash float not null,\
+                                                 PRIMARY KEY(date))' % table_name 
+            if not self.mysql_client.create(sql, table_name): return False
+        return True
+
+    def create_position_table(self, table_name):
+        if not self.mysql_client.is_exists(table_name):
+            sql = 'create table if not exists %s(date varchar(10) not null,\
+                                                 code varchar(20) not null,\
+                                                 stock_name varchar(50) not null,\
+                                                 qty float not null,\
+                                                 can_sell_qty float not null,\
+                                                 cost_price float not null,\
+                                                 cost_price_valid bool not null,\
+                                                 market_val float not null,\
+                                                 nominal_price float not null,\
+                                                 pl_ratio float not null,\
+                                                 pl_ratio_valid	bool not null,\
+                                                 pl_val	float int not null,\
+                                                 pl_val_valid bool not null,\
+                                                 today_buy_qty float not null,\
+                                                 today_buy_val float not null,\
+                                                 today_pl_val float not null,\
+                                                 today_sell_qty float not null,\
+                                                 today_sell_val float not null,\
+                                                 position_side float not null,\
+                                                 PRIMARY KEY(date, code))' % table_name 
+            if not self.mysql_client.create(sql, table_name): return False
+        return True
+
+    def set_account_info(self, mdate, broker):
+        pass
+
+    def get_account_info(self, start, end):
+        pass
+
+    def set_position_info(self, mdate, broker):
+        pass
+
+    def get_position_info(self, start, end):
+        pass
 
     def get_table_name(self, mdate):
         mdates = mdate.split('-')
@@ -112,7 +162,7 @@ class QModel(CMysqlObj):
         code_list = list()
         for mdate in date_array:
             if self.cal_client.is_trading_day(mdate, redis = self.cal_client.redis):
-                df = self.get_data(mdate)
+                df = self.get_stock_pool(mdate)
                 if is_first:
                    code_list = df.code.tolist()
                    is_first = False
@@ -135,24 +185,25 @@ class QModel(CMysqlObj):
         import pdb
         pdb.set_trace()
 
-    def generate_data(self, start_date, end_date):
+    def generate_stock_pool(self, start_date, end_date):
         succeed = True
         date_array = get_dates_array(start_date, end_date)
         for mdate in date_array:
              if self.cal_client.is_trading_day(mdate, redis = self.cal_client.redis):
-                 if not self.set_data(mdate):
+                 if not self.set_stock_pool(mdate):
                      self.logger.error("set {} data for model failed".format(mdate))
                      succeed = False
         return succeed
 
-    def get_data(self, mdate):
+    def get_stock_pool(self, mdate):
         if mdate is None: return pd.DataFrame()
         table_name = self.get_table_name(mdate)
         if not self.is_date_exists(table_name, mdate): return pd.DataFrame()
         sql = "select * from %s where date=\"%s\"" % (table_name, mdate)
-        return self.mysql_client.get(sql)
+        df = self.mysql_client.get(sql)
+        return pd.DataFrame() if df is None else df
 
-    def set_data(self, mdate):
+    def set_stock_pool(self, mdate):
         if mdate is None: return False
         table_name = self.get_table_name(mdate)
         if not self.is_table_exists(table_name):
@@ -185,5 +236,5 @@ if __name__ == '__main__':
     pledge_file_dir = "/Volumes/data/quant/stock/data/tdx/history/weeks/pledge"
     report_publish_dir = "/Volumes/data/quant/stock/data/crawler/stock/financial/report_announcement_date"
     ftm = QModel('follow_trend', valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir, cal_file_path, dbinfo = dbinfo, redis_host = redis_host, should_create_mysqldb = True)
-    ftm.generate_data(start_date, end_date)
+    ftm.generate_stock_pool(start_date, end_date)
     #feed, code_list = ftm.generate_feed(start_date, end_date)
