@@ -88,13 +88,20 @@ def update_date(start_date, end_date):
               [Input('tabs', 'value'), Input('output-start-date', 'children'), Input('output-end-date', 'children')])
 def render_content(model_name, start_date, end_date):
     if model_name == 'follow_trend':
-        model = QModel(code = model_name, dbinfo = ct.OUT_DB_INFO, redis_host = "127.0.0.1", cal_file_path = "/Volumes/data/quant/stock/conf/calAll.csv")
+        redis_host = "127.0.0.1"
+        dbinfo = ct.OUT_DB_INFO
+        report_dir = "/Volumes/data/quant/stock/data/tdx/report"
+        cal_file_path = "/Volumes/data/quant/stock/conf/calAll.csv"
+        stocks_dir = "/Volumes/data/quant/stock/data/tdx/history/days"
+        bonus_path = "/Volumes/data/quant/stock/data/tdx/base/bonus.csv"
+        rvaluation_dir = "/Volumes/data/quant/stock/data/valuation/rstock"
+        base_stock_path = "/Volumes/data/quant/stock/data/tdx/history/days"
+        valuation_path = "/Volumes/data/quant/stock/data/valuation/reports.csv"
+        pledge_file_dir = "/Volumes/data/quant/stock/data/tdx/history/weeks/pledge"
+        report_publish_dir = "/Volumes/data/quant/stock/data/crawler/stock/financial/report_announcement_date"
+        model = QModel('follow_trend', valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir, cal_file_path, dbinfo, redis_host = redis_host)
         df = get_data(model, end_date)
         acc_df, pos_df, order_df, profit_df = get_profit_data(model, start_date, end_date)
-        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA01")
-        print(start_date, end_date)
-        print(acc_df, pos_df, order_df, profit_df)
-        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA02")
         return html.Div([
             html.H3('股票池'),
             dash_table.DataTable(

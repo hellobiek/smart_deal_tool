@@ -28,11 +28,11 @@ class QModel(CMysqlObj):
                 dbinfo = ct.DB_INFO, redis_host = None, should_create_mysqldb = False):
         super(QModel, self).__init__(code, code, dbinfo, redis_host)
         self.logger = getLogger(__name__)
+        self.rindex_client = RIndexStock(dbinfo, redis_host)
         self.cal_client = CCalendar(dbinfo = dbinfo, redis_host = redis_host, filepath = cal_file_path)
+        self.val_client = CValuation(valuation_path, bonus_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir)
+        self.stock_info_client = CStockInfo(dbinfo, redis_host, stocks_dir, base_stock_path)
         if should_create_mysqldb:
-            self.val_client = CValuation(valuation_path, bonus_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir)
-            self.rindex_client = RIndexStock(dbinfo, redis_host)
-            self.stock_info_client = CStockInfo(dbinfo, redis_host, stocks_dir, base_stock_path)
             if not self.create(should_create_mysqldb):
                 raise Exception("create model {} table failed".format(self.code))
 
@@ -264,7 +264,7 @@ class QModel(CMysqlObj):
 
 if __name__ == '__main__':
     start_date = '2019-08-01'
-    end_date   = '2019-09-02'
+    end_date   = '2019-09-11'
     redis_host = "127.0.0.1"
     dbinfo = ct.OUT_DB_INFO
     report_dir = "/Volumes/data/quant/stock/data/tdx/report"

@@ -508,7 +508,7 @@ class DataManager:
 
     def set_stock_pools(self, mdate = None):
         if mdate is None: mdate = datetime.now().strftime('%Y-%m-%d')
-        unlock_path_ = "/scode/configure/{}.json".format(model)
+        unlock_path_ = "/scode/configure/{}.json".format('follow_trend')
         model = QModel(code = 'follow_trend')
         return model.set_stock_pool(mdate)
 
