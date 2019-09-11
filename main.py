@@ -7,14 +7,17 @@ import const as ct
 from base.clog import getLogger 
 from base.cthread import CThread
 from data_manager import DataManager
+from jobs.scheduler import Scheduler
 log = getLogger(__name__)
 def main():
-    time.sleep(200)
+    #time.sleep(200)
     threadList = []
+    sc = Scheduler()
     dm = DataManager(ct.DB_INFO)
     log.info("init succeed")
     #threadList.append(CThread(dm.run, 600))
     threadList.append(CThread(dm.update, 300))
+    threadList.append(sc.start())
 
     for thread in threadList:
         thread.start()

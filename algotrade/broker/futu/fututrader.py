@@ -160,14 +160,14 @@ class FutuTrader:
         if ret != 0: logger.error("cancel order {} failed, ret:{}, data:{}".format(order_id, ret, data))
         return ret, data
 
-    def trade(self, order):
+    def trade(self, order, model):
         code      = order.getInstrument()
         price     = order.getLimitPrice()
         quantity  = order.getQuantity()
         type_     = OrderType.NORMAL
         direction = TrdSide.BUY if order.isBuy() else TrdSide.SELL
         ret, data = self.trd_ctx.place_order(price, quantity, code, trd_side = direction, order_type = type_, 
-                                             adjust_limit = 0, trd_env = self.trd_env, acc_id = self.acc_id)
+                                             adjust_limit = 0, trd_env = self.trd_env, acc_id = self.acc_id, remark = model)
         if ret != 0: logger.error("trade failed, ret:{}, data:{}".format(ret, data))
         return ret, data
 
@@ -182,7 +182,6 @@ class FutuTrader:
         orders = list()
         ret, data = self.trd_ctx.history_order_list_query(status_filter_list, code, start, end, trd_env = self.trd_env, acc_id = self.acc_id)
         if ret != 0: raise Exception("get history orders failed.code:{}, start:{}, end:{}, ret:{}, msg:{}".format(code, start, end, ret, data))
-        if data.empty: return orders
         return data
         #data = data[self.ORDER_SCHEMA]
         #for mdict in data.to_dict("records"):
@@ -199,10 +198,6 @@ class FutuTrader:
         #for mdict in data.to_dict("records"):
         #    deals.append(MDeal(mdict))
         #return deals
-
-    def buy(self, code, price, quantity):
-        ret, data = self.trd_ctx.place_order(code = code, price = price, qty = quantity, trd_side = TrdSide.BUY, order_type = OrderType.NORMAL, trd_env = self.trd_env)
-        return ret, data
 
     def modify(self, order, operation):
         id_       = order.getId()

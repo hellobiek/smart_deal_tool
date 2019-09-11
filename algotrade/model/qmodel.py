@@ -16,6 +16,9 @@ from algotrade.feed import dataFramefeed
 from datetime import datetime, timedelta
 from common import is_df_has_unexpected_data
 from base.cdate import transfer_date_string_to_int, get_dates_array
+ORDER_TABLE = 'orders'
+ACCOUNT_TABLE = 'accounts'
+POSITION_TABLE  = 'positions'
 class QModel(CMysqlObj):
     def __init__(self, code, valuation_path = ct.VALUATION_PATH,
                 bonus_path = ct.BONUS_PATH, stocks_dir = ct.STOCKS_DIR, 
@@ -34,7 +37,11 @@ class QModel(CMysqlObj):
                 raise Exception("create model {} table failed".format(self.code))
 
     def create(self, should_create_mysqldb):
-        return self.create_db(self.dbname) if should_create_mysqldb else True
+        if should_create_mysqldb:
+            return self.create_db(self.dbname) and self.create_order_table() and self.create_account_table() and self.create_position_table()
+            #return self.create_db(self.dbname) and self.create_order_table() and \
+            #       self.create_account_table() and self.create_position_table()
+        return True
 
     def create_table(self, table_name):
         if not self.mysql_client.is_exists(table_name):
@@ -46,7 +53,28 @@ class QModel(CMysqlObj):
             if not self.mysql_client.create(sql, table_name): return False
         return True
 
-    def create_account_table(self, table_name):
+    def create_order_table(self, table_name = ORDER_TABLE):
+        if not self.mysql_client.is_exists(table_name):
+            sql = 'create table if not exists %s(date varchar(10) not null,\
+                                                 order_id varchar(50) not null,\
+                                                 trd_side varchar(10),\
+                                                 order_type varchar(20),\
+                                                 order_status varchar(20),\
+                                                 code varchar(20),\
+                                                 stock_name varchar(50),\
+                                                 qty float,\
+                                                 price float,\
+                                                 create_time varchar(50),\
+                                                 updated_time varchar(50),\
+                                                 dealt_qty float,\
+                                                 dealt_avg_price float,\
+                                                 last_err_msg varchar(100),\
+                                                 remark varchar(64) not null,\
+                                                 PRIMARY KEY(date, order_id))' % table_name 
+            if not self.mysql_client.create(sql, table_name): return False
+        return True
+
+    def create_account_table(self, table_name = ACCOUNT_TABLE):
         if not self.mysql_client.is_exists(table_name):
             sql = 'create table if not exists %s(date varchar(10) not null,\
                                                  power float not null,\
@@ -59,42 +87,56 @@ class QModel(CMysqlObj):
             if not self.mysql_client.create(sql, table_name): return False
         return True
 
-    def create_position_table(self, table_name):
+    def create_position_table(self, table_name = POSITION_TABLE):
+        self.mysql_client.delete(table_name)
         if not self.mysql_client.is_exists(table_name):
             sql = 'create table if not exists %s(date varchar(10) not null,\
                                                  code varchar(20) not null,\
+                                                 position_side varchar(10) not null,\
                                                  stock_name varchar(50) not null,\
-                                                 qty float not null,\
-                                                 can_sell_qty float not null,\
-                                                 cost_price float not null,\
-                                                 cost_price_valid bool not null,\
-                                                 market_val float not null,\
-                                                 nominal_price float not null,\
-                                                 pl_ratio float not null,\
-                                                 pl_ratio_valid	bool not null,\
-                                                 pl_val	float int not null,\
-                                                 pl_val_valid bool not null,\
-                                                 today_buy_qty float not null,\
-                                                 today_buy_val float not null,\
-                                                 today_pl_val float not null,\
-                                                 today_sell_qty float not null,\
-                                                 today_sell_val float not null,\
-                                                 position_side float not null,\
+                                                 qty float,\
+                                                 can_sell_qty float,\
+                                                 nominal_price float,\
+                                                 cost_price float,\
+                                                 cost_price_valid boolean,\
+                                                 market_val float,\
+                                                 pl_ratio float,\
+                                                 pl_ratio_valid	boolean,\
+                                                 pl_val	float,\
+                                                 pl_val_valid boolean,\
+                                                 today_pl_val float,\
+                                                 today_buy_qty float,\
+                                                 today_buy_val float,\
+                                                 today_sell_qty float,\
+                                                 today_sell_val float,\
                                                  PRIMARY KEY(date, code))' % table_name 
             if not self.mysql_client.create(sql, table_name): return False
         return True
 
     def set_account_info(self, mdate, broker):
-        pass
+        account_info = broker.get_accinfo()
+        account_info['date'] = mdate
+        return self.mysql_client.set(account_info, ACCOUNT_TABLE)
+
+    def get_info(self, table, start, end):
+        sql = "select * from %s where date between \"%s\" and \"%s\"" % (table, start, end)
+        return self.mysql_client.get(sql)
 
     def get_account_info(self, start, end):
-        pass
+        return self.get_info(ACCOUNT_TABLE, start, end)
 
     def set_position_info(self, mdate, broker):
-        pass
+        position_info = broker.get_postitions()
+        position_info['date'] = mdate
+        return self.mysql_client.set(position_info, POSITION_TABLE)
+
+    def set_history_order_info(self, mdate, broker):
+        order_info = broker.get_history_orders(start = mdate, end = mdate)
+        order_info['date'] = mdate
+        return self.mysql_client.set(order_info, ORDER_TABLE)
 
     def get_position_info(self, start, end):
-        pass
+        return self.get_info(POSITION_TABLE, start, end)
 
     def get_table_name(self, mdate):
         mdates = mdate.split('-')
@@ -180,10 +222,6 @@ class QModel(CMysqlObj):
             data = data.dropna(how='any')
             feed.addBarsFromDataFrame(code, data)
         return feed, code_list
-
-    def record(self, order):
-        import pdb
-        pdb.set_trace()
 
     def generate_stock_pool(self, start_date, end_date):
         succeed = True
