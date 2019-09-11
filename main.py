@@ -10,7 +10,7 @@ from data_manager import DataManager
 from jobs.scheduler import Scheduler
 log = getLogger(__name__)
 def main():
-    #time.sleep(200)
+    time.sleep(200)
     threadList = []
     sc = Scheduler()
     dm = DataManager(ct.DB_INFO)

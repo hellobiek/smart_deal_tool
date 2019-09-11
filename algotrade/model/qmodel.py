@@ -125,6 +125,12 @@ class QModel(CMysqlObj):
     def get_account_info(self, start, end):
         return self.get_info(ACCOUNT_TABLE, start, end)
 
+    def get_position_info(self, start, end):
+        return self.get_info(POSITION_TABLE, start, end)
+
+    def get_history_order_info(self, start, end):
+        return self.get_info(ORDER_TABLE, start, end)
+
     def set_position_info(self, mdate, broker):
         position_info = broker.get_postitions()
         position_info['date'] = mdate
@@ -134,9 +140,6 @@ class QModel(CMysqlObj):
         order_info = broker.get_history_orders(start = mdate, end = mdate)
         order_info['date'] = mdate
         return self.mysql_client.set(order_info, ORDER_TABLE)
-
-    def get_position_info(self, start, end):
-        return self.get_info(POSITION_TABLE, start, end)
 
     def get_table_name(self, mdate):
         mdates = mdate.split('-')

@@ -45,18 +45,14 @@ app.layout = html.Div([
 
 @cache.memoize()
 def get_profit_data(model, start, end):
-    unlock_path = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/{}.json".format(model)
-    futuTrader = FutuTrader(host = ct.FUTU_HOST_LOCAL, port = ct.FUTU_PORT, trd_env = TrdEnv.SIMULATE, market = ct.CN_MARKET_SYMBOL, unlock_path = unlock_path)
-    accinfos = futuTrader.get_accinfo()
-    positions = futuTrader.get_postitions()
-    orders = futuTrader.get_history_orders(start = start, end = end, status_filter_list = [])
-    print("AAAAAAAAAAAAAAAAAAAAAAAAAA01")
-    print(accinfos, positions, orders)
-    print("AAAAAAAAAAAAAAAAAAAAAAAAAA02")
+    accinfos = model.get_account_info(end, end)
+    positions = model.get_position_info(end, end)
+    orders = model.get_history_order_info(end, end)
+    profits = model.get_account_info(start, end)
+    return accinfos, positions, orders, profits
 
 @cache.memoize()
 def get_data(model, mdate):
-    model = QModel(code = model, dbinfo = ct.OUT_DB_INFO, redis_host = "127.0.0.1", cal_file_path = "/Volumes/data/quant/stock/conf/calAll.csv")
     ndf = model.get_stock_pool(mdate)
     pdate = model.cal_client.pre_trading_day(mdate)
     pdf = model.get_stock_pool(pdate)
@@ -90,10 +86,15 @@ def update_date(start_date, end_date):
 
 @app.callback(Output('model-situation', 'children'),
               [Input('tabs', 'value'), Input('output-start-date', 'children'), Input('output-end-date', 'children')])
-def render_content(model, start_date, end_date):
-    if model == 'follow_trend':
+def render_content(model_name, start_date, end_date):
+    if model_name == 'follow_trend':
+        model = QModel(code = model_name, dbinfo = ct.OUT_DB_INFO, redis_host = "127.0.0.1", cal_file_path = "/Volumes/data/quant/stock/conf/calAll.csv")
         df = get_data(model, end_date)
-        pdf = get_profit_data(model, start_date, end_date)
+        acc_df, pos_df, order_df, profit_df = get_profit_data(model, start_date, end_date)
+        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA01")
+        print(start_date, end_date)
+        print(acc_df, pos_df, order_df, profit_df)
+        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA02")
         return html.Div([
             html.H3('股票池'),
             dash_table.DataTable(
@@ -118,19 +119,41 @@ def render_content(model, start_date, end_date):
                     'color': 'white'
                 }]
             ),
-            html.H3('收益率'),
+            html.H3('账户信息'),
+            dash_table.DataTable(
+                id='follow_trend-account',
+                columns = [{"name": i, "id": i} for i in acc_df.columns],
+                data = acc_df.to_dict('records'),
+                style_cell = {'textAlign': 'left'}
+            ),
+            html.H3('仓位信息'),
+            dash_table.DataTable(
+                id='follow_trend-position',
+                columns = [{"name": i, "id": i} for i in pos_df.columns],
+                data = pos_df.to_dict('records'),
+                style_cell = {'textAlign': 'left'}
+            ),
+            html.H3('今日订单'),
+            dash_table.DataTable(
+                id='follow_trend-order',
+                columns = [{"name": i, "id": i} for i in order_df.columns],
+                data = order_df.to_dict('records'),
+                style_cell = {'textAlign': 'left'}
+            ),
+            html.H3('历史收益率'),
             dcc.Graph(
                 id='follow_trend-profit',
                 figure={
                     'data': [{
-                        'x': [1, 2, 3],
-                        'y': [5, 10, 6],
-                        'type': 'bar'
+                        'x': profit_df.date.tolist(),
+                        'y': profit_df.total_assets.tolist(),
+                        'mode': "lines+markers",
+                        'line': {"color": "#f4d44d"}
                     }]
                 }
             )
         ])
-    elif model == 'low-control':
+    elif model_name == 'low-control':
         return html.Div([
             html.H3('Tab content 2'),
             dcc.Graph(
@@ -144,7 +167,7 @@ def render_content(model, start_date, end_date):
                 }
             )
         ])
-    elif model == 'depth-will':
+    elif model_name == 'depth-will':
         return html.Div([
             html.H3('Tab content 3'),
             dcc.Graph(

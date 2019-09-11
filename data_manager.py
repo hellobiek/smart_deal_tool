@@ -23,6 +23,7 @@ from cindex import CIndex, TdxFgIndex
 from industry_info import IndustryInfo
 from datamanager.margin  import Margin
 from datamanager.emotion import Emotion
+from algotrade.model.qmodel import QModel
 from datamanager.hgt import StockConnect
 from backlooking.creview import CReivew
 from rindustry import RIndexIndustryInfo
@@ -312,6 +313,12 @@ class DataManager:
                 return False
             self.set_update_info(21, exec_date, cdate) 
 
+        if finished_step < 22:
+            if not self.set_bull_stock_ratio(exec_date, num = ndays):
+                self.logger.error("choose stocks for model")
+                return False
+            self.set_update_info(22, exec_date, cdate) 
+
         self.logger.info("updating succeed")
         return True
 
@@ -499,6 +506,12 @@ class DataManager:
         index_codes = self.get_concerned_index_codes()
         return concurrent_run(_set_index_info, index_codes, num = 10)
 
+    def set_stock_pools(self, mdate = None):
+        if mdate is None: mdate = datetime.now().strftime('%Y-%m-%d')
+        unlock_path_ = "/scode/configure/{}.json".format(model)
+        model = QModel(code = 'follow_trend')
+        return model.set_stock_pool(mdate)
+
     def set_bull_stock_ratio(self, cdate, num = 10):
         def _set_bull_stock_ratio(code_id):
             return (code_id, BullStockRatio(code_id).update(cdate, num))
@@ -546,7 +559,7 @@ if __name__ == '__main__':
     #sys.exit(0)
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
-    mdate = '2019-08-15'
+    #mdate = '2019-08-15'
     #dm.logger.info("start compute!")
     #dm.init_rindex_valuation_info(mdate)
     #dm.init_rvaluation_info(mdate)
@@ -557,4 +570,7 @@ if __name__ == '__main__':
     #dm.init_stock_info(mdate)
     #dm.bootstrap(exec_date = '2019-03-26')
     #dm.bootstrap(cdate = mdate, exec_date = mdate)
-    dm.logger.info("end compute!")
+    #dm.logger.info("end compute!")
+    import pdb
+    pdb.set_trace()
+    dm.set_stock_pools(mdate = '2019-09-11')
