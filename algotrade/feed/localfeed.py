@@ -136,7 +136,7 @@ class LocalFeed(dataFramefeed.Feed):
 
     def updateIdentifiers(self, mdate):
         self.reset()
-        df = self.__selector.get_data(mdate)
+        df = self.__selector.get_stock_pool(mdate)
         positions = self.__broker.getPositions()
         if df.empty and len(positions) == 0: return None
         identifiers = df.code.tolist()
@@ -165,6 +165,8 @@ class LocalFeed(dataFramefeed.Feed):
                 self.stop()
             else:
                 self.logger.error("invalid event received:{}-{}".format(eventType, eventData))
+            return ret
         except queue.Empty:
-            self.logger.debug("get empty queue")
-        return ret
+            self.logger.info("get empty queue")
+        except Exception as e:
+            self.logger.error("exception is {}".format(e))

@@ -123,11 +123,19 @@ class FollowTrendStrategy(strategy.BaseStrategy):
             today = datetime_to_str(bars.getDateTime(), dformat = "%Y-%m-%d")
             data = self.model.get_stock_pool(today)
             if data.empty: return list()
-            val = data.loc[data.date == today]['code']
-            if type(val) == str:
-                self.instruments = list(val)
+            xdict = dict()
+            max_length = 0
+            max_industry = None
+            for industry, xdf in data.groupby('industry'):
+                xdict[industry] = xdf.code.tolist()
+                if len(xdict[industry]) > max_length:
+                    max_industry = industry
+                    max_length = len(xdict[industry])
+            codes = xdict[max_industry]
+            if len(codes) < 5:
+                self.instruments = list()
             else:
-                self.instruments = val.tolist()
+                self.instruments = codes
 
     def onBars(self, bars):
         self.updateInstruments(bars)
@@ -182,7 +190,7 @@ def real_trading(stock_num = 4, duaration = 10):
     market = ct.CN_MARKET_SYMBOL
     deal_time = ct.MARKET_DEAL_TIME_DICT[market]
     timezone = ct.TIMEZONE_DICT[market]
-    apath = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/futu.json"
+    apath = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/follow_trend.json"
     dbinfo = ct.OUT_DB_INFO
     redis_host = '127.0.0.1'
     report_dir = "/Volumes/data/quant/stock/data/tdx/report"
