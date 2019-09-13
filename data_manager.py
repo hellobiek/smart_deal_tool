@@ -196,18 +196,18 @@ class DataManager:
             self.set_update_info(1, exec_date, cdate)
 
         if finished_step < 2:
-            self.cvaluation_client = CValuation(needUpdate = True)
+            if not self.init_stock_meta():
+                self.logger.error("stock info init failed")
+                return False
             self.set_update_info(2, exec_date, cdate)
 
         if finished_step < 3:
-            if not self.index_info_client.update():
-                self.logger.error("index info init failed")
-                return False
+            self.cvaluation_client = CValuation(needUpdate = True)
             self.set_update_info(3, exec_date, cdate)
 
         if finished_step < 4:
-            if not self.stock_info_client.update():
-                self.logger.error("stock info init failed")
+            if not self.index_info_client.update():
+                self.logger.error("index info init failed")
                 return False
             self.set_update_info(4, exec_date, cdate)
 
@@ -314,7 +314,7 @@ class DataManager:
             self.set_update_info(21, exec_date, cdate) 
 
         if finished_step < 22:
-            if not self.set_bull_stock_ratio(exec_date, num = ndays):
+            if not self.set_stock_pools(cdate):
                 self.logger.error("choose stocks for model")
                 return False
             self.set_update_info(22, exec_date, cdate) 
@@ -518,6 +518,19 @@ class DataManager:
         index_codes = self.get_concerned_index_codes()
         return concurrent_run(_set_bull_stock_ratio, index_codes)
 
+    def init_stock_meta(self, num = 10):
+        def create_stock_obj(self, code):
+            try:
+                CStock(code, should_create_influxdb = True, should_create_mysqldb = True)
+                return (code, True)
+            except Exception as e:
+                logger.info(e)
+                return (code, False)
+        if self.stock_info_client.init():
+            df = self.stock_info_client.get()
+            return concurrent_run(create_stock_obj, df.code.tolist(), num = 10)
+        return False
+
     def init_tdx_index_info(self, cdate = None, num = 1):
         def _set_index_info(cdate, code_id):
             try:
@@ -571,6 +584,4 @@ if __name__ == '__main__':
     #dm.bootstrap(exec_date = '2019-03-26')
     #dm.bootstrap(cdate = mdate, exec_date = mdate)
     #dm.logger.info("end compute!")
-    import pdb
-    pdb.set_trace()
-    dm.set_stock_pools(mdate = '2019-09-11')
+    dm.set_stock_pools(mdate = '2019-09-12')

@@ -174,7 +174,7 @@ class QModel(CMysqlObj):
         df['history'] = df.apply(lambda row: self.get_hist_val(black_set, white_set, row['code']), axis = 1)
         df = df[df['history'] > -1]
         #添加上市时间和行业信息
-        base_df = self.stock_info_client.get(redis = self.stock_info_client.redis)
+        base_df = self.stock_info_client.get()
         base_df = base_df[['code', 'name', 'timeToMarket', 'industry']]
         df = pd.merge(df, base_df, how='inner', on=['code'])
         start_time = int((datetime.now() - timedelta(days = 1825)).strftime('%Y%m%d'))
@@ -206,7 +206,7 @@ class QModel(CMysqlObj):
         is_first = True
         code_list = list()
         for mdate in date_array:
-            if self.cal_client.is_trading_day(mdate, redis = self.cal_client.redis):
+            if self.cal_client.is_trading_day(mdate):
                 df = self.get_stock_pool(mdate)
                 if is_first:
                    code_list = df.code.tolist()
@@ -230,7 +230,7 @@ class QModel(CMysqlObj):
         succeed = True
         date_array = get_dates_array(start_date, end_date)
         for mdate in date_array:
-             if self.cal_client.is_trading_day(mdate, redis = self.cal_client.redis):
+             if self.cal_client.is_trading_day(mdate):
                  if not self.set_stock_pool(mdate):
                      self.logger.error("set {} data for model failed".format(mdate))
                      succeed = False

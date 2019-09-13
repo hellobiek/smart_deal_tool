@@ -3,11 +3,9 @@ import os
 import sys
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
-import time
 import _pickle
 import const as ct
 import pandas as pd
-import tushare as ts
 #from cinfluxdb import CInflux
 from datetime import datetime
 from functools import partial
@@ -15,15 +13,13 @@ from functools import partial
 #from cpython.cstock import pro_nei_chip
 #from cpython.features import base_floating_profit
 #from cpython.mchip import compute_distribution, compute_oneday_distribution
-from base.clog import getLogger 
 from base.cobj import CMysqlObj
-from datamanager.ticks import read_tick
-from common import is_df_has_unexpected_data, concurrent_run
+from base.clog import getLogger 
+from cstock_info import CStockInfo
 from cpython.cstock import base_floating_profit, pro_nei_chip
+from common import is_df_has_unexpected_data, concurrent_run, get_pre_str
 from cpython.cchip import compute_distribution, compute_oneday_distribution, mac
 from base.cdate import get_years_between, transfer_date_string_to_int, transfer_int_to_date_string
-pd.set_option('display.max_columns', None)
-pd.set_option('display.max_rows', None)
 logger = getLogger(__name__)
 class CStock(CMysqlObj):
     def __init__(self, code, dbinfo = ct.DB_INFO, should_create_influxdb = False, should_create_mysqldb = False, redis_host = None):
@@ -43,19 +39,6 @@ class CStock(CMysqlObj):
     @staticmethod
     def get_redis_name(code):
         return "realtime_s%s" % code
-
-    @staticmethod
-    def get_market(code):
-        if code.startswith("6") or code.startswith("500") or code.startswith("550") or code.startswith("510") or code.startswith("7"):
-            return ct.MARKET_SH
-        elif code.startswith("00") or code.startswith("30") or code.startswith("150") or code.startswith("159"):
-            return ct.MARKET_SZ
-        else:
-            return ct.MARKET_OTHER
-
-    @staticmethod
-    def get_pre_str(code):
-        return "1" if CStock.get_market(code) == ct.MARKET_SH else "0"
 
     def adjust_share(self, data, info):
         data['outstanding'] = 0
@@ -122,27 +105,6 @@ class CStock(CMysqlObj):
                 data.at[:start_index, 'adj'] = data.loc[:start_index, 'adj'] * adj
         return data
 
-    def has_on_market(self, cdate):
-        if cdate is None: cdate = datetime.now().strftime('%Y-%m-%d') 
-        time2Market = self.get('timeToMarket')
-        if str(time2Market) == '0': return False
-        if time2Market is None:
-            logger.error("get time2Market of {} for {} is None".format(cdate, self.code))
-            return False
-        t = time.strptime(str(time2Market), "%Y%m%d")
-        y,m,d = t[0:3]
-        time2Market = datetime(y,m,d)
-        return (datetime.strptime(cdate, "%Y-%m-%d") - time2Market).days >= 0
-
-    @property
-    def is_subnew(self, time2Market = None, timeLimit = 365):
-        if time2Market == '0': return False #for stock has not been in market
-        if time2Market == None: time2Market = self.get('timeToMarket')
-        t = time.strptime(time2Market, "%Y%m%d")
-        y,m,d = t[0:3]
-        time2Market = datetime(y,m,d)
-        return True if (datetime.today()-time2Market).days < timeLimit else False
-
     def create(self, should_create_influxdb, should_create_mysqldb):
         influxdb_flag = self.create_influx_db() if should_create_influxdb else True
         mysql_flag = self.create_db(self.dbname) and self.create_mysql_table(self.get_day_table()) if should_create_mysqldb else True
@@ -186,13 +148,6 @@ class CStock(CMysqlObj):
                                                  PRIMARY KEY(date))' % table_name 
             if not self.mysql_client.create(sql, table_name): return False
         return True
-
-    def get(self, attribute):
-        df_byte = self.redis.get(ct.STOCK_INFO)
-        if df_byte is None: return None
-        df = _pickle.loads(df_byte)
-        if len(df.loc[df.code == self.code][attribute].values) == 0: return None
-        return df.loc[df.code == self.code][attribute].values[0]
 
     def run(self, data):
         self.redis.set(self.get_redis_name(self.code), _pickle.dumps(data.tail(1), 2))
@@ -247,7 +202,7 @@ class CStock(CMysqlObj):
         return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
 
     def read(self, cdate = None, fpath = "/data/tdx/history/days/%s%s.csv"):
-        prestr = self.get_pre_str(self.code)
+        prestr = get_pre_str(self.code)
         filename = fpath % (prestr, self.code)
         if not os.path.exists(filename): return pd.DataFrame(), None
         dheaders = ['date', 'open', 'high', 'close', 'low', 'amount', 'volume']
@@ -336,7 +291,7 @@ class CStock(CMysqlObj):
             df['sri'] = 100 * (s_pchange - i_pchange)
         return df 
 
-    def set_oneday_data(self, df, index_df, pre_date, cdate):
+    def set_oneday_data(self, df, index_df, time2Market, pre_date, cdate):
         day_table = self.get_day_table()
         if self.is_date_exists(day_table, cdate):
             logger.debug("existed data for code:%s, date:%s" % (self.code, cdate))
@@ -375,7 +330,7 @@ class CStock(CMysqlObj):
             logger.error("%s chip distribution compute failed." % self.code)
             return False
 
-        if self.set_chip_distribution(dist_data, zdate = cdate):
+        if self.set_chip_distribution(dist_data, time2Market, zdate = cdate):
             df['uprice'] = mac(dist_data, 0)
             df['sprice'] = mac(dist_data, 5)
             df['mprice'] = mac(dist_data, 13)
@@ -388,7 +343,7 @@ class CStock(CMysqlObj):
                 return self.redis.sadd(day_table, cdate)
         return False
 
-    def set_all_data(self, quantity_change_info, price_change_info, index_info):
+    def set_all_data(self, quantity_change_info, price_change_info, index_info, time2Market):
         df, _ = self.read()
         if df.empty:
             logger.error("read empty file for:%s" % self.code)
@@ -420,7 +375,7 @@ class CStock(CMysqlObj):
             logger.error("%s is empty distribution." % self.code)
             return False
 
-        if not self.set_chip_distribution(dist_data):
+        if not self.set_chip_distribution(dist_data, time2Market):
             logger.error("store %s distribution failed" % self.code)
             return False
 
@@ -461,17 +416,21 @@ class CStock(CMysqlObj):
         df = base_floating_profit(df)
         return self.mysql_client.upsert(df, self.get_day_table(), pri_keys = ['date'])
 
-    def set_k_data(self, bonus_info, index_info, cdate = None):
+    def get_time2market(self, df):
+        return df.loc[df.code == self.code]['timeToMarket'].values[0]
+
+    def set_k_data(self, bonus_info, index_info, stock_info, cdate = None):
+        time2Market = self.get_time2market(stock_info) 
         quantity_change_info, price_change_info = self.collect_right_info(bonus_info)
         if cdate is None or self.is_need_reright(cdate, price_change_info): 
-            return self.set_all_data(quantity_change_info, price_change_info, index_info)
+            return self.set_all_data(quantity_change_info, price_change_info, index_info, time2Market)
         else:
             today_df, pre_date = self.read(cdate)
             if today_df.empty: return True
             if pre_date is None:
-                return self.set_all_data(quantity_change_info, price_change_info, index_info)
+                return self.set_all_data(quantity_change_info, price_change_info, index_info, time2Market)
             else:
-                return self.set_oneday_data(today_df, index_info, pre_date, cdate)
+                return self.set_oneday_data(today_df, index_info, time2Market, pre_date, cdate)
 
     def get_chip_distribution(self, mdate = None):
         df = pd.DataFrame()
@@ -482,14 +441,13 @@ class CStock(CMysqlObj):
                 df = df.reset_index(drop = True)
                 return df
         else:
-            time2Market = self.get('timeToMarket')
-            start_year  = int(time2Market / 10000)
+            start_year  = 1990
             end_year    = int(datetime.now().strftime('%Y'))
-            year_list   = get_years_between(start_year, end_year)
+            year_list   = get_years_between(start_year, end_year, asending = False)
             for table in [self.get_chip_distribution_table(myear) for myear in year_list]:
-                if self.is_table_exists(table):
-                    tmp_df = self.mysql_client.get("select * from %s" % table)
-                    df = df.append(tmp_df)
+                if not self.is_table_exists(table): break
+                tmp_df = self.mysql_client.get("select * from %s" % table)
+                df = df.append(tmp_df)
             df = df.reset_index(drop = True)
         return df
 
@@ -539,9 +497,8 @@ class CStock(CMysqlObj):
         self.redis.sadd(chip_table, *set(tmp_df.date.tolist()))
         return (myear, True)
 
-    def set_chip_distribution(self, df, zdate = None):
+    def set_chip_distribution(self, df, time2Market, zdate = None):
         if zdate is None:
-            time2Market = self.get('timeToMarket')
             start_year = int(time2Market / 10000)
             end_year = int(datetime.now().strftime('%Y'))
             year_list = get_years_between(start_year, end_year)
@@ -567,67 +524,7 @@ class CStock(CMysqlObj):
                     logger.debug("finish record chip:%s. table:%s" % (self.code, chip_table))
                     return True
             return False
-     
-    def set_ticket(self, cdate = None):
-        cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
-        if not self.has_on_market(cdate):
-            logger.debug("not on market code:%s, date:%s" % (self.code, cdate))
-            return True
-        tick_table = self.get_redis_tick_table(cdate)
-        if not self.is_table_exists(tick_table):
-            if not self.create_ticket_table(tick_table):
-                logger.error("create tick table failed")
-                return False
-            if not self.redis.sadd(self.dbname, tick_table):
-                logger.error("add tick table to redis failed")
-                return False
-        if self.is_date_exists(tick_table, cdate): 
-            logger.debug("existed code:%s, date:%s" % (self.code, cdate))
-            return True
-        logger.debug("%s read code from file %s" % (self.code, cdate))
-        df = ts.get_tick_data(self.code, date = cdate)
-        df_tdx = read_tick(os.path.join(ct.TIC_DIR, '%s.tic' % datetime.strptime(cdate, "%Y-%m-%d").strftime("%Y%m%d")), self.code)
-        if not df_tdx.empty:
-            if df is not None and not df.empty and df.loc[0]['time'].find("当天没有数据") == -1:
-                net_volume = df.volume.sum()
-                tdx_volume = df_tdx.volume.sum()
-                if net_volume != tdx_volume:
-                    logger.error("code:%s, date:%s, net volume:%s, tdx volume:%s not equal" % (self.code, cdate, net_volume, tdx_volume))
-            df = df_tdx
-        else:
-            if df is None:
-                logger.debug("nonedata code:%s, date:%s" % (self.code, cdate))
-                return True
-            if df.empty:
-                logger.debug("emptydata code:%s, date:%s" % (self.code, cdate))
-                return True
-            if df.loc[0]['time'].find("当天没有数据") != -1:
-                logger.debug("nodata code:%s, date:%s" % (self.code, cdate))
-                return True
-        df.columns = ['time', 'price', 'cchange', 'volume', 'amount', 'ctype']
-        logger.debug("merge ticket code:%s date:%s" % (self.code, cdate))
-        df = self.merge_ticket(df)
-        df['date'] = cdate
-        logger.debug("write data code:%s, date:%s, table:%s" % (self.code, cdate, tick_table))
 
-        if is_df_has_unexpected_data(df):
-            logger.error("data for %s is not clear" % self.code)
-            return False
-
-        if self.mysql_client.set(df, tick_table):
-            logger.debug("finish record:%s. table:%s" % (self.code, tick_table))
-            if self.redis.sadd(tick_table, cdate):
-                return True
-        return False
-
-    def get_ticket(self, cdate):
-        cdate = datetime.now().strftime('%Y-%m-%d') if cdate is None else cdate
-        if not self.has_on_market(cdate):
-            logger.debug("not on market code:%s, date:%s" % (self.code, cdate))
-            return
-        sql = "select * from %s where date=\"%s\"" %(self.get_redis_tick_table(cdate), cdate)
-        return self.mysql_client.get(sql)
-   
     def get_k_data_in_range(self, start_date, end_date, dtype = 9):
         table_name = self.get_day_table()
         sql = "select * from %s where date between \"%s\" and \"%s\"" %(table_name, start_date, end_date)
@@ -668,14 +565,15 @@ class CStock(CMysqlObj):
         return True
 
 if __name__ == '__main__':
-    from cindex import CIndex
     mdate = None
     #mdate = '2019-04-02'
+    from cindex import CIndex
     index_info = CIndex('000001').get_k_data(mdate)
+    stock_info = CStockInfo().get()
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
     cstock = CStock('002422', should_create_influxdb = False, should_create_mysqldb = False)
     logger.info("start compute")
-    cstock.set_k_data(bonus_info, index_info, cdate = mdate)
+    cstock.set_k_data(bonus_info, index_info, stock_info, cdate = mdate)
     logger.info("enter set base floating profit")
     cstock.set_base_floating_profit()
     logger.info("end compute")

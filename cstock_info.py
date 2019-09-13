@@ -1,42 +1,43 @@
 #coding=utf-8
 import os
 import time
-import json
 import cmysql
 import _pickle
 import datetime
-import pandas as pd
 import const as ct
-import tushare as ts
-from cstock import CStock
+import pandas as pd
 from datetime import datetime
 from base.clog import getLogger
 from industry_info import IndustryInfo
-from common import create_redis_obj, concurrent_run, smart_get
+from common import get_pre_str, create_redis_obj
 logger = getLogger(__name__)
 class CStockInfo(object):
-    def __init__(self, dbinfo = ct.DB_INFO, redis_host = None, stocks_dir = ct.STOCKS_DIR, base_stock_path = ct.BASE_STOCK_PATH):
+    data = None
+    def __init__(self, dbinfo = ct.DB_INFO, redis_host = None, stocks_dir = ct.STOCKS_DIR, base_stock_path = ct.BASE_STOCK_PATH, without_init = True):
         self.table = ct.STOCK_INFO_TABLE
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
         self.mysql_client = cmysql.CMySQL(dbinfo, iredis = self.redis)
-        self.mysql_dbs = self.mysql_client.get_all_databases()
         self.stocks_dir = stocks_dir
         self.base_stock_path = base_stock_path
         #self.trigger = ct.SYNCSTOCK2REDIS
         #if not self.create(): raise Exception("create stock info table:%s failed" % self.table)
         #if not self.register(): raise Exception("create trigger info table:%s failed" % self.trigger)
+        if without_init == False:
+            if not self.init(): raise Exception("stock info init failed")
+        CStockInfo.data = self.get_data()
 
-    @staticmethod
-    def get(code = None, column = None, redis = None, redis_host = None):
-        if redis is None: redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
-        df_byte = redis.get(ct.STOCK_INFO)
-        if df_byte is None: return pd.DataFrame()
+    def get_data(self):
+        df_byte = self.redis.get(ct.STOCK_INFO)
+        if df_byte is None: return pd.DataFrame() 
         df = _pickle.loads(df_byte)
-        if code is None: return df
+        return df 
+
+    def get(self, code = None, column = None):
+        if code is None: return CStockInfo.data
         if column is None:
-            return df.loc[df.code == code]
+            return CStockInfo.data.loc[CStockInfo.data.code == code]
         else:
-            return df.loc[df.code == code][column].values[0]
+            return CStockInfo.data.loc[CStockInfo.data.code == code][column].values[0]
 
     def register(self):
         sql = "create trigger %s after insert on %s for each row set @set=gman_do_background('%s',json_object('code',NEW.code,'name',NEW.name,'industry',NEW.industry,'area',NEW.area,'pe',NEW.pe,'outstanding',NEW.outstanding,'totals',NEW.totals,'totalAssets',NEW.totalAssets,'fixedAssets',NEW.fixedAssets,'liquidAssets',NEW.liquidAssets,'reserved',NEW.reserved,'reservedPerShare',NEW.reservedPerShare,'esp',NEW.esp,'bvps',NEW.bvps,'pb',NEW.pb,'timeToMarket',NEW.timeToMarket,'undp',NEW.undp,'perundp',NEW.perundp,'rev',NEW.rev,'profit',NEW.profit,'gpr',NEW.gpr,'npr',NEW.npr,'limitUpNum',NEW.limitUpNum,'limitDownNum',NEW.limitDownNum,'holders',NEW.holders));" % (self.trigger,self.table,self.trigger)
@@ -71,25 +72,12 @@ class CStockInfo(object):
                                               PRIMARY KEY (code))' % self.table
         return True if self.table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.table)
 
-    def create_stock_obj(self, code):
-        try:
-            CStock(code, should_create_influxdb = True, should_create_mysqldb = True)
-            return (code, True)
-        except Exception as e:
-            logger.info(e)
-            return (code, False)
-
     def init(self):
         df = self.get_basics()
         if df is None: return False
         df = df.reset_index(drop = True)
+        CStockInfo.data = df
         return self.redis.set(ct.STOCK_INFO, _pickle.dumps(df, 2))
-
-    def update(self):
-        if self.init():
-            df = self.get(redis = self.redis)
-            return concurrent_run(self.create_stock_obj, df.code.tolist(), num = 10)
-        return False 
 
     def get_basics(self):
         def func(code):
@@ -104,7 +92,7 @@ class CStockInfo(object):
 
     def get_time_to_market(self, code): 
         """获取沪深股股票上市时间"""
-        file_name = "%s%s.csv" % (CStock.get_pre_str(code), code)
+        file_name = "%s%s.csv" % (get_pre_str(code), code)
         file_path = os.path.join(self.stocks_dir, file_name)
         if not os.path.exists(file_path): return 0
         with open(file_path, 'r') as f:

@@ -167,6 +167,6 @@ class LocalFeed(dataFramefeed.Feed):
                 self.logger.error("invalid event received:{}-{}".format(eventType, eventData))
             return ret
         except queue.Empty:
-            self.logger.info("get empty queue")
+            self.logger.debug("get empty queue")
         except Exception as e:
             self.logger.error("exception is {}".format(e))

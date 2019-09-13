@@ -19,6 +19,7 @@ class Margin(object):
         self.crawler      = get_tushare_client()
         self.dbname       = self.get_dbname()
         self.redis        = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
+        self.cal_client   = CCalendar(dbinfo = dbinfo, redis_host = redis_host, without_init = True)
         self.mysql_client = CMySQL(dbinfo, self.dbname, iredis = self.redis)
         if not self.mysql_client.create_db(self.dbname): raise Exception("init margin database failed")
 
@@ -56,7 +57,7 @@ class Margin(object):
         date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
         data_dict = OrderedDict()
         for _date in date_only_array:
-            if CCalendar.is_trading_day(_date, redis = self.redis):
+            if self.cal_client.is_trading_day(_date):
                 table_name = self.get_table_name(_date)
                 if table_name not in data_dict: data_dict[table_name] = list()
                 data_dict[table_name].append(str(_date))
@@ -90,7 +91,7 @@ class Margin(object):
         date_array = get_dates_array(start_date, end_date)
         succeed = True
         for mdate in date_array:
-            if CCalendar.is_trading_day(mdate, redis = self.redis):
+            if self.cal_client.is_trading_day(mdate):
                 if mdate == end_date: continue
                 if not self.set_data(mdate):
                     self.logger.error("%s set failed" % mdate)

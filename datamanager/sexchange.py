@@ -8,8 +8,8 @@ import const as ct
 import pandas as pd
 from cmysql import CMySQL
 from datetime import datetime
-from base.clog import getLogger
 from ccalendar import CCalendar
+from base.clog import getLogger
 from base.cdate import get_day_nday_ago, get_dates_array
 from common import create_redis_obj, smart_get, int_random, loads_jsonp, float_random
 class StockExchange(object):
@@ -24,6 +24,7 @@ class StockExchange(object):
                              "Referer": "http://www.sse.com.cn/market/stockdata/overview/day/",
                              "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36"}
         self.mysql_client = CMySQL(self.dbinfo, dbname = self.dbname, iredis = self.redis)
+        self.cal_client   = CCalendar(dbinfo = dbinfo, redis_host = redis_host, without_init = True)
         if not self.mysql_client.create_db(self.dbname):
             raise Exception("create %s failed" % self.dbname)
    
@@ -217,7 +218,7 @@ class StockExchange(object):
         succeed = True
         for mdate in get_dates_array(start_date, end_date):
             if mdate in self.balcklist: continue
-            if CCalendar.is_trading_day(mdate, redis = self.redis):
+            if self.cal_client.is_trading_day(mdate):
                 if not self.set_k_data(mdate):
                     succeed = False
                     self.logger.info("market %s for %s set failed" % (self.market, mdate))

@@ -9,7 +9,7 @@ with open('result', 'r') as f:
     out = f.read()
 
 cs = CStockInfo(ct.OUT_DB_INFO, redis_host = '127.0.0.1')
-info = cs.get(redis = cs.redis)
+info = cs.get()
 info = info[['code', 'name']]
 adict = dict()
 for row in out.split():

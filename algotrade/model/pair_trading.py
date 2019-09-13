@@ -17,11 +17,11 @@ from common import get_tushare_client, add_suffix, create_redis_obj
 fpath     = '/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/tushare.json' 
 mredis    = create_redis_obj(host = "127.0.0.1")
 ts_client = get_tushare_client(fpath)
-
 def select_code(code_list, start_date, end_date):
     date_arrays = list()
+    cal_client = CCalendar(redis_host = '127.0.0.1')
     for mdate in get_dates_array(start_date, end_date, dformat = "%Y%m%d"):
-        if CCalendar.is_trading_day(transfer_int_to_date_string(mdate), redis = mredis):
+        if cal_client.is_trading_day(transfer_int_to_date_string(mdate)):
             date_arrays.append(mdate)
     #choose stock which is not suspended verry long
     total_df = pd.DataFrame()
@@ -84,7 +84,7 @@ def plot(pair, df):
     print("xcode:%s, ycode:%s, mean:%s, std:%s, beta:%s" % (xcode, ycode, mean, std, beta))
         
 def main(code_list, start_date, end_date):
-    df    = select_code(code_list, start_date, end_date)
+    df = select_code(code_list, start_date, end_date)
     pair = compute_cointegration_pairs(df)
     if pair is not None:
         plot(pair, df)

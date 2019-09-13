@@ -26,6 +26,7 @@ from base.cdate import get_day_nday_ago, get_dates_array, transfer_int_to_date_s
 class MValuation(object):
     def __init__(self):
         self.logger = getLogger(__name__)
+        self.cal_client = CCalendar(without_init = True)
         self.cval_client = CValuation()
         self.stock_info_client = CStockInfo()
         self.TYPE_LIST = ['bps', 'tcs', 'roa', 'dar', 'npm', 'gpr', 'revenue', 'cfpsfo', 'ngr','igr', 'crr', 'ncf', 'ta', 'fa', 'ca', 'micc', 'iar', 'cip', 'ar',
@@ -88,7 +89,7 @@ class MValuation(object):
         start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
         date_array = get_dates_array(start_date, end_date, asending = True)
         for mdate in date_array:
-            if CCalendar.is_trading_day(mdate):
+            if self.cal_client.is_trading_day(mdate):
                 for code in ct.INDEX_DICT:
                     if not self.cval_client.set_index_valuation(code, mdate):
                         self.logger.error("{} set {} data for rvaluation failed".format(code, mdate))
@@ -97,12 +98,12 @@ class MValuation(object):
 
     def update(self, end_date = datetime.now().strftime('%Y-%m-%d'), num = 7):
         succeed = True
-        base_df = self.stock_info_client.get_basics()
+        base_df = self.stock_info_client.get()
         code_list = base_df.code.tolist()
         start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
         date_array = get_dates_array(start_date, end_date)
         for mdate in date_array:
-            if CCalendar.is_trading_day(mdate):
+            if self.cal_client.is_trading_day(mdate):
                 if not self.set_r_financial_data(mdate, code_list):
                     self.logger.error("set %s data for rvaluation failed" % mdate)
                     succeed = False

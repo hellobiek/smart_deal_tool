@@ -17,6 +17,7 @@ class CLimit:
         self.table = self.get_table_name()
         self.logger = getLogger(__name__)
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
+        self.cal_client = CCalendar(dbinfo = dbinfo, redis_host = redis_host, without_init = True)
         self.mysql_client = CMySQL(dbinfo, iredis = self.redis)
         self.header = {"Host": "home.flashdata2.jrj.com.cn",
                        "Referer": "http://stock.jrj.com.cn/tzzs/zdtwdj/zdforce.shtml",
@@ -145,7 +146,7 @@ class CLimit:
         date_array = get_dates_array(start_date, end_date)
         succeed = True
         for mdate in date_array:
-            if CCalendar.is_trading_day(mdate, redis = self.redis):
+            if self.cal_client.is_trading_day(mdate):
                 if not self.crawl_data(mdate):
                     self.logger.error("%s set failed" % mdate)
                     succeed = False

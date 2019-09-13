@@ -24,6 +24,7 @@ class RIndexIndustryInfo:
         self.dbname = self.get_dbname()
         self.logger = getLogger(__name__)
         self.mysql_client = CMySQL(dbinfo, self.dbname, iredis = self.redis)
+        self.cal_client = CCalendar(dbinfo = dbinfo, redis_host = redis_host, without_init = True)
         if not self.mysql_client.create_db(self.get_dbname()): raise Exception("init rindex stock database failed")
 
     @staticmethod
@@ -67,7 +68,7 @@ class RIndexIndustryInfo:
         date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
         data_dict = OrderedDict()
         for _date in date_only_array:
-            if CCalendar.is_trading_day(_date, redis = self.redis):
+            if self.cal_client.is_trading_day(_date):
                 table_name = self.get_table_name(_date)
                 if table_name not in data_dict: data_dict[table_name] = list()
                 data_dict[table_name].append(str(_date))
@@ -130,7 +131,7 @@ class RIndexIndustryInfo:
         return all_df
 
     def set_data(self, cdate = datetime.now().strftime('%Y-%m-%d')):
-        if not CCalendar.is_trading_day(cdate, redis = self.redis): return False
+        if not self.cal_client.is_trading_day(cdate): return False
         table_name = self.get_table_name(cdate)
         if not self.is_table_exists(table_name):
             if not self.create_table(table_name):
@@ -154,7 +155,7 @@ class RIndexIndustryInfo:
         date_array = get_dates_array(start_date, end_date)
         succeed = True
         for mdate in date_array:
-            if CCalendar.is_trading_day(mdate, redis = self.redis):
+            if self.cal_client.is_trading_day(mdate):
                 if not self.set_data(mdate):
                     self.logger.error("%s rindustry set failed" % mdate)
                     succeed = False

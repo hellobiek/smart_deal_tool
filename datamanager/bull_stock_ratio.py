@@ -8,14 +8,15 @@ from cmysql import CMySQL
 from cindex import CIndex
 from datetime import datetime
 from rstock import RIndexStock
-from base.clog import getLogger
 from ccalendar import CCalendar
+from base.clog import getLogger
 from common import create_redis_obj
 from base.cdate import get_day_nday_ago, get_dates_array
 class BullStockRatio:
     def __init__(self, index_code, dbinfo = ct.DB_INFO, redis_host = None):
         self.dbinfo = dbinfo
         self.index_code = index_code
+        self.cal_client = CCalendar(dbinfo = dbinfo, redis_host = redis_host, without_init = True)
         self.index_obj = CIndex(index_code, dbinfo = self.dbinfo, redis_host = redis_host)
         self.db_name = self.index_obj.get_dbname(index_code)
         self.logger = getLogger(__name__)
@@ -66,7 +67,7 @@ class BullStockRatio:
             self.logger.error("%s code_list for %s is empty" % (end_date, self.index_code))
             return False
         for mdate in get_dates_array(start_date, end_date):
-            if CCalendar.is_trading_day(mdate, redis = self.redis):
+            if self.cal_client.is_trading_day(mdate):
                 if not self.set_ratio(code_list, mdate):
                     self.logger.error("set %s score for %s set failed" % (self.index_code, mdate))
                     succeed = False

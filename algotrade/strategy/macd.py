@@ -213,7 +213,7 @@ def get_blacklist():
 def get_all_codelist():
     #返回不包含ST股票
     stock_info_client = CStockInfo(dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
-    df = stock_info_client.get(redis_host = '127.0.0.1')
+    df = stock_info_client.get()
     return df[~df.name.str.contains("ST")].code.tolist()
 
 def get_stock_data(start_date, end_date):

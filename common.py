@@ -312,3 +312,14 @@ def get_files_in_path(file_path):
 
 def apply_inplace(df, field, fun):
     return pd.concat([df.drop(field, axis=1), df[field].apply(fun)], axis=1)
+
+def get_market(code):
+    if code.startswith("6") or code.startswith("500") or code.startswith("550") or code.startswith("510") or code.startswith("7"):
+        return ct.MARKET_SH
+    elif code.startswith("00") or code.startswith("30") or code.startswith("150") or code.startswith("159"):
+        return ct.MARKET_SZ
+    else:
+        return ct.MARKET_OTHER
+
+def get_pre_str(code):
+    return "1" if get_market(code) == ct.MARKET_SH else "0"

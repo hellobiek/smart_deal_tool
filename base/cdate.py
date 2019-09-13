@@ -120,12 +120,15 @@ def prev_report_date_with(mdate):
     idx = date_list.index(smdate)
     return int(date_list[idx-1])
 
-def get_years_between(start, end):
+def get_years_between(start, end, asending = True):
     num_of_years = end - start + 1
     year_format = time.strftime("%Y", time.strptime(str(start), "%Y"))
     data_times = pd.date_range(year_format, periods = num_of_years, freq='Y')
     year_only_array = np.vectorize(lambda s: s.strftime('%Y'))(data_times.to_pydatetime())
-    return year_only_array.tolist()
+    year_only_array = year_only_array.tolist()
+    if asending: return year_only_array
+    year_only_array = year_only_array[::-1]
+    return year_only_array
 
 def years_ago(years, from_date=None):
     """获取几年前的日期"""

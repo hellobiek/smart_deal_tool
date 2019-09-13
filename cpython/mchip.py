@@ -1,6 +1,7 @@
 # cython: language_level=3, boundscheck=False, nonecheck=False, infer_types=True
 import time
 import numpy as np
+import pandas as pd
 from pandas import DataFrame
 CHIP_COLUMNS = ['pos', 'sdate', 'date', 'price', 'volume', 'outstanding']
 DTYPE_LIST = [('pos', 'i8'), ('sdate', 'S10'), ('date', 'S10'), ('price', 'f4'), ('volume', 'i8'), ('outstanding', 'i8')]
@@ -170,7 +171,8 @@ def compute_distribution(data):
     pre_outstanding = 0
     open_price = data.at[0, 'open']
     data = data[['date', 'volume', 'aprice', 'outstanding']]
-    data.date = data.date.str.encode("UTF-8")
+    with pd.option_context('mode.chained_assignment', None):
+        data['date'] = data['date'].str.encode("UTF-8")
     np_data = data.values
     tmp_arrary = np.zeros((2, 6), dtype = DTYPE_LIST)
     data_arrary = np.zeros((2, 6), dtype = DTYPE_LIST)
@@ -192,9 +194,10 @@ def compute_distribution(data):
         tmp_arrary = tmp_arrary[tmp_arrary['volume'] > 0]
         data_arrary = tmp_arrary.copy() if 0 == index else np.concatenate((data_arrary, tmp_arrary), axis = 0)
     df = DataFrame(data = data_arrary, columns = CHIP_COLUMNS)
-    df.date = df.date.str.decode('utf-8')
-    df.sdate = df.sdate.str.decode('utf-8')
-    df.price = df.price.astype(float).round(2)
+    with pd.option_context('mode.chained_assignment', None):
+        df.date = df.date.str.decode('utf-8')
+        df.sdate = df.sdate.str.decode('utf-8')
+        df.price = df.price.astype(float).round(2)
     return df
 
 def divide_volume_ori(volume, s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total, volume_total):

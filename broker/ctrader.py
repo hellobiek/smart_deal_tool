@@ -21,7 +21,7 @@ class CTrader:
     def __init__(self, dbinfo, fpath = ct.USER_FILE):
         self.logger = getLogger(__name__)
         self.mysql_client = CMySQL(dbinfo)
-        self.cal_client = ccalendar.CCalendar(without_init = True)
+        self.cal_client = ccalendar.CCalendar(dbinfo = dbinfo, without_init = True)
         self.traders = list()
         with open(fpath) as f: infos = json.load(f)
         for info in infos:

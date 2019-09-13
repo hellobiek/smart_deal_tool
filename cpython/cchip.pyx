@@ -2,6 +2,7 @@
 # cython: language_level=3, wraparound=False, boundscheck=False, nonecheck=False, infer_types=True
 import array
 import numpy as np
+import pandas as pd
 from cpython cimport array
 cimport numpy as np
 from pandas import DataFrame
@@ -161,7 +162,8 @@ def compute_distribution(data):
     cdef float aprice, open_price = data.at[0, 'open']
     cdef long pos, volume, index, outstanding, pre_outstanding = 0
     data = data[['date', 'volume', 'aprice', 'outstanding']]
-    data.date = data.date.str.encode("UTF-8")
+    with pd.option_context('mode.chained_assignment', None):
+        data['date'] = data['date'].str.encode("UTF-8")
     cdef np.ndarray np_data = data.values
     tmp_arrary = np.zeros((2, 6), dtype = DTYPE_LIST)
     data_arrary = np.zeros((2, 6), dtype = DTYPE_LIST)
@@ -183,9 +185,10 @@ def compute_distribution(data):
         tmp_arrary = tmp_arrary[tmp_arrary['volume'] > 0]
         data_arrary = tmp_arrary.copy() if 0 == index else np.concatenate((data_arrary, tmp_arrary), axis = 0)
     df = DataFrame(data = data_arrary, columns = CHIP_COLUMNS)
-    df.date = df.date.str.decode('utf-8')
-    df.sdate = df.sdate.str.decode('utf-8')
-    df.price = df.price.astype(float).round(2)
+    with pd.option_context('mode.chained_assignment', None):
+        df['date'] = df['date'].str.decode('utf-8')
+        df['sdate'] = df['sdate'].str.decode('utf-8')
+        df['price'] = df['price'].astype(float).round(2)
     return df
 
 def mac(data, int peried):

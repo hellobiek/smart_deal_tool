@@ -19,9 +19,10 @@ RINDEX_STOCK_INFO_DB = "rstock"
 class RIndexStock:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
-        self.dbname = self.get_dbname()
         self.redis_host = redis_host
+        self.dbname = self.get_dbname()
         self.logger = getLogger(__name__)
+        self.cal_client = CCalendar(dbinfo = dbinfo, redis_host = redis_host, without_init = True)
         self.mysql_client = CMySQL(dbinfo, self.dbname, iredis = self.redis)
         if not self.mysql_client.create_db(self.get_dbname()): raise Exception("init rstock database failed")
 
@@ -84,7 +85,7 @@ class RIndexStock:
         date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
         data_dict = OrderedDict()
         for _date in date_only_array:
-            if CCalendar.is_trading_day(_date, redis = self.redis):
+            if self.cal_client.is_trading_day(_date):
                 table_name = self.get_table_name(_date)
                 if table_name not in data_dict: data_dict[table_name] = list()
                 data_dict[table_name].append(str(_date))
@@ -114,14 +115,14 @@ class RIndexStock:
         return (code, CStock(code).get_k_data(cdate))
 
     def generate_all_data_1(self, cdate, black_list = ct.BLACK_LIST):
-        failed_list = CStockInfo(redis_host = self.redis_host).get(redis = self.redis).code.tolist()
+        failed_list = CStockInfo(redis_host = self.redis_host).get().code.tolist()
         if len(black_list) > 0: failed_list = list(set(failed_list).difference(set(black_list)))
         cfunc = partial(self.get_stock_data, cdate)
         return queue_process_concurrent_run(cfunc, failed_list, num = 500)
 
     def generate_all_data(self, cdate, black_list = ct.BLACK_LIST):
         obj_pool = Pool(5000)
-        failed_list = CStockInfo(redis_host = self.redis_host).get(redis = self.redis).code.tolist()
+        failed_list = CStockInfo(redis_host = self.redis_host).get().code.tolist()
         if len(black_list) > 0:
             failed_list = list(set(failed_list).difference(set(black_list)))
         all_df = pd.DataFrame()
@@ -153,7 +154,7 @@ class RIndexStock:
         date_array = get_dates_array(start_date, end_date)
         succeed = True
         for mdate in date_array:
-            if CCalendar.is_trading_day(mdate, redis = self.redis):
+            if self.cal_client.is_trading_day(mdate):
                 if not self.set_day_data(mdate):
                     self.logger.error("set %s data for rstock failed" % mdate)
                     succeed = False

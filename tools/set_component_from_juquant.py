@@ -12,6 +12,7 @@ from base.cdate import get_day_nday_ago, get_dates_array
 if __name__ == '__main__':
     num = 5500
     end_date = '2019-08-13'
+    cal_client = CCalendar()
     stock_info_client = CStockInfo()
     df = stock_info_client.get()
     code_list = df['code'].tolist()
@@ -23,11 +24,11 @@ if __name__ == '__main__':
     for code in ['000001', '000016', '000300', '000905', '399001', '399005', '399673']:
         obj = CIndex(code)
         for mdate in date_array:
-            if CCalendar.is_trading_day(mdate):
+            if cal_client.is_trading_day(mdate):
                 table_name = obj.get_components_table_name(mdate)
                 if obj.is_table_exists(table_name): obj.mysql_client.delete(table_name)
             
         for mdate in date_array:
-            if CCalendar.is_trading_day(mdate):
+            if cal_client.is_trading_day(mdate):
                 if not obj.set_components_data_from_joinquant(code2namedict, mdate):
                     print("{} for {} set failed".format(code, mdate))

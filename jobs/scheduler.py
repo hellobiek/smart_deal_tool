@@ -14,9 +14,10 @@ def set_info(model = 'follow_trend'):
     unlock_path_ = "/scode/configure/{}.json".format(model)
     model = QModel(code = model, should_create_mysqldb = True)
     futuTrader = FutuTrader(host = ct.FUTU_HOST, port = ct.FUTU_PORT, trd_env = TrdEnv.SIMULATE, market = ct.CN_MARKET_SYMBOL, unlock_path = unlock_path_)
-    model.set_account_info(mdate, futuTrader)
-    model.set_position_info(mdate, futuTrader)
-    model.set_history_order_info(mdate, futuTrader)
+    if model.cal_client.is_trading_day(mdate):
+        model.set_account_info(mdate, futuTrader)
+        model.set_position_info(mdate, futuTrader)
+        model.set_history_order_info(mdate, futuTrader)
 
 class Scheduler(object):
     def __init__(self):

@@ -23,6 +23,7 @@ class StockConnect(object):
         self.mysql_client = None
         self.dbinfo       = dbinfo
         self.logger       = getLogger(__name__)
+        self.cal_client   = CCalendar(dbinfo = dbinfo, redis_host = redis_host, without_init = True)
         self.dbname       = self.get_dbname(market_from, market_to)
         self.redis        = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
         self.mysql_client = CMySQL(self.dbinfo, self.dbname, iredis = self.redis)
@@ -86,7 +87,7 @@ class StockConnect(object):
         date_only_array = np.vectorize(lambda s: s.strftime('%Y-%m-%d'))(data_times.to_pydatetime())
         data_dict = OrderedDict()
         for mdate in date_only_array:
-            if CCalendar.is_trading_day(mdate, redis = self.redis):
+            if self.cal_client.is_trading_day(mdate):
                 table_name = self.get_table_name(mdate, dtype)
                 if table_name not in data_dict: data_dict[table_name] = list()
                 data_dict[table_name].append(str(mdate))
@@ -122,7 +123,7 @@ class StockConnect(object):
         start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
         succeed = True
         for mdate in get_dates_array(start_date, end_date):
-            if CCalendar.is_trading_day(mdate, redis = self.redis):
+            if self.cal_client.is_trading_day(mdate):
                 if mdate == end_date or mdate in self.balcklist: continue
                 if not self.set_data(mdate):
                     succeed = False

@@ -19,6 +19,7 @@ class Emotion:
         self.emotion_table = ct.EMOTION_TABLE
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(redis_host)
         self.mysql_client = CMySQL(self.dbinfo, iredis = self.redis)
+        self.cal_client = CCalendar(dbinfo = dbinfo, redis_host = redis_host, without_init = True)
         self.rstock_client = RIndexStock(dbinfo, redis_host)
         self.logger = getLogger(__name__)
         if not self.create(): raise Exception("create emotion table failed")
@@ -47,7 +48,7 @@ class Emotion:
         start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
         succeed = True
         for mdate in get_dates_array(start_date, end_date):
-            if CCalendar.is_trading_day(mdate, redis = self.redis):
+            if self.cal_client.is_trading_day(mdate):
                 if not self.set_score(mdate):
                     succeed = False
                     self.logger.info("set score for %s set failed" % mdate)
