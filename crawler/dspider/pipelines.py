@@ -14,6 +14,8 @@ from scrapy import Request
 from scrapy.exceptions import DropItem
 from tempfile import TemporaryDirectory
 from scrapy.pipelines.files import FilesPipeline
+from dspider.china_security_industry_valuation import CSI_COLUMNS
+from dspider.security_exchange_commission_valuation import SEC_COLUMNS
 
 post_router = {
     items.MyDownloadItem:poster.MyDownloadItemPoster,
@@ -67,8 +69,7 @@ class SecurityExchangeCommissionValuationPipeline(object):
         df.to_csv(fpath)
 
     def get_stock_df(self, wb, cdate):
-        name_list = ['code', 'name', 'mind_code', 'mind_name', 'dind_code', 'dind_name', 'pe', 'ttm', 'pb', 'dividend']
-        df = pd.read_excel(wb, sheet_name = '个股数据', engine = 'xlrd', header = 0, names = name_list)
+        df = pd.read_excel(wb, sheet_name = '个股数据', engine = 'xlrd', header = 0, names = SEC_COLUMNS)
         if df.empty: return df
         df['date'] = cdate
         df['code'] = df['code'].map(lambda x : str(x).zfill(6))
@@ -133,8 +134,7 @@ class ChinaSecurityIndustryValuationHandlePipeline(object):
         if obj.check(): obj.store()
        
     def get_stock_df(self, wb, cdate):
-        name_list = ['code', 'name', 'pind_code', 'pind_name', 'sind_code', 'sind_name', 'tind_code', 'tind_name', 'find_code', 'find_name', 'pe', 'ttm', 'pb', 'dividend']
-        df = pd.read_excel(wb, sheet_name = '个股数据', engine = 'xlrd', header = 0, names = name_list)
+        df = pd.read_excel(wb, sheet_name = '个股数据', engine = 'xlrd', header = 0, names = CSI_COLUMNS)
         if df.empty: return df
         df['date'] = cdate
         df['code'] = df['code'].map(lambda x : str(x).zfill(6))

@@ -4,6 +4,7 @@ import sys
 import traceback
 from os.path import abspath, dirname, join
 sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
+import itertools
 import const as ct
 import pandas as pd
 from cstock import CStock
@@ -14,10 +15,13 @@ from bokeh.events import DoubleTap
 from cstock_info import CStockInfo
 from cpython.cval import CValuation
 from base.cdate import int_to_datetime
+from bokeh.palettes import Dark2_5 as palette
 from bokeh.layouts import row, column, gridplot
 from visualization.marauder_map import MarauderMap
 from bokeh.transform import linear_cmap, transform
 from bokeh.models.widgets import DatePicker, DataTable, TableColumn, TextInput, Button
+from crawler.dspider.china_security_industry_valuation import ChinaSecurityIndustryValuationCrawler
+from crawler.dspider.security_exchange_commission_valuation import SecurityExchangeCommissionValuationCrawler
 from bokeh.models import WheelZoomTool, BoxZoomTool, HoverTool, ColumnDataSource, Div, LinearColorMapper, ColorBar, ResetTool, CustomJS, BoxSelectTool, PanTool, TapTool
 def update_mmap(attr, old, new):
     mdate = mmap_pckr.value
@@ -36,34 +40,89 @@ def scallback(event):
     layout.children[4] = gridplot([[stock_fig, dist_fig], [profit_fig, roe_fig]])
 
 def create_mmap_figure(mdate):
-    df = mmap.get_data(mdate)
-    df = pd.merge(df, base_df, how='inner', on=['code'])
-    df = df[(df['timeToMarket'] < 20141231) | df.code.isin(list(ct.WHITE_DICT.keys()))]
     TOOLTIPS = [("code", "@code"), ("(pday, profit)", "(@pday, @profit)")]
     TOOLS = [TapTool(), PanTool(), BoxZoomTool(), WheelZoomTool(), ResetTool(), BoxSelectTool(), HoverTool(tooltips = TOOLTIPS)]
     p = figure(plot_height=800, plot_width=1300, x_axis_label='时间', y_axis_label='强度', tools=TOOLS, toolbar_location="above", title="活点地图")
+    df = mmap.get_data(mdate)
+    df = pd.merge(df, base_df, how='inner', on=['code'])
+    df = df[(df['timeToMarket'] < 20141231) | df.code.isin(list(ct.WHITE_DICT.keys()))]
+    csi_df = csi_client.get_k_data(mdate)
+    if csi_df is None or csi_df.empty: return p
+    csi_df = csi_df.drop('name', axis=1)
+    df = pd.merge(csi_df, df, how='inner', on=['code'])
     if df is None or df.empty: return p
-    mdict = {'code': df.code.tolist(), 'profit': df.profit.tolist(), 'pday': df.pday.tolist()}
-    global msource
+    mdict = {'code': df.code.tolist(), 'name': df.name.tolist(), 'profit': df.profit.tolist(), 'pday': df.pday.tolist(),
+            'industry': df.industry.tolist(), 'tind_name': df.tind_name.tolist(), 'find_name': df.find_name.tolist()}
+    global msource, isource
     msource = ColumnDataSource(mdict)
     color_mapper = LinearColorMapper(palette = "Viridis256", low = min(mdict['profit']), high = max(mdict['profit']))
     p.circle(x = 'pday', y = 'profit', color = transform('profit', color_mapper), size = 5, alpha = 0.6, source = msource)
     color_bar = ColorBar(color_mapper = color_mapper, label_standoff = 12, location = (0,0), title = '强度')
     p.add_layout(color_bar, 'right')
-    callback = CustomJS(args=dict(msource = msource, tsource = tsource, mtable = mtable), code="""
+    callback = CustomJS(args=dict(msource = msource, tsource = tsource, mtable = mtable, isource = isource), code="""
             var inds = cb_obj.indices;
             var d1 = msource.data;
             var d2 = tsource.data;
-            d2['code'] = []
-            d2['pday'] = []
-            d2['profit'] = []
+            var d3 = isource.data;
+            var ndata = {};
+            var tind_industry = '';
+            var find_industry = '';
+            var tind_industrys = [];
+            var find_industrys = [];
+            d2['code'] = [];
+            d2['name'] = [];
+            d2['pday'] = [];
+            d2['profit'] = [];
+            d2['industry'] = [];
+            d2['tind_name'] = [];
+            d2['find_name'] = [];
             for (var i = 0; i < inds.length; i++) {
                 d2['code'].push(d1['code'][inds[i]])
+                d2['name'].push(d1['name'][inds[i]])
                 d2['profit'].push(d1['profit'][inds[i]])
                 d2['pday'].push(d1['pday'][inds[i]])
+                d2['industry'].push(d1['industry'][inds[i]])
+                d2['tind_name'].push(d1['tind_name'][inds[i]])
+                d2['find_name'].push(d1['find_name'][inds[i]])
+                tind_industry = d1['tind_name'][inds[i]];
+                find_industry = d1['find_name'][inds[i]];
+                if(!tind_industrys.includes(tind_industry)){
+                    tind_industrys.push(tind_industry)
+                }
+                if(!find_industrys.includes(find_industry)){
+                    find_industrys.push(find_industry)
+                }
+                if(!(tind_industry in ndata)){
+                    ndata[tind_industry] = {}
+                }
+                if(!(find_industry in ndata[tind_industry])){
+                    ndata[tind_industry][find_industry] = []
+                }
+                ndata[tind_industry][find_industry].push(d1['code'][inds[i]])
             }
+            d3['tind_industrys'] = tind_industrys;
+            var tLength = tind_industrys.length;
+            var fLength = find_industrys.length;
+            for (var i = 0; i < fLength; i++) {
+                d3[find_industrys[i]] = []
+                for(var j = 0; j < tLength; j++) {
+                    d3[find_industrys[i]].push(0);
+                }
+            }
+            for (var i = 0; i < tLength; i++) {
+                tind_industry = tind_industrys[i]
+                for (var j = 0; j < fLength; j++) {
+                    find_industry = find_industrys[j]
+                    if(find_industry in ndata[tind_industry]){
+                        d3[find_industry][i] = ndata[tind_industry][find_industry].length
+                    }
+                }
+            }
+            tsource.data = d2;
+            isource.data = d3;
             tsource.change.emit();
-            mtable.change.emit()
+            isource.change.emit();
+            mtable.change.emit();
         """)
     msource.selected.js_on_change('indices', callback)
     return p
@@ -142,6 +201,25 @@ def create_dist_figure(dist_source):
     fig.yaxis.major_label_text_color = None
     return fig
 
+def create_industry_figure():
+    tind_industrys = isource.data['tind_industrys']
+    find_industrys = list(isource.data.keys())
+    find_industrys.remove('tind_industrys')
+    colors = list()
+    for _, color in zip(range(len(find_industrys)), itertools.cycle(palette)):
+        colors.append(color)
+
+    fig = figure(x_range = tind_industrys, plot_width = 1400, plot_height = 600, title="行业分布", 
+                            toolbar_location=None, tools="hover", tooltips="@tind_industrys $name: @$name")
+    fig.vbar_stack(find_industrys, x = 'tind_industrys', width = 0.9, color = colors, source = isource)
+    fig.y_range.start = 0
+    fig.x_range.range_padding = 0.1
+    fig.xaxis.major_label_orientation = "vertical"
+    fig.xgrid.grid_line_color = None
+    fig.axis.minor_tick_line_color = None
+    fig.outline_line_color = None
+    return fig
+
 def create_roe_figure(val_source):
     TOOLTIPS = [("roa", "@roa")]
     TOOLS = [HoverTool(tooltips = TOOLTIPS)]
@@ -161,34 +239,47 @@ mmap_title = Div(text="股票分析", width=120, height=40, margin=[25, 0, 0, 0]
 mmap_pckr = DatePicker(title='开始日期', value = date.today(), min_date = date(2000,1,1), max_date = date.today())
 mmap_pckr.on_change('value', update_mmap)
 mmap_select_row = row(mmap_title, mmap_pckr)
-tsource = ColumnDataSource(dict(code = list(), pday = list(), profit = list()))
+tsource = ColumnDataSource(dict(code = list(), pday = list(), profit = list(), industry = list(), tind_name = list(), find_name = list()))
 source_code = """
     row = cb_obj.indices[0]
     text_row.value = String(source.data['code'][row]);
 """
-callback = CustomJS(args = dict(source = tsource, text_row = code_text), code = source_code)
-tsource.selected.js_on_change('indices', callback)
-columns = [TableColumn(field = "code", title = "代码"), TableColumn(field = "pday", title = "牛熊天数", sortable = True), TableColumn(field = "profit",title = "牛熊程度", sortable = True)]
+tcallback = CustomJS(args = dict(source = tsource, text_row = code_text), code = source_code)
+tsource.selected.js_on_change('indices', tcallback)
+columns = [TableColumn(field = "code", title = "代码"), TableColumn(field = "name", title = "名字"), TableColumn(field = "pday", title = "牛熊天数", sortable = True), 
+           TableColumn(field = "profit",title = "牛熊程度", sortable = True), TableColumn(field = "industry", title = "通达信行业"),
+           TableColumn(field = "tind_name", title = "主行业"), TableColumn(field = "find_name", title = "子行业")]
 mtable = DataTable(source = tsource, columns = columns, width = 1300, height = 200)
 
-button = Button(label="Download", button_type="success")
+button = Button(label="download", button_type="success")
 button.callback = CustomJS(args=dict(source=tsource), code=open(join(dirname(__file__), "download.js")).read())
 
-table_column = column(button, mtable)
-
 val_client = CValuation()
+csi_client = ChinaSecurityIndustryValuationCrawler()
+#sec_client = SecurityExchangeCommissionValuationCrawler()
+
+isource = ColumnDataSource({'tind_industrys': list()})
+ibutton = Button(label="行业分析", button_type="success")
+def change_click():
+    layout.children[3] = column(ibutton, create_industry_figure())
+ibutton.on_click(change_click)
 
 roe_fig = figure()
 dist_fig = figure()
 stock_fig = figure()
 profit_fig = figure()
+industry_fig = figure()
+
+table_column = column(button, mtable)
+
+industry_column = column(ibutton, industry_fig)
 
 val_source = ColumnDataSource()
 dist_source = ColumnDataSource()
 stock_source = ColumnDataSource()
 
 #code = '300760'
-#mdate = '2019-08-08'
+#mdate = '2019-09-12'
 #sobj = CStock(code)
 #sdf = sobj.get_k_data()
 #ddf = sobj.get_chip_distribution(mdate)
@@ -202,5 +293,5 @@ stock_source = ColumnDataSource()
 #roe_fig = create_roe_figure(val_source)
 
 stock_row = gridplot([[stock_fig, dist_fig], [profit_fig, roe_fig]])
-layout = column(mmap_select_row, create_mmap_figure_row(mmap_pckr.value), table_column, code_text, stock_row, name = "layout")
+layout = column(mmap_select_row, create_mmap_figure_row(mmap_pckr.value), table_column, industry_column, code_text, stock_row, name = "layout")
 cdoc.add_root(layout)
