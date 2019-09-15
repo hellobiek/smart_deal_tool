@@ -37,12 +37,12 @@ def scallback(event):
     ddf = sobj.get_chip_distribution(mdate)
     dist_source = ColumnDataSource(ddf)
     dist_fig = create_dist_figure(dist_source)
-    layout.children[4] = gridplot([[stock_fig, dist_fig], [profit_fig, roe_fig]])
+    layout.children[5] = gridplot([[stock_fig, dist_fig], [profit_fig, roe_fig]])
 
 def create_mmap_figure(mdate):
     TOOLTIPS = [("code", "@code"), ("(pday, profit)", "(@pday, @profit)")]
     TOOLS = [TapTool(), PanTool(), BoxZoomTool(), WheelZoomTool(), ResetTool(), BoxSelectTool(), HoverTool(tooltips = TOOLTIPS)]
-    p = figure(plot_height=800, plot_width=1300, x_axis_label='时间', y_axis_label='强度', tools=TOOLS, toolbar_location="above", title="活点地图")
+    p = figure(plot_height=800, plot_width=1400, x_axis_label='时间', y_axis_label='强度', tools=TOOLS, toolbar_location="above", title="活点地图")
     df = mmap.get_data(mdate)
     df = pd.merge(df, base_df, how='inner', on=['code'])
     df = df[(df['timeToMarket'] < 20141231) | df.code.isin(list(ct.WHITE_DICT.keys()))]
@@ -63,7 +63,8 @@ def create_mmap_figure(mdate):
             var inds = cb_obj.indices;
             var d1 = msource.data;
             var d2 = tsource.data;
-            var d3 = isource.data;
+            //var d3 = isource.data;
+            var d3 = {};
             var ndata = {};
             var tind_industry = '';
             var find_industry = '';
@@ -158,7 +159,7 @@ def update_stock(attr, old, new):
     dist_fig = create_dist_figure(dist_source)
     roe_fig = create_roe_figure(val_source)
     stock_fig.on_event(DoubleTap, scallback)
-    layout.children[4] = gridplot([[stock_fig, dist_fig], [profit_fig, roe_fig]])
+    layout.children[5] = gridplot([[stock_fig, dist_fig], [profit_fig, roe_fig]])
 
 def create_profit_figure(stock_source):
     mapper = linear_cmap(field_name='profit', palette=['red', 'green'], low=0, high=0, low_color = 'green', high_color = 'red')
@@ -203,6 +204,7 @@ def create_dist_figure(dist_source):
 
 def create_industry_figure():
     tind_industrys = isource.data['tind_industrys']
+    if len(tind_industrys) == 0: return figure()
     find_industrys = list(isource.data.keys())
     find_industrys.remove('tind_industrys')
     colors = list()
@@ -213,7 +215,9 @@ def create_industry_figure():
                             toolbar_location=None, tools="hover", tooltips="@tind_industrys $name: @$name")
     fig.vbar_stack(find_industrys, x = 'tind_industrys', width = 0.9, color = colors, source = isource)
     fig.y_range.start = 0
-    fig.x_range.range_padding = 0.1
+    fig.x_range.range_padding = 1
+    fig.x_range.range_padding_units = "absolute"
+    fig.xaxis.major_label_text_font_size = "13pt"
     fig.xaxis.major_label_orientation = "vertical"
     fig.xgrid.grid_line_color = None
     fig.axis.minor_tick_line_color = None
@@ -249,7 +253,7 @@ tsource.selected.js_on_change('indices', tcallback)
 columns = [TableColumn(field = "code", title = "代码"), TableColumn(field = "name", title = "名字"), TableColumn(field = "pday", title = "牛熊天数", sortable = True), 
            TableColumn(field = "profit",title = "牛熊程度", sortable = True), TableColumn(field = "industry", title = "通达信行业"),
            TableColumn(field = "tind_name", title = "主行业"), TableColumn(field = "find_name", title = "子行业")]
-mtable = DataTable(source = tsource, columns = columns, width = 1300, height = 200)
+mtable = DataTable(source = tsource, columns = columns, width = 1400, height = 200)
 
 button = Button(label="download", button_type="success")
 button.callback = CustomJS(args=dict(source=tsource), code=open(join(dirname(__file__), "download.js")).read())
@@ -258,7 +262,7 @@ val_client = CValuation()
 csi_client = ChinaSecurityIndustryValuationCrawler()
 #sec_client = SecurityExchangeCommissionValuationCrawler()
 
-isource = ColumnDataSource({'tind_industrys': list()})
+isource = ColumnDataSource({'tind_industrys': []})
 ibutton = Button(label="行业分析", button_type="success")
 def change_click():
     layout.children[3] = column(ibutton, create_industry_figure())
