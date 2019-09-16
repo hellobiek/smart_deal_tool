@@ -176,12 +176,12 @@ def get_day_nday_ago(date, num, dformat = "%Y%m%d"):
     _date = datetime(y, m, d) - timedelta(num)
     return _date.strftime(dformat)
 
-def delta_days(_from, _to, dformat = "%Y-%m-%d"):
-    _from = time.strptime(_from, dformat)
-    _to = time.strptime(_to, dformat)
-    _from = datetime(_from[0],_from[1],_from[2])
-    _to = datetime(_to[0],_to[1],_to[2])
-    return (_to - _from).days + 1
+def delta_days(from_, to_, dformat = "%Y-%m-%d"):
+    from_ = time.strptime(from_, dformat)
+    to_ = time.strptime(to_, dformat)
+    from_ = datetime(from_[0], from_[1], from_[2])
+    to_ = datetime(to_[0], to_[1], to_[2])
+    return (to_ - from_).days + 1
 
 def get_dates_array(start_date, end_date, dformat = "%Y-%m-%d", asending = False):
     num_days = delta_days(start_date, end_date, dformat)

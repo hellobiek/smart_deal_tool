@@ -33,7 +33,7 @@ class GetBarThread(PollingThread):
         self.__calendar    = CCalendar(dbinfo = DBINFO, redis_host = REDIS_HOST, filepath = CAL_FILE_PATH)
         self.__frequency   = frequency
         self.__identifiers = identifiers
-        self.__next_call_time = localnow(self.__timezone)
+        self.__next_call_time = get_today_time(start_time)
 
     def getNextCallDateTime(self):
         self.__next_call_time = max(localnow(self.__timezone), self.__next_call_time + self.__frequency)
@@ -89,7 +89,7 @@ class GetBarThread(PollingThread):
     def run(self):
         while not self.stopped:
             self.wait()
-            if not self.stopped:
+            if not self.stopped and self.__calendar.is_trading_day():
                 try:
                     self.doCall()
                 except Exception as e:
@@ -119,6 +119,7 @@ class LocalFeed(dataFramefeed.Feed):
 
     def start(self):
         if self.__thread.is_alive(): raise Exception("already strated")
+        self.updateIdentifiers()
         self.__thread.start()
 
     def stop(self):
@@ -134,9 +135,11 @@ class LocalFeed(dataFramefeed.Feed):
     def peekDateTime(self):
         return dataFramefeed.Feed.peekDateTime(self)
 
-    def updateIdentifiers(self, mdate):
+    def updateIdentifiers(self):
         self.reset()
-        df = self.__selector.get_stock_pool(mdate)
+        mdate = datetime.now().strftime('%Y-%m-%d')
+        pre_date = self.__calendar.pre_trading_day(mdate)
+        df = self.__selector.get_stock_pool(pre_date)
         positions = self.__broker.getPositions()
         if df.empty and len(positions) == 0: return None
         identifiers = df.code.tolist()
@@ -154,9 +157,7 @@ class LocalFeed(dataFramefeed.Feed):
     def getNextBars(self):
         ret = None
         try:
-            mdate = datetime.now().strftime('%Y-%m-%d')
-            pre_date = self.__calendar.pre_trading_day(mdate)
-            self.updateIdentifiers(pre_date)
+            self.updateIdentifiers()
             eventType, eventData = self.__queue.get(True, LocalFeed.QUEUE_TIMEOUT)
             if eventType == ON_BARS:
                 ret = eventData

@@ -114,6 +114,7 @@ class CStockInfo(object):
             filter_df = base_df[((base_df['code'].str.startswith("00")) & (base_df['market'] == 0)) |
                                 ((base_df['code'].str.startswith("30")) & (base_df['market'] == 0)) |
                                 ((base_df['code'].str.startswith("68")) & (base_df['market'] == 1)) |
+                                ((base_df['code'].str.startswith("65")) & (base_df['market'] == 1)) |
                                 ((base_df['code'].str.startswith("60")) & (base_df['market'] == 1))]
             filter_df = filter_df[['code', 'name']]
             filter_df = filter_df.reset_index(drop = True)

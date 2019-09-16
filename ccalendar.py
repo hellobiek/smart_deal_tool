@@ -4,6 +4,7 @@ import _pickle
 import const as ct
 import pandas as pd
 from datetime import datetime
+from base.cdate import get_dates_array
 from common import create_redis_obj, df_delta
 class CCalendar(object):
     data = None
@@ -39,6 +40,10 @@ class CCalendar(object):
     def is_trading_day(self, mdate = None):
         tmp_date = mdate if mdate is not None else datetime.now().strftime('%Y-%m-%d')
         return 1 == CCalendar.data.loc[CCalendar.data.calendarDate == tmp_date].isOpen.values[0]
+
+    def trading_day_series(self, start, end):
+        date_array = get_dates_array(start, end, asending = True)
+        return [mdate for mdate in date_array if self.is_trading_day(mdate)]
 
     def get(self, mdate = None):
         return CCalendar.data if mdate is None else CCalendar.data.loc[CCalendar.data.calendarDate == mdate]

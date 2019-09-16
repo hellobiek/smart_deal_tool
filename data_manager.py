@@ -417,9 +417,9 @@ class DataManager:
         return process_concurrent_run(cfun, code_list, num = 15, black_list = list())
 
     def init_stock_info(self, cdate = None):
-        def _set_stock_info(mdate, bonus_info, index_info, code_id):
+        def _set_stock_info(mdate, bonus_info, index_info, stock_info, code_id):
             try:
-                if CStock(code_id).set_k_data(bonus_info, index_info, mdate):
+                if CStock(code_id).set_k_data(bonus_info, index_info, stock_info, mdate):
                     self.logger.info("%s set k data success for date:%s", code_id, mdate)
                     return (code_id, True)
                 else:
@@ -436,14 +436,14 @@ class DataManager:
 
         index_info = CIndex('000001').get_k_data()
         if index_info is None or index_info.empty: return False
-        df = self.stock_info_client.get()
-        if df.empty: return False
-        failed_list = df.code.tolist()
+        stock_info = self.stock_info_client.get()
+        if stock_info.empty: return False
+        failed_list = stock_info.code.tolist()
         if cdate is None:
-            cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
+            cfunc = partial(_set_stock_info, cdate, bonus_info, index_info, stock_info)
             return process_concurrent_run(cfunc, failed_list, num = 8)
         else:
-            cfunc = partial(_set_stock_info, cdate, bonus_info, index_info)
+            cfunc = partial(_set_stock_info, cdate, bonus_info, index_info, stock_info)
             succeed = True
             if not process_concurrent_run(cfunc, failed_list, num = 8):
                 succeed = False
@@ -508,8 +508,7 @@ class DataManager:
 
     def set_stock_pools(self, mdate = None):
         if mdate is None: mdate = datetime.now().strftime('%Y-%m-%d')
-        unlock_path_ = "/scode/configure/{}.json".format('follow_trend')
-        model = QModel(code = 'follow_trend')
+        model = QModel(code = 'follow_trend', should_create_mysqldb = True)
         return model.set_stock_pool(mdate)
 
     def set_bull_stock_ratio(self, cdate, num = 10):
@@ -519,16 +518,16 @@ class DataManager:
         return concurrent_run(_set_bull_stock_ratio, index_codes)
 
     def init_stock_meta(self, num = 10):
-        def create_stock_obj(self, code):
+        def create_stock_obj(code):
             try:
                 CStock(code, should_create_influxdb = True, should_create_mysqldb = True)
                 return (code, True)
             except Exception as e:
-                logger.info(e)
+                self.logger.error(e)
                 return (code, False)
         if self.stock_info_client.init():
             df = self.stock_info_client.get()
-            return concurrent_run(create_stock_obj, df.code.tolist(), num = 10)
+            return concurrent_run(create_stock_obj, df.code.tolist(), num = num)
         return False
 
     def init_tdx_index_info(self, cdate = None, num = 1):

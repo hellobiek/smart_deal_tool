@@ -90,7 +90,8 @@ class FollowTrendStrategy(strategy.BaseStrategy):
                 position[code] = dict()
                 position[code]['price'] = price * 0.98
                 position[code]['quantity'] = -1 * actualPostion[code]
-                self.info("sell: {} {} for kdj > 80 at price: {}".format(code, position[code]['quantity'], position[code]['price']))
+                self.info("sell: {} {} for kdj > 80 at price: {}".format(code, 
+                                    position[code]['quantity'], position[code]['price']))
                 continue
         return position
 
@@ -118,28 +119,20 @@ class FollowTrendStrategy(strategy.BaseStrategy):
                     self.positions[instrument]['quantity'] = self.positions[instrument]['quantity'] - quantity
 
     def updateInstruments(self, bars):
-        self.tradingDays += 1
-        if self.tradingDays % self.duaration == 0:
-            today = datetime_to_str(bars.getDateTime(), dformat = "%Y-%m-%d")
-            data = self.model.get_stock_pool(today)
-            if data.empty: return list()
-            xdict = dict()
-            max_length = 0
-            max_industry = None
-            for industry, xdf in data.groupby('industry'):
-                xdict[industry] = xdf.code.tolist()
-                if len(xdict[industry]) > max_length:
-                    max_industry = industry
-                    max_length = len(xdict[industry])
-            codes = xdict[max_industry]
-            if len(codes) < 5:
-                self.instruments = list()
-            else:
-                self.instruments = codes
+        self.instruments = list()
+        today = datetime_to_str(bars.getDateTime(), dformat = "%Y-%m-%d")
+        data = self.model.get_stock_pool(today)
+        if data.empty: return self.instruments
+        xdict = dict()
+        for industry, xdf in data.groupby('industry'):
+            xdict[industry] = xdf.code.tolist()
+            if len(xdict[industry]) > 4:
+                self.instruments.extend(xdict[industry])
 
     def onBars(self, bars):
         self.updateInstruments(bars)
         signalList = self.getSignalDict(bars)
+        self.info("get signals: {}".format(signalList))
         for instrument, info in signalList.items():
             price = info['price']
             quantity = info['quantity']

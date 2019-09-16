@@ -163,7 +163,7 @@ class QModel(CMysqlObj):
         df = self.rindex_client.get_data(mdate)
         df['mv'] = df['totals'] * df['close'] / 100000000
         df['hlzh'] = df['ppercent'] - df['npercent']
-        df = df[df.pday > 100]
+        df = df[df.pday > 60]
         df = df[(df.mv > 100) & (df.mv < 2500)]
         df = df[df.hlzh > 20]
         df = df[(df.profit > 2) & (df.profit < 6.5)]

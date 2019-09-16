@@ -496,7 +496,7 @@ cdef class CValuation(object):
         filepath = os.path.join(self.pledge_file_dir, filename)
         try:
             wb = xlrd.open_workbook(filepath, encoding_override="cp1252")
-            name_list = ['date', 'code', 'name', 'counts', 'unlimited_quantity', 'limited_quantity', 'total_capital_share', 'pledge_rate']
+            name_list = ['nouse','date', 'code', 'name', 'counts', 'unlimited_quantity', 'limited_quantity', 'total_capital_share', 'pledge_rate']
             df = pd.read_excel(wb, sheet_name = 'Sheet1', engine = 'xlrd', header = 0, names = name_list, skiprows = [1,2])
             df['code'] = df['code'].map(lambda x: str(x).zfill(6))
             df = df[['date', 'code', 'pledge_rate']]
