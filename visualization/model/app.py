@@ -60,7 +60,10 @@ def get_data(model, mdate):
         adf = ndf[~ndf.code.apply(tuple,1).isin(pdf.code.apply(tuple,1))]
         adf['status'] = '增加'
         ddf = pdf[~pdf.code.apply(tuple,1).isin(ndf.code.apply(tuple,1))]
-        ddf['status'] = '减少'
+        reason_list = list()
+        for _, code in ddf.code.iteritems():
+            reason_list.append('减少：{}'.format(model.get_deleted_reason(code, mdate)))
+        ddf['status'] = reason_list
         ndf = ndf[~ndf.code.apply(tuple,1).isin(adf.code.apply(tuple,1))]
         ndf['status'] = '维持'
         ndf = ndf.append(adf)
@@ -71,7 +74,10 @@ def get_data(model, mdate):
         return ndf
     elif ndf.empty and not pdf.empty:
         pdf['date'] = mdate
-        pdf['status'] = '减少'
+        reason_list = list()
+        for _, code in pdf.code.iteritems():
+            reason_list.append('减少：{}'.format(model.get_deleted_reason(code, mdate)))
+        pdf['status'] = reason_list
         return pdf
     else:
         return pd.DataFrame()
@@ -121,7 +127,7 @@ def render_content(model_name, start_date, end_date):
                     'backgroundColor': 'rgb(0, 0, 50)',
                     'color': 'white'
                 },{
-                    'if': {'filter_query': '{status} eq "减少"',},
+                    'if': {'filter_query': '{status} contains "减少"',},
                     'backgroundColor': 'rgb(0, 50, 0)',
                     'color': 'white'
                 }]

@@ -159,6 +159,47 @@ class QModel(CMysqlObj):
         vdf = vdf[-5:]
         return vdf[dtype].median()
 
+    def get_deleted_reason(self, code, mdate):
+        data = self.get_stock_pool(mdate)
+        if data.empty: return "{} stock pool is empty".format(mdate)
+        if code in set(data.code.tolist()):
+            return "{} still in stock pool in {}".format(code, mdate)
+        df = CStock(code).get_k_data(mdate)
+        if df.empty:
+            return "{} has not data in {}".format(code, mdate)
+        df['code'] = code
+        df['mv'] = df['totals'] * df['close'] / 100000000
+        df['hlzh'] = df['ppercent'] - df['npercent']
+        mdict = df.to_dict('records')[0]
+        if mdict['pday'] < 60: 
+            return "牛股时间小于60天, 当前天数:{}".format(mdict['pday'])
+        if mdict['mv'] < 100:
+            return "市值小于100亿"
+        if mdict['mv'] > 2500:
+            return "市值大于2500亿"
+        if mdict['hlzh'] < 20:
+            return "获利纵横小于20"
+        if mdict['profit'] < 2:
+            return "基础浮动盈利小于2"
+        if mdict['profit'] > 6.5:
+            return "基础浮动盈利大于6.5"
+        if code in set(ct.BLACK_DICT.keys()):
+            return "股票在黑名单中"
+        if mdict['timeToMarket'] > int((datetime.now() - timedelta(days = 1825)).strftime('%Y%m%d')):
+            return "上市时间少于5年"
+        if mdict['name'].find('ST') != -1:
+            return "股票成ST股"
+        pledge_info = self.val_client.get_stock_pledge_info(code = code)
+        if pledge_info.to_dict('records')[0]['pledge_rate'] > 50:
+            return "最新的质押率大于50%"
+        if df.apply(lambda row: self.get_min_val_in_range('roa', row['code']), axis = 1).to_dict('records')[0]['min_roa'] <= 7:
+            return "最低净资产收益率小于7%"
+        self.val_client.update_vertical_data(df, ['goodwill', 'ta'], transfer_date_string_to_int(mdate))
+        df['gwr'] = 100 * df['goodwill'] / df['ta']
+        if df.to_dict('records')[0]['gwr'] >= 30:
+            return "商誉占总资产的比例大于30%"
+        return "未知原因"
+
     def compute_stock_pool(self, mdate):
         df = self.rindex_client.get_data(mdate)
         df['mv'] = df['totals'] * df['close'] / 100000000
@@ -277,5 +318,6 @@ if __name__ == '__main__':
     pledge_file_dir = "/Volumes/data/quant/stock/data/tdx/history/weeks/pledge"
     report_publish_dir = "/Volumes/data/quant/stock/data/crawler/stock/financial/report_announcement_date"
     ftm = QModel('follow_trend', valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir, cal_file_path, dbinfo = dbinfo, redis_host = redis_host, should_create_mysqldb = True)
-    ftm.generate_stock_pool(start_date, end_date)
+    #ftm.generate_stock_pool(start_date, end_date)
     #feed, code_list = ftm.generate_feed(start_date, end_date)
+    #xx = ftm.get_deleted_reason('002653', '2019-09-16')
