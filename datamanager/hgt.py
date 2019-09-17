@@ -147,6 +147,7 @@ class StockConnect(object):
             return True
 
         ret, df = self.crawler.crawl(cdate)
+
         if ret != 0: return False
         if df.empty: return True
         df = df.reset_index(drop = True)
