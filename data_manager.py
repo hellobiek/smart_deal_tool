@@ -186,7 +186,7 @@ class DataManager:
         if cdate not in step_info: return (0, exec_date)
         return (step_info[cdate]['step'], step_info[cdate]['date'])
 
-    def bootstrap(self, cdate = None, exec_date = datetime.now().strftime('%Y-%m-%d'), ndays = 3):
+    def bootstrap(self, cdate = None, exec_date = datetime.now().strftime('%Y-%m-%d'), ndays = 10):
         finished_step, exec_date = self.get_update_info(cdate, exec_date)
         self.logger.info("enter updating.%s" % finished_step)
         if finished_step < 1:

@@ -320,4 +320,4 @@ if __name__ == '__main__':
     ftm = QModel('follow_trend', valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir, cal_file_path, dbinfo = dbinfo, redis_host = redis_host, should_create_mysqldb = True)
     #ftm.generate_stock_pool(start_date, end_date)
     #feed, code_list = ftm.generate_feed(start_date, end_date)
-    #xx = ftm.get_deleted_reason('002653', '2019-09-16')
+    print(ftm.get_deleted_reason('600570', '2019-09-17'))

@@ -98,9 +98,8 @@ class MarauderMap():
         plt.close(fig)
 
 if __name__ == '__main__':
-    #cdate = "2019-01-22"
-    #image_dir = "/code"
-    #image_name = "test"
-    #mmap_clinet = MarauderMap()
+    cdate = "2019-09-17"
+    mmap_clinet = MarauderMap()
+    mmap_clinet.get_data(mdate)
     #mmap_clinet.plot(cdate, image_dir, image_name)
-    mmap_clinet.gen_animation("2019-01-25", 100)
+    #mmap_clinet.gen_animation("2019-01-25", 100)
