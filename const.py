@@ -4467,6 +4467,7 @@ const.REAL_TRADING = 2
 ##################################################
 const.HGT_CAPITAL = 'capital'
 const.HGT_TOPTEN = 'top10'
+const.HGT_STOCK = 'stock'
 ##################################################
 const.ROLLING_UP = 1
 const.ROLLING_DOWN = -1

@@ -28,7 +28,8 @@ class CStockInfo(object):
 
     def get_data(self):
         df_byte = self.redis.get(ct.STOCK_INFO)
-        if df_byte is None: return pd.DataFrame() 
+        if df_byte is None:
+            raise Exception("stock data in redis is None")
         df = _pickle.loads(df_byte)
         return df 
 

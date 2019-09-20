@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from cstock import CStock
+from common import get_chinese_font
 from algotrade.model.qmodel import QModel
 from matplotlib.collections import LineCollection
 from sklearn import cluster, covariance, manifold
@@ -16,9 +17,8 @@ from sklearn import cluster, covariance, manifold
 # that we get high-tech firms, and before the 2008 crash). This kind of
 # historical data can be obtained for from APIs like the quandl.com and
 # alphavantage.co ones.
-
-start_date = '2019-01-01'
-end_date   = '2019-09-11'
+start_date = '2018-11-01'
+end_date   = '2019-08-01'
 redis_host = "127.0.0.1"
 dbinfo = ct.OUT_DB_INFO
 report_dir = "/Volumes/data/quant/stock/data/tdx/report"
@@ -44,11 +44,13 @@ quotes = []
 codes, names = np.array(sorted(code2namedict.items())).T
 for code in codes:
     df = CStock(code).get_k_data()
-    df = df.loc[(df.date > start_date) & (df.date < end_date)]
+    df = df.loc[df.date > start_date]
+    df = df.reset_index(drop = True)
+    df['code'] = code
+    df = df.loc[1:trading_day_num]
+    if len(df) != trading_day_num:
+        raise Exception("length of df {} is not equal to {}".format(len(df), trading_day_num))
     quotes.append(df)
-
-import pdb
-pdb.set_trace()
 
 close_prices = np.vstack([q['close'] for q in quotes])
 open_prices = np.vstack([q['open'] for q in quotes])
@@ -134,7 +136,7 @@ for index, (name, label, (x, y)) in enumerate(zip(names, labels, embedding.T)):
         verticalalignment = 'top'
         y = y - .002
     plt.text(x, y, name, size=10, horizontalalignment=horizontalalignment, verticalalignment=verticalalignment,
-            bbox=dict(facecolor='w', edgecolor=plt.cm.nipy_spectral(label / float(n_labels)), alpha=.6))
+            bbox=dict(facecolor='w', edgecolor=plt.cm.nipy_spectral(label / float(n_labels)), alpha=.6), fontproperties = get_chinese_font("OUT"))
 
 plt.xlim(embedding[0].min() - .15 * embedding[0].ptp(), embedding[0].max() + .10 * embedding[0].ptp(),)
 plt.ylim(embedding[1].min() - .03 * embedding[1].ptp(), embedding[1].max() + .03 * embedding[1].ptp())

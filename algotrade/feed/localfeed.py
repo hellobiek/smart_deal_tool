@@ -61,6 +61,7 @@ class GetBarThread(PollingThread):
         bar_dict = {}
         mdate = datetime.now().strftime('%Y-%m-%d')
         pre_date = self.calendar.pre_trading_day(mdate)
+        self.logger.info("enter do call, identifiers length:{}".format(len(self.identifiers)))
         for identifier in self.identifiers:
             data = CStock(identifier).get_k_data()
             data = kdj(data)
@@ -160,9 +161,11 @@ class LocalFeed(dataFramefeed.Feed):
     def getNextBars(self):
         ret = None
         try:
+            time.sleep(3600)
             self.updateIdentifiers()
             eventType, eventData = self.queue.get(True, LocalFeed.QUEUE_TIMEOUT)
             if eventType == ON_BARS:
+                self.logger.debug("enter get data from queue")
                 ret = eventData
             elif eventType == ON_END:
                 ret = eventData
@@ -171,6 +174,6 @@ class LocalFeed(dataFramefeed.Feed):
                 self.logger.error("invalid event received:{}-{}".format(eventType, eventData))
             return ret
         except queue.Empty:
-            self.logger.debug("get empty queue")
+            pass
         except Exception as e:
             self.logger.error("exception is {}".format(e))
