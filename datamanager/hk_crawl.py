@@ -34,13 +34,17 @@ class MSelenium:
                 if func(*keys, **args) == except_result: return True
             except:
                 self.logger.debug("%s call with %s and %s failed" % (func.__name__, keys, args))
-            time.sleep(3)
+            time.sleep(2)
         return False
 
     def process(self, req_date):
         [year, month, day] = req_date.split('-')
         if not self.smart_call(self.driver.set_page_load_timeout, None, 30):
             self.logger.error("set page load timeout failed.")
+            return None
+
+        if not self.smart_call(self.driver.set_script_timeout, None, 30):
+            self.logger.error("set script timeout failed.")
             return None
 
         if not self.smart_call(self.driver.get, None, self.link):

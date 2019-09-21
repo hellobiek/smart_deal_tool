@@ -135,7 +135,6 @@ class Margin(object):
         total_df['date'] = pd.to_datetime(total_df.date).dt.strftime("%Y-%m-%d")
         total_df = total_df.reset_index(drop = True)
         if self.mysql_client.set(total_df, table_name):
-            time.sleep(1)
             return self.redis.sadd(table_name, cdate)
         return False
 

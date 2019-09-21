@@ -58,10 +58,10 @@ class GetBarThread(PollingThread):
         return bar.BasicBar(dateTime, open_, high, low, close, volume, adjClose, self.frequency, extra = key_dict)
 
     def doCall(self):
+        self.logger.info("enter do call, identifiers length:{}".format(len(self.identifiers)))
         bar_dict = {}
         mdate = datetime.now().strftime('%Y-%m-%d')
         pre_date = self.calendar.pre_trading_day(mdate)
-        self.logger.info("enter do call, identifiers length:{}".format(len(self.identifiers)))
         for identifier in self.identifiers:
             data = CStock(identifier).get_k_data()
             data = kdj(data)
@@ -80,7 +80,7 @@ class GetBarThread(PollingThread):
         next_call_time = self.getNextCallDateTime()
         self.logger.info("next call time:{}".format(next_call_time))
         begin_time = localnow(self.timezone)
-        while not self.stopped and localnow(self.timezone) < next_call_time:
+        if not self.stopped and localnow(self.timezone) < next_call_time:
             self.logger.info("sleep time:{}".format((next_call_time - begin_time).seconds))
             time.sleep((next_call_time - begin_time).seconds)
 
@@ -93,6 +93,7 @@ class GetBarThread(PollingThread):
     def run(self):
         while not self.stopped:
             self.wait()
+            self.logger.info("exit wait, enter doCall")
             if not self.stopped and self.calendar.is_trading_day():
                 try:
                     self.doCall()

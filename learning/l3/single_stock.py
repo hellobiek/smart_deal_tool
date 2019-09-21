@@ -100,13 +100,6 @@ def get_name(code_id):
     return df.loc[df.code == code_id]['name'].values[0]
 
 if __name__ == "__main__":
-    #df = stock_csv()
-    redis = create_redis_obj()
-    df_byte = redis.get("TestDf")
-    df = _pickle.loads(df_byte)
-    df['date'] = pd.to_datetime(df['date'])
-    df = df.set_index('date')
-    df = df.dropna(axis = 0, how = 'all')
     code_list = ['002376', '002821', '603025', '603019', '300678', '300650', '002766', '600841', '300447', '300692',\
                  '002773', '300651', '002798', '603811', '603030', '002161', '300257', '603797', '300082', '603813',\
                  '300337', '300445', '300444', '300685', '002770', '603027', '300732', '002358', '300722', '002833',\

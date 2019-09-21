@@ -15,14 +15,14 @@ class CStockInfo(object):
     data = None
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None, stocks_dir = ct.STOCKS_DIR, base_stock_path = ct.BASE_STOCK_PATH, without_init = True):
         self.table = ct.STOCK_INFO_TABLE
-        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
+        self.redis = create_redis_obj(host = 'redis-proxy-container', port = 6579) if redis_host is None else create_redis_obj(host = redis_host, port = 6579)
         self.mysql_client = cmysql.CMySQL(dbinfo, iredis = self.redis)
         self.stocks_dir = stocks_dir
         self.base_stock_path = base_stock_path
         #self.trigger = ct.SYNCSTOCK2REDIS
         #if not self.create(): raise Exception("create stock info table:%s failed" % self.table)
         #if not self.register(): raise Exception("create trigger info table:%s failed" % self.trigger)
-        if without_init == False:
+        if not without_init:
             if not self.init(): raise Exception("stock info init failed")
         CStockInfo.data = self.get_data()
 

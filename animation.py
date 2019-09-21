@@ -32,9 +32,8 @@ class CAnimation:
         sql = 'create table if not exists %s(time varchar(10) not null, date varchar(10) not null, price float, volume float, amount float, name varchar(30) not null, PRIMARY KEY (date, time, name))' % self.table
         return True if self.table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, self.table)
 
-    @staticmethod
-    def get_combination_dict():
-        df = CombinationInfo.get()
+    def get_combination_dict(self):
+        df = CombinationInfo().get()
         cdict = dict()
         for _index, code in df['code'].items():
             cdict[code] = df.loc[_index]['name']

@@ -10,15 +10,24 @@ from pytdx.reader import CustomerBlockReader
 from common import create_redis_obj, concurrent_run
 # include index and concept in stock
 class CombinationInfo:
+    data = None
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.table = ct.COMBINATION_INFO_TABLE
         self.logger = getLogger(__name__)
-        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
+        self.redis = create_redis_obj(host = 'redis-proxy-container', port = 6579) if redis_host is None else create_redis_obj(host = redis_host, port = 6579)
         self.mysql_client = cmysql.CMySQL(dbinfo, iredis = self.redis)
         if not self.init(): raise Exception("init combination table failed")
         #self.trigger = ct.SYNC_COMBINATION_2_REDIS
         #if not self.create(): raise Exception("create combination table failed")
         #if not self.register(): raise Exception("create combination trigger failed")
+        CombinationInfo.data = self.get_data()
+
+    def get_data(self):
+        df_byte = self.redis.get(ct.COMBINATION_INFO)
+        if df_byte is None:
+            raise Exception("stock data in redis is None")
+        df = _pickle.loads(df_byte)
+        return df
 
     def create(self):
         sql = 'create table if not exists %s(name varchar(50), code varchar(10), cType int, content varchar(20000), best varchar(1000), PRIMARY KEY (code))' % self.table
@@ -56,14 +65,9 @@ class CombinationInfo:
         df.columns = ['code', 'name', 'content']
         return df
         
-    @staticmethod
-    def get(index_type = None, redis = None):
-        redis = create_redis_obj() if redis is None else redis
-        df_byte = redis.get(ct.COMBINATION_INFO) 
-        if df_byte is None: return pd.DataFrame() 
-        df = _pickle.loads(df_byte)
-        if index_type is None: return df
-        return df[[df.cType == index_type]]
+    def get(self, index_type = None):
+        if index_type is None: return CombinationInfo.data
+        return CombinationInfo.data[[CombinationInfo.data.cType == index_type]]
 
     def get_concerned_list(self):
         df = self.get()

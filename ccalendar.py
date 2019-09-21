@@ -12,10 +12,9 @@ class CCalendar(object):
         self.fpath = filepath 
         self.table = ct.CALENDAR_TABLE
         self.trigger = ct.SYNCCAL2REDIS
-        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
-        #self.mysql_client = cmysql.CMySQL(dbinfo, iredis = self.redis)
-        if without_init == False:
-            if not self.init(): raise Exception("calendar table init failed")
+        self.redis = create_redis_obj(host = 'redis-proxy-container', port = 6579) if redis_host is None else create_redis_obj(host = redis_host, port = 6579)
+        if not without_init:
+            if not self.init(): raise Exception("init ccalendar failed")
         CCalendar.data = self.get_data()
 
     def init(self):

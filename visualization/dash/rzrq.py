@@ -40,6 +40,7 @@ class RZRQ(object):
         df['rqye']   = df['rqye']/1e+8
         df['rzrqye'] = df['rzrqye']/1e+8
         df = df.drop_duplicates()
+        df = df.dropna(how = 'any')
         df = df.reset_index(drop = True)
         df = df.sort_values(by = 'date', ascending= True)
         return df

@@ -32,6 +32,7 @@ class CRedis:
             else:
                 raise Exception("not supported method for redis client")
         except Exception as e:
+            logger.debug("get exception {}".format(e))
             self.wait_redis_available()
             if name == 'smembers':
                 return set()
@@ -49,7 +50,7 @@ class CRedis:
     def wait_redis_available(self, retry_times = 3):
         for i in range(retry_times):
             try:
-                self.client.get(None)
+                self.client.ping()
                 return
             except (redis.exceptions.ConnectionError, redis.exceptions.BusyLoadingError) as e:
                 logger.debug(e)
