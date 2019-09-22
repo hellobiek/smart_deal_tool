@@ -120,7 +120,7 @@ class CIndex(CMysqlObj):
         table_name = self.get_components_table_name(cdate)
         if not self.is_table_exists(table_name): return pd.DataFrame()
         sql = "select * from %s where date=\"%s\"" % (table_name, cdate)
-        return self.mysql_client.get(sql, retry_times = 3)
+        return self.mysql_client.get(sql)
 
     def set_components_data_from_joinquant(self, basic_dict, cdate):
         table_name = self.get_components_table_name(cdate)

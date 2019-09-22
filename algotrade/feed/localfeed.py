@@ -78,9 +78,9 @@ class GetBarThread(PollingThread):
 
     def wait(self):
         next_call_time = self.getNextCallDateTime()
-        self.logger.info("next call time:{}".format(next_call_time))
         begin_time = localnow(self.timezone)
-        if not self.stopped and localnow(self.timezone) < next_call_time:
+        self.logger.info("beigin time:{}, next call time:{}".format(begin_time, next_call_time))
+        if not self.stopped and begin_time < next_call_time:
             self.logger.info("sleep time:{}".format((next_call_time - begin_time).seconds))
             time.sleep((next_call_time - begin_time).seconds)
 
