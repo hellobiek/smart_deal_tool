@@ -50,12 +50,12 @@ def create_lagged_series(symbol, start_date, end_date, lags = 5):
 
     # Create the lagged percentage returns columns
     for i in range(0, lags):
-        tsret["Lag%s" % str(i+1)] = \
-        tslag["Lag%s" % str(i+1)].pct_change()*100.0
+        tsret["Lag%s" % str(i+1)] = tslag["Lag%s" % str(i+1)].pct_change()*100.0
 
     # Create the "Direction" column (+1 or -1) indicating an up/down day
     tsret["Direction"] = np.sign(tsret["Today"])
     tsret = tsret[(tsret.index >= start_date) & (tsret.index <= end_date)]
+
     return tsret
 
 if __name__ == "__main__":

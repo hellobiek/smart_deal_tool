@@ -70,7 +70,7 @@ class DataManager:
         now_time = datetime.now()
         _date = now_time.strftime('%Y-%m-%d')
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
-        aft_open_hour,aft_open_minute,aft_open_second = (17,10,00)
+        aft_open_hour,aft_open_minute,aft_open_second = (18,00,00)
         aft_open_time = datetime(y,m,d,aft_open_hour,aft_open_minute,aft_open_second)
         aft_close_hour,aft_close_minute,aft_close_second = (23,59,59)
         aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
@@ -260,56 +260,56 @@ class DataManager:
             self.set_update_info(12, exec_date, cdate)
 
         if finished_step < 13:
-            if not self.init_yesterday_hk_info(exec_date, num = ndays):
-                self.logger.error("init yesterday hk info failed")
+            if not self.margin_client.update(exec_date, num = ndays):
+                self.logger.error("init yesterday margin failed")
                 return False
             self.set_update_info(13, exec_date, cdate)
 
         if finished_step < 14:
-            if not self.margin_client.update(exec_date, num = ndays):
-                self.logger.error("init yesterday margin failed")
+            if not self.init_stock_info(cdate):
+                self.logger.error("init stock info set failed")
                 return False
             self.set_update_info(14, exec_date, cdate)
 
         if finished_step < 15:
-            if not self.init_stock_info(cdate):
-                self.logger.error("init stock info set failed")
+            if not self.init_base_float_profit():
+                self.logger.error("init base float profit for all stock")
                 return False
             self.set_update_info(15, exec_date, cdate)
 
         if finished_step < 16:
-            if not self.init_base_float_profit():
-                self.logger.error("init base float profit for all stock")
+            if not self.init_valuation_info(cdate):
+                self.logger.error("init stock valuation info failed")
                 return False
             self.set_update_info(16, exec_date, cdate)
 
         if finished_step < 17:
-            if not self.init_valuation_info(cdate):
-                self.logger.error("init stock valuation info failed")
+            if not self.init_rvaluation_info(cdate):
+                self.logger.error("init r stock valuation info failed")
                 return False
             self.set_update_info(17, exec_date, cdate)
 
         if finished_step < 18:
-            if not self.init_rvaluation_info(cdate):
-                self.logger.error("init r stock valuation info failed")
+            if not self.init_rindex_valuation_info(cdate):
+                self.logger.error("init r index valuation info failed")
                 return False
             self.set_update_info(18, exec_date, cdate)
 
         if finished_step < 19:
-            if not self.init_rindex_valuation_info(cdate):
-                self.logger.error("init r index valuation info failed")
+            if not self.rindex_stock_data_client.update(exec_date, num = ndays):
+                self.logger.error("rstock data set failed")
                 return False
             self.set_update_info(19, exec_date, cdate)
 
         if finished_step < 20:
-            if not self.rindex_stock_data_client.update(exec_date, num = ndays):
-                self.logger.error("rstock data set failed")
+            if not self.set_bull_stock_ratio(exec_date, num = ndays):
+                self.logger.error("bull ratio set failed")
                 return False
             self.set_update_info(20, exec_date, cdate)
 
         if finished_step < 21:
-            if not self.set_bull_stock_ratio(exec_date, num = ndays):
-                self.logger.error("bull ratio set failed")
+            if not self.init_yesterday_hk_info(exec_date, num = ndays):
+                self.logger.error("init yesterday hk info failed")
                 return False
             self.set_update_info(21, exec_date, cdate) 
 
@@ -356,6 +356,7 @@ class DataManager:
             except Exception as e:
                 time.sleep(1)
                 self.logger.error(e)
+                #traceback.print_exc()
 
     def init_combination_info(self):
         trading_info = self.comb_info_client.get()

@@ -55,7 +55,7 @@ class CombinationInfo:
 
     def update(self):
         if self.init():
-            df = self.get(redis = self.redis)
+            df = self.get()
             return concurrent_run(self.create_obj, df.code.tolist(), num = 10)
         return False
 

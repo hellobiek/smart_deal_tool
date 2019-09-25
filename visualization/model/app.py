@@ -48,7 +48,7 @@ app.layout = html.Div([
         min_date_allowed = datetime(2000, 1, 1),
         max_date_allowed = datetime.now(),
         initial_visible_month = datetime.now(),
-        start_date = datetime.now() - timedelta(10),
+        start_date = datetime.now() - timedelta(190),
         end_date = datetime.now()
     ),
     html.Div(id='output-start-date', style={'display': 'none'}),
@@ -103,10 +103,12 @@ def get_data(model, mdate):
         ndf['status'] = '维持'
         ndf = ndf.append(adf)
         ndf = ndf.append(ddf)
+        ndf = ndf.sort_values(['industry'], ascending = 1)
         ndf = ndf.reset_index(drop = True)
         return ndf
     elif not ndf.empty and pdf.empty:
         ndf['status'] = '增加'
+        ndf = ndf.sort_values(['industry'], ascending = 1)
         ndf = ndf.reset_index(drop = True)
         return ndf
     elif ndf.empty and not pdf.empty:
@@ -115,6 +117,7 @@ def get_data(model, mdate):
         for _, code in pdf.code.iteritems():
             reason_list.append('减少：{}'.format(model.get_deleted_reason(code, mdate)))
         pdf['status'] = reason_list
+        pdf = pdf.sort_values(['industry'], ascending = 1)
         pdf = pdf.reset_index(drop = True)
         return pdf
     else:

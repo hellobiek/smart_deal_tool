@@ -57,6 +57,18 @@ DTYPE_DICT = {'date': int,
               'qfii_holding': float, #QFII持股量
               'social_security_holders': float, #社保机构数
               'social_security_holding': float, #社保持股量
+              'broker_holders': float, #券商机构数
+              'broker_holding': float, #券商持股量
+              'insurance_holders': float, #保险机构数
+              'insurance_holding': float, #保险持股量
+              'annuity_holders': float, #年金机构数
+              'annuity_holding': float, #年金持股量
+              'fund_holders': float, #基金机构数
+              'fund_holding': float, #基金持股量
+              'private_holders': float, #私募机构数
+              'private_holding': float, #私募持股量
+              'financial_company_holders': float, #财务公司机构数
+              'financial_company_holding': float, #财务公司持股量
               'publish': int}
 
 cdef str PRE_CUR_CODE = '', PRE_YEAR_CODE = ''

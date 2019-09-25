@@ -39,8 +39,6 @@ class QModel(CMysqlObj):
     def create(self, should_create_mysqldb):
         if should_create_mysqldb:
             return self.create_db(self.dbname) and self.create_order_table() and self.create_account_table() and self.create_position_table()
-            #return self.create_db(self.dbname) and self.create_order_table() and \
-            #       self.create_account_table() and self.create_position_table()
         return True
 
     def create_table(self, table_name):
@@ -159,6 +157,17 @@ class QModel(CMysqlObj):
         vdf = vdf[-5:]
         return vdf[dtype].median()
 
+    def get_max_profit(self, code, mdate):
+        data = CStock(code).get_k_data()
+        mdata = data.loc[data.date == mdate]
+        if mdata.empty:
+            self.logger.error("{} has not data in {}".format(code, mdate))
+            return None
+        mdata = mdata.reset_index(drop = True)
+        mdict = mdata.to_dict('records')[0]
+        pos = mdict['ibase']
+        return data.loc[pos:]['profit'].max()
+
     def get_deleted_reason(self, code, mdate):
         data = self.get_stock_pool(mdate)
         if data.empty: return "{} stock pool is empty".format(mdate)
@@ -170,6 +179,11 @@ class QModel(CMysqlObj):
         df['code'] = code
         df['mv'] = df['totals'] * df['close'] / 100000000
         df['hlzh'] = df['ppercent'] - df['npercent']
+
+        base_df = self.stock_info_client.get()
+        base_df = base_df[['code', 'name', 'timeToMarket', 'industry']]
+        df = pd.merge(df, base_df, how='inner', on=['code'])
+
         mdict = df.to_dict('records')[0]
         if mdict['pday'] < 60: 
             return "牛股时间小于60天, 当前天数:{}".format(mdict['pday'])
@@ -181,8 +195,8 @@ class QModel(CMysqlObj):
             return "获利纵横小于20"
         if mdict['profit'] < 2:
             return "基础浮动盈利小于2"
-        if mdict['profit'] > 6.5:
-            return "基础浮动盈利大于6.5"
+        if mdict['profit'] > 7:
+            return "基础浮动盈利大于7"
         if code in set(ct.BLACK_DICT.keys()):
             return "股票在黑名单中"
         if mdict['timeToMarket'] > int((datetime.now() - timedelta(days = 1825)).strftime('%Y%m%d')):
@@ -190,10 +204,12 @@ class QModel(CMysqlObj):
         if mdict['name'].find('ST') != -1:
             return "股票成ST股"
         pledge_info = self.val_client.get_stock_pledge_info(code = code)
-        if pledge_info.to_dict('records')[0]['pledge_rate'] > 50:
+        if not pledge_info.empty and pledge_info.to_dict('records')[0]['pledge_rate'] > 50:
             return "最新的质押率大于50%"
-        if df.apply(lambda row: self.get_min_val_in_range('roa', row['code']), axis = 1).to_dict('records')[0]['min_roa'] <= 7:
-            return "最低净资产收益率小于7%"
+        if df.apply(lambda row: self.get_min_val_in_range('roa', row['code']), axis = 1)[0] <= 8:
+            return "最低净资产收益率小于8%"
+        if df.apply(lambda row: self.get_max_profit(row['code'], mdate), axis = 1)[0] >= 7:
+            return "最大获利盘大于100%"
         self.val_client.update_vertical_data(df, ['goodwill', 'ta'], transfer_date_string_to_int(mdate))
         df['gwr'] = 100 * df['goodwill'] / df['ta']
         if df.to_dict('records')[0]['gwr'] >= 30:
@@ -207,7 +223,8 @@ class QModel(CMysqlObj):
         df = df[df.pday > 60]
         df = df[(df.mv > 100) & (df.mv < 2500)]
         df = df[df.hlzh > 20]
-        df = df[(df.profit > 2) & (df.profit < 6.5)]
+        df = df[(df.profit > 2) & (df.profit < 7)]
+        if df.empty: return df
         #黑名单
         black_set = set(ct.BLACK_DICT.keys())
         white_set = set(ct.WHITE_DICT.keys())
@@ -227,14 +244,17 @@ class QModel(CMysqlObj):
         pledge_info = pledge_info[['code', 'pledge_rate']]
         df = pd.merge(df, pledge_info, how='left', on=['code'])
         df = df.fillna(value = {'pledge_rate': 0})
-        df = df[df['pledge_rate'] < 50]
+        df = df[df['pledge_rate'] < 30]
         #ROE中位数
         df['min_roa'] = df.apply(lambda row: self.get_min_val_in_range('roa', row['code']), axis = 1)
-        df = df[df['min_roa'] > 7]
+        df = df[df['min_roa'] > 8] 
         #基本面信息
         self.val_client.update_vertical_data(df, ['goodwill', 'ta'], transfer_date_string_to_int(mdate))
         df['gwr'] = 100 * df['goodwill'] / df['ta']
         df = df[df['gwr'] < 30]
+        #最大基础浮动盈利 < 7
+        df['max_profit'] = df.apply(lambda row: self.get_max_profit(row['code'], mdate), axis = 1)
+        df = df[df['max_profit'] < 7]
         df = df.dropna()
         df = df.reset_index(drop = True)
         df = df[['date', 'code', 'name', 'industry']]
@@ -256,12 +276,12 @@ class QModel(CMysqlObj):
         codes = list(set(all_df.code.tolist()))
         for code in codes:
             data = CStock(code).get_k_data()
+            data = kdj(data)
             data = data[(data.date >= start_date) & (data.date <= end_date)]
             data = data.sort_values(by=['date'], ascending = True)
             data = data.reset_index(drop = True)
             data = data.set_index('date')
             if is_df_has_unexpected_data(data): return None, list()
-            data = kdj(data)
             data.index = pd.to_datetime(data.index)
             data = data.dropna(how='any')
             feed.addBarsFromDataFrame(code, data)
@@ -304,8 +324,8 @@ class QModel(CMysqlObj):
         return False
 
 if __name__ == '__main__':
-    start_date = '2019-08-01'
-    end_date   = '2019-09-11'
+    start_date = '2017-09-23'
+    end_date   = '2019-09-24'
     redis_host = "127.0.0.1"
     dbinfo = ct.OUT_DB_INFO
     report_dir = "/Volumes/data/quant/stock/data/tdx/report"
@@ -318,6 +338,8 @@ if __name__ == '__main__':
     pledge_file_dir = "/Volumes/data/quant/stock/data/tdx/history/weeks/pledge"
     report_publish_dir = "/Volumes/data/quant/stock/data/crawler/stock/financial/report_announcement_date"
     ftm = QModel('follow_trend', valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir, cal_file_path, dbinfo = dbinfo, redis_host = redis_host, should_create_mysqldb = True)
-    #ftm.generate_stock_pool(start_date, end_date)
+    ftm.generate_stock_pool(start_date, end_date)
     #feed, code_list = ftm.generate_feed(start_date, end_date)
-    print(ftm.get_deleted_reason('600570', '2019-09-17'))
+    #print(ftm.get_deleted_reason('600570', '2019-09-17'))
+    #ftm.get_deleted_reason('600570', '2019-09-23')
+    #df = ftm.compute_stock_pool(mdate = '2019-09-23')

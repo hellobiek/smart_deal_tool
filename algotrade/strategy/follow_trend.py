@@ -51,9 +51,9 @@ class FollowTrendStrategy(strategy.BaseStrategy):
             k, d = row['k'], row['d']
             if k is None or d is None: continue
             if acutalNum >= self.totalNum:
-                self.info("can not buy for actualNum {} >= totalNum {}".format(acutalNum, self.totalNum))
+                self.debug("can not buy for actualNum {} >= totalNum {}".format(acutalNum, self.totalNum))
                 continue
-            if k < 15 and d < 15 and code not in actualPostion and row['ppercent'] > row['npercent']:
+            if k < 20 and d < 20 and code not in actualPostion and row['ppercent'] > (row['npercent'] + 20):
                 price = bar.getPrice() * 1.02
                 cash = self.getCash()
                 cash = cash / (self.totalNum - acutalNum)
@@ -69,29 +69,19 @@ class FollowTrendStrategy(strategy.BaseStrategy):
             row = bar.getExtraColumns()
             k, d = row['k'], row['d']
             if k is None or d is None: continue
-            if row['ppercent'] <= row['npercent']:
-                position[code] = dict()
-                position[code]['price'] = price * 0.98
-                position[code]['quantity'] = -1 * actualPostion[code]
-                self.info("sell: {} {} for ppercent {} <= npercent {} at price: {}".format(code, 
-                                        position[code], row['ppercent'], row['npercent'], price))
-                continue
-
-            if self.positions[code]['price'] > price * 1.2:
+            if self.positions[code]['price'] > price * 1.15:
                 assert(self.positions[code]['quantity'] == actualPostion[code])
                 position[code] = dict()
                 position[code]['price'] = price * 0.98
-                position[code] = -1 * actualPostion[code]
-                self.info("sell: {} {} for hold_price {} > 1.2 * cur_price {}".format(code,
-                                    position[code], self.positions[code]['price'], price))
+                position[code]['quantity'] = -1 * actualPostion[code]
+                self.info("sell: {} {} for hold_price {} > 1.15 * cur_price {}".format(code, position[code], self.positions[code]['price'], price))
                 continue
                 
             if k > 80 and d > 80:
                 position[code] = dict()
                 position[code]['price'] = price * 0.98
                 position[code]['quantity'] = -1 * actualPostion[code]
-                self.info("sell: {} {} for kdj > 80 at price: {}".format(code, 
-                                    position[code]['quantity'], position[code]['price']))
+                self.info("sell: {} {} for kdj > 80 at price: {}".format(code, position[code]['quantity'], position[code]['price']))
                 continue
         return position
 
@@ -100,7 +90,6 @@ class FollowTrendStrategy(strategy.BaseStrategy):
             instrument = order.getInstrument()
             price = order.getAvgFillPrice()
             quantity = order.getQuantity()
-            self.model.record(order)
             if order.isBuy():
                 if instrument in self.positions:
                     self.positions[instrument]['price'] = (self.positions[instrument]['quantity'] * self.positions[instrument]['price'] 
@@ -120,19 +109,15 @@ class FollowTrendStrategy(strategy.BaseStrategy):
 
     def updateInstruments(self, bars):
         self.instruments = list()
-        today = datetime_to_str(bars.getDateTime(), dformat = "%Y-%m-%d")
-        data = self.model.get_stock_pool(today)
+        mdate = datetime_to_str(bars.getDateTime(), dformat = "%Y-%m-%d")
+        data = self.model.get_stock_pool(mdate)
         if data.empty: return self.instruments
-        xdict = dict()
-        for industry, xdf in data.groupby('industry'):
-            xdict[industry] = xdf.code.tolist()
-            if len(xdict[industry]) > 4:
-                self.instruments.extend(xdict[industry])
+        self.instruments = data.code.tolist()
 
     def onBars(self, bars):
         self.updateInstruments(bars)
         signalList = self.getSignalDict(bars)
-        self.info("get signals: {}".format(signalList))
+        self.debug("get signals: {}".format(signalList))
         for instrument, info in signalList.items():
             price = info['price']
             quantity = info['quantity']
@@ -157,9 +142,9 @@ def main(model, feed, brk, codes, stock_num, duaration):
     mStrategy.info("Final portfolio value: $%.2f" % mStrategy.getResult())
     plt.plot()
 
-def paper_trading(cash = 125000, stock_num = 4, duaration = 10):
-    start_date = '2017-06-01'
-    end_date   = '2019-08-23'
+def paper_trading(cash = 100000, stock_num = 5, duaration = 10):
+    start_date = '2019-09-23'
+    end_date   = '2019-09-24'
     dbinfo = ct.OUT_DB_INFO
     redis_host = '127.0.0.1'
     report_dir = "/Volumes/data/quant/stock/data/tdx/report"
@@ -179,7 +164,7 @@ def paper_trading(cash = 125000, stock_num = 4, duaration = 10):
     broker = gen_broker(feed, cash * stock_num)
     main(model, feed, broker, code_list, stock_num, duaration)
 
-def real_trading(stock_num = 4, duaration = 10):
+def real_trading(stock_num = 10, duaration = 10):
     market = ct.CN_MARKET_SYMBOL
     deal_time = ct.MARKET_DEAL_TIME_DICT[market]
     timezone = ct.TIMEZONE_DICT[market]
@@ -208,6 +193,7 @@ def real_trading(stock_num = 4, duaration = 10):
 if __name__ == '__main__':
     try:
         real_trading()
+        #paper_trading()
     except Exception as e:
         print(e)
         traceback.print_exc()
