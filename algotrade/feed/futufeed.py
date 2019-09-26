@@ -18,6 +18,7 @@ ON_BARS = 2
 class GetBarThread(PollingThread):
     def __init__(self, mqueue, identifiers, start_time, end_time, frequency, timezone):
         PollingThread.__init__(self)
+        self.logger        = getLogger(__name__)
         self.__queue       = mqueue
         self.__start_time  = get_today_time(start_time)
         self.__end_time    = get_today_time(end_time)
@@ -82,7 +83,7 @@ class GetBarThread(PollingThread):
                 try:
                     self.doCall()
                 except Exception as e:
-                    print("unhandled exception:%s" % e)
+                    self.logger.error("unhandled exception:{}".format(e))
 
     def stop(self):
         PollingThread.stop(self)

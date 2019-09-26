@@ -6,6 +6,7 @@ import queue
 import threading
 import const as ct
 from pyalgotrade import broker
+from common import add_prifix
 from base.clog import getLogger
 from base.base import get_today_time, localnow
 from futu import OrderType, TradeDealHandlerBase, TradeOrderHandlerBase
@@ -130,6 +131,7 @@ class FutuBroker(broker.Broker):
         self.__trader        = None
         self.__stop          = False
         self.__shares        = dict()
+        self.__positons      = None
         self.__activeOrders  = dict()
         self.__market        = market
         self.__trd_env       = trd_env
@@ -154,6 +156,7 @@ class FutuBroker(broker.Broker):
         self.__stop   = True
         self.__cash   = self.__trader.get_cash()
         self.__shares = self.__trader.get_shares()
+        self.__positons = self.__trader.get_postitions()
         self.__tassert = self.__trader.get_total_assets()
         self.__stop   = False
 
@@ -190,7 +193,6 @@ class FutuBroker(broker.Broker):
     def _on_user_trades(self, morder):
         order = self.__activeOrders.get(morder.getId())
         if order is not None:
-            print(morder.getDict())
             # Update the order.
             orderExecutionInfo = broker.OrderExecutionInfo(morder.getDealtAvgPrice(), morder.getDealtQuantity(), 0, morder.getUpdatedTime())
             order.addExecutionInfo(orderExecutionInfo)
@@ -233,8 +235,14 @@ class FutuBroker(broker.Broker):
     def getShares(self, instrument):
         return self.__shares.get(instrument, 0)
 
+    def getInstrumentName(self, code):
+        if self.__market == ct.CN_MARKET_SYMBOL:
+            return add_prifix(code)
+        else:
+            return "{}.{}".format(self.__market, code)
+
     def getPositions(self):
-        return self.__shares
+        return self.__positons
 
     def getEquity(self):
         return self.__tassert
@@ -242,9 +250,10 @@ class FutuBroker(broker.Broker):
     def getActiveOrders(self, instrument=None):
         return list(self.__activeOrders.values())
 
-    def createLimitOrder(self, action, instrument, limitPrice, quantity):
+    def createLimitOrder(self, action, code, limitPrice, quantity):
         limitPrice = round(limitPrice, 2)
-        instrumentTraits = self.getInstrumentTraits(instrument)
+        instrumentTraits = self.getInstrumentTraits(code)
+        instrument = self.getInstrumentName(code)
         quantity = instrumentTraits.roundQuantity(quantity)
         return LimitOrder(action, instrument, limitPrice, quantity, instrumentTraits)
 
@@ -257,12 +266,12 @@ class FutuBroker(broker.Broker):
     def createStopLimitOrder(self, action, instrument, stopPrice, limitPrice, quantity):
         raise Exception("stop limit orders are not supported")
 
-    def submitOrder(self, order):
+    def submitOrder(self, order, model):
         if order.isInitial():
             # Override user settings based on Bitstamp limitations.
             order.setAllOrNone(False)
             order.setGoodTillCanceled(False)
-            ret, data = self.__trader.trade(order)
+            ret, data = self.__trader.trade(order, model)
             if ret != 0:
                 errMsg = "submit order failed. ret:{}, output:{}".format(ret, data)
                 self.__logger.error(errMsg)

@@ -146,7 +146,5 @@ if __name__ == '__main__':
     s = Subscriber()
     s.start()
     x = s.subscribe_quote()
-    print(x)
     while True:
         ret, data = s.get_quote_data(get_index_list())
-        print(ret, data)

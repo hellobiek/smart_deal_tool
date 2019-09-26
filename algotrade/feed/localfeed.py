@@ -58,7 +58,6 @@ class GetBarThread(PollingThread):
         return bar.BasicBar(dateTime, open_, high, low, close, volume, adjClose, self.frequency, extra = key_dict)
 
     def doCall(self):
-        self.logger.info("enter do call, identifiers length:{}".format(len(self.identifiers)))
         bar_dict = {}
         mdate = datetime.now().strftime('%Y-%m-%d')
         pre_date = self.calendar.pre_trading_day(mdate)
@@ -68,7 +67,6 @@ class GetBarThread(PollingThread):
             data = data.loc[data.date == pre_date]
             res = self.parseBar(data)
             if res is not None: bar_dict[identifier] = res
-        self.logger.info("len dict:{}".format(len(bar_dict)))
         if len(bar_dict) > 0:
             bars = bar.Bars(bar_dict)
             self.queue.put((ON_BARS, bars))
@@ -93,7 +91,6 @@ class GetBarThread(PollingThread):
     def run(self):
         while not self.stopped:
             self.wait()
-            self.logger.info("exit wait, enter doCall")
             if not self.stopped and self.calendar.is_trading_day():
                 try:
                     self.doCall()
@@ -148,7 +145,7 @@ class LocalFeed(dataFramefeed.Feed):
         positions = self.broker.getPositions()
         if df.empty and len(positions) == 0: return None
         identifiers = df.code.tolist()
-        hold_codes = [code.split('.')[1] for code in list(positions.keys())]
+        hold_codes = [code.split('.')[1] for code in list(positions.code.tolist())]
         identifiers.extend(hold_codes)
         for instrument in identifiers: self.registerInstrument(instrument)
         self.thread.updateIdentifiers(identifiers)
@@ -162,11 +159,10 @@ class LocalFeed(dataFramefeed.Feed):
     def getNextBars(self):
         ret = None
         try:
-            time.sleep(3600)
+            time.sleep(60)
             self.updateIdentifiers()
             eventType, eventData = self.queue.get(True, LocalFeed.QUEUE_TIMEOUT)
             if eventType == ON_BARS:
-                self.logger.debug("enter get data from queue")
                 ret = eventData
             elif eventType == ON_END:
                 ret = eventData

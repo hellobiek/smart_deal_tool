@@ -129,26 +129,18 @@ def adjust_volume(mdata, pos, volume, price, pre_outstanding, outstanding):
         s_p_data['volume'] = divide_according_price(s_p_data['price'], s_p_data['volume'], s_p_volume, price)
         if len(s_p_data[np.where(s_p_data['volume'] < 0)]) > 0:
             print("s_p_volume not equal")
-            import pdb
-            pdb.set_trace()
     if s_u_volume > 0:
         s_u_data['volume'] = divide_according_position(s_u_data['pos'], s_u_data['volume'], s_u_volume, pos)
         if len(s_u_data[np.where(s_u_data['volume'] < 0)]) > 0:
             print("s_u_volume not equal")
-            import pdb
-            pdb.set_trace()
     if l_p_volume > 0:
         l_p_data['volume'] = divide_according_price(l_p_data['price'], l_p_data['volume'], l_p_volume, price)
         if len(l_p_data[np.where(l_p_data['volume'] < 0)]) > 0:
             print("l_p_volume not equal")
-            import pdb
-            pdb.set_trace()
     if l_u_volume > 0:
         l_u_data['volume'] = divide_according_position(l_u_data['pos'], l_u_data['volume'], l_u_volume, pos)
         if len(l_u_data[np.where(l_u_data['volume'] < 0)]) > 0:
             print("l_u_volume not equal")
-            import pdb
-            pdb.set_trace()
     return np.concatenate((s_p_data, s_u_data, l_p_data, l_u_data), axis = 0)
 
 def compute_oneday_distribution(pre_date_dist, cdate, pos, volume, aprice, pre_outstanding, outstanding):

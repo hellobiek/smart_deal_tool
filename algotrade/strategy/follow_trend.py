@@ -24,7 +24,6 @@ class FollowTrendStrategy(strategy.BaseStrategy):
         ###############################
         #进程重启后，positions需要更新#
         ###############################
-        self.positions = dict()
         self.totalNum = stockNum
         self.duaration = duaration
         self.instruments = instruments
@@ -60,52 +59,39 @@ class FollowTrendStrategy(strategy.BaseStrategy):
                 position[code] = dict()
                 position[code]['price'] = price
                 position[code]['quantity'] = self.getExpectdShares(price, cash)
-                self.info("buy: {} {} at {}".format(code, position[code]['quantity'], position[code]['price']))
+                self.info("will buy: {} {} at {}".format(code, position[code]['quantity'], position[code]['price']))
 
-        for code in actualPostion:
+        for _, item in actualPostion.iterrows():
+            code = item['code'].split('.')[1]
+            cost_price = item['cost_price']
             bar = bars.getBar(code)
             if bar is None:continue
             price = bar.getPrice()
+            if item['pl_ratio']  < -15 :
+                position[code] = dict()
+                position[code]['price'] = item['nominal_price'] * 0.98
+                position[code]['quantity'] = -1 * item['qty']
+                self.info("will sell: {} at {} for {] lose more than 15%".format(code, position[code], position[code]['price'], item['qty']))
+                continue
+                
             row = bar.getExtraColumns()
             k, d = row['k'], row['d']
             if k is None or d is None: continue
-            if self.positions[code]['price'] > price * 1.15:
-                assert(self.positions[code]['quantity'] == actualPostion[code])
-                position[code] = dict()
-                position[code]['price'] = price * 0.98
-                position[code]['quantity'] = -1 * actualPostion[code]
-                self.info("sell: {} {} for hold_price {} > 1.15 * cur_price {}".format(code, position[code], self.positions[code]['price'], price))
-                continue
-                
             if k > 80 and d > 80:
                 position[code] = dict()
-                position[code]['price'] = price * 0.98
-                position[code]['quantity'] = -1 * actualPostion[code]
-                self.info("sell: {} {} for kdj > 80 at price: {}".format(code, position[code]['quantity'], position[code]['price']))
+                position[code]['price'] = item['nominal_price'] * 0.98
+                position[code]['quantity'] = -1 * item['qty']
+                self.info("will sell: {} at {} for {} for kdj > 80".format(code, position[code]['price'], position[code]['quantity']))
                 continue
         return position
 
     def onOrderUpdated(self, order):
         if order.isFilled():
+            msg = "buy" if order.isBuy() else "sell"
             instrument = order.getInstrument()
             price = order.getAvgFillPrice()
             quantity = order.getQuantity()
-            if order.isBuy():
-                if instrument in self.positions:
-                    self.positions[instrument]['price'] = (self.positions[instrument]['quantity'] * self.positions[instrument]['price'] 
-                                                            + price * quantity) / (quantity + self.positions[instrument]['quantity'])
-                    self.positions[instrument]['quantity'] += quantity
-                else:
-                    self.positions[instrument] = dict()
-                    self.positions[instrument]['price'] = price
-                    self.positions[instrument]['quantity'] = quantity
-            elif order.isSell():
-                if self.positions[instrument]['quantity'] == quantity:
-                    del self.positions[instrument]
-                else:
-                    self.positions[instrument]['price'] = (self.positions[instrument]['quantity'] * self.positions[instrument]['price'] 
-                                                           - price * quantity) / (self.positions[instrument]['quantity'] - quantity)
-                    self.positions[instrument]['quantity'] = self.positions[instrument]['quantity'] - quantity
+            self.info("{} {} at {} for {} succeed".format(msg, instrument, price, quantity))
 
     def updateInstruments(self, bars):
         self.instruments = list()
@@ -123,7 +109,7 @@ class FollowTrendStrategy(strategy.BaseStrategy):
             quantity = info['quantity']
             action = Order.Action.BUY if quantity > 0 else Order.Action.SELL
             order = self.getBroker().createLimitOrder(action, instrument, price, abs(quantity))
-            self.getBroker().submitOrder(order)
+            self.getBroker().submitOrder(order, self.model.code)
 
 def main(model, feed, brk, codes, stock_num, duaration):
     mStrategy = FollowTrendStrategy(model, codes, feed, brk, stock_num, duaration)
@@ -195,5 +181,4 @@ if __name__ == '__main__':
         real_trading()
         #paper_trading()
     except Exception as e:
-        print(e)
         traceback.print_exc()
