@@ -34,6 +34,7 @@ const.FUTU_HOST = 'futu-container'
 const.FUTU_HOST_LOCAL = '127.0.0.1'
 const.FUTU_PORT = 11111
 const.FUTU_PATH = "/scode/configure/futu.json"
+const.PRIKEY_PATH = "/scode/configure/key.pri"
 const.TRADING_FILE = "/scode/configure/trading.json"
 const.USER_FILE = "/scode/configure/user.json"
 const.WECHAT_FILE = "/scode/configure/wechat"
@@ -5214,7 +5215,7 @@ const.BLACK_DICT = {
     "002662": "京威股份：瘦身自救难上难，变卖资产维持生计",
     "002665": "首航节能：光热太阳能领域，17年完成40亿融资，结果发展缓慢，业绩变脸，大股东大比例质押面临平仓风险",
     "002667": "鞍重股份：虚增收入，忽悠式重组",
-    "002668": "奥马电器: 配资黑名单, 花13亿元买理财却没钱还2.7亿的债",
+    "002668": "奥马电器: 配资黑名单, 花13亿元买理财却没钱还2.7亿的债, 2019年，实控人赵国栋3094万股股份将被司法拍卖",
     "002094": "青岛金王: 化妆品、蜡烛及工艺制品，毛利率逐渐下滑，15年后收购多家化妆品公司近13亿商誉，目前化妆品占较大营收，经营活动现金流逐年变差，18 年为负值，大股东全部质押，15年股灾期间随意停牌",
     "000859": "国风塑业: 配资黑名单",
     "002670": "国盛金控: 配资黑名单",

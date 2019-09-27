@@ -42,7 +42,7 @@ class CMySQL:
         else:
             all_tables = self._get('SHOW TABLES', 'Tables_in_{}'.format(self.dbname.lower()))
             if table_name in all_tables:
-                self.redis.sadd(self.dbname, table)
+                self.redis.sadd(self.dbname, table_name)
                 return True
             return False
 

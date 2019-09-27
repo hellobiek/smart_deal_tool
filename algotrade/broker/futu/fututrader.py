@@ -3,7 +3,7 @@ import json
 import threading
 import const as ct
 from base.clog import getLogger
-from futu import OrderType, TrdSide, TrdEnv, OpenCNTradeContext, OpenUSTradeContext, OpenHKTradeContext, ModifyOrderOp, OpenHKCCTradeContext
+from futu import OrderType, TrdSide, TrdEnv, OpenCNTradeContext, OpenUSTradeContext, OpenHKTradeContext, ModifyOrderOp, OpenHKCCTradeContext, SysConfig
 logger = getLogger(__name__)
 class MDeal(object):
     def __init__(self, jsonDict):
@@ -76,18 +76,19 @@ class MOrder(object):
     def getDealtAvgPrice(self):
         return self.__jsonDict["dealt_avg_price"]
 
-class FutuTrader:
+class FutuTrader(object):
     ORDER_SCHEMA = ['order_id', 'order_type', 'order_status', 'code', 'stock_name', 'trd_side', 'qty', 'price', 'create_time', 'dealt_qty', 'dealt_avg_price', 'updated_time', 'last_err_msg']
     DEAL_SCHEMA = ['trd_side', 'deal_id', 'order_id', 'code', 'stock_name', 'qty', 'price', 'create_time', 'dealt_qty', 'counter_broker_id', 'counter_broker_name']
-    def __init__(self, host, port, trd_env, market, unlock_path = ct.FUTU_PATH):
+    def __init__(self, host, port, trd_env, market, unlock_path = ct.FUTU_PATH, key_path = ct.PRIKEY_PATH):
         if market != ct.CN_MARKET_SYMBOL and market != ct.US_MARKET_SYMBOL and market != ct.HK_MARKET_SYMBOL: raise Exception("not supported market:%s" % market)
+        SysConfig.set_init_rsa_file(key_path)
         if ct.CN_MARKET_SYMBOL == market:
             #self.trd_ctx = OpenHKCCTradeContext(host, port)
-            self.trd_ctx = OpenCNTradeContext(host, port)
+            self.trd_ctx = OpenCNTradeContext(host, port, is_encrypt=True)
         elif ct.US_MARKET_SYMBOL == market:
-            self.trd_ctx = OpenUSTradeContext(host, port)
+            self.trd_ctx = OpenUSTradeContext(host, port, is_encrypt=True)
         else:
-            self.trd_ctx = OpenHKTradeContext(host, port)
+            self.trd_ctx = OpenHKTradeContext(host, port, is_encrypt=True)
         self.trd_env = trd_env
         self.acc_id = self.get_acc_id()
         self.unlock_pwd = self.get_unlock_pwd(fpath = unlock_path)
@@ -106,7 +107,7 @@ class FutuTrader:
 
     def get_acc_id(self):
         ret, data = self.trd_ctx.get_acc_list()
-        if ret != 0: raise Exception("get accid failed")
+        if ret != 0: raise Exception("get accid failed, msg:{}".format(data))
         return data.loc[data.trd_env == self.trd_env, 'acc_id'].values[0]
 
     def get_unlock_pwd(self, fpath = ct.FUTU_PATH):

@@ -155,6 +155,7 @@ def real_trading(stock_num = 10, duaration = 10):
     deal_time = ct.MARKET_DEAL_TIME_DICT[market]
     timezone = ct.TIMEZONE_DICT[market]
     apath = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/follow_trend.json"
+    kpath = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/key.pri"
     dbinfo = ct.OUT_DB_INFO
     redis_host = '127.0.0.1'
     report_dir = "/Volumes/data/quant/stock/data/tdx/report"
@@ -172,7 +173,7 @@ def real_trading(stock_num = 10, duaration = 10):
                    redis_host = redis_host, should_create_mysqldb = True)
     code_list = list()
     broker = FutuBroker(host = ct.FUTU_HOST_LOCAL, port = ct.FUTU_PORT, trd_env = TrdEnv.SIMULATE, #SIMULATE
-                        market = market, timezone = timezone, dealtime = deal_time, unlock_path = apath)
+                        market = market, timezone = timezone, dealtime = deal_time, unlock_path = apath, key_path = kpath)
     feed = LocalFeed(model, broker, code_list, dealtime = deal_time, timezone = timezone, frequency = 24 * 60 * 60)
     main(model, feed, broker, code_list, stock_num, duaration)
 

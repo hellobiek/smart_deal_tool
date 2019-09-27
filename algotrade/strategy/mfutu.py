@@ -52,9 +52,10 @@ def main():
     deal_time = ct.MARKET_DEAL_TIME_DICT[market]
     timezone = ct.TIMEZONE_DICT[market]
     apath = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/futu.json"
+    kpath = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/key.pri"
     dataFeed = FutuFeed(stocks, dealtime = deal_time, timezone = timezone)
     futuBroker = FutuBroker(host = ct.FUTU_HOST_LOCAL, port = ct.FUTU_PORT, trd_env = TrdEnv.SIMULATE, 
-                        market = market, timezone = timezone, dealtime = deal_time, unlock_path = apath)
+                        market = market, timezone = timezone, dealtime = deal_time, unlock_path = apath, key_path = kpath)
     strat = LiveTradingStrategy(dataFeed, futuBroker, stocks)
     strat.run()
 

@@ -122,7 +122,7 @@ def build_order_from_open_order(order, instrumentTraits):
     return ret
 
 class FutuBroker(broker.Broker):
-    def __init__(self, host, port, trd_env, timezone, dealtime, order_type = OrderType.NORMAL, market = "CN", unlock_path = ct.FUTU_PATH):
+    def __init__(self, host, port, trd_env, timezone, dealtime, order_type = OrderType.NORMAL, market = "CN", unlock_path = ct.FUTU_PATH, key_path = ct.PRIKEY_PATH):
         super(FutuBroker, self).__init__()
         self.__cash          = 0
         self.__tassert       = 0
@@ -138,6 +138,7 @@ class FutuBroker(broker.Broker):
         self.__timezone      = timezone
         self.__order_type    = order_type
         self.__unlock_path   = unlock_path
+        self.__key_path      = key_path
         self.__deal_manager  = TradeOrderHandler()
         self.__logger        = getLogger(__name__)
         self.__start_time    = get_today_time(dealtime['start'])
@@ -173,7 +174,7 @@ class FutuBroker(broker.Broker):
     # BEGIN observer.Subject interface
     def start(self):
         super(FutuBroker, self).start()
-        self.__trader = FutuTrader(self.__host, self.__port, self.__trd_env, self.__market, unlock_path = self.__unlock_path)
+        self.__trader = FutuTrader(self.__host, self.__port, self.__trd_env, self.__market, unlock_path = self.__unlock_path, key_path = self.__key_path)
         self.__trader.set_handler(self.__deal_manager)
         self.__trader.start()
         self.update_account_balance()

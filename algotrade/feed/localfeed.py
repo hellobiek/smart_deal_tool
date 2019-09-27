@@ -144,7 +144,7 @@ class LocalFeed(dataFramefeed.Feed):
         df = self.selector.get_stock_pool(pre_date)
         positions = self.broker.getPositions()
         if df.empty and len(positions) == 0: return None
-        identifiers = df.code.tolist()
+        identifiers = df.code.tolist() if not df.empty else list()
         hold_codes = [code.split('.')[1] for code in list(positions.code.tolist())]
         identifiers.extend(hold_codes)
         for instrument in identifiers: self.registerInstrument(instrument)

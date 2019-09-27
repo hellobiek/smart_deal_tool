@@ -86,7 +86,6 @@ class QModel(CMysqlObj):
         return True
 
     def create_position_table(self, table_name = POSITION_TABLE):
-        self.mysql_client.delete(table_name)
         if not self.mysql_client.is_exists(table_name):
             sql = 'create table if not exists %s(date varchar(10) not null,\
                                                  code varchar(20) not null,\

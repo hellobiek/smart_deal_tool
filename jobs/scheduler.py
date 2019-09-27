@@ -9,10 +9,10 @@ from datetime import datetime
 from algotrade.model.qmodel import QModel
 from algotrade.broker.futu.fututrader import FutuTrader
 from apscheduler.schedulers.gevent import GeventScheduler
-def set_info(model = 'follow_trend'):
+def set_info(model_name = 'follow_trend'):
     mdate = datetime.now().strftime('%Y-%m-%d')
-    unlock_path_ = "/scode/configure/{}.json".format(model)
-    model = QModel(code = model, should_create_mysqldb = True)
+    model = QModel(code = model_name, should_create_mysqldb = True)
+    unlock_path_ = "/scode/configure/{}.json".format(model_name)
     futuTrader = FutuTrader(host = ct.FUTU_HOST, port = ct.FUTU_PORT, trd_env = TrdEnv.SIMULATE, market = ct.CN_MARKET_SYMBOL, unlock_path = unlock_path_)
     if model.cal_client.is_trading_day(mdate):
         model.set_account_info(mdate, futuTrader)
