@@ -68,7 +68,7 @@ def create_index_figure_column(code, dtype, start_date, end_date):
         return column(p, volume_p)
     else:
         obj = BullStockRatio(code)
-        df = obj.get_k_data_between(start_date, end_date)
+        df = obj.get_ratio_between(start_date, end_date)
         source = ColumnDataSource(df)
         p = figure(plot_height=500, plot_width=1200, tools="", toolbar_location=None, sizing_mode="scale_both")
         p.xaxis.axis_label = "时间"

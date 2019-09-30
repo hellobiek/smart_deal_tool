@@ -35,7 +35,7 @@ class CBullRation():
 
     def get_bull_ratios(self, index_code, start_date, end_date):
         obj = BullStockRatio(index_code, dbinfo = self.dbinfo, redis_host = self.redis_host)
-        df = obj.get_k_data_between(start_date, end_date)
+        df = obj.get_ratio_between(start_date, end_date)
         df = df.sort_values(by=['date'], ascending=True)
         df = df.reset_index(drop = True)
         return df

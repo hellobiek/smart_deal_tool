@@ -43,10 +43,6 @@ class BullStockRatio:
             return self.redis.sismember(table_name, cdate)
         return False
 
-    def get_k_data_between(self, start_date, end_date):
-        sql = "select * from %s where date between \"%s\" and \"%s\"" % (self.get_table_name(), start_date, end_date)
-        return self.mysql_client.get(sql)
-
     def get_components(self, cdate):
         df = self.index_obj.get_components_data(cdate)
         if df is None: return list()
@@ -54,8 +50,8 @@ class BullStockRatio:
         if self.index_code == '000001': df = df[df.code.str.startswith('6')]
         return df.code.tolist()
 
-    def get_data(self, cdate):
-        return self.ris.get_data(cdate)
+    def get_data(self, mdate):
+        return self.ris.get_data(mdate)
 
     def update(self, end_date = None, num = 30):
         if end_date is None: end_date = datetime.now().strftime('%Y-%m-%d')
@@ -76,6 +72,14 @@ class BullStockRatio:
     def get_profit_stocks(self, df):
         data = df[df.profit >= 0]
         return data.code.tolist()
+
+    def get_ratio(self, mdate):
+        sql = "select * from %s where date = \"%s\"" % (self.get_table_name(), mdate)
+        return self.mysql_client.get(sql)
+
+    def get_ratio_between(self, start_date, end_date):
+        sql = "select * from %s where date between \"%s\" and \"%s\"" % (self.get_table_name(), start_date, end_date)
+        return self.mysql_client.get(sql)
 
     def set_ratio(self, now_code_list, cdate = datetime.now().strftime('%Y-%m-%d')):
         if self.is_date_exists(self.bull_stock_ratio_table, cdate):
