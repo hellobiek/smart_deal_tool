@@ -15,7 +15,6 @@ from datetime import datetime
 from rstock import RIndexStock
 from base.clog import getLogger 
 from ccalendar import CCalendar
-from animation import CAnimation
 from index_info import IndexInfo
 from cstock_info import CStockInfo
 from combination import Combination
@@ -23,7 +22,7 @@ from cindex import CIndex, TdxFgIndex
 from industry_info import IndustryInfo
 from datamanager.margin  import Margin
 from datamanager.emotion import Emotion
-from algotrade.model.qmodel import QModel
+from algotrade.model.follow_trend import FollowTrendModel
 from datamanager.hgt import StockConnect
 from backlooking.creview import CReivew
 from rindustry import RIndexIndustryInfo
@@ -56,7 +55,6 @@ class DataManager:
         self.rindex_stock_data_client = RIndexStock(dbinfo, redis_host) 
         self.industry_info_client = IndustryInfo(dbinfo, redis_host)
         self.rindustry_info_client = RIndexIndustryInfo(dbinfo, redis_host)
-        self.animation_client = CAnimation(dbinfo, redis_host)
         self.subscriber = Subscriber()
         self.quote_handler  = StockQuoteHandler()
         self.ticker_handler = TickerHandler()
@@ -157,7 +155,6 @@ class DataManager:
                             self.collect_stock_runtime_data()
                             self.collect_combination_runtime_data()
                             self.collect_index_runtime_data()
-                            self.animation_client.collect()
                     else:
                         t_sleep_time = sleep_time
                         if self.subscriber.status():
@@ -442,7 +439,7 @@ class DataManager:
         failed_list = stock_info.code.tolist()
         if cdate is None:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info, stock_info)
-            return process_concurrent_run(cfunc, failed_list, num = 8)
+            return process_concurrent_run(cfunc, failed_list, num = 3)
         else:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info, stock_info)
             succeed = True
@@ -509,7 +506,7 @@ class DataManager:
 
     def set_stock_pools(self, mdate = None):
         if mdate is None: mdate = datetime.now().strftime('%Y-%m-%d')
-        model = QModel(code = 'follow_trend', should_create_mysqldb = True)
+        model = FollowTrendModel(should_create_mysqldb = True)
         return model.set_stock_pool(mdate)
 
     def set_bull_stock_ratio(self, cdate, num = 10):
@@ -572,7 +569,7 @@ if __name__ == '__main__':
     #sys.exit(0)
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
-    mdate = '2019-08-15'
+    #mdate = '2019-09-30'
     dm.logger.info("start compute!")
     #dm.init_rindex_valuation_info(mdate)
     #dm.init_rvaluation_info(mdate)
@@ -580,9 +577,10 @@ if __name__ == '__main__':
     #dm.set_bull_stock_ratio(mdate, num = 10)
     #dm.clear_network_env()
     #dm.init_base_float_profit()
-    #dm.init_stock_info(mdate)
-    #dm.bootstrap(exec_date = '2019-03-26')
     #dm.bootstrap(cdate = mdate, exec_date = mdate)
-    dm.init_yesterday_hk_info('2019-09-21', num = 10)
+    #dm.init_stock_info()
+    dm.init_base_float_profit()
+    #dm.bootstrap(cdate = mdate, exec_date = mdate)
+    #dm.init_yesterday_hk_info('2019-09-21', num = 10)
     #dm.set_stock_pools(mdate = '2019-09-12')
     dm.logger.info("end compute!")

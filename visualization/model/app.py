@@ -14,9 +14,9 @@ from flask_caching import Cache
 from visualization.dash.hgt import HGT
 from visualization.dash.rzrq import RZRQ
 from datetime import datetime, timedelta
-from algotrade.model.qmodel import QModel
 from dash.dependencies import Input, Output
 from algotrade.broker.futu.fututrader import FutuTrader
+from algotrade.model.follow_trend import FollowTrendModel
 data_source = None
 redis_host = "127.0.0.1"
 dbinfo = ct.OUT_DB_INFO
@@ -187,7 +187,7 @@ def update_graphs(active_cell):
 def render_content(model_name, start_date, end_date):
     global data_source
     if model_name == 'follow_trend':
-        model = QModel(model_name, valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir, cal_file_path, dbinfo, redis_host = redis_host)
+        model = FollowTrendModel(valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir, cal_file_path, dbinfo, redis_host = redis_host)
         data_source = get_data(model, end_date)
         acc_df, pos_df, order_df, profit_df = get_profit_data(model, start_date, end_date)
         return html.Div([

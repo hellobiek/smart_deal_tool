@@ -8,9 +8,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from cstock import CStock
 from common import get_chinese_font
-from algotrade.model.qmodel import QModel
 from matplotlib.collections import LineCollection
 from sklearn import cluster, covariance, manifold
+from algotrade.model.follow_trend import FollowTrendModel
 # #############################################################################
 # Retrieve the data from Internet
 # The data is from 2003 - 2008. This is reasonably calm: (not too long ago so
@@ -30,7 +30,7 @@ base_stock_path = "/Volumes/data/quant/stock/data/tdx/history/days"
 valuation_path = "/Volumes/data/quant/stock/data/valuation/reports.csv"
 pledge_file_dir = "/Volumes/data/quant/stock/data/tdx/history/weeks/pledge"
 report_publish_dir = "/Volumes/data/quant/stock/data/crawler/stock/financial/report_announcement_date"
-ftm = QModel('follow_trend', valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir, cal_file_path, dbinfo = dbinfo, redis_host = redis_host, should_create_mysqldb = False)
+ftm = FollowTrendModel(valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir, cal_file_path, dbinfo = dbinfo, redis_host = redis_host, should_create_mysqldb = False)
 
 data = ftm.get_stock_pool(end_date)
 trading_dates = ftm.cal_client.trading_day_series(start_date, end_date)

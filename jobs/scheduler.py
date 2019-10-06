@@ -6,12 +6,12 @@ sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import const as ct
 from futu import TrdEnv
 from datetime import datetime
-from algotrade.model.qmodel import QModel
+from algotrade.model.follow_trend import FollowTrendModel
 from algotrade.broker.futu.fututrader import FutuTrader
 from apscheduler.schedulers.gevent import GeventScheduler
 def set_info(model_name = 'follow_trend'):
     mdate = datetime.now().strftime('%Y-%m-%d')
-    model = QModel(code = model_name, should_create_mysqldb = True)
+    model = FollowTrendModel(should_create_mysqldb = True)
     unlock_path_ = "/scode/configure/{}.json".format(model_name)
     futuTrader = FutuTrader(host = ct.FUTU_HOST, port = ct.FUTU_PORT, trd_env = TrdEnv.SIMULATE, market = ct.CN_MARKET_SYMBOL, unlock_path = unlock_path_)
     if model.cal_client.is_trading_day(mdate):

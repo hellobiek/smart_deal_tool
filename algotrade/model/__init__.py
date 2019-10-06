@@ -128,3 +128,31 @@ class QModel(CMysqlObj):
                                                  PRIMARY KEY(date, code))' % table_name 
             if not self.mysql_client.create(sql, table_name): return False
         return True
+
+    def set_account_info(self, mdate, broker):
+        account_info = broker.get_accinfo()
+        account_info['date'] = mdate
+        return self.mysql_client.set(account_info, ACCOUNT_TABLE)
+
+    def get_info(self, table, start, end):
+        sql = "select * from %s where date between \"%s\" and \"%s\"" % (table, start, end)
+        return self.mysql_client.get(sql)
+
+    def get_account_info(self, start, end):
+        return self.get_info(ACCOUNT_TABLE, start, end)
+
+    def get_position_info(self, start, end):
+        return self.get_info(POSITION_TABLE, start, end)
+
+    def get_history_order_info(self, start, end):
+        return self.get_info(ORDER_TABLE, start, end)
+
+    def set_position_info(self, mdate, broker):
+        position_info = broker.get_postitions()
+        position_info['date'] = mdate
+        return self.mysql_client.set(position_info, POSITION_TABLE)
+
+    def set_history_order_info(self, mdate, broker):
+        order_info = broker.get_history_orders(start = mdate, end = mdate)
+        order_info['date'] = mdate
+        return self.mysql_client.set(order_info, ORDER_TABLE)

@@ -6,14 +6,14 @@ import traceback
 import const as ct
 from futu import TrdEnv
 from pyalgotrade import strategy
+from pyalgotrade.broker import Order
 from algotrade.plotter import plotter
 from base.cdate import datetime_to_str
+from algotrade.strategy import gen_broker
 from algotrade.feed.localfeed import LocalFeed
 from pyalgotrade.stratanalyzer import returns, sharpe
 from algotrade.broker.futu.futubroker import FutuBroker
 from algotrade.model.silverlining import SilverLiningModel
-from pyalgotrade.broker import slippage, fillstrategy, Order
-from algotrade.broker.futu.backtestbroker import Broker, TradePercentage
 class SilverLiningStrategy(strategy.BaseStrategy):
     def __init__(self, model, instruments, feed, brk):
         super(SilverLiningStrategy, self).__init__(feed, brk)
@@ -70,7 +70,6 @@ class SilverLiningStrategy(strategy.BaseStrategy):
                     position[code]['quantity'] = -1 * item['qty']
                     self.info("will sell: {} at {} for {} pl ratio more than 10".format(code, position[code], position[code]['price']))
                     continue
-
         return position
 
     def onOrderUpdated(self, order):
@@ -108,32 +107,17 @@ def main(model, feed, brk, codes):
     mStrategy.info("Final portfolio value: $%.2f" % mStrategy.getResult())
     plt.plot()
 
-def gen_broker(feed, cash = 100000, trade_percent = 0.01, volume_limit = 0.01, market = ct.CN_MARKET_SYMBOL):
-    # cash：初始资金
-    # trade_percent: 手续费, 每笔交易金额的百分比
-    # volume_limit: 每次交易能成交的量所能接受的最大比例
-    # Broker Setting
-    # Broker Commission类设置
-    broker_commission = TradePercentage(trade_percent)
-    # Fill Strategy设置
-    fill_stra = fillstrategy.DefaultStrategy(volumeLimit = volume_limit)
-    sli_stra = slippage.NoSlippage()
-    fill_stra.setSlippageModel(sli_stra)
-    # 完善Broker类
-    brk = Broker(cash, feed, market, broker_commission)
-    brk.setFillStrategy(fill_stra)
-    return brk
-
 def paper_trading():
     cash = 1000000
     start_date = '2010-01-01'
-    end_date   = '2019-09-24'
+    end_date   = '2019-09-30'
     dbinfo = ct.OUT_DB_INFO
+    market = ct.CN_MARKET_SYMBOL
     redis_host = '127.0.0.1'
     cal_file_path = "/Volumes/data/quant/stock/conf/calAll.csv"
     model = SilverLiningModel(dbinfo = dbinfo, redis_host = redis_host, cal_file_path = cal_file_path, should_create_mysqldb = True)
     feed, code_list = model.generate_feed(start_date, end_date)
-    broker = gen_broker(feed, cash)
+    broker = gen_broker(feed, cash = cash, market = market)
     main(model, feed, broker, code_list)
 
 def real_trading():
