@@ -68,7 +68,7 @@ class DataManager:
         now_time = datetime.now()
         _date = now_time.strftime('%Y-%m-%d')
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
-        aft_open_hour,aft_open_minute,aft_open_second = (18,00,00)
+        aft_open_hour,aft_open_minute,aft_open_second = (17,00,00)
         aft_open_time = datetime(y,m,d,aft_open_hour,aft_open_minute,aft_open_second)
         aft_close_hour,aft_close_minute,aft_close_second = (23,59,59)
         aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
@@ -511,7 +511,9 @@ class DataManager:
 
     def set_bull_stock_ratio(self, cdate, num = 10):
         def _set_bull_stock_ratio(code_id):
-            return (code_id, BullStockRatio(code_id).update(cdate, num))
+            obj = BullStockRatio(code_id)
+            #obj.delete()
+            return (code_id, obj.update(cdate, num))
         index_codes = self.get_concerned_index_codes()
         return concurrent_run(_set_bull_stock_ratio, index_codes)
 
@@ -565,22 +567,20 @@ if __name__ == '__main__':
     #for code in CStockInfo().get().code.tolist():
     #    print(code)
     #    mysql_client.delete_db('s%s' % code)
-    #import sys
-    #sys.exit(0)
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
-    #mdate = '2019-09-30'
+    mdate = '2019-10-08'
     dm.logger.info("start compute!")
     #dm.init_rindex_valuation_info(mdate)
     #dm.init_rvaluation_info(mdate)
     #dm.init_valuation_info(mdate)
-    #dm.set_bull_stock_ratio(mdate, num = 10)
+    dm.set_bull_stock_ratio(mdate, num = 10)
     #dm.clear_network_env()
     #dm.init_base_float_profit()
     #dm.bootstrap(cdate = mdate, exec_date = mdate)
     #dm.init_stock_info()
-    dm.init_base_float_profit()
+    #dm.init_base_float_profit()
     #dm.bootstrap(cdate = mdate, exec_date = mdate)
     #dm.init_yesterday_hk_info('2019-09-21', num = 10)
-    #dm.set_stock_pools(mdate = '2019-09-12')
+    #dm.set_stock_pools(mdate = '2019-10-08')
     dm.logger.info("end compute!")

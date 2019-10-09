@@ -12,7 +12,7 @@ from ccalendar import CCalendar
 from base.clog import getLogger
 from common import create_redis_obj
 from base.cdate import get_day_nday_ago, get_dates_array
-class BullStockRatio:
+class BullStockRatio(object):
     def __init__(self, index_code, dbinfo = ct.DB_INFO, redis_host = None):
         self.dbinfo = dbinfo
         self.index_code = index_code

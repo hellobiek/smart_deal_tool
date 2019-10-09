@@ -42,6 +42,7 @@ class FollowTrendStrategy(strategy.BaseStrategy):
     def getSignalDict(self, bars):
         position = dict()
         actualPostion = self.getActualPostion()
+        self.info("actualPostion:{}".format(actualPostion))
         acutalNum = 0 if actualPostion is None else len(actualPostion)
         for code in self.instruments:
             bar = bars.getBar(code)
@@ -69,7 +70,8 @@ class FollowTrendStrategy(strategy.BaseStrategy):
                 bar = bars.getBar(code)
                 if bar is None:continue
                 price = bar.getPrice()
-                if item['pl_ratio']  < -15 :
+                #if item['pl_ratio']  < -15:
+                if (item['nominal_price'] - item['cost_price']) / item['cost_price'] < -0.15:
                     position[code] = dict()
                     position[code]['price'] = item['nominal_price'] * 0.98
                     position[code]['quantity'] = -1 * item['qty']

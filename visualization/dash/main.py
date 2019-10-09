@@ -53,6 +53,8 @@ def create_index_figure_column(code, dtype, start_date, end_date):
     if dtype == 'K线图': 
         obj = CIndex(code)
         df = obj.get_k_data_in_range(start_date, end_date)
+        df = df.sort_values(by = 'date', ascending= True)
+        df = df.reset_index(drop = True)
         source = ColumnDataSource(df)
         mapper = linear_cmap(field_name='pchange', palette=['red', 'green'], low=0, high=0, low_color = 'green', high_color = 'red')
         p = figure(plot_height=500, plot_width=1200, tools="", toolbar_location=None, sizing_mode="scale_both", x_range=(0, len(df)))
@@ -69,6 +71,8 @@ def create_index_figure_column(code, dtype, start_date, end_date):
     else:
         obj = BullStockRatio(code)
         df = obj.get_ratio_between(start_date, end_date)
+        df = df.sort_values(by = 'date', ascending= True)
+        df = df.reset_index(drop = True)
         source = ColumnDataSource(df)
         p = figure(plot_height=500, plot_width=1200, tools="", toolbar_location=None, sizing_mode="scale_both")
         p.xaxis.axis_label = "时间"

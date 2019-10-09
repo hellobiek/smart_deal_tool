@@ -39,7 +39,7 @@ class SilverLiningStrategy(strategy.BaseStrategy):
             if bar is None: continue
             row = bar.getExtraColumns()
             ratio = row['ratio']
-            if ratio < 3.5:
+            if ratio < 3:
                 if actualPostion is None or not actualPostion.code.str.endswith(code).any():
                     price = bar.getPrice() * 1.02
                     cash = self.getCash()
@@ -57,18 +57,11 @@ class SilverLiningStrategy(strategy.BaseStrategy):
                 row = bar.getExtraColumns()
                 ratio = row['ratio']
                 price = bar.getPrice()
-                if item['pl_ratio'] < -20:
+                if ratio > 30:
                     position[code] = dict()
                     position[code]['price'] = item['nominal_price'] * 0.98
                     position[code]['quantity'] = -1 * item['qty']
-                    self.info("will sell: {} at {} for {} lose more than 20%".format(code, position[code], position[code]['price'], item['qty']))
-                    continue
-
-                if item['pl_ratio'] > 12:
-                    position[code] = dict()
-                    position[code]['price'] = item['nominal_price'] * 0.98
-                    position[code]['quantity'] = -1 * item['qty']
-                    self.info("will sell: {} at {} for {} pl ratio more than 10".format(code, position[code], position[code]['price']))
+                    self.info("will sell: {} at {} for {} bull ratio more than 30".format(code, position[code], position[code]['price']))
                     continue
         return position
 
@@ -109,8 +102,8 @@ def main(model, feed, brk, codes):
 
 def paper_trading():
     cash = 1000000
-    start_date = '2010-01-01'
-    end_date   = '2019-09-30'
+    start_date = '2014-01-01'
+    end_date   = '2019-10-09'
     dbinfo = ct.OUT_DB_INFO
     market = ct.CN_MARKET_SYMBOL
     redis_host = '127.0.0.1'

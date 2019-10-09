@@ -79,10 +79,7 @@ class GetBarThread(PollingThread):
         next_call_time = self.getNextCallDateTime()
         self.logger.info("beigin time:{}, next call time:{}".format(now_time, next_call_time))
         if not self.stopped and now_time < next_call_time:
-            sleep_times = (next_call_time - now_time).seconds
-            if sleep_times < 100:
-                import pdb
-                pdb.set_trace()
+            sleep_times = (next_call_time - now_time).total_seconds()
             self.logger.info("sleep time:{}".format(sleep_times))
             time.sleep(sleep_times)
 
@@ -100,6 +97,7 @@ class GetBarThread(PollingThread):
                     self.doCall()
                 except Exception as e:
                     self.logger.error("unhandled exception:{}".format(e))
+            #self.wait()
 
 class LocalFeed(dataFramefeed.Feed):
     """
