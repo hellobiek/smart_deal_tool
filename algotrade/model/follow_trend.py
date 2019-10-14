@@ -209,4 +209,4 @@ if __name__ == '__main__':
     #feed, code_list = ftm.generate_feed(start_date, end_date)
     #print(ftm.get_deleted_reason('600570', '2019-09-17'))
     #df = ftm.compute_stock_pool(mdate = '2019-09-23')
-    print(ftm.get_deleted_reason('002626', '2019-10-11'))
+    print(ftm.get_deleted_reason('600720', '2019-10-11'))

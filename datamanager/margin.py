@@ -114,7 +114,7 @@ class Margin(object):
         if self.is_date_exists(table_name, cdate):
             self.logger.debug("existed table:%s, date:%s" % (table_name, cdate))
             return True
-
+        
         total_df = smart_get(self.crawler.margin, trade_date=transfer_date_string_to_int(cdate))
         if total_df is None:
             self.logger.error("crawel margin for %s failed" % cdate)
@@ -128,12 +128,13 @@ class Margin(object):
         if detail_df is None:
             self.logger.error("crawel detail margin for %s failed" % cdate)
             return False
-
+        detail_df = detail_df.dropna(how = 'any')
         detail_df = detail_df.rename(columns = {"trade_date": "date", "ts_code": "code"})
 
         total_df = total_df.append(detail_df, sort = False)
         total_df['date'] = pd.to_datetime(total_df.date).dt.strftime("%Y-%m-%d")
         total_df = total_df.reset_index(drop = True)
+
         if self.mysql_client.set(total_df, table_name):
             return self.redis.sadd(table_name, cdate)
         return False

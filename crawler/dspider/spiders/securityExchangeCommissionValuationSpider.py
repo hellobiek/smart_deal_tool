@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import datetime
 import const as ct
 from datetime import datetime
@@ -43,9 +44,8 @@ class SecurityExchangeCommissionValuationSpider(BasicSpider):
 
     def parse(self, response):
         try:
-            tmpContDis = response.headers['Content-Disposition']
-            if tmpContDis is not None:
-                fname = tmpContDis.decode().split('=')[1]
+            if response.status == 200:
+                fname = os.path.basename(response.url)
                 yield MyDownloadItem(file_urls = [response.url], file_name = fname)
         except Exception as e:
             print(e)

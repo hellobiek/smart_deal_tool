@@ -35,7 +35,6 @@ class StockLimitSpider(BasicSpider):
         "首次涨跌停时间": "first_time",
         "最后涨跌停时间": "last_time"
     }
-    cal_client = CCalendar(without_init = True)
     custom_settings = {
         'ROBOTSTXT_OBEY': False,
         'SPIDERMON_ENABLED': True,
@@ -95,9 +94,10 @@ class StockLimitSpider(BasicSpider):
             return self.LIMIT_URL_PRIFIX + "dtForce/%s" % mdate + self.LIMIT_URL_MID + str(int(round(time.time() * 1000)))
 
     def start_requests(self):
+        cal_client = CCalendar(without_init = True)
         end_date = datetime.now().strftime('%Y-%m-%d')
         start_date = self.get_nday_ago(end_date, 10, dformat = '%Y-%m-%d')
-        date_array = get_dates_array(start_date, end_date)
+        date_array = get_dates_array(start_date, end_date, asending = True)
         for mdate in date_array:
             if cal_client.is_trading_day(mdate):
                 up_url = self.get_url(self.LIMIT_UP, mdate) 
