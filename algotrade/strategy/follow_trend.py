@@ -42,7 +42,7 @@ class FollowTrendStrategy(strategy.BaseStrategy):
     def getSignalDict(self, bars):
         position = dict()
         actualPostion = self.getActualPostion()
-        self.info("actualPostion:{}".format(actualPostion))
+        self.debug("actualPostion:{}".format(actualPostion))
         acutalNum = 0 if actualPostion is None else len(actualPostion)
         for code in self.instruments:
             bar = bars.getBar(code)

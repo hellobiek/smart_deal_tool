@@ -46,11 +46,11 @@ def weekly_spider():
         #myrunner.crawl(InvestorSituationSpider)
         #myrunner.crawl(MonthInvestorSituationSpider)
         #myrunner.crawl(PlateValuationSpider)
-        #myrunner.crawl(ChinaSecurityIndustryValuationSpider)
+        myrunner.crawl(ChinaSecurityIndustryValuationSpider)
         #myrunner.crawl(SecurityExchangeCommissionValuationSpider)
         #myrunner.crawl(ChinaTreasuryRateSpider)
         #myrunner.crawl(StockFinancialDisclosureTimeSpider)
-        myrunner.crawl(StockLimitSpider)
+        #myrunner.crawl(StockLimitSpider)
         d = myrunner.join()
         d.addBoth(lambda _: reactor.stop())
         reactor.run() #the script will block here until the crawling is finished

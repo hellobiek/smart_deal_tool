@@ -12,7 +12,7 @@ from base.clog import getLogger
 from ccalendar import CCalendar
 from common import create_redis_obj
 from base.cdate import get_day_nday_ago, get_dates_array
-class CLimit:
+class CLimit(object):
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
         self.table = self.get_table_name()
         self.logger = getLogger(__name__)
@@ -155,4 +155,4 @@ class CLimit:
 if __name__ == '__main__':
     cl = CLimit()
     #cl.mysql_client.delete(cl.table)
-    cl.update(end_date = '2019-07-01')
+    cl.update(end_date = '2019-10-10', num = 100)

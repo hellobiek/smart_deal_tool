@@ -10,7 +10,7 @@ from cmysql import CMySQL
 from common import create_redis_obj
 CSI_COLUMNS = ['code', 'name', 'pind_code', 'pind_name', 'sind_code', 'sind_name',
                'tind_code', 'tind_name', 'find_code', 'find_name', 'pe', 'ttm', 'pb',
-               'dividend', 'date']
+               'dividend']
 CSI_COLUMN_DICT = {'code': str, 'name': str, 'pind_code': str, 'pind_name': str, 
                    'sind_code': str, 'sind_name': str, 'tind_code': str, 'tind_name': str,
                    'find_code': str, 'find_name': str, 'pe': float, 'ttm': float, 'pb': float,

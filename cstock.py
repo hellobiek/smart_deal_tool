@@ -339,7 +339,7 @@ class CStock(CMysqlObj):
             if is_df_has_unexpected_data(df):
                 logger.error("data for %s is not clean." % self.code)
                 return False
-            if self.mysql_client.set(df, self.get_day_table()):
+            if self.mysql_client.set(df, day_table):
                 return self.redis.sadd(day_table, cdate)
         return False
 
@@ -565,13 +565,13 @@ class CStock(CMysqlObj):
         return True
 
 if __name__ == '__main__':
-    mdate = None
-    #mdate = '2019-04-02'
+    #mdate = None
+    mdate = '2019-10-08'
     from cindex import CIndex
     index_info = CIndex('000001').get_k_data(mdate)
     stock_info = CStockInfo().get()
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    cstock = CStock('002049', should_create_influxdb = False, should_create_mysqldb = False)
+    cstock = CStock('600900', should_create_influxdb = False, should_create_mysqldb = False)
     logger.info("start compute")
     cstock.set_k_data(bonus_info, index_info, stock_info, cdate = mdate)
     logger.info("enter set base floating profit")
