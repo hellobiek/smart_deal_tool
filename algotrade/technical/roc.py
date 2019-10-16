@@ -1,4 +1,4 @@
-#coding=utf-8
+# -*- coding: utf-8 -*-
 import pandas as pd
 def roc(data, n = 12, average = 6):
     N = data['close'].diff(n)

@@ -53,6 +53,7 @@ DTYPE_DICT = {'date': int,
               'inventory': float, #存货(inventory)
               'np': float, #净利润(net profit)
               'rnp': float, #扣除非经常性损益后的净利润(recurrent net profit)
+              'rroe': float, #加权净资产收益率(rroe)
               'qfii_holders': float, #QFII机构数
               'qfii_holding': float, #QFII持股量
               'social_security_holders': float, #社保机构数
@@ -125,7 +126,7 @@ cdef class CValuation(object):
         #228.经营活动现金净流量与净利润比率(net cash flow to net profit ratio)、159.流动比率(working capital ratio)、
         #160.速动比率(quick ratio)、161.现金比率(currency ratio)、219.每股经营性现金(cash flow per share from operations)
         #163.非流动负债比率(non-current debt ratio)、#164.流动负债比率(current debt ratio)、#165.现金到期债务比率(cash due debt ratio)、
-        #95.净利润(net profit)、232.扣除非经常性损益后的净利润(recurrent net profit)、
+        #95.净利润(net profit)、232.扣除非经常性损益后的净利润(recurrent net profit)、281.加权净资产收益率(rroe)、
         #财报披露时间(publish)
         mcols = ['date','code',
                  'eps', #基本每股收益(earnings per share)
@@ -208,6 +209,7 @@ cdef class CValuation(object):
                  'cdbr', #现金到期债务比率(cash due debt ratio)
                  'np', #净利润(net profit)
                  'rnp', #扣除非经常性损益后的净利润(recurrent net profit)
+                 'rroe', #加权净资产收益率(rroe)
                  'publish']
         date_list = self.report_client.get_all_report_list()
         is_first = True
@@ -216,6 +218,7 @@ cdef class CValuation(object):
             report_list = list()
             report_df = self.report_client.get_report_data(mdate)
             for idx, row in report_df.iterrows():
+                rroe = 0 if prefix%281 not in row else row[prefix%281]
                 pdate = self.report_client.get_report_publish_time(row['date'], row['code'])
                 report_list.append([row['date'], row['code'], row[prefix%1],  row[prefix%2], row[prefix%4], 
                             row[prefix%6],  row[prefix%72],  row[prefix%96],  row[prefix%238], row[prefix%239],
@@ -233,7 +236,7 @@ cdef class CValuation(object):
                             row[prefix%21], row[prefix%27], row[prefix%199], row[prefix%202], row[prefix%225],
                             row[prefix%220], row[prefix%229], row[prefix%228], row[prefix%159], row[prefix%160],
                             row[prefix%161], row[prefix%219], row[prefix%163], row[prefix%164], row[prefix%165], 
-                            row[prefix%95], row[prefix%232], pdate])
+                            row[prefix%95], row[prefix%232], rroe, pdate])
             result_df = DataFrame(report_list, columns = mcols)
             result_df = result_df.sort_values(['code'], ascending = 1)
             result_df['code'] = result_df['code'].map(lambda x: str(x).zfill(6))

@@ -36,7 +36,12 @@ class GetBarThread(PollingThread):
         self.next_call_time = get_today_time(start_time)
 
     def getNextCallDateTime(self):
-        self.next_call_time = max(localnow(self.timezone), self.next_call_time + self.frequency)
+        now_time = localnow(self.timezone)
+        start_time = datetime(now_time.year, now_time.month, now_time.day,self.start_time.hour, self.start_time.minute, self.start_time.second)
+        if now_time < start_time:
+            self.next_call_time = start_time
+        else:
+            self.next_call_time = start_time + self.frequency
         return self.next_call_time
 
     def parseBar(self, data):

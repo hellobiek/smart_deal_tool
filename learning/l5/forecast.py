@@ -4,6 +4,7 @@ import datetime
 import numpy as np
 import pandas as pd
 import sklearn
+from algotrade.technical.kdj import kdj
 from alpha_vantage.timeseries import TimeSeries
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression

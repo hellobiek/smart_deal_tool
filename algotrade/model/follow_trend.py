@@ -54,7 +54,7 @@ class FollowTrendModel(QModel):
         else:
             return 0
 
-    def get_min_val_in_range(self, dtype, code):
+    def get_mid_val_in_range(self, dtype, code):
         vdf = self.val_client.get_horizontal_data(code)
         vdf = vdf[(vdf['date'] - 1231) % 10000 == 0]
         vdf = vdf[-5:]
@@ -72,13 +72,15 @@ class FollowTrendModel(QModel):
         return data.loc[pos:]['profit'].max()
 
     def get_deleted_reason(self, code, mdate):
+        reasons = list()
         data = self.get_stock_pool(mdate)
-        if data.empty: return "{} stock pool is empty".format(mdate)
+        if data.empty:
+            reasons.append("{} stock pool is empty".format(mdate))
         if code in set(data.code.tolist()):
-            return "{} still in stock pool in {}".format(code, mdate)
+            reasons.append("{} still in stock pool in {}".format(code, mdate))
         df = CStock(code).get_k_data(mdate)
         if df.empty:
-            return "{} has not data in {}".format(code, mdate)
+            reasons.append("{} has not data in {}".format(code, mdate))
         df['code'] = code
         df['mv'] = df['totals'] * df['close'] / 100000000
         df['hlzh'] = df['ppercent'] - df['npercent']
@@ -88,36 +90,39 @@ class FollowTrendModel(QModel):
         df = pd.merge(df, base_df, how='inner', on=['code'])
 
         mdict = df.to_dict('records')[0]
-        if mdict['pday'] < 60: 
-            return "牛股时间小于60天, 当前天数:{}".format(mdict['pday'])
+        if mdict['pday'] < 60:
+            reasons.append("牛股时间小于60天, 当前天数:{}".format(mdict['pday']))
         if mdict['mv'] <= 100:
-            return "市值小于100亿"
+            reasons.append("市值小于100亿")
         if mdict['mv'] >= 2500:
-            return "市值大于2500亿"
-        if mdict['hlzh'] <= 20:
-            return "获利纵横小于20"
-        if mdict['profit'] <= 2:
-            return "基础浮动盈利小于2"
+            reasons.append("市值大于2500亿")
+        if mdict['hlzh'] <= 30:
+            reasons.append("获利纵横小于30")
+        if mdict['profit'] <= 0:
+            reasons.append("基础浮动盈利小于0")
         if mdict['profit'] >= 7:
-            return "基础浮动盈利大于7"
+            reasons.append("基础浮动盈利大于7")
         if code in set(ct.BLACK_DICT.keys()):
-            return "股票在黑名单中"
+            reasons.append("股票在黑名单中")
         if mdict['timeToMarket'] > int((datetime.now() - timedelta(days = 1825)).strftime('%Y%m%d')):
-            return "上市时间少于5年"
+            reasons.append("上市时间少于5年")
         if mdict['name'].find('ST') != -1:
-            return "股票成ST股"
+            reasons.append("股票成ST股")
         pledge_info = self.val_client.get_stock_pledge_info(code = code)
         if not pledge_info.empty and pledge_info.to_dict('records')[0]['pledge_rate'] >= 30:
-            return "最新的质押率大于30%"
-        if df.apply(lambda row: self.get_min_val_in_range('roa', row['code']), axis = 1)[0] <= 8:
-            return "最低净资产收益率小于8%"
+            reasons.append("最新的质押率大于30%")
+        if df.apply(lambda row: self.get_mid_val_in_range('rroe', row['code']), axis = 1)[0] <= 8:
+            reasons.append("净资产收益率中位数小于8%")
         if df.apply(lambda row: self.get_max_profit(row['code'], mdate), axis = 1)[0] >= 7:
-            return "最大获利盘大于100%"
+            reasons.append("最大获利盘大于100%")
         self.val_client.update_vertical_data(df, ['goodwill', 'ta'], transfer_date_string_to_int(mdate))
         df['gwr'] = 100 * df['goodwill'] / df['ta']
         if df.to_dict('records')[0]['gwr'] >= 30:
-            return "商誉占总资产的比例大于30%"
-        return "未知原因"
+            reasons.append("商誉占总资产的比例大于30%")
+        if len(reasons) == 0:
+            return "未知原因"
+        else:
+            return '\n'.join(reasons)
 
     def compute_stock_pool(self, mdate):
         df = self.rindex_client.get_data(mdate)
@@ -125,8 +130,8 @@ class FollowTrendModel(QModel):
         df['hlzh'] = df['ppercent'] - df['npercent']
         df = df[df.pday > 60]
         df = df[(df.mv > 100) & (df.mv < 2500)]
-        df = df[df.hlzh > 20]
-        df = df[(df.profit > 2) & (df.profit < 7)]
+        df = df[df.hlzh > 30]
+        df = df[(df.profit > 0) & (df.profit < 7)]
         if df.empty: return df
         #黑名单
         black_set = set(ct.BLACK_DICT.keys())
@@ -149,8 +154,8 @@ class FollowTrendModel(QModel):
         df = df.fillna(value = {'pledge_rate': 0})
         df = df[df['pledge_rate'] < 30]
         #ROE中位数
-        df['min_roa'] = df.apply(lambda row: self.get_min_val_in_range('roa', row['code']), axis = 1)
-        df = df[df['min_roa'] > 8] 
+        df['mid_roe'] = df.apply(lambda row: self.get_mid_val_in_range('rroe', row['code']), axis = 1)
+        df = df[df['mid_roe'] > 8]
         #基本面信息
         self.val_client.update_vertical_data(df, ['goodwill', 'ta'], transfer_date_string_to_int(mdate))
         df['gwr'] = 100 * df['goodwill'] / df['ta']
@@ -208,5 +213,5 @@ if __name__ == '__main__':
     #ftm.generate_stock_pool(start_date, end_date)
     #feed, code_list = ftm.generate_feed(start_date, end_date)
     #print(ftm.get_deleted_reason('600570', '2019-09-17'))
-    #df = ftm.compute_stock_pool(mdate = '2019-09-23')
-    print(ftm.get_deleted_reason('600720', '2019-10-11'))
+    df = ftm.compute_stock_pool(mdate = '2019-10-16')
+    #print(ftm.get_deleted_reason('600809', '2019-10-15'))
