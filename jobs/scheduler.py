@@ -32,11 +32,7 @@ class Scheduler(object):
 
 #unlock_path_ = "/scode/configure/{}.json".format('follow_trend')
 #futuTrader = FutuTrader(host = ct.FUTU_HOST, port = ct.FUTU_PORT, trd_env = TrdEnv.SIMULATE, market = ct.CN_MARKET_SYMBOL, unlock_path = unlock_path_)
-#import pdb
-#pdb.set_trace()
 #cash = futuTrader.get_cash()
 #shares = futuTrader.get_shares()
 #positons = futuTrader.get_postitions()
 #total_asserts = futuTrader.get_total_assets()
-#import pdb
-#pdb.set_trace()

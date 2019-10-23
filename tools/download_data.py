@@ -61,7 +61,7 @@ class DataPreparer:
                         ndate = get_latest_data_date(filepath = "/Volumes/data/quant/stock/data/stockdatainfo.json")
                         mdate = transfer_date_string_to_int(datetime.now().strftime('%Y-%m-%d'))
                         if ndate < mdate:
-                            self.run(SCRIPT1, timeout = 600)
+                            #self.run(SCRIPT1, timeout = 600)
                             self.run(SCRIPT2, timeout = 2400)
             except Exception as e:
                 self.logger.error(e)

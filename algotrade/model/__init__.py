@@ -54,12 +54,13 @@ class QModel(CMysqlObj):
 
     def generate_stock_pool(self, start_date, end_date):
         succeed = True
-        date_array = get_dates_array(start_date, end_date)
+        date_array = get_dates_array(start_date, end_date, asending = True)
         for mdate in date_array:
-             if self.cal_client.is_trading_day(mdate):
-                 if not self.set_stock_pool(mdate):
-                     self.logger.error("set {} data for model failed".format(mdate))
-                     succeed = False
+            if self.cal_client.is_trading_day(mdate):
+                if not self.set_stock_pool(mdate):
+                    self.logger.error("set {} data for model failed".format(mdate))
+                    succeed = False
+                    return succeed
         return succeed
 
     def get_stock_pool(self, mdate):
@@ -156,3 +157,6 @@ class QModel(CMysqlObj):
         order_info = broker.get_history_orders(start = mdate, end = mdate)
         order_info['date'] = mdate
         return self.mysql_client.set(order_info, ORDER_TABLE)
+
+    def get_leading_stocks(self, industry = None):
+        pass

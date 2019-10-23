@@ -179,7 +179,7 @@ class RIndexStock:
         return False
 
 if __name__ == '__main__':
-    mdate = '2019-09-30'
+    mdate = '2019-10-22'
     ris = RIndexStock(dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
     #ris.mysql_client.delete_db(RINDEX_STOCK_INFO_DB)
     #import sys

@@ -29,7 +29,7 @@ def update_mmap(attr, old, new):
 
 #add a dot where the click happened
 def scallback(event):
-    global dist_source, dist_fig, roe_fig, profit_fig
+    global dist_source, hlzh_fig, dist_fig, roe_fig, profit_fig
     code = code_text.value
     sobj = CStock(code)
     mdate = stock_source.data['date'][int(event.x)]
@@ -37,7 +37,7 @@ def scallback(event):
     ddf = sobj.get_chip_distribution(mdate)
     dist_source = ColumnDataSource(ddf)
     dist_fig = create_dist_figure(dist_source)
-    layout.children[5] = gridplot([[stock_fig, dist_fig], [profit_fig, roe_fig]])
+    layout.children[5] = gridplot([[stock_fig, dist_fig], [[profit_fig, hlzh_fig], roe_fig]])
 
 def create_mmap_figure(mdate):
     TOOLTIPS = [("code", "@code"), ("(pday, profit)", "(@pday, @profit)")]
@@ -145,9 +145,10 @@ def update_stock(attr, old, new):
     if code is None: return
     sobj = CStock(code)
     sdf = sobj.get_k_data()
+    sdf['hlzh'] = sdf['ppercent'] - sdf['npercent']
     if sdf is None: return
     vdf = get_val_data(code)
-    global stock_fig, profit_fig, dist_fig, roe_fig, stock_source, dist_source, val_source
+    global stock_fig, profit_fig, dist_fig, hlzh_fig, roe_fig, stock_source, dist_source, val_source
     mdate = mmap_pckr.value
     mdate = mdate.strftime('%Y-%m-%d')
     ddf = sobj.get_chip_distribution(mdate)
@@ -156,10 +157,28 @@ def update_stock(attr, old, new):
     val_source = ColumnDataSource(vdf)
     stock_fig = create_stock_figure(stock_source)
     profit_fig = create_profit_figure(stock_source)
+    hlzh_fig = create_hlzh_figure(stock_source)
     dist_fig = create_dist_figure(dist_source)
     roe_fig = create_roe_figure(val_source)
     stock_fig.on_event(DoubleTap, scallback)
-    layout.children[5] = gridplot([[stock_fig, dist_fig], [profit_fig, roe_fig]])
+    layout.children[5] = gridplot([[stock_fig, dist_fig], [column(profit_fig, hlzh_fig), roe_fig]])
+
+def create_hlzh_figure(stock_source):
+    tps = [("date", "@date"), ("hlzh", "@hlzh"), ("ppercent", "@ppercent"), ("npercent", "@npercent")]
+    fig = figure(plot_height=200, plot_width=1000, y_range = (0, 100), tools = [HoverTool(tooltips = tps)],
+                 x_range = (stock_source.data['index'].min(), stock_source.data['index'].max()))
+    #fig.line(x = 'index', y = 'hlzh',     color = 'blue', line_width=2, alpha=0.5, source=stock_source)
+    fig.line(x = 'index', y = 'ppercent', color = 'red', line_width=2, alpha=0.5, source=stock_source)
+    fig.line(x = 'index', y = 'npercent', color = 'green', line_width=2, alpha=0.5, source=stock_source)
+    fig.xaxis.axis_label = None
+    fig.yaxis.axis_label = None
+    fig.xaxis.major_tick_line_color = None
+    fig.xaxis.minor_tick_line_color = None
+    fig.yaxis.major_tick_line_color = None
+    fig.yaxis.minor_tick_line_color = None
+    fig.xaxis.major_label_text_color = None
+    fig.yaxis.major_label_text_color = None
+    return fig
 
 def create_profit_figure(stock_source):
     mapper = linear_cmap(field_name='profit', palette=['red', 'green'], low=0, high=0, low_color = 'green', high_color = 'red')
@@ -178,12 +197,16 @@ def create_profit_figure(stock_source):
 
 def create_stock_figure(stock_source):
     mapper = linear_cmap(field_name='pchange', palette=['red', 'green'], low=0, high=0, low_color = 'green', high_color = 'red')
-    TOOLTIPS = [("open", "@open"), ("high", "high"), ("low", "@low"), ("close", "@close"), ("pchange", "@pchange"), ("date", "@date")]
+    TOOLTIPS = [("date", "@date"), ("open", "@open"), ("high", "@high"), ("low", "@low"), ("close", "@close"), ("pchange", "@pchange"),
+                ("profit", "@profit"), ("uprice", "@uprice"), ("pday", "@pday"), ("hlzh", "@hlzh"), ("ppercent", "@ppercent"), ("npercent", "@npercent")]
     TOOLS = [TapTool(), PanTool(), BoxZoomTool(), WheelZoomTool(), ResetTool(), BoxSelectTool(), HoverTool(tooltips = TOOLTIPS)]
     fig = figure(plot_height=500, plot_width=1000, x_axis_label='时间', y_axis_label='价格', tools=TOOLS, toolbar_location="above",
                 x_range = (stock_source.data['index'].min(), stock_source.data['index'].max()),
                 y_range = (stock_source.data['low'].min(), stock_source.data['high'].max()))
     fig.line(x = 'index', y = 'uprice', color = 'blue', line_width = 2, source = stock_source, name = '无穷成本均线')
+    fig.line(x = 'index', y = 'sprice', color = 'green', line_width = 2, source = stock_source, name = '短期成本均线')
+    fig.line(x = 'index', y = 'mprice', color = 'red', line_width = 2, source = stock_source, name = '中期成本均线')
+    fig.line(x = 'index', y = 'lprice', color = 'black', line_width = 2, source = stock_source, name = '长期成本均线')
     fig.segment(x0 = 'index', y0 = 'low', x1 = 'index', y1 = 'high', line_width = 1.5, color = 'black', source = stock_source)
     fig.vbar(x = 'index', bottom = 'open', top = 'close', width = 1, color = mapper, source = stock_source)
     fig.xaxis.major_label_overrides = {i: mdate for i, mdate in enumerate(stock_source.data["date"])}
@@ -227,7 +250,7 @@ def create_industry_figure():
 def create_roe_figure(val_source):
     TOOLTIPS = [("roa", "@roa")]
     TOOLS = [HoverTool(tooltips = TOOLTIPS)]
-    fig = figure(plot_height = profit_fig.plot_height, plot_width = dist_fig.plot_width, x_axis_type='datetime', tools=TOOLS, toolbar_location=None)
+    fig = figure(plot_height = 2 * profit_fig.plot_height, plot_width = dist_fig.plot_width, x_axis_type='datetime', tools=TOOLS, toolbar_location=None)
     fig.vbar(x = 'date', bottom = 0, top = 'roa', width = 50, color = 'blue', source = val_source)
     return fig
 
@@ -270,6 +293,7 @@ ibutton.on_click(change_click)
 
 roe_fig = figure()
 dist_fig = figure()
+hlzh_fig = figure()
 stock_fig = figure()
 profit_fig = figure()
 industry_fig = figure()
@@ -296,6 +320,6 @@ stock_source = ColumnDataSource()
 #profit_fig = create_profit_figure(stock_source)
 #roe_fig = create_roe_figure(val_source)
 
-stock_row = gridplot([[stock_fig, dist_fig], [profit_fig, roe_fig]])
+stock_row = gridplot([[stock_fig, dist_fig], [column(profit_fig, hlzh_fig), roe_fig]])
 layout = column(mmap_select_row, create_mmap_figure_row(mmap_pckr.value), table_column, industry_column, code_text, stock_row, name = "layout")
 cdoc.add_root(layout)

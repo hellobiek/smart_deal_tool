@@ -68,24 +68,36 @@ class FollowTrendStrategy(strategy.BaseStrategy):
                 code = item['code'].split('.')[1]
                 cost_price = item['cost_price']
                 bar = bars.getBar(code)
+                row = bar.getExtraColumns()
                 if bar is None:continue
                 price = bar.getPrice()
-                #if item['pl_ratio']  < -15:
+                if (row['ppercent'] <= row['npercent']):
+                    position[code] = dict()
+                    position[code]['price'] = item['nominal_price'] * 0.98
+                    position[code]['quantity'] = -1 * item['qty']
+                    self.info("will sell: {} at {} for {} hlzh less than 0".format(code, position[code], position[code]['price'], item['qty']))
+                    
                 if (item['nominal_price'] - item['cost_price']) / item['cost_price'] < -0.15:
                     position[code] = dict()
                     position[code]['price'] = item['nominal_price'] * 0.98
                     position[code]['quantity'] = -1 * item['qty']
                     self.info("will sell: {} at {} for {} lose more than 15%".format(code, position[code], position[code]['price'], item['qty']))
                     continue
+
+                if (item['nominal_price'] - item['cost_price']) / item['cost_price'] > 0.10:
+                    position[code] = dict()
+                    position[code]['price'] = item['nominal_price'] * 0.98
+                    position[code]['quantity'] = -1 * item['qty']
+                    self.info("will sell: {} at {} for {} profit more than 10%".format(code, position[code], position[code]['price'], item['qty']))
                     
                 row = bar.getExtraColumns()
                 k, d = row['k'], row['d']
                 if k is None or d is None: continue
-                if k > 80 and d > 80:
+                if k > 75 and d > 75:
                     position[code] = dict()
                     position[code]['price'] = item['nominal_price'] * 0.98
                     position[code]['quantity'] = -1 * item['qty']
-                    self.info("will sell: {} at {} for {} for kdj > 80".format(code, position[code]['price'], position[code]['quantity']))
+                    self.info("will sell: {} at {} for {} for kdj > 75".format(code, position[code]['price'], position[code]['quantity']))
                     continue
         return position
 
@@ -95,7 +107,7 @@ class FollowTrendStrategy(strategy.BaseStrategy):
             instrument = order.getInstrument()
             price = order.getAvgFillPrice()
             quantity = order.getQuantity()
-            self.info("{} {} at {} for {} succeed".format(msg, instrument, price, quantity))
+            self.debug("{} {} at {} for {} succeed".format(msg, instrument, price, quantity))
 
     def updateInstruments(self, bars):
         self.instruments = list()
@@ -132,9 +144,9 @@ def main(model, feed, brk, codes, stock_num, duaration):
     mStrategy.info("Final portfolio value: $%.2f" % mStrategy.getResult())
     plt.plot()
 
-def paper_trading(cash = 100000, stock_num = 5, duaration = 10):
-    start_date = '2019-01-01'
-    end_date   = '2019-09-30'
+def paper_trading(cash = 100000, stock_num = 10, duaration = 10):
+    start_date = '2018-01-01'
+    end_date   = '2019-10-18'
     dbinfo = ct.OUT_DB_INFO
     redis_host = '127.0.0.1'
     report_dir = "/Volumes/data/quant/stock/data/tdx/report"
@@ -182,7 +194,7 @@ def real_trading(stock_num = 10, duaration = 10):
 
 if __name__ == '__main__':
     try:
-        real_trading()
-        #paper_trading()
+        #real_trading()
+        paper_trading()
     except Exception as e:
         traceback.print_exc()

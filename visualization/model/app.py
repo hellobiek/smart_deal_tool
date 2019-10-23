@@ -188,8 +188,8 @@ def render_content(model_name, start_date, end_date):
     global data_source
     if model_name == 'follow_trend':
         model = FollowTrendModel(valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir, cal_file_path, dbinfo, redis_host = redis_host)
-        data_source = get_data(model, end_date)
         acc_df, pos_df, order_df, profit_df = get_profit_data(model, start_date, end_date)
+        data_source = get_data(model, end_date)
         return html.Div([
             html.H3('股票池'),
             dash_table.DataTable(

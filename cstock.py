@@ -11,12 +11,13 @@ from datetime import datetime
 from functools import partial
 #from cpython.cchip import mac
 #from cpython.cstock import pro_nei_chip
-#from cpython.features import base_floating_profit
 #from cpython.mchip import compute_distribution, compute_oneday_distribution
 from base.cobj import CMysqlObj
 from base.clog import getLogger 
 from cstock_info import CStockInfo
-from cpython.cstock import base_floating_profit, pro_nei_chip
+from cpython.cstock import pro_nei_chip
+from cpython.cstock import base_floating_profit
+#from cpython.features import base_floating_profit
 from common import is_df_has_unexpected_data, concurrent_run, get_pre_str
 from cpython.cchip import compute_distribution, compute_oneday_distribution, mac
 from base.cdate import get_years_between, transfer_date_string_to_int, transfer_int_to_date_string
@@ -571,9 +572,9 @@ if __name__ == '__main__':
     index_info = CIndex('000001').get_k_data(mdate)
     stock_info = CStockInfo().get()
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    cstock = CStock('600900', should_create_influxdb = False, should_create_mysqldb = False)
+    cstock = CStock('600519', should_create_influxdb = False, should_create_mysqldb = False)
     logger.info("start compute")
-    cstock.set_k_data(bonus_info, index_info, stock_info, cdate = mdate)
+    #cstock.set_k_data(bonus_info, index_info, stock_info, cdate = mdate)
     logger.info("enter set base floating profit")
     cstock.set_base_floating_profit()
     logger.info("end compute")
