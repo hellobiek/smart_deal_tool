@@ -17,7 +17,7 @@ class CReport(object):
         self.report_publish_dir = report_publish_dir
 
     def to_df(self, data):
-        if len(data) == 0: return None
+        if len(data) == 0: return pd.DataFrame()
         total_lengh = len(data[0])
         cols = ['code', 'date']
         length = total_lengh - 2
@@ -110,3 +110,7 @@ class CReport(object):
         for i in range(1, 4):
             if filter_df.values[0][4 - i] != 0: return filter_df.values[0][4 - i]
         return 0
+
+if __name__ == '__main__':
+    cr = CReport()
+    df = cr.get_report_data('2019-09-30')

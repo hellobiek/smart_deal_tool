@@ -17,7 +17,7 @@ from base.clog import getLogger
 from datamanager.cbonus import CBonus
 from datamanager.creport import CReport
 from datetime import datetime, timedelta
-from base.cdate import quarter, report_date_with, int_to_datetime, prev_report_date_with, get_pre_date, get_next_date
+from base.cdate import quarter, report_date_with, int_to_datetime, prev_report_date_with, get_pre_date, get_next_date, pre_report_date_with
 DTYPE_DICT = {'date': int,
               'code': str, 
               'bps': float, #每股净资产(book value per share)
@@ -54,6 +54,9 @@ DTYPE_DICT = {'date': int,
               'np': float, #净利润(net profit)
               'rnp': float, #扣除非经常性损益后的净利润(recurrent net profit)
               'rroe': float, #加权净资产收益率(rroe)
+              't10n': float, #十大股东持股数量合计(top 10 stock holder num)
+              'nth': float, #国家队持股(national team holdings)
+              'largest_holding': float, #第一大股东的持股数量
               'qfii_holders': float, #QFII机构数
               'qfii_holding': float, #QFII持股量
               'social_security_holders': float, #社保机构数
@@ -126,7 +129,9 @@ cdef class CValuation(object):
         #228.经营活动现金净流量与净利润比率(net cash flow to net profit ratio)、159.流动比率(working capital ratio)、
         #160.速动比率(quick ratio)、161.现金比率(currency ratio)、219.每股经营性现金(cash flow per share from operations)
         #163.非流动负债比率(non-current debt ratio)、#164.流动负债比率(current debt ratio)、#165.现金到期债务比率(cash due debt ratio)、
-        #95.净利润(net profit)、232.扣除非经常性损益后的净利润(recurrent net profit)、281.加权净资产收益率(rroe)、
+        #95.净利润(net profit)、232.扣除非经常性损益后的净利润(recurrent net profit)、264.十大流通股东持A股数量合计(top 10 stock holder num)、
+        #281.加权净资产收益率(rroe)、
+        #284.国家队持股数量(national team holdings)（万股)[注：本指标统计包含汇金公司、证金公司、外汇管理局旗下投资平台、国家队基金、国开、养老金以及中科汇通等国家队机构持股数量]、
         #财报披露时间(publish)
         mcols = ['date','code',
                  'eps', #基本每股收益(earnings per share)
@@ -209,7 +214,9 @@ cdef class CValuation(object):
                  'cdbr', #现金到期债务比率(cash due debt ratio)
                  'np', #净利润(net profit)
                  'rnp', #扣除非经常性损益后的净利润(recurrent net profit)
+                 't10n', #十大流通股东持A股数量合计(top 10 stock holder num)
                  'rroe', #加权净资产收益率(rroe)
+                 'nth', #国家队持股数量(national team holdings)
                  'publish']
         date_list = self.report_client.get_all_report_list()
         is_first = True
@@ -219,6 +226,8 @@ cdef class CValuation(object):
             report_df = self.report_client.get_report_data(mdate)
             for idx, row in report_df.iterrows():
                 rroe = 0 if prefix%281 not in row else row[prefix%281]
+                nth = 0 if prefix%284 not in row else row[prefix%284]
+                top10holdings = 0 if prefix%264 not in row else row[prefix%264]
                 pdate = self.report_client.get_report_publish_time(row['date'], row['code'])
                 report_list.append([row['date'], row['code'], row[prefix%1],  row[prefix%2], row[prefix%4], 
                             row[prefix%6],  row[prefix%72],  row[prefix%96],  row[prefix%238], row[prefix%239],
@@ -236,7 +245,7 @@ cdef class CValuation(object):
                             row[prefix%21], row[prefix%27], row[prefix%199], row[prefix%202], row[prefix%225],
                             row[prefix%220], row[prefix%229], row[prefix%228], row[prefix%159], row[prefix%160],
                             row[prefix%161], row[prefix%219], row[prefix%163], row[prefix%164], row[prefix%165], 
-                            row[prefix%95], row[prefix%232], rroe, pdate])
+                            row[prefix%95], row[prefix%232], top10holdings, rroe, nth, pdate])
             result_df = DataFrame(report_list, columns = mcols)
             result_df = result_df.sort_values(['code'], ascending = 1)
             result_df['code'] = result_df['code'].map(lambda x: str(x).zfill(6))
@@ -303,18 +312,20 @@ cdef class CValuation(object):
         cdef str dtype
         cdef dict item
         cdef object dval
+        mdate = pre_report_date_with(mdate)
         def cfunc(str code, int time2Market):
-            item = self.get_actual_report_item(mdate, code, time2Market)
+            item = self.get_report_item(mdate, code)
             if 1 == len(dtype_list):
                 return item[dtype_list[0]] if item else None
             else:
                 return tuple([item[dtype] for dtype in dtype_list]) if item else tuple([None for dtype in dtype_list])
         vfunc = np.vectorize(cfunc)
-        if len(dtype_list) == 1:
-            df[dtype_list[0]] = vfunc(df['code'].values, df['timeToMarket'].values)
-        else:
-            for dtype, dval in zip(dtype_list, vfunc(df['code'].values, df['timeToMarket'].values)):
-                df[dtype] = dval
+        with pd.option_context('mode.chained_assignment', None):
+            if len(dtype_list) == 1:
+                df[dtype_list[0]] = vfunc(df['code'].values, df['timeToMarket'].values)
+            else:
+                for dtype, dval in zip(dtype_list, vfunc(df['code'].values, df['timeToMarket'].values)):
+                    df[dtype] = dval
 
     cpdef object get_horizontal_data(self, str code):
         return self.get_report_items(code)

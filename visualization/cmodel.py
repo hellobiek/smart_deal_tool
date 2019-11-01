@@ -71,7 +71,7 @@ def get_industry_data(cdate):
     df = df.reset_index(drop = True)
     df = df.sort_values(by = 'amount', ascending= False)
     df['money_change'] = (df['amount'] - df['preamount'])/1e8
-    industry_info = IndustryInfo.get()
+    industry_info = IndustryInfo().get_data()
     df = pd.merge(df, industry_info, how='left', on=['code'])
     return df
 

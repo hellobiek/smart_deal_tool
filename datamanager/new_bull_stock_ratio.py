@@ -11,8 +11,9 @@ from rstock import RIndexStock
 from ccalendar import CCalendar
 from base.clog import getLogger
 from common import create_redis_obj
+from sklearn.preprocessing import scale, MinMaxScaler
 from base.cdate import get_day_nday_ago, get_dates_array
-class BullStockRatio(object):
+class NewBullStockRatio(object):
     def __init__(self, index_code, dbinfo = ct.DB_INFO, redis_host = None):
         self.dbinfo = dbinfo
         self.index_code = index_code
@@ -30,7 +31,7 @@ class BullStockRatio(object):
         self.mysql_client.delete(self.bull_stock_ratio_table)
 
     def get_table_name(self):
-        return "%s_%s" % (self.db_name, ct.BULLSTOCKRATIO_TABLE)
+        return "%s_%s" % (self.db_name, "new_bull_stock_ratio")
 
     def create(self):
         if self.bull_stock_ratio_table not in self.mysql_client.get_all_tables():
@@ -55,8 +56,8 @@ class BullStockRatio(object):
 
     def update(self, end_date = None, num = 30):
         if end_date is None: end_date = datetime.now().strftime('%Y-%m-%d')
-        #start_date = "2014-08-19"
-        start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
+        start_date = "2015-04-03"
+        #start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
         succeed = True
         code_list = self.get_components(end_date)
         if 0 == len(code_list):
@@ -65,7 +66,7 @@ class BullStockRatio(object):
         for mdate in get_dates_array(start_date, end_date):
             if self.cal_client.is_trading_day(mdate):
                 if not self.set_ratio(code_list, mdate):
-                    self.logger.error("set %s score for %s set failed" % (self.index_code, mdate))
+                    #self.logger.error("set %s score for %s set failed" % (self.index_code, mdate))
                     succeed = False
         return succeed
 
@@ -92,16 +93,20 @@ class BullStockRatio(object):
         if df.empty: return False
         df = df[df.code.isin(code_list)]
         if df.empty: return True
-        profit_code_list = self.get_profit_stocks(df)
-        bull_stock_num = len(profit_code_list)
-        bull_ration = 100 * bull_stock_num / len(df)
-        data = {'date':[cdate], 'ratio':[bull_ration]}
+        bull_df = df[(df.profit > 0) & (df.pday > 0)]
+        #bull_strength = bull_df['profit'].dot(bull_df['pday'])
+        #total_strenth = df['profit'].abs().dot(df['pday'].abs())
+        #bull_ratio = 100 * bull_strength / total_strenth
+        bull_ratio = 100 * len(bull_df) / len(df)
+        bull_ratio = round(bull_ratio, 2)
+        data = {'date':[cdate], 'ratio':[bull_ratio]}
         df = pd.DataFrame.from_dict(data)
         if self.mysql_client.set(df, self.bull_stock_ratio_table):
             return self.redis.sadd(self.bull_stock_ratio_table, cdate)
         return False
 
 if __name__ == '__main__':
-    cdate = '2019-03-10'
-    bsr = BullStockRatio('880883')
-    bsr.update(end_date = cdate, num = 6000)
+    cdate = '2019-10-25'
+    bsr = NewBullStockRatio('000001')
+    bsr.mysql_client.delete('i000001_new_bull_stock_ratio')
+    #bsr.update(end_date = cdate, num = 6000)

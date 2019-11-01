@@ -20,6 +20,8 @@ from base.cdate import get_day_nday_ago, get_dates_array
 RINDEX_INDUSTRY_INFO_DB = "rindex_industry"
 class RIndexIndustryInfo:
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
+        self.dbinfo = dbinfo
+        self.redis_host = redis_host
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
         self.dbname = self.get_dbname()
         self.logger = getLogger(__name__)
@@ -102,7 +104,7 @@ class RIndexIndustryInfo:
         good_list = list()
         obj_pool = Pool(500)
         all_df = pd.DataFrame()
-        industry_info = IndustryInfo.get(self.redis)
+        industry_info = IndustryInfo(dbinfo = self.dbinfo, redis_host = self.redis_host).get_data()
         failed_list = industry_info.code.tolist()
         cfunc = partial(self.get_industry_data, cdate)
         failed_count = 0

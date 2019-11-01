@@ -53,7 +53,8 @@ class DataManager:
         self.comb_info_client = CombinationInfo(dbinfo, redis_host)
         self.stock_info_client = CStockInfo(dbinfo, redis_host)
         self.rindex_stock_data_client = RIndexStock(dbinfo, redis_host) 
-        self.industry_info_client = IndustryInfo(dbinfo, redis_host)
+        self.industry_info_client = IndustryInfo("TDX", dbinfo, redis_host)
+        self.sw_industry_info_client = IndustryInfo("SW", dbinfo, redis_host)
         self.rindustry_info_client = RIndexIndustryInfo(dbinfo, redis_host)
         self.subscriber = Subscriber()
         self.quote_handler  = StockQuoteHandler()
@@ -215,7 +216,7 @@ class DataManager:
             self.set_update_info(5, exec_date, cdate)
 
         if finished_step < 6:
-            if not self.industry_info_client.update():
+            if not self.industry_info_client.update() or not self.sw_industry_info_client.update():
                 self.logger.error("industry info init failed")
                 return False
             self.set_update_info(6, exec_date, cdate)
@@ -459,7 +460,7 @@ class DataManager:
     def init_industry_info(self, cdate, num = 1):
         def _set_industry_info(cdate, code_id):
             return (code_id, CIndex(code_id).set_k_data(cdate))
-        df = self.industry_info_client.get()
+        df = self.industry_info_client.get_data()
         if cdate is None:
             cfunc = partial(_set_industry_info, cdate)
             return concurrent_run(cfunc, df.code.tolist(), num = 5)
@@ -512,7 +513,7 @@ class DataManager:
     def set_bull_stock_ratio(self, cdate, num = 10):
         def _set_bull_stock_ratio(code_id):
             obj = BullStockRatio(code_id)
-            #obj.delete()
+            #obj.mysql_client.delete(obj.get_table_name())
             return (code_id, obj.update(cdate, num))
         index_codes = self.get_concerned_index_codes()
         return concurrent_run(_set_bull_stock_ratio, index_codes)
@@ -568,8 +569,8 @@ if __name__ == '__main__':
     #    print(code)
     #    mysql_client.delete_db('s%s' % code)
     #mdate = datetime.now().strftime('%Y-%m-%d')
-    dm = DataManager()
-    mdate = '2019-10-22'
+    #dm = DataManager()
+    #mdate = '2019-10-29'
     #dm.logger.info("start compute!")
     #dm.init_rindex_valuation_info(mdate)
     #dm.init_rvaluation_info(mdate)
@@ -579,9 +580,9 @@ if __name__ == '__main__':
     #dm.init_base_float_profit()
     #dm.bootstrap(cdate = mdate, exec_date = mdate)
     #dm.init_stock_info()
-    dm.init_base_float_profit()
+    #dm.init_base_float_profit()
     #dm.bootstrap(cdate = mdate, exec_date = mdate)
     #dm.init_yesterday_hk_info('2019-09-21', num = 10)
     #dm.set_stock_pools(mdate = '2019-10-08')
     #dm.logger.info("end compute!")
-    #CValuation(needUpdate = True)
+    CValuation(needUpdate = True)

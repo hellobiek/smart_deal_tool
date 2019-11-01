@@ -44,6 +44,23 @@ def datetime_to_int(mdate, dformat = "%Y%m%d"):
     """将datetime类型转换为日期型字符串,格式为2008-08-02"""
     return int(datetime_to_str(mdate, dformat))
 
+def pre_report_date_with(mdate:int):
+    """
+    根据当前日期获取前一个财报的标准日期
+    :param mdate: 指定日期时间yyyymmdd
+    :return:
+    """
+    year = int(mdate/10000)
+    monthday = int(mdate%10000)
+    if monthday >= 101 and monthday <= 430:
+        return int((year - 1) * 10000 + 930)
+    elif monthday >= 501 and monthday <= 831:
+        return int((year - 1) * 10000 + 1231)
+    elif monthday >= 901 and monthday <= 1031:
+        return int(year * 10000 + 630)
+    else:
+        return int(year * 10000 + 930)
+
 def report_date_with(mdate:int):
     """
     根据当前日期获取标准的财报日期
@@ -242,3 +259,7 @@ def parse_date23(mdate):
     microsecond = int(mdate[20:23])*1000
     ret = datetime(year, month, day, hour, minute, second, microsecond)
     return ret
+
+if __name__ == "__main__":
+    mdate = 20190101
+    print(pre_report_date_with(mdate) == 20180930)

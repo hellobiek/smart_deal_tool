@@ -1,4 +1,4 @@
-#coding=utf-8
+# -*- coding: utf-8 -*-
 import os
 import time
 import cmysql
@@ -14,11 +14,13 @@ logger = getLogger(__name__)
 class CStockInfo(object):
     data = None
     def __init__(self, dbinfo = ct.DB_INFO, redis_host = None, stocks_dir = ct.STOCKS_DIR, base_stock_path = ct.BASE_STOCK_PATH, without_init = True):
+        self.dbinfo = dbinfo
+        self.stocks_dir = stocks_dir
+        self.redis_host = redis_host
         self.table = ct.STOCK_INFO_TABLE
+        self.base_stock_path = base_stock_path
         self.redis = create_redis_obj(host = 'redis-proxy-container', port = 6579) if redis_host is None else create_redis_obj(host = redis_host, port = 6579)
         self.mysql_client = cmysql.CMySQL(dbinfo, iredis = self.redis)
-        self.stocks_dir = stocks_dir
-        self.base_stock_path = base_stock_path
         #self.trigger = ct.SYNCSTOCK2REDIS
         #if not self.create(): raise Exception("create stock info table:%s failed" % self.table)
         #if not self.register(): raise Exception("create trigger info table:%s failed" % self.trigger)
@@ -41,7 +43,7 @@ class CStockInfo(object):
             return CStockInfo.data.loc[CStockInfo.data.code == code][column].values[0]
 
     def register(self):
-        sql = "create trigger %s after insert on %s for each row set @set=gman_do_background('%s',json_object('code',NEW.code,'name',NEW.name,'industry',NEW.industry,'area',NEW.area,'pe',NEW.pe,'outstanding',NEW.outstanding,'totals',NEW.totals,'totalAssets',NEW.totalAssets,'fixedAssets',NEW.fixedAssets,'liquidAssets',NEW.liquidAssets,'reserved',NEW.reserved,'reservedPerShare',NEW.reservedPerShare,'esp',NEW.esp,'bvps',NEW.bvps,'pb',NEW.pb,'timeToMarket',NEW.timeToMarket,'undp',NEW.undp,'perundp',NEW.perundp,'rev',NEW.rev,'profit',NEW.profit,'gpr',NEW.gpr,'npr',NEW.npr,'limitUpNum',NEW.limitUpNum,'limitDownNum',NEW.limitDownNum,'holders',NEW.holders));" % (self.trigger,self.table,self.trigger)
+        sql = "create trigger %s after insert on %s for each row set @set=gman_do_background('%s',json_object('code',NEW.code,'name',NEW.name,'industry',NEW.industry,'area',NEW.area,'pe',NEW.pe,'outstanding',NEW.outstanding,'totals',NEW.totals,'totalAssets',NEW.totalAssets,'fixedAssets',NEW.fixedAssets,'liquidAssets',NEW.liquidAssets,'reserved',NEW.reserved,'reservedPerShare',NEW.reservedPerShare,'esp',NEW.esp,'bvps',NEW.bvps,'pb',NEW.pb,'timeToMarket',NEW.timeToMarket,'undp',NEW.undp,'perundp',NEW.perundp,'rev',NEW.rev,'profit',NEW.profit,'gpr',NEW.gpr,'npr',NEW.npr,'limitUpNum',NEW.limitUpNum,'limitDownNum',NEW.limitDownNum,'holders',NEW.holders));" % (self.trigger, self.table, self.trigger)
         return True if self.trigger in self.mysql_client.get_all_triggers() else self.mysql_client.register(sql, self.trigger)
 
     def create(self):
@@ -81,12 +83,15 @@ class CStockInfo(object):
         return self.redis.set(ct.STOCK_INFO, _pickle.dumps(df, 2))
 
     def get_basics(self):
-        def func(code):
-            industry = self.get_industry(code)
+        def func(code, tdx_industry_info, sw_industry_info):
+            industry = self.get_industry(code, tdx_industry_info)
+            sw_industry = self.get_industry(code, sw_industry_info)
             timeToMarket = self.get_time_to_market(code)
-            return industry, timeToMarket
+            return industry, sw_industry, timeToMarket
         base_df = self.get_base_stock_info()
-        base_df['industry'], base_df['timeToMarket'] = zip(*base_df.apply(lambda base_df: func(base_df['code']), axis = 1))
+        tdx_industry_info = IndustryInfo("TDX", self.dbinfo, self.redis_host).get_data()
+        sw_industry_info = IndustryInfo("SW", self.dbinfo, self.redis_host).get_data()
+        base_df['industry'], base_df['sw_industry'], base_df['timeToMarket'] = zip(*base_df.apply(lambda base_df: func(base_df['code'], tdx_industry_info, sw_industry_info), axis = 1))
         base_df = base_df.loc[base_df.timeToMarket != 0]
         base_df = base_df.reset_index(drop = True)
         return base_df
@@ -100,9 +105,7 @@ class CStockInfo(object):
             lines = f.readlines()
             return int(lines[1].split(',')[2])
 
-    def get_industry(self, code):
-        """获取沪深股股票通达信行业信息"""
-        rdf = IndustryInfo.get_industry()
+    def get_industry(self, code, rdf):
         rdf = rdf[rdf.content.str.contains(code)]
         return rdf['name'].values[0] if not rdf.empty else None
 
@@ -114,9 +117,7 @@ class CStockInfo(object):
             base_df['code'] = base_df['code'].map(lambda x: str(x).zfill(6))
             filter_df = base_df[((base_df['code'].str.startswith("00")) & (base_df['market'] == 0)) |
                                 ((base_df['code'].str.startswith("30")) & (base_df['market'] == 0)) |
-                                ((base_df['code'].str.startswith("68")) & (base_df['market'] == 1)) |
-                                ((base_df['code'].str.startswith("65")) & (base_df['market'] == 1)) |
-                                ((base_df['code'].str.startswith("60")) & (base_df['market'] == 1))]
+                                ((base_df['code'].str.startswith("6"))  & (base_df['market'] == 1))]
             filter_df = filter_df[['code', 'name']]
             filter_df = filter_df.reset_index(drop = True)
             return filter_df
@@ -141,7 +142,7 @@ class CStockInfo(object):
         return False
 
 if __name__ == '__main__':
-    cs_info = CStockInfo(ct.DB_INFO)
+    cs_info = CStockInfo(ct.DB_INFO, without_init = False)
     #mdate = cs_info.get_time_to_market("600902")
     #info = cs_info.get_industry('601318')
     #cs_info.get_base_stock_info()

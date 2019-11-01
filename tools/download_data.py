@@ -23,7 +23,7 @@ class DataPreparer:
         now_time = datetime.now()
         _date = now_time.strftime('%Y-%m-%d')
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
-        aft_open_hour,aft_open_minute,aft_open_second = (16,00,00)
+        aft_open_hour,aft_open_minute,aft_open_second = (15,5,00)
         aft_open_time = datetime(y,m,d,aft_open_hour,aft_open_minute,aft_open_second)
         aft_close_hour,aft_close_minute,aft_close_second = (22,00,00)
         aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
@@ -61,11 +61,11 @@ class DataPreparer:
                         ndate = get_latest_data_date(filepath = "/Volumes/data/quant/stock/data/stockdatainfo.json")
                         mdate = transfer_date_string_to_int(datetime.now().strftime('%Y-%m-%d'))
                         if ndate < mdate:
-                            #self.run(SCRIPT1, timeout = 600)
+                            self.run(SCRIPT1, timeout = 3600)
                             self.run(SCRIPT2, timeout = 2400)
             except Exception as e:
                 self.logger.error(e)
             time.sleep(sleep_time)
 
 dp = DataPreparer()
-dp.update(3000)
+dp.update(600)

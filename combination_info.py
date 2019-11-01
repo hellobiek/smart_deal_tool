@@ -9,14 +9,15 @@ from combination import Combination
 from pytdx.reader import CustomerBlockReader
 from common import create_redis_obj, concurrent_run
 # include index and concept in stock
-class CombinationInfo:
+class CombinationInfo(object):
     data = None
-    def __init__(self, dbinfo = ct.DB_INFO, redis_host = None):
+    def __init__(self, dbinfo = ct.DB_INFO, redis_host = None, needUpdate = True):
         self.table = ct.COMBINATION_INFO_TABLE
         self.logger = getLogger(__name__)
         self.redis = create_redis_obj(host = 'redis-proxy-container', port = 6579) if redis_host is None else create_redis_obj(host = redis_host, port = 6579)
         self.mysql_client = cmysql.CMySQL(dbinfo, iredis = self.redis)
-        if not self.init(): raise Exception("init combination table failed")
+        if needUpdate:
+            if not self.init(): raise Exception("init combination table failed")
         #self.trigger = ct.SYNC_COMBINATION_2_REDIS
         #if not self.create(): raise Exception("create combination table failed")
         #if not self.register(): raise Exception("create combination trigger failed")
@@ -60,9 +61,12 @@ class CombinationInfo:
         return False
 
     def read_self_defined(self):
+        selected_codes = open("/tongdaxin/T0002/blocknew/ZXG.blk").read().splitlines()
+        selected_codes = [code[1:] for code in selected_codes if code]
         df = CustomerBlockReader().get_df(ct.TONG_DA_XIN_SELF_PATH, 1)
         df = df[['block_type','blockname','code_list']]
         df.columns = ['code', 'name', 'content']
+        df.loc[-1] = {'code': 'ZXG', 'name': '自选股', 'content': ",".join(selected_codes)}
         return df
         
     def get(self, index_type = None):
@@ -81,4 +85,4 @@ class CombinationInfo:
         return list(set(res_list))
 
 if __name__ == '__main__':
-    cm = CombinationInfo(ct.DB_INFO)
+    cm = CombinationInfo(ct.DB_INFO, needUpdate = True)

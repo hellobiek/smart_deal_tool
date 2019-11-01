@@ -29,16 +29,9 @@ class QModel(CMysqlObj):
             if not self.create_table(table_name):
                 self.logger.error("create chip table:{} failed".format(table_name))
                 return False
-
-        if self.is_date_exists(table_name, mdate):
-            self.logger.debug("existed data for code:{}, date:{}".format(self.code, mdate))
-            return True
-
         df = self.compute_stock_pool(mdate)
         if df.empty: return True
-        if self.mysql_client.set(df, table_name):
-            return self.redis.sadd(table_name, mdate)
-        return False
+        return self.mysql_client.upsert(df, table_name)
 
     @abc.abstractmethod
     def compute_stock_pool(self, mdate):
@@ -66,7 +59,6 @@ class QModel(CMysqlObj):
     def get_stock_pool(self, mdate):
         if mdate is None: return pd.DataFrame()
         table_name = self.get_table_name(mdate)
-        if not self.is_date_exists(table_name, mdate): return pd.DataFrame()
         sql = "select * from %s where date=\"%s\"" % (table_name, mdate)
         df = self.mysql_client.get(sql)
         return pd.DataFrame() if df is None else df
@@ -157,6 +149,3 @@ class QModel(CMysqlObj):
         order_info = broker.get_history_orders(start = mdate, end = mdate)
         order_info['date'] = mdate
         return self.mysql_client.set(order_info, ORDER_TABLE)
-
-    def get_leading_stocks(self, industry = None):
-        pass

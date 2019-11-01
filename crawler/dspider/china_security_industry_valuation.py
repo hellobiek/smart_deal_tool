@@ -1,4 +1,4 @@
-#coding=utf-8
+# -*- coding: utf-8 -*-
 import sys
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
@@ -16,7 +16,8 @@ CSI_COLUMN_DICT = {'code': str, 'name': str, 'pind_code': str, 'pind_name': str,
                    'find_code': str, 'find_name': str, 'pe': float, 'ttm': float, 'pb': float,
                    'dividend': float, 'date': str}
 class ChinaSecurityIndustryValuationCrawler(object):
-    def __init__(self, dbinfo = ct.DB_INFO, redis_host = None, shoud_create_db = False):
+    def __init__(self, dbinfo = ct.DB_INFO, redis_host = None, shoud_create_db = False, file_dir = ct.CHINA_SECURITY_INDUSTRY_VALUATION_STOCK_PATH):
+        self.file_dir = file_dir
         if shoud_create_db:
             self.dbname = self.get_dbname()
             self.table_name = self.get_tablename()
@@ -45,8 +46,14 @@ class ChinaSecurityIndustryValuationCrawler(object):
         return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
 
     def get_k_data(self, mdate):
-        file_name = "{}.csv".format(mdate)
-        file_path = Path(ct.CHINA_SECURITY_INDUSTRY_VALUATION_STOCK_PATH) / file_name
+        file_dir_path = Path(self.file_dir)
+        if mdate is None:
+            dir_iter = file_dir_path.glob('**/*')
+            filenames = [x.name for x in dir_iter if x.is_file()]
+            filename = max(filenames)
+        else:
+            file_name = "{}.csv".format(mdate)
+        file_path = file_dir_path / file_name
         if not file_path.exists(): return pd.DataFrame()
         df = pd.read_csv(file_path, sep = ',', dtype = CSI_COLUMN_DICT)
         CSI_COLUMNS.append('date')

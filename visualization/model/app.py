@@ -96,28 +96,34 @@ def get_data(model, mdate):
         adf['status'] = '增加'
         ddf = pdf[~pdf.code.apply(tuple,1).isin(ndf.code.apply(tuple,1))]
         reason_list = list()
-        for _, code in ddf.code.iteritems():
-            reason_list.append('减少：{}'.format(model.get_deleted_reason(code, mdate)))
+        for _, row in ddf.iterrows():
+            code = row['code']
+            leader = row['leader']
+            timeToMarket = row['timeToMarket']
+            reason_list.append('减少：{}'.format(model.get_deleted_reason(code, mdate, timeToMarket, leader)))
         ddf['status'] = reason_list
         ndf = ndf[~ndf.code.apply(tuple,1).isin(adf.code.apply(tuple,1))]
         ndf['status'] = '维持'
         ndf = ndf.append(adf)
         ndf = ndf.append(ddf)
-        ndf = ndf.sort_values(['industry'], ascending = 1)
+        ndf = ndf.sort_values(['sw_industry'], ascending = 1)
         ndf = ndf.reset_index(drop = True)
         return ndf
     elif not ndf.empty and pdf.empty:
         ndf['status'] = '增加'
-        ndf = ndf.sort_values(['industry'], ascending = 1)
+        ndf = ndf.sort_values(['sw_industry'], ascending = 1)
         ndf = ndf.reset_index(drop = True)
         return ndf
     elif ndf.empty and not pdf.empty:
         pdf['date'] = mdate
         reason_list = list()
-        for _, code in pdf.code.iteritems():
-            reason_list.append('减少：{}'.format(model.get_deleted_reason(code, mdate)))
+        for _, row in pdf.iterrows():
+            code = row['code']
+            leader = row['leader']
+            timeToMarket = row['timeToMarket']
+            reason_list.append('减少：{}'.format(model.get_deleted_reason(code, mdate, timeToMarket, leader)))
         pdf['status'] = reason_list
-        pdf = pdf.sort_values(['industry'], ascending = 1)
+        pdf = pdf.sort_values(['sw_industry'], ascending = 1)
         pdf = pdf.reset_index(drop = True)
         return pdf
     else:
@@ -203,7 +209,9 @@ def render_content(model_name, start_date, end_date):
                     {'if': {'column_id': 'date'}, 'width': '10%',},
                     {'if': {'column_id': 'code'}, 'width': '10%',},
                     {'if': {'column_id': 'name'}, 'width': '15%',},
-                    {'if': {'column_id': 'industry'}, 'width': '10%',},
+                    {'if': {'column_id': 'sw_industry'}, 'width': '10%',},
+                    {'if': {'column_id': 'days'}, 'width': '10%',},
+                    {'if': {'column_id': 'leader'}, 'width': '10%',},
                     {'if': {'column_id': 'status'}, 'width': '20%',}
                 ],
                 style_data_conditional=[{
