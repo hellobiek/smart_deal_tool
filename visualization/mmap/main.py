@@ -8,7 +8,6 @@ import itertools
 import const as ct
 import pandas as pd
 from cstock import CStock
-from datetime import date
 from bokeh.io import curdoc
 from bokeh.plotting import figure
 from bokeh.events import DoubleTap
@@ -16,6 +15,7 @@ from cstock_info import CStockInfo
 from cpython.cval import CValuation
 from base.cdate import int_to_datetime
 from bokeh.palettes import Dark2_5 as palette
+from datetime import date, datetime, timedelta
 from bokeh.layouts import row, column, gridplot
 from visualization.marauder_map import MarauderMap
 from bokeh.transform import linear_cmap, transform
@@ -45,14 +45,14 @@ def create_mmap_figure(mdate):
     p = figure(plot_height=800, plot_width=1400, x_axis_label='时间', y_axis_label='强度', tools=TOOLS, toolbar_location="above", title="活点地图")
     df = mmap.get_data(mdate)
     df = pd.merge(df, base_df, how='inner', on=['code'])
-    df = df[(df['timeToMarket'] < 20141231) | df.code.isin(list(ct.WHITE_DICT.keys()))]
+    df = df[(df['timeToMarket'] < int((datetime.now() - timedelta(days = 1825)).strftime('%Y%m%d'))) | df.code.isin(list(ct.WHITE_DICT.keys()))]
     csi_df = csi_client.get_k_data(mdate)
     if csi_df is None or csi_df.empty: return p
     csi_df = csi_df.drop('name', axis=1)
     df = pd.merge(csi_df, df, how='inner', on=['code'])
     if df is None or df.empty: return p
     mdict = {'code': df.code.tolist(), 'name': df.name.tolist(), 'profit': df.profit.tolist(), 'pday': df.pday.tolist(),
-            'industry': df.industry.tolist(), 'tind_name': df.tind_name.tolist(), 'find_name': df.find_name.tolist()}
+            'sw_industry': df.sw_industry.tolist(), 'tind_name': df.tind_name.tolist(), 'find_name': df.find_name.tolist()}
     global msource, isource
     msource = ColumnDataSource(mdict)
     color_mapper = LinearColorMapper(palette = "Viridis256", low = min(mdict['profit']), high = max(mdict['profit']))
@@ -74,7 +74,7 @@ def create_mmap_figure(mdate):
             d2['name'] = [];
             d2['pday'] = [];
             d2['profit'] = [];
-            d2['industry'] = [];
+            d2['sw_industry'] = [];
             d2['tind_name'] = [];
             d2['find_name'] = [];
             for (var i = 0; i < inds.length; i++) {
@@ -82,7 +82,7 @@ def create_mmap_figure(mdate):
                 d2['name'].push(d1['name'][inds[i]])
                 d2['profit'].push(d1['profit'][inds[i]])
                 d2['pday'].push(d1['pday'][inds[i]])
-                d2['industry'].push(d1['industry'][inds[i]])
+                d2['sw_industry'].push(d1['sw_industry'][inds[i]])
                 d2['tind_name'].push(d1['tind_name'][inds[i]])
                 d2['find_name'].push(d1['find_name'][inds[i]])
                 tind_industry = d1['tind_name'][inds[i]];
@@ -266,7 +266,7 @@ mmap_title = Div(text="股票分析", width=120, height=40, margin=[25, 0, 0, 0]
 mmap_pckr = DatePicker(title='开始日期', value = date.today(), min_date = date(2000,1,1), max_date = date.today())
 mmap_pckr.on_change('value', update_mmap)
 mmap_select_row = row(mmap_title, mmap_pckr)
-tsource = ColumnDataSource(dict(code = list(), pday = list(), profit = list(), industry = list(), tind_name = list(), find_name = list()))
+tsource = ColumnDataSource(dict(code = list(), pday = list(), profit = list(), sw_industry = list(), tind_name = list(), find_name = list()))
 source_code = """
     row = cb_obj.indices[0]
     text_row.value = String(source.data['code'][row]);
@@ -274,7 +274,7 @@ source_code = """
 tcallback = CustomJS(args = dict(source = tsource, text_row = code_text), code = source_code)
 tsource.selected.js_on_change('indices', tcallback)
 columns = [TableColumn(field = "code", title = "代码"), TableColumn(field = "name", title = "名字"), TableColumn(field = "pday", title = "牛熊天数", sortable = True), 
-           TableColumn(field = "profit",title = "牛熊程度", sortable = True), TableColumn(field = "industry", title = "通达信行业"),
+           TableColumn(field = "profit",title = "牛熊程度", sortable = True), TableColumn(field = "sw_industry", title = "申万行业"),
            TableColumn(field = "tind_name", title = "主行业"), TableColumn(field = "find_name", title = "子行业")]
 mtable = DataTable(source = tsource, columns = columns, width = 1400, height = 200)
 

@@ -35,7 +35,8 @@ FIEL_PATH = '/tongdaxin/T0002/hq_cache/base.dbf'
 #YYWSZ  : 总现金流
 #SNSYTZ : 存货
 #LYZE   : 利润总额
-#SHLY   : JLY
+#SHLY   : 税后利润
+#JLY    : 净利润
 #WFPLY  : 未分配利润
 #TZMGJZ : 调整后净资产
 #DY     : 地域
@@ -57,4 +58,3 @@ class StockBasicInfoReader(object):
 if __name__ == '__main__':
     sbir = StockBasicInfoReader()
     df = sbir.read()
-    print(df)

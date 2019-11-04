@@ -16,6 +16,8 @@ from algotrade.feed.localfeed import LocalFeed
 from pyalgotrade.stratanalyzer import returns, sharpe
 from algotrade.broker.futu.futubroker import FutuBroker
 from algotrade.model.follow_trend import FollowTrendModel
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
 class FollowTrendStrategy(strategy.BaseStrategy):
     def __init__(self, model, instruments, feed, brk, stockNum, duaration):
         super(FollowTrendStrategy, self).__init__(feed, brk)
@@ -42,7 +44,7 @@ class FollowTrendStrategy(strategy.BaseStrategy):
     def getSignalDict(self, bars):
         position = dict()
         actualPostion = self.getActualPostion()
-        self.debug("actualPostion:{}".format(actualPostion))
+        self.info("actualPostion:{}".format(actualPostion))
         acutalNum = 0 if actualPostion is None else len(actualPostion)
         for code in self.instruments:
             bar = bars.getBar(code)
@@ -117,6 +119,8 @@ class FollowTrendStrategy(strategy.BaseStrategy):
         self.instruments = data.code.tolist()
 
     def onBars(self, bars):
+        import pdb
+        pdb.set_trace()
         self.updateInstruments(bars)
         signalList = self.getSignalDict(bars)
         self.debug("get signals: {}".format(signalList))

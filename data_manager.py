@@ -569,13 +569,13 @@ if __name__ == '__main__':
     #    print(code)
     #    mysql_client.delete_db('s%s' % code)
     #mdate = datetime.now().strftime('%Y-%m-%d')
-    #dm = DataManager()
-    #mdate = '2019-10-29'
+    dm = DataManager()
+    mdate = '2019-11-01'
     #dm.logger.info("start compute!")
     #dm.init_rindex_valuation_info(mdate)
     #dm.init_rvaluation_info(mdate)
     #dm.init_valuation_info(mdate)
-    #dm.set_bull_stock_ratio(mdate, num = 10)
+    dm.set_bull_stock_ratio(mdate, num = 10)
     #dm.clear_network_env()
     #dm.init_base_float_profit()
     #dm.bootstrap(cdate = mdate, exec_date = mdate)
@@ -585,4 +585,4 @@ if __name__ == '__main__':
     #dm.init_yesterday_hk_info('2019-09-21', num = 10)
     #dm.set_stock_pools(mdate = '2019-10-08')
     #dm.logger.info("end compute!")
-    CValuation(needUpdate = True)
+    #CValuation(needUpdate = True)

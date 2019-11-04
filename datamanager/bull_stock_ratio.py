@@ -55,7 +55,7 @@ class BullStockRatio(object):
 
     def update(self, end_date = None, num = 30):
         if end_date is None: end_date = datetime.now().strftime('%Y-%m-%d')
-        #start_date = "2014-08-19"
+        #start_date = "2005-05-26"
         start_date = get_day_nday_ago(end_date, num = num, dformat = "%Y-%m-%d")
         succeed = True
         code_list = self.get_components(end_date)

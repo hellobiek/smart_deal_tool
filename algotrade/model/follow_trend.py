@@ -20,7 +20,6 @@ from datetime import datetime, timedelta
 from combination_info import CombinationInfo
 from common import is_df_has_unexpected_data
 from base.cdate import transfer_date_string_to_int, get_dates_array
-EXCLUDE_LIST = ['601398', '601288', '601988', '000951', '600886']
 class FollowTrendModel(QModel):
     def __init__(self, valuation_path = ct.VALUATION_PATH,
                 bonus_path = ct.BONUS_PATH, stocks_dir = ct.STOCKS_DIR, 
@@ -44,6 +43,7 @@ class FollowTrendModel(QModel):
         self.min_market_val = 100
         self.pledge_rate = 50
         self.existed_days = 1825
+        self.max_tcs = 400e+8
         if not self.create(should_create_mysqldb):
             raise Exception("create model {} table failed".format(self.code))
 
@@ -127,10 +127,6 @@ class FollowTrendModel(QModel):
             msg = "基础浮动盈利小于{}".format(self.profit)
             if isAny: return msg
             reasons.append(msg)
-        if code in set(EXCLUDE_LIST):
-            msg = "{}在排除名单{}中".format(code, EXCLUDE_LIST)
-            if isAny: return msg
-            reasons.append(msg)
         if code in set(ct.BLACK_DICT.keys()):
             msg = "{}在黑名单中".format(code)
             if isAny: return msg
@@ -144,10 +140,16 @@ class FollowTrendModel(QModel):
             msg = "净资产收益率最小值小于{}%".format(self.min_roe)
             if isAny: return msg
             reasons.append(msg)
-        self.val_client.update_vertical_data(df, ['goodwill', 'ta'], transfer_date_string_to_int(mdate))
+        self.val_client.update_vertical_data(df, ['goodwill', 'ta', 'tcs'], transfer_date_string_to_int(mdate))
+        tcs = df.to_dict('records')[0]['tcs']
+        if tcs >= self.max_tcs:
+            msg = "{}总股本大于阈值{}%".format(tcs, self.max_tcs)
+            if isAny: return msg
+            reasons.append(msg)
         df['gwr'] = 100 * df['goodwill'] / df['ta']
-        if df.to_dict('records')[0]['gwr'] >= self.gwr:
-            msg = "商誉占总资产的比例大于{}%, 实际值：{}".format(self.gwr, df.to_dict('records')[0]['gwr'])
+        gwr = df.to_dict('records')[0]['gwr']
+        if gwr >= self.gwr:
+            msg = "商誉占总资产的比例大于{}%, 实际值：{}".format(self.gwr, gwr)
             if isAny: return msg
             reasons.append(msg)
         max_profit = self.get_max_profit(code, mdate)
@@ -165,7 +167,6 @@ class FollowTrendModel(QModel):
         df['history'] = 0
         df['history'] = df.apply(lambda row: self.get_hist_val(black_set, white_set, row['code']), axis = 1)
         df = df[df['history'] > -1]
-        df = df[~df.code.isin(EXCLUDE_LIST)]
         #添加上市时间和行业信息和三级行业信息
         base_df = self.stock_info_client.get()
         base_df = base_df[['code', 'name', 'timeToMarket', 'sw_industry']]
@@ -194,9 +195,11 @@ class FollowTrendModel(QModel):
         df = df[df['min_roe'] > self.min_roe]
         #商誉上限
         if df.empty: return df
-        self.val_client.update_vertical_data(df, ['goodwill', 'ta'], transfer_date_string_to_int(mdate))
+        self.val_client.update_vertical_data(df, ['goodwill', 'ta', 'tcs'], transfer_date_string_to_int(mdate))
         df['gwr'] = 100 * df['goodwill'] / df['ta']
         df = df[df['gwr'] < self.gwr]
+        #确保总股本小于域值
+        df = df[df.tcs <= self.max_tcs]
         #最大基础浮动盈利 < 7，绩优股可以容忍大于7
         if df.empty: return df
         df['leader'] = False
@@ -300,8 +303,8 @@ class FollowTrendModel(QModel):
 
 if __name__ == '__main__':
     #start_date = '2018-10-01'
-    start_date = '2011-10-29'
-    end_date   = '2019-10-31'
+    start_date = '2012-12-04'
+    end_date   = '2019-11-01'
     redis_host = "127.0.0.1"
     dbinfo = ct.OUT_DB_INFO
     report_dir = "/Volumes/data/quant/stock/data/tdx/report"
