@@ -227,3 +227,13 @@ def average_distribute(volume_series, volume):
         if delta_sum == 0: return volume_series
     volume_series[np.argpartition(volume_series, delta_sum)[delta_sum:]] -= 1
     return volume_series
+
+def mac(data, peried):
+    ulist = list()
+    for name, group in data.groupby(data.date):
+        if peried != 0:
+            group = group.nlargest(peried, 'pos')
+        total_volume = group.volume.sum()
+        total_amount = group.price.dot(group.volume)
+        ulist.append(total_amount / total_volume)
+    return ulist

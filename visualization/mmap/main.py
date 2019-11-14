@@ -45,7 +45,7 @@ def create_mmap_figure(mdate):
     p = figure(plot_height=800, plot_width=1400, x_axis_label='时间', y_axis_label='强度', tools=TOOLS, toolbar_location="above", title="活点地图")
     df = mmap.get_data(mdate)
     df = pd.merge(df, base_df, how='inner', on=['code'])
-    df = df[(df['timeToMarket'] < int((datetime.now() - timedelta(days = 1825)).strftime('%Y%m%d'))) | df.code.isin(list(ct.WHITE_DICT.keys()))]
+    df = df[(df['timeToMarket'] < int((datetime.now() - timedelta(days = 60)).strftime('%Y%m%d'))) | df.code.isin(list(ct.WHITE_DICT.keys()))]
     csi_df = csi_client.get_k_data(mdate)
     if csi_df is None or csi_df.empty: return p
     csi_df = csi_df.drop('name', axis=1)
@@ -263,7 +263,7 @@ code_text = TextInput(value = None, title = "代码:", width = 420)
 code_text.on_change('value', update_stock)
 msource = ColumnDataSource(dict(code = list(), pday = list(), profit = list()))
 mmap_title = Div(text="股票分析", width=120, height=40, margin=[25, 0, 0, 0], style={'font-size': '150%', 'color': 'blue'})
-mmap_pckr = DatePicker(title='开始日期', value = date.today(), min_date = date(2000,1,1), max_date = date.today())
+mmap_pckr = DatePicker(title='开始日期', value = date.today(), min_date = date(2000,1,1), max_date = date(2021,1,1))
 mmap_pckr.on_change('value', update_mmap)
 mmap_select_row = row(mmap_title, mmap_pckr)
 tsource = ColumnDataSource(dict(code = list(), pday = list(), profit = list(), sw_industry = list(), tind_name = list(), find_name = list()))

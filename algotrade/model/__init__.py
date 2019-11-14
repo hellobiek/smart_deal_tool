@@ -22,6 +22,18 @@ class QModel(CMysqlObj):
     def create_table(self, table_name):
         raise NotImplementedError()
 
+    @abc.abstractmethod
+    def train(self, start_date, end_date):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def dump(self, code):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def load(self, code):
+        raise NotImplementedError()
+
     def set_stock_pool(self, mdate):
         if mdate is None: return False
         table_name = self.get_table_name(mdate)

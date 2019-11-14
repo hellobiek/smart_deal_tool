@@ -194,8 +194,7 @@ def compute_distribution(data):
 def mac(data, int peried):
     ulist = list()
     for name, group in data.groupby(data.date):
-        if peried != 0 and len(group) > peried:
-            group = group.nlargest(peried, 'pos')
+        if peried != 0: group = group.nlargest(peried, 'pos')
         total_volume = group.volume.sum()
         total_amount = group.price.dot(group.volume)
         ulist.append(total_amount / total_volume)

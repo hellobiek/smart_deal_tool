@@ -3,6 +3,7 @@ import os
 import sys
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
+import pydotplus
 import const as ct
 import numpy as np
 import pandas as pd
@@ -10,14 +11,19 @@ import matplotlib.pyplot as plt
 from matplotlib import ticker as mticker
 from mpl_finance import candlestick2_ochl
 from cindex import CIndex
+from cstock import CStock
 from datetime import datetime
 from algotrade.technical.ad import ad
 from algotrade.technical.kdj import kdj
 from algotrade.technical.roc import roc
+from algotrade.technical.toc import toc
+from algotrade.technical.atr import atr
+from algotrade.technical.boll import boll
 from algotrade.technical.ma import ma, macd
 from sklearn.svm import LinearSVC, SVC
-from sklearn.preprocessing import StandardScaler
+from sklearn.tree import export_graphviz
 from sklearn.metrics import confusion_matrix
+from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
@@ -68,11 +74,8 @@ def create_data_series(symbol, start_date, end_date):
     tslag = pd.DataFrame(index = ts.index)
     tslag['k'] = ts['k']
     tslag['d'] = ts['d']
-    tslag['kd'] = ts['k'] - ts['d']
     tslag['macd'] = ts['macd']
     tslag['roc'] = ts['roc'] - ts['roc_ma']
-    tslag["ad_quick"] = ts["ad_5"] - ts["ad_10"]
-    tslag["ad_slow"] = ts["ad_5"] - ts["ad_20"]
 
     #create the shifted lag series of prior trading period close values
 
@@ -81,7 +84,6 @@ def create_data_series(symbol, start_date, end_date):
     tslag["ma_5"] = (100 * (ts["close"] - ts["ma_5"])) / ts["close"]
     tslag["ma_10"] = (100 * (ts["close"] - ts["ma_10"])) / ts["close"]
     tslag["ma_20"] = (100 * (ts["close"] - ts["ma_20"])) / ts["close"]
-    tslag["ma_60"] = (100 * (ts["close"] - ts["ma_60"])) / ts["close"]
 
     tslag["today"] = ts["close"].pct_change() * 100.0
     for i,x in enumerate(tslag["today"]):
@@ -93,17 +95,80 @@ def create_data_series(symbol, start_date, end_date):
     tslag = tslag[(tslag.index >= start_date) & (tslag.index <= end_date)]
     return tslag
 
+def get_max_profit_min_loss(data, mdate, n, key = 'tchange'):
+    start_index = data.loc[data.date == mdate].index.values[0]
+    end_index = start_index + n - 1
+    profit = data.loc[start_index:end_index, key].max()
+    loss = data.loc[start_index:end_index, key].min()
+    if np.isnan(profit) or np.isnan(loss): return -1
+    return 1 if profit >= 5 and loss >= -3 else -1
+
+def generate_data(code, start_date, end_date, feature_list):
+    sobj = CStock(code, dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
+    data = sobj.get_k_data()
+    data = ma(data, 5)
+    data = ma(data, 10)
+    data = ma(data, 20)
+    data = ma(data, 60)
+    data = ma(data, 10, key = 'volume', name = 'volume')
+    data = kdj(data)
+    data = boll(data)
+    data = atr(data, 5)
+    data = roc(data, 5, 10)
+    data = toc(data, 5, 10)
+    data['gamekline'] = (data['pchange'] + data['gamekline']) / (data['turnover'] + abs(data['profit']))
+    data['ppercent'] = data['ppercent'] / data['turnover']
+    data['hlzh'] = data['ppercent'] - data['npercent']
+    data['atr'] = 100 * data['atr'] / data['close']
+    data['roc'] = 100 * data['roc_ma']
+    data['toc'] = 100 * data['toc_ma']
+    data['boll'] = (100 * (data['close'] - data['mb'])) / data['close']
+    data["ma_5"] = (100 * (data["close"] - data["ma_5"])) / data["close"]
+    data["ma_10"] = (100 * (data["close"] - data["ma_10"])) / data["close"]
+    data["ma_20"] = (100 * (data["close"] - data["ma_20"])) / data["close"]
+    data["ma_60"] = (100 * (data["close"] - data["ma_60"])) / data["close"]
+    data["uprice"] = (100 * (data["ma_60"] - data["uprice"])) / data["close"]
+    data = data.reset_index(drop = True)
+    data["tchange"] = data["close"].pct_change(20) * 100.0
+    data['direction'] = data.apply(lambda row: get_max_profit_min_loss(data, row['date'], 20), axis = 1)
+    data = data[(data.date >= start_date) & (data.date <= end_date)]
+    data = data.sort_values(by=['date'], ascending = True)
+    data['date'] = pd.to_datetime(data['date'])
+    data = data.set_index('date')
+    data = data.dropna(how='any')
+    tslag = pd.DataFrame(index = data.index)
+    tslag = data[feature_list]
+    tslag['direction'] = data['direction']
+    #create the "direction" column (+1 or -1) indicating an up/down day
+    tslag = tslag[(tslag.index >= start_date) & (tslag.index <= end_date)]
+    tslag = tslag.dropna(how='any')
+    return tslag
+
+def create_model():
+    redis_host = "127.0.0.1"
+    dbinfo = ct.OUT_DB_INFO
+    report_dir = "/Volumes/data/quant/stock/data/tdx/report"
+    cal_file_path = "/Volumes/data/quant/stock/conf/calAll.csv"
+    stocks_dir = "/Volumes/data/quant/stock/data/tdx/history/days"
+    bonus_path = "/Volumes/data/quant/stock/data/tdx/base/bonus.csv"
+    rvaluation_dir = "/Volumes/data/quant/stock/data/valuation/rstock"
+    base_stock_path = "/Volumes/data/quant/stock/data/tdx/history/days"
+    valuation_path = "/Volumes/data/quant/stock/data/valuation/reports.csv"
+    sci_val_file_path = "/Volumes/data/quant/crawler/china_security_industry_valuation/stock" 
+    pledge_file_dir = "/Volumes/data/quant/stock/data/tdx/history/weeks/pledge"
+    report_publish_dir = "/Volumes/data/quant/stock/data/crawler/stock/financial/report_announcement_date"
+    ftm = FollowTrendModel(valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir, cal_file_path, dbinfo = dbinfo, redis_host = redis_host, should_create_mysqldb = True)
+    return ftm
+
 if __name__ == "__main__":
-    # create a lagged series of the S&P500 US stock market index
-    snpret = create_data_series("000300", '2010-01-10', '2017-01-01')
-    snpret = snpret.dropna(how = 'any')
-   
+    feature_list = ['k', 'd', 'atr', 'hlzh', 'gamekline', 'ppercent', 'ma_5', 'ma_10', 'ma_20', 'ma_60', 'uprice', 'profit', 'boll', 'roc_ma', 'toc_ma']
+    snpret = generate_data('600323', '2006-01-01', '2019-11-05', feature_list)
     # use the prior two days of returns as predictor values, with direction as the response
-    X = snpret[["kd", "pre_1", "pre_2", "pre_3", "pre_4", "pre_5", "ma_10", "ad_quick"]]
+    X = snpret[feature_list]
     y = snpret["direction"]
 
     # the test data is split into two parts: Before and after 1st Jan 2005.
-    start_test = datetime.strptime('2016-01-01', '%Y-%m-%d')
+    start_test = datetime.strptime('2015-01-01', '%Y-%m-%d')
 
     # create training and test sets
     X_train = X[X.index < start_test]
@@ -113,33 +178,33 @@ if __name__ == "__main__":
   
     # create the (parametrised) models
     print("hit rates/confusion matrices:\n")
-    models = [("LR", LogisticRegression(solver = 'lbfgs')), ("LDA", LDA()), ("QDA", QDA()), ("LSVC", LinearSVC(max_iter = -1)),
-              ("RSVM", SVC(
-              	C=1000000.0, cache_size=200, class_weight=None,
-                coef0=0.0, degree=3, gamma=0.0001, kernel='rbf',
-                max_iter=-1, probability=False, random_state=None,
-                shrinking=True, tol=0.001, verbose=False)
-              ),
-              ("RF", RandomForestClassifier(
-              	n_estimators=1000, criterion='gini', 
-                max_depth=None, min_samples_split=2, 
-                min_samples_leaf=1, max_features='auto', 
-                bootstrap=True, oob_score=False, n_jobs=1, 
-                random_state=None, verbose=0)
-              )]
-
-    # iterate through the models
-    for m in models:
-        # train each of the models on the training set
-        if m[0] == "LSVC" or "RSVM":
-            standardScaler = StandardScaler()
-            standardScaler.fit(X_train)
-            X_standard = standardScaler.transform(X_train)
-            m[1].fit(X_standard, y_train)
-        else:
-            m[1].fit(X_train, y_train)
-        # make an array of predictions on the test set
-        pred = m[1].predict(X_test)
-        # output the hit-rate and the confusion matrix for each model
-        print("%s:\n%0.3f" % (m[0], m[1].score(X_test, y_test)))
-        print("%s\n" % confusion_matrix(pred, y_test))
+    model = RandomForestClassifier(n_estimators=3000, criterion='entropy', max_depth=None, max_features='auto',
+                                   min_samples_split=2, min_samples_leaf=1, bootstrap=True, oob_score=False,
+                                   n_jobs=1, random_state=None, verbose=0)
+    # train each of the models on the training set
+    model.fit(X_train, y_train)
+    # make an array of predictions on the test set
+    y_pred = model.predict(X_test)
+    # output the hit-rate and the confusion matrix for each model
+    print("%f\n" % model.score(X_test, y_test))
+    print("%s\n" % confusion_matrix(y_test, y_pred, labels = [1, -1]))
+    ## store 输出为pdf格式
+    #dot_data = export_graphviz(model.estimators_[0], out_file=None, feature_names=feature_list, class_names=['right', 'wrong'], filled=True, rounded=True, special_characters=True)
+    #graph = pydotplus.graph_from_dot_data(dot_data)
+    #with open('/Users/hellobiek/Desktop/iris.png', 'wb') as f:
+    #    f.write(graph.create_png())
+    # show importance
+    importances = model.feature_importances_
+    std = np.std([tree.feature_importances_ for tree in model.estimators_], axis=0)
+    indices = np.argsort(importances)[::-1]
+    # print the feature ranking
+    print("Feature ranking:")
+    for f in range(X_train.shape[1]):
+        print("%d. feature %d (%f)" % (f + 1, indices[f], importances[indices[f]]))
+    # plot the feature importances of the forest
+    plt.figure()
+    plt.title("Feature importances")
+    plt.bar(range(X_train.shape[1]), importances[indices], color="r", yerr=std[indices], align="center")
+    plt.xticks(range(X_train.shape[1]), indices)
+    plt.xlim([-1, X_train.shape[1]])
+    plt.show()

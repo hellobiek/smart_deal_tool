@@ -2,33 +2,41 @@
 import sys
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
+import joblib
 import const as ct
+import numpy as np
 import pandas as pd
+from pathlib import Path
 from cstock import CStock
 from itertools import chain
 from rstock import RIndexStock
 from ccalendar import CCalendar
 from base.cobj import CMysqlObj
-from base.clog import getLogger 
 from algotrade.model import QModel
 from cstock_info import CStockInfo
 from cpython.cval import CValuation
+from algotrade.technical.ma import ma
+from algotrade.technical.atr import atr
+from algotrade.technical.roc import roc
+from algotrade.technical.toc import toc
 from algotrade.technical.kdj import kdj
 from algotrade.technical.boll import boll
 from algotrade.feed import dataFramefeed
 from datetime import datetime, timedelta
 from combination_info import CombinationInfo
 from common import is_df_has_unexpected_data
+from sklearn.ensemble import RandomForestClassifier
 from base.cdate import transfer_date_string_to_int, get_dates_array
 class FollowTrendModel(QModel):
     def __init__(self, valuation_path = ct.VALUATION_PATH,
-                bonus_path = ct.BONUS_PATH, stocks_dir = ct.STOCKS_DIR, 
+                bonus_path = ct.BONUS_PATH, stocks_dir = ct.STOCKS_DIR,
                 base_stock_path = ct.BASE_STOCK_PATH, report_dir = ct.REPORT_DIR,
                 report_publish_dir = ct.REPORT_PUBLISH_DIR, pledge_file_dir = ct.PLEDGE_FILE_DIR,
-                rvaluation_dir = ct.RVALUATION_DIR, cal_file_path = ct.CALENDAR_PATH,
+                rvaluation_dir = ct.RVALUATION_DIR, cal_file_path = ct.CALENDAR_PATH, model_dir = ct.STOCK_MODEL_DIR,
                 dbinfo = ct.DB_INFO, redis_host = None, should_create_mysqldb = False):
         super(FollowTrendModel, self).__init__('follow_trend', dbinfo, redis_host, cal_file_path)
         self.rindex_client = RIndexStock(dbinfo, redis_host)
+        self.model_path = Path(model_dir)/self.code
         self.comb_info_client = CombinationInfo(dbinfo, redis_host, needUpdate = False)
         self.stock_info_client = CStockInfo(dbinfo, redis_host, stocks_dir, base_stock_path)
         self.val_client = CValuation(valuation_path, bonus_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir)
@@ -44,6 +52,10 @@ class FollowTrendModel(QModel):
         self.pledge_rate = 50
         self.existed_days = 1825
         self.max_tcs = 400e+8
+        self.feature_list = ['k', 'd', 'atr', 'hlzh', 'gamekline', 'ppercent', 'ma_5', 'ma_10', 'ma_20', 'ma_60', 'uprice', 'profit', 'boll', 'roc_ma', 'toc_ma']
+        self.decider = RandomForestClassifier(n_estimators=3000, criterion='entropy', max_depth=None, max_features='auto', min_samples_split=2,
+                                            min_samples_leaf=1, bootstrap=True, oob_score=False, n_jobs=1, random_state=None, verbose=0)
+        self.decider_dict = dict()
         if not self.create(should_create_mysqldb):
             raise Exception("create model {} table failed".format(self.code))
 
@@ -214,11 +226,12 @@ class FollowTrendModel(QModel):
 
     def get_leading_codes(self, industry_data, mdate):
         if len(industry_data) < 5: return list()
+        min_val = 2 if len(industry_data) < 10 else 3
         self.val_client.update_vertical_data(industry_data, ['revenue', 'rnp', 'rroe'], transfer_date_string_to_int(mdate))
         industry_data = industry_data.dropna(how='any')
         industry_data = industry_data.reset_index(drop = True)
         industry_data[["rroe", "rnp", "revenue"]] = industry_data[["rroe", "rnp", "revenue"]].apply(pd.to_numeric)
-        top_count = max(3, int(len(industry_data) * 0.05))
+        top_count = max(min_val, int(len(industry_data) * 0.05))
         rnp_codes_set = set(industry_data.nlargest(top_count, 'rnp').code.tolist())
         rroe_codes_set = set(industry_data.nlargest(top_count, 'rroe').code.tolist())
         revenue_codes_set = set(industry_data.nlargest(top_count, 'revenue').code.tolist())
@@ -232,7 +245,7 @@ class FollowTrendModel(QModel):
             industry_data = stock_info.loc[stock_info.sw_industry == sw_industry]
             leading_codes = self.get_leading_codes(industry_data, mdate)
             if len(leading_codes) > 0:
-                df.loc[(df.code.isin(leading_codes)) & (df.min_roe > 10), 'leader'] = True
+                df.loc[df.code.isin(leading_codes) , 'leader'] = True
 
     def update_days(self, code, exised_df):
         days_series = exised_df.loc[exised_df.code == code, 'days']
@@ -274,12 +287,34 @@ class FollowTrendModel(QModel):
         df = df.reset_index(drop = True)
         return df
 
-    def generate_feed(self, start_date, end_date):
-        all_df = pd.DataFrame()
-        feed = dataFramefeed.Feed()
-        date_array = get_dates_array(start_date, end_date, asending = True)
+    def get_model_name(self, code):
+        return self.model_path/"{}_{}.gz".format(self.code, code)
+
+    def dump(self, code):
+        name = self.get_model_name(code)
+        joblib.dump(value=self.decider, filename=name, compress=True)
+
+    def load(self, code):
+        name = self.get_model_name(code)
+        return joblib.load(name)
+
+    def loads(self, codes):
+        for code in codes:
+            self.decider_dict[code] = self.load(code)
+
+    def get_max_profit_min_loss(self, data, mdate, n, key = 'tchange'):
+        start_index = data.loc[data.date == mdate].index.values[0]
+        end_index = start_index + n - 1
+        profit = data.loc[start_index:end_index, key].max()
+        loss = data.loc[start_index:end_index, key].min()
+        if np.isnan(profit) or np.isnan(loss): return -1
+        return 1 if profit >= 5 and loss >= -3 else -1
+
+    def generate_codes(self, start_date, end_date):
         is_first = True
         code_list = list()
+        all_df = pd.DataFrame()
+        date_array = get_dates_array(start_date, end_date, asending = True)
         for mdate in date_array:
             if self.cal_client.is_trading_day(mdate):
                 df = self.get_stock_pool(mdate)
@@ -287,23 +322,76 @@ class FollowTrendModel(QModel):
                    code_list = df.code.tolist()
                    is_first = False
                 if not df.empty: all_df = all_df.append(df)
-        codes = list(set(all_df.code.tolist()))
-        for code in codes:
-            data = CStock(code).get_k_data()
-            data = kdj(data)
-            data = boll(data)
-            data = data[(data.date >= start_date) & (data.date <= end_date)]
-            data = data.sort_values(by=['date'], ascending = True)
-            data = data.reset_index(drop = True)
+        return list(set(all_df.code.tolist()))
+
+    def generate_lagged_data(self, data):
+        with pd.option_context('mode.chained_assignment', None):
+            #create the new lagged dataFrame
+            data = data.reset_index(drop = False)
+            data["tchange"] = data["close"].pct_change(20) * 100.0
+            data['direction'] = data.apply(lambda row: self.get_max_profit_min_loss(data, row['date'], 20), axis = 1)
             data = data.set_index('date')
-            data.index = pd.to_datetime(data.index)
-            data = data.dropna(how='any')
+            tslag = pd.DataFrame(index = data.index)
+            tslag = data[self.feature_list]
+            tslag['direction'] = data['direction']
+            #create the "direction" column (+1 or -1) indicating an up/down day
+            tslag = tslag[(tslag.index >= start_date) & (tslag.index <= end_date)]
+            tslag = tslag.dropna(how='any')
+            return tslag
+
+    def train(self, start_date, end_date):
+        code_list = self.generate_codes(start_date, end_date)
+        for code in code_list:
+            self.logger.info("training {}".format(code))
+            data = self.generate_data(code, start_date, end_date)
+            tslag = self.generate_lagged_data(data)
+            X = tslag[self.feature_list]
+            Y = tslag['direction']
+            self.decider.fit(X, Y)
+            self.dump(code)
+
+    def generate_data(self, code, start_date, end_date):
+        data = CStock(code).get_k_data()
+        data = ma(data, 5)
+        data = ma(data, 10)
+        data = ma(data, 20)
+        data = ma(data, 60)
+        data = ma(data, 10, key = 'volume', name = 'volume')
+        data = kdj(data)
+        data = boll(data)
+        data = atr(data, 5)
+        data = roc(data, 5, 10)
+        data = toc(data, 5, 10)
+        data['gamekline'] = (data['pchange'] + data['gamekline']) / (data['turnover'] + abs(data['profit']))
+        data['ppercent'] = data['ppercent'] / data['turnover']
+        data['hlzh'] = data['ppercent'] - data['npercent']
+        data['atr'] = 100 * data['atr'] / data['close']
+        data['roc'] = 100 * data['roc_ma']
+        data['toc'] = 100 * data['toc_ma']
+        data['boll'] = (100 * (data['close'] - data['mb'])) / data['close']
+        data["ma_5"] = (100 * (data["close"] - data["ma_5"])) / data["close"]
+        data["ma_10"] = (100 * (data["close"] - data["ma_10"])) / data["close"]
+        data["ma_20"] = (100 * (data["close"] - data["ma_20"])) / data["close"]
+        data["ma_60"] = (100 * (data["close"] - data["ma_60"])) / data["close"]
+        data["uprice"] = (100 * (data["ma_60"] - data["uprice"])) / data["close"]
+        data = data[(data.date >= start_date) & (data.date <= end_date)]
+        data = data.sort_values(by=['date'], ascending = True)
+        data = data.reset_index(drop = True)
+        data = data.set_index('date')
+        data.index = pd.to_datetime(data.index)
+        data = data.dropna(how='any')
+        return data
+
+    def generate_feed(self, start_date, end_date):
+        feed = dataFramefeed.Feed()
+        code_list = self.generate_codes(start_date, end_date)
+        for code in code_list:
+            data = self.generate_data(code, start_date, end_date)
             feed.addBarsFromDataFrame(code, data)
         return feed, code_list
 
 if __name__ == '__main__':
-    #start_date = '2018-10-01'
-    start_date = '2012-12-04'
+    start_date = '2013-01-01'
     end_date   = '2019-11-01'
     redis_host = "127.0.0.1"
     dbinfo = ct.OUT_DB_INFO
@@ -317,6 +405,9 @@ if __name__ == '__main__':
     sci_val_file_path = "/Volumes/data/quant/crawler/china_security_industry_valuation/stock" 
     pledge_file_dir = "/Volumes/data/quant/stock/data/tdx/history/weeks/pledge"
     report_publish_dir = "/Volumes/data/quant/stock/data/crawler/stock/financial/report_announcement_date"
-    ftm = FollowTrendModel(valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir, cal_file_path, dbinfo = dbinfo, redis_host = redis_host, should_create_mysqldb = True)
-    ftm.generate_stock_pool(start_date, end_date)
+    model_dir = "/Volumes/data/quant/stock/data/models"
+    ftm = FollowTrendModel(valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, 
+                           rvaluation_dir, cal_file_path, model_dir, dbinfo = dbinfo, redis_host = redis_host, should_create_mysqldb = True)
+    ftm.train(start_date, end_date)
+    #ftm.generate_stock_pool(start_date, end_date)
     #ftm.get_new_data('2019-10-30')

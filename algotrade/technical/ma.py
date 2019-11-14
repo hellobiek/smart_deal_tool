@@ -11,6 +11,12 @@ def ma(df, n, key = 'close', name = 'ma'):
     df = df.join(ma)
     return df
 
+def vma(data, ndays = 8):
+    # simple average volume
+    vol = pd.Series(data['volume'].rolling(ndays).mean(), name = 'vol_%s' % ndays)
+    data = data.join(vol) 
+    return data
+
 def sma(data, ndays): 
     # simple moving average 
     sma = pd.Series(data['close'].rolling(ndays).mean(), name = 'sma_%s' % ndays)

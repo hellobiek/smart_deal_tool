@@ -78,10 +78,10 @@ def get_effective_breakup_index(break_index_lists, df, break_array):
                     pre_break_index_value = 1
             elif low_price < pre_price * 0.81:
                 if pre_break_index_value >= 0:
+                    df['breakup'][break_index_lists[break_index]] = -1
                     if len(effective_breakup_index_list) == 0 and break_index_lists[break_index] != 0:
                         df['breakup'][0] = 1
                         effective_breakup_index_list.append(0)
-                    df['breakup'][break_index_lists[break_index]] = -1
                     effective_breakup_index_list.append(break_index_lists[break_index])
                     pre_break_index_value = -1
             else:
@@ -125,7 +125,6 @@ def get_effective_breakup_index(break_index_lists, df, break_array):
                             effective_breakup_index_list.append(break_index_lists[break_index])
                             pre_break_index_value = break_array[break_index_lists[break_index]]
         break_index += 1
-
     pre_index = 0
     for _index, breakup in enumerate(df['breakup']):
         if _index != 0 and breakup != 0: pre_index = _index

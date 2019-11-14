@@ -22,6 +22,7 @@ redis_host = "127.0.0.1"
 dbinfo = ct.OUT_DB_INFO
 mstart = None
 mend = None
+model_dir = "/Volumes/data/quant/stock/data/models"
 report_dir = "/Volumes/data/quant/stock/data/tdx/report"
 cal_file_path = "/Volumes/data/quant/stock/conf/calAll.csv"
 stocks_dir = "/Volumes/data/quant/stock/data/tdx/history/days"
@@ -193,7 +194,7 @@ def update_graphs(active_cell):
 def render_content(model_name, start_date, end_date):
     global data_source
     if model_name == 'follow_trend':
-        model = FollowTrendModel(valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir, cal_file_path, dbinfo, redis_host = redis_host)
+        model = FollowTrendModel(valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir, cal_file_path, model_dir, dbinfo, redis_host = redis_host)
         acc_df, pos_df, order_df, profit_df = get_profit_data(model, start_date, end_date)
         data_source = get_data(model, end_date)
         return html.Div([
