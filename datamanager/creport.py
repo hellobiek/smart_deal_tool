@@ -113,4 +113,4 @@ class CReport(object):
 
 if __name__ == '__main__':
     cr = CReport()
-    df = cr.get_report_data('2019-09-30')
+    df = cr.get_report_data('2017-09-30')
