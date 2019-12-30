@@ -23,6 +23,35 @@ from bokeh.models.widgets import DatePicker, DataTable, TableColumn, TextInput, 
 from crawler.dspider.china_security_industry_valuation import ChinaSecurityIndustryValuationCrawler
 from crawler.dspider.security_exchange_commission_valuation import SecurityExchangeCommissionValuationCrawler
 from bokeh.models import WheelZoomTool, BoxZoomTool, HoverTool, ColumnDataSource, Div, LinearColorMapper, ColorBar, ResetTool, CustomJS, BoxSelectTool, PanTool, TapTool
+def get_data(mdate):
+    mdate = mdate.strftime('%Y-%m-%d')
+    df = mmap.get_data(mdate)
+    df = pd.merge(df, base_df, how='inner', on=['code'])
+    df = df[(df['timeToMarket'] < int((datetime.now() - timedelta(days = 60)).strftime('%Y%m%d'))) | df.code.isin(list(ct.WHITE_DICT.keys()))]
+    csi_df = csi_client.get_k_data(mdate)
+    if csi_df is None or csi_df.empty: return None
+    csi_df = csi_df.drop('name', axis=1)
+    df = pd.merge(csi_df, df, how='inner', on=['code'])
+    return df
+
+def update_compare_map(attr, old, new):
+    start_date = mmap_start_pckr.value
+    end_date = mmap_pckr.value
+    if end_date is None or start_date is None: return None
+    sdata = get_data(start_date)
+    edata = get_data(end_date)
+    if sdata is None or edata is None: return None
+    sdata = sdata.loc[(sdata.profit > 0) & (sdata.pday > 0)]
+    edata = edata.loc[(edata.profit > 0) & (edata.pday > 0)]
+    sset = set(sdata.code.tolist())
+    eset = set(edata.code.tolist())
+    mlist = list(eset - sset)
+    df = edata.loc[edata.code.isin(mlist)]
+    mdict = {'code': df.code.tolist(), 'name': df.name.tolist(), 'profit': df.profit.tolist(), 'pday': df.pday.tolist(),
+            'sw_industry': df.sw_industry.tolist(), 'tind_name': df.tind_name.tolist(), 'find_name': df.find_name.tolist()}
+    global csource
+    csource.data = ColumnDataSource(mdict).data
+
 def update_mmap(attr, old, new):
     mdate = mmap_pckr.value
     layout.children[1] = create_mmap_figure_row(mdate)
@@ -37,7 +66,7 @@ def scallback(event):
     ddf = sobj.get_chip_distribution(mdate)
     dist_source = ColumnDataSource(ddf)
     dist_fig = create_dist_figure(dist_source)
-    layout.children[5] = gridplot([[stock_fig, dist_fig], [[profit_fig, hlzh_fig], roe_fig]])
+    layout.children[6] = gridplot([[stock_fig, dist_fig], [[profit_fig, hlzh_fig], roe_fig]])
 
 def create_mmap_figure(mdate):
     TOOLTIPS = [("code", "@code"), ("(pday, profit)", "(@pday, @profit)")]
@@ -161,7 +190,7 @@ def update_stock(attr, old, new):
     dist_fig = create_dist_figure(dist_source)
     roe_fig = create_roe_figure(val_source)
     stock_fig.on_event(DoubleTap, scallback)
-    layout.children[5] = gridplot([[stock_fig, dist_fig], [column(profit_fig, hlzh_fig), roe_fig]])
+    layout.children[6] = gridplot([[stock_fig, dist_fig], [column(profit_fig, hlzh_fig), roe_fig]])
 
 def create_hlzh_figure(stock_source):
     tps = [("date", "@date"), ("hlzh", "@hlzh"), ("ppercent", "@ppercent"), ("npercent", "@npercent")]
@@ -263,9 +292,11 @@ code_text = TextInput(value = None, title = "代码:", width = 420)
 code_text.on_change('value', update_stock)
 msource = ColumnDataSource(dict(code = list(), pday = list(), profit = list()))
 mmap_title = Div(text="股票分析", width=120, height=40, margin=[25, 0, 0, 0], style={'font-size': '150%', 'color': 'blue'})
-mmap_pckr = DatePicker(title='开始日期', value = date.today(), min_date = date(2000,1,1), max_date = date(2021,1,1))
+mmap_start_pckr = DatePicker(title='开始日期', value = date.today(), min_date = date(2000,1,1), max_date = date(2022,1,1))
+mmap_pckr = DatePicker(title='结束日期', value = date.today(), min_date = date(2000,1,1), max_date = date(2022,1,1))
 mmap_pckr.on_change('value', update_mmap)
-mmap_select_row = row(mmap_title, mmap_pckr)
+mmap_start_pckr.on_change('value', update_compare_map)
+mmap_select_row = row(mmap_title, mmap_start_pckr, mmap_pckr)
 tsource = ColumnDataSource(dict(code = list(), pday = list(), profit = list(), sw_industry = list(), tind_name = list(), find_name = list()))
 source_code = """
     row = cb_obj.indices[0]
@@ -278,8 +309,8 @@ columns = [TableColumn(field = "code", title = "代码"), TableColumn(field = "n
            TableColumn(field = "tind_name", title = "主行业"), TableColumn(field = "find_name", title = "子行业")]
 mtable = DataTable(source = tsource, columns = columns, width = 1400, height = 200)
 
-button = Button(label="download", button_type="success")
-button.callback = CustomJS(args=dict(source=tsource), code=open(join(dirname(__file__), "download.js")).read())
+csource = ColumnDataSource(dict(code = list(), pday = list(), profit = list(), sw_industry = list(), tind_name = list(), find_name = list()))
+ctable = DataTable(source = csource, columns = columns, width = 1400, height = 200)
 
 val_client = CValuation()
 csi_client = ChinaSecurityIndustryValuationCrawler()
@@ -288,7 +319,7 @@ csi_client = ChinaSecurityIndustryValuationCrawler()
 isource = ColumnDataSource({'tind_industrys': []})
 ibutton = Button(label="行业分析", button_type="success")
 def change_click():
-    layout.children[3] = column(ibutton, create_industry_figure())
+    layout.children[4] = column(ibutton, create_industry_figure())
 ibutton.on_click(change_click)
 
 roe_fig = figure()
@@ -298,8 +329,7 @@ stock_fig = figure()
 profit_fig = figure()
 industry_fig = figure()
 
-table_column = column(button, mtable)
-
+table_column = column(mtable)
 industry_column = column(ibutton, industry_fig)
 
 val_source = ColumnDataSource()
@@ -321,5 +351,5 @@ stock_source = ColumnDataSource()
 #roe_fig = create_roe_figure(val_source)
 
 stock_row = gridplot([[stock_fig, dist_fig], [column(profit_fig, hlzh_fig), roe_fig]])
-layout = column(mmap_select_row, create_mmap_figure_row(mmap_pckr.value), table_column, industry_column, code_text, stock_row, name = "layout")
+layout = column(mmap_select_row, create_mmap_figure_row(mmap_pckr.value), ctable, table_column, industry_column, code_text, stock_row, name = "layout")
 cdoc.add_root(layout)

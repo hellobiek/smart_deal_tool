@@ -21,11 +21,9 @@ if __name__ == '__main__':
     base_df = ftm.stock_info_client.get()
     base_df = base_df[['code', 'name', 'timeToMarket', 'sw_industry']]
     leader = 1
-    code = '000876'
-    mdate = '2019-11-13'
+    code = '601689'
+    mdate = '2019-12-05'
     timeToMarket = base_df.loc[base_df.code == code, 'timeToMarket'].values[0]
     xx = ftm.compute_stock_pool(mdate)
-    import pdb
-    pdb.set_trace()
     xx = ftm.get_deleted_reason(code, mdate, timeToMarket, leader, False)
     print(xx)

@@ -567,13 +567,13 @@ class CStock(CMysqlObj):
         return True
 
 if __name__ == '__main__':
-    #mdate = None
-    mdate = '2019-11-12'
+    mdate = None
+    #mdate = '2019-11-12'
     from cindex import CIndex
     index_info = CIndex('000001').get_k_data(mdate)
     stock_info = CStockInfo().get()
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    cstock = CStock('002913', should_create_influxdb = False, should_create_mysqldb = False)
+    cstock = CStock('001914', should_create_influxdb = True, should_create_mysqldb = True)
     logger.info("start compute")
     cstock.set_k_data(bonus_info, index_info, stock_info, cdate = mdate)
     logger.info("enter set base floating profit")

@@ -179,11 +179,16 @@ class RIndexStock:
         return False
 
 if __name__ == '__main__':
-    mdate = '2019-10-25'
+    start_date = '2019-12-02'
+    end_date = '2019-12-06'
     ris = RIndexStock(dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
-    #ris.mysql_client.delete_db(RINDEX_STOCK_INFO_DB)
-    #import sys
-    #sys.exit(0)
-    ris.logger.info("start compute")
-    ris.update(end_date = mdate, num = 30000)
-    ris.logger.info("end compute")
+    sdata = ris.get_data(start_date)
+    sdata = sdata.loc[(sdata.profit > 0) & (sdata.pday > 0)]
+    sset = set(sdata.code.tolist())
+    edata = ris.get_data(end_date)
+    edata = edata.loc[(edata.profit > 0) & (edata.pday > 0)]
+    eset = set(edata.code.tolist())
+    print("新增股票")
+    print(eset - sset)
+    print("减少股票")
+    print(sset - eset)

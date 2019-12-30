@@ -3,7 +3,9 @@ import os
 import sys
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(dirname(abspath(__file__)))))
+import math
 import pydotplus
+from pylab import rcParams
 import const as ct
 import numpy as np
 import pandas as pd
@@ -20,11 +22,13 @@ from algotrade.technical.toc import toc
 from algotrade.technical.atr import atr
 from algotrade.technical.boll import boll
 from algotrade.technical.ma import ma, macd
+from sklearn import metrics
 from sklearn.svm import LinearSVC, SVC
 from sklearn.tree import export_graphviz
-from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix, mean_squared_error
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import LogisticRegression
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
@@ -122,18 +126,19 @@ def generate_data(code, start_date, end_date, feature_list):
     data['atr'] = 100 * data['atr'] / data['close']
     data['roc'] = 100 * data['roc_ma']
     data['toc'] = 100 * data['toc_ma']
-    data['boll'] = (100 * (data['close'] - data['mb'])) / data['close']
-    data["ma_5"] = (100 * (data["close"] - data["ma_5"])) / data["close"]
-    data["ma_10"] = (100 * (data["close"] - data["ma_10"])) / data["close"]
-    data["ma_20"] = (100 * (data["close"] - data["ma_20"])) / data["close"]
-    data["ma_60"] = (100 * (data["close"] - data["ma_60"])) / data["close"]
-    data["uprice"] = (100 * (data["ma_60"] - data["uprice"])) / data["close"]
+    data['boll'] = (100 * (data['close'] - data['mb'])) / data['mb']
+    data["ma_5"] = (100 * (data["close"] - data["ma_5"])) / data["ma_5"]
+    data["ma_10"] = (100 * (data["close"] - data["ma_10"])) / data["ma_10"]
+    data["ma_20"] = (100 * (data["close"] - data["ma_20"])) / data["ma_20"]
+    data["ma_60"] = (100 * (data["close"] - data["ma_60"])) / data["ma_60"]
+    data["uprice"] = (100 * (data["close"] - data["uprice"])) / data["uprice"]
     data = data.reset_index(drop = True)
     data["tchange"] = data["close"].pct_change(20) * 100.0
     data['direction'] = data.apply(lambda row: get_max_profit_min_loss(data, row['date'], 20), axis = 1)
     data = data[(data.date >= start_date) & (data.date <= end_date)]
     data = data.sort_values(by=['date'], ascending = True)
     data['date'] = pd.to_datetime(data['date'])
+    data['month'] = data['date'].dt.month
     data = data.set_index('date')
     data = data.dropna(how='any')
     tslag = pd.DataFrame(index = data.index)
@@ -161,11 +166,13 @@ def create_model():
     return ftm
 
 if __name__ == "__main__":
-    feature_list = ['k', 'd', 'atr', 'hlzh', 'gamekline', 'ppercent', 'ma_5', 'ma_10', 'ma_20', 'ma_60', 'uprice', 'profit', 'boll', 'roc_ma', 'toc_ma']
+    feature_list = ['close', 'uprice', 'profit', 'hlzh', 'gamekline', 'ppercent', 'ma_5', 'ma_10', 'ma_20', 'ma_60', 'boll', 'roc_ma', 'toc_ma', 'turnover', 'k', 'd', 'atr', 'month']
     snpret = generate_data('600323', '2006-01-01', '2019-11-05', feature_list)
     # use the prior two days of returns as predictor values, with direction as the response
     X = snpret[feature_list]
-    y = snpret["direction"]
+    X = X.drop('close', axis=1)
+    #y = snpret["direction"]
+    y = snpret["close"]
 
     # the test data is split into two parts: Before and after 1st Jan 2005.
     start_test = datetime.strptime('2015-01-01', '%Y-%m-%d')
@@ -175,36 +182,54 @@ if __name__ == "__main__":
     X_test = X[X.index >= start_test]
     y_train = y[y.index < start_test]
     y_test = y[y.index >= start_test]
-  
+ 
     # create the (parametrised) models
-    print("hit rates/confusion matrices:\n")
-    model = RandomForestClassifier(n_estimators=3000, criterion='entropy', max_depth=None, max_features='auto',
-                                   min_samples_split=2, min_samples_leaf=1, bootstrap=True, oob_score=False,
-                                   n_jobs=1, random_state=None, verbose=0)
+    model = RandomForestRegressor(n_estimators=2000, random_state=None)
+    #model = RandomForestClassifier(n_estimators=2000, criterion='gini', max_depth=None, max_features='auto', min_samples_split=2, min_samples_leaf=1, bootstrap=True, oob_score=False, n_jobs=1, random_state=None, verbose=0)
+    #model = LogisticRegression(solver = 'lbfgs', max_iter = 5000)
+    #model = LDA()
+    #model = QDA()
+    #model = LinearSVC()
+    #model = SVC(C=1000000.0, cache_size=200, class_weight=None, coef0=0.0, degree=3, gamma=0.0001, kernel='rbf', max_iter=-1, probability=False, random_state=None, shrinking=True, tol=0.001, verbose=False)
     # train each of the models on the training set
     model.fit(X_train, y_train)
     # make an array of predictions on the test set
     y_pred = model.predict(X_test)
     # output the hit-rate and the confusion matrix for each model
-    print("%f\n" % model.score(X_test, y_test))
-    print("%s\n" % confusion_matrix(y_test, y_pred, labels = [1, -1]))
+    math.sqrt(mean_squared_error(y_test, y_pred))
+    plt.figure()
+    est_df = pd.DataFrame({'pred': y_pred, 'date': y_test.index})
+    ax = y_train.plot(x='date', y='close', style='b-', grid=True)
+    ax = y_test.plot(x='date', y='close', style='y-', grid=True, ax=ax)
+    ax = est_df.plot(x='date', y='pred', style='r-', grid=True, ax=ax)
+    ax.legend(['train', 'test', 'pred'])
+    ax.set_xlabel("date")
+    ax.set_ylabel("RMB")
+    plt.show()
+
+    #print("hit rates/confusion matrices:")
+    #print("{}".format(model.score(X_test, y_test)))
+    #print("{}".format(confusion_matrix(y_test, y_pred, labels = [1, -1])))
+    #print("accuracy_score:{}".format(metrics.precision_score(y_test, y_pred)))
+    #print("recall_score:{}".format(metrics.recall_score(y_test, y_pred)))
+    #print("classification_report:\n{}".format(classification_report(y_test, y_pred)))
     ## store 输出为pdf格式
     #dot_data = export_graphviz(model.estimators_[0], out_file=None, feature_names=feature_list, class_names=['right', 'wrong'], filled=True, rounded=True, special_characters=True)
     #graph = pydotplus.graph_from_dot_data(dot_data)
     #with open('/Users/hellobiek/Desktop/iris.png', 'wb') as f:
     #    f.write(graph.create_png())
     # show importance
-    importances = model.feature_importances_
-    std = np.std([tree.feature_importances_ for tree in model.estimators_], axis=0)
-    indices = np.argsort(importances)[::-1]
-    # print the feature ranking
-    print("Feature ranking:")
-    for f in range(X_train.shape[1]):
-        print("%d. feature %d (%f)" % (f + 1, indices[f], importances[indices[f]]))
-    # plot the feature importances of the forest
-    plt.figure()
-    plt.title("Feature importances")
-    plt.bar(range(X_train.shape[1]), importances[indices], color="r", yerr=std[indices], align="center")
-    plt.xticks(range(X_train.shape[1]), indices)
-    plt.xlim([-1, X_train.shape[1]])
-    plt.show()
+    #importances = model.feature_importances_
+    #std = np.std([tree.feature_importances_ for tree in model.estimators_], axis=0)
+    #indices = np.argsort(importances)[::-1]
+    ## print the feature ranking
+    #print("Feature ranking:")
+    #for f in range(X_train.shape[1]):
+    #    print("%d. feature %d (%f)" % (f + 1, indices[f], importances[indices[f]]))
+    ## plot the feature importances of the forest
+    #plt.figure()
+    #plt.title("Feature importances")
+    #plt.bar(range(X_train.shape[1]), importances[indices], color="r", yerr=std[indices], align="center")
+    #plt.xticks(range(X_train.shape[1]), indices)
+    #plt.xlim([-1, X_train.shape[1]])
+    #plt.show()

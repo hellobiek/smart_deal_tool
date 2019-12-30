@@ -126,8 +126,8 @@ def create_hgt_figure(sh_df, sz_df):
     yval_max = max(data['cum_buy'])
     p = figure(tools="", toolbar_location=None, x_range=(0, len(data['date'])), y_range=(-yval_max * 0.2, yval_max * 1.3))
     mapper = linear_cmap(field_name='net_buy', palette=['red', 'green'], low=0, high=0, low_color = 'green', high_color = 'red')
-    p.line(x = 'index', y = 'cum_buy', line_width=2, color=Spectral11[0], alpha=0.8, legend="沪港通买入累计余额", source = source)
-    p.vbar(x = 'index', bottom=0, top='net_buy', color=mapper, width=1, legend='融资变化', source = source)
+    p.line(x = 'index', y = 'cum_buy', line_width=2, color=Spectral11[0], alpha=0.8, legend_label="沪港通买入累计余额", source = source)
+    p.vbar(x = 'index', bottom=0, top='net_buy', color=mapper, width=1, legend_label='融资变化', source = source)
     p.add_tools(HoverTool(tooltips=[("value", "@cum_buy"), ("date", "@date")]))
     p.legend.location = "top_left"
     p.legend.click_policy = "hide"
@@ -148,8 +148,8 @@ def create_rzrq_figure(sh_df, sz_df):
     source = ColumnDataSource(data)
     mapper = linear_cmap(field_name='rzzl', palette=['red', 'green'], low=0, high=0, low_color = 'green', high_color = 'red')
     p = figure(tools="", toolbar_location=None, x_range=(0, len(data['date'])), y_range=(-yval_max * 0.2, yval_max * 1.3))
-    p.line(x = 'index', y = 'rzrqye', line_width = 2.5, color = Spectral11[0], alpha = 0.8, legend = "融资融券余额", source = source)
-    p.vbar(x = 'index', bottom = 0, top = 'rzzl', color = mapper, width = 1, legend = '融资变化', source = source)
+    p.line(x = 'index', y = 'rzrqye', line_width = 2.5, color = Spectral11[0], alpha = 0.8, legend_label = "融资融券余额", source = source)
+    p.vbar(x = 'index', bottom = 0, top = 'rzzl', color = mapper, width = 1, legend_label = '融资变化', source = source)
     p.add_tools(HoverTool(tooltips=[("value", "@rzrqye"), ("date", "@date")]))
     p.xaxis.major_label_overrides = {i: mdate for i, mdate in enumerate(data['date'])}
     p.yaxis.axis_label = "融资融券概况"
@@ -177,7 +177,7 @@ def create_market_figure(sh_df, sz_df, ycolumn):
     p.yaxis.axis_label = ycolumn
     line_list = list()
     for name, color in zip(['上海市场', '深圳市场', '整体市场'], mypalette):
-        mline = p.line(x = y_dict['index'], y = y_dict[name], line_width=2, color=color, alpha=0.8, legend=name)
+        mline = p.line(x = y_dict['index'], y = y_dict[name], line_width=2, color=color, alpha=0.8, legend_label=name)
         line_list.append(mline)
     p.add_tools(HoverTool(tooltips=[("value", "@y")], renderers=line_list))
     p.legend.location = "top_left"
@@ -332,7 +332,7 @@ def create_valuation_figure(data_dict, code_dict, dtype):
         source_dict[name] = ColumnDataSource(data)
     line_list = list()
     for name, color in zip(source_dict.keys(), mypalette):
-        mline = p.line(x = 'index', y = 'percentile', line_width = 2, color = color, alpha = 0.8, legend = name, source = source_dict[name])
+        mline = p.line(x = 'index', y = 'percentile', line_width = 2, color = color, alpha = 0.8, legend_label = name, source = source_dict[name])
         line_list.append(mline)
     p.legend.click_policy = "hide"
     p.legend.location = "top_left"
