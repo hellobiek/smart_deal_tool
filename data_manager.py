@@ -46,7 +46,7 @@ class DataManager:
         self.stock_objs = dict()
         self.updating_date = None
         self.combination_objs = dict()
-        self.cal_client = CCalendar(dbinfo, redis_host)
+        self.cal_client = CCalendar(dbinfo = dbinfo, redis_host = redis_host)
         self.index_info_client = IndexInfo()
         self.cvaluation_client = CValuation()
         self.reviewer = CReivew(dbinfo, redis_host)

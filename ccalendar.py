@@ -8,7 +8,7 @@ from base.cdate import get_dates_array
 from common import create_redis_obj, df_delta
 class CCalendar(object):
     data = None
-    def __init__(self, dbinfo = ct.DB_INFO, without_init = False, redis_host = None, filepath = ct.CALENDAR_PATH):
+    def __init__(self, dbinfo = ct.DB_INFO, redis_host = None, without_init = True, filepath = ct.CALENDAR_PATH):
         self.fpath = filepath 
         self.table = ct.CALENDAR_TABLE
         self.trigger = ct.SYNCCAL2REDIS
@@ -58,5 +58,6 @@ class CCalendar(object):
         return None
 
 if __name__ == '__main__':
-    ccalendar = CCalendar(ct.DB_INFO, "calendar")
-    ccalendar.init(False)
+    ccalendar = CCalendar(ct.DB_INFO, without_init = False)
+    mdate = '2020-01-01'
+    ccalendar.is_trading_day(mdate)

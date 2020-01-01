@@ -225,6 +225,7 @@ def update_capital():
 def create_stats_figure(mdate):
     limit_info = CLimit().get_data(mdate)
     stock_info = RIndexStock().get_data(mdate)
+    if stock_info is None: return figure()
     stock_info = stock_info[stock_info.volume > 0] #get volume > 0 stock list
     stock_info = stock_info.reset_index(drop = True)
     limit_up_list   = limit_info[(limit_info.pchange > 0) & (limit_info.prange != 0)].reset_index(drop = True).code.tolist()
