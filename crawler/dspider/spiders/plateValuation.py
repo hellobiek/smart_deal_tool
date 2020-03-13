@@ -34,8 +34,8 @@ class PlateValuationSpider(BasicSpider):
             'dspider.monitors.SpiderCloseMonitorSuite',
         )
     }
-    allowed_domains = ['115.29.210.20']
-    start_url = 'http://115.29.210.20/syl/'
+    allowed_domains = ['47.97.204.47']
+    start_url = 'http://47.97.204.47/syl/'
     def start_requests(self):
         mformat = 'bk%Y%m%d.zip'
         end_date = datetime.now().strftime(mformat)

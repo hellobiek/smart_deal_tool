@@ -144,10 +144,11 @@ class FollowTrendModel(QModel):
             if isAny: return msg
             reasons.append(msg)
         pledge_info = self.val_client.get_stock_pledge_info(code = code)
-        if not pledge_info.empty and pledge_info.to_dict('records')[0]['pledge_rate'] >= self.pledge_rate:
-            msg = "最新的质押率大于{}%".format(self.pledge_rate)
-            if isAny: return msg
-            reasons.append(msg)
+        if pledge_info is not None:
+            if not pledge_info.empty and pledge_info.to_dict('records')[0]['pledge_rate'] >= self.pledge_rate:
+                msg = "最新的质押率大于{}%".format(self.pledge_rate)
+                if isAny: return msg
+                reasons.append(msg)
         if df.apply(lambda row: self.get_val_in_range('rroe', row['code'], 'min'), axis = 1)[0] <= self.min_roe:
             msg = "净资产收益率最小值小于{}%".format(self.min_roe)
             if isAny: return msg
@@ -194,10 +195,11 @@ class FollowTrendModel(QModel):
         #基本面选股
         #质押率
         pledge_info = self.val_client.get_stock_pledge_info()
-        pledge_info = pledge_info[['code', 'pledge_rate']]
-        df = pd.merge(df, pledge_info, how='left', on=['code'])
-        df = df.fillna(value = {'pledge_rate': 0})
-        df = df[df['pledge_rate'] < self.pledge_rate]
+        if pledge_info is not None:
+            pledge_info = pledge_info[['code', 'pledge_rate']]
+            df = pd.merge(df, pledge_info, how='left', on=['code'])
+            df = df.fillna(value = {'pledge_rate': 0})
+            df = df[df['pledge_rate'] < self.pledge_rate]
         #市值超过最小值, 小于最大值
         df['mv'] = df['totals'] * df['close'] / 100000000
         df = df[df['mv'] > self.min_market_val]

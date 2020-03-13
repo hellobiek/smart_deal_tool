@@ -59,5 +59,5 @@ class CCalendar(object):
 
 if __name__ == '__main__':
     ccalendar = CCalendar(ct.DB_INFO, without_init = False)
-    mdate = '2020-01-01'
-    ccalendar.is_trading_day(mdate)
+    mdate = '2020-01-31'
+    print(ccalendar.is_trading_day(mdate))
