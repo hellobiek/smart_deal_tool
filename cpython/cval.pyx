@@ -98,7 +98,7 @@ cdef class CValuation(object):
         cdef object df
         if not Path(self.report_data_path).exists(): return None 
         df = pd.read_csv(self.report_data_path, header = 0, encoding = "utf8", usecols = DTYPE_DICT.keys(), dtype = DTYPE_DICT)
-        df = df.drop_duplicates()
+        df = df.drop_duplicates(subset=['date','code'])
         df = df.reset_index(drop = True)
         return df.to_records(index = False)
 
@@ -475,7 +475,6 @@ cdef class CValuation(object):
 
         PRE_CUR_CODE = code
         PRE_CUR_REPORT_DATE = report_date
-
         item = self.get_report_item(report_date, code)
         # 判断当前日期是否大于标准财报的披露时间，否则取用前一个财报信息
         if len(item) > 0 and item['publish'] <= mdate:
