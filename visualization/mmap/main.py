@@ -47,6 +47,7 @@ def update_compare_map(attr, old, new):
     eset = set(edata.code.tolist())
     mlist = list(eset - sset)
     df = edata.loc[edata.code.isin(mlist)]
+    df = df.reset_index(drop = True)
     mdict = {'code': df.code.tolist(), 'name': df.name.tolist(), 'profit': df.profit.tolist(), 'pday': df.pday.tolist(),
             'sw_industry': df.sw_industry.tolist(), 'tind_name': df.tind_name.tolist(), 'find_name': df.find_name.tolist()}
     global csource
@@ -80,11 +81,12 @@ def create_mmap_figure(mdate):
     csi_df = csi_df.drop('name', axis=1)
     df = pd.merge(csi_df, df, how='inner', on=['code'])
     if df is None or df.empty: return p
-    mdict = {'code': df.code.tolist(), 'name': df.name.tolist(), 'profit': df.profit.tolist(), 'pday': df.pday.tolist(),
-            'sw_industry': df.sw_industry.tolist(), 'tind_name': df.tind_name.tolist(), 'find_name': df.find_name.tolist()}
+    df = df[['code', 'name', 'profit', 'pday', 'sw_industry', 'tind_name', 'find_name']]
+    df = df.reset_index(drop = True)
     global msource, isource
-    msource = ColumnDataSource(mdict)
-    color_mapper = LinearColorMapper(palette = "Viridis256", low = min(mdict['profit']), high = max(mdict['profit']))
+    profit_list = df.profit.tolist()
+    msource = ColumnDataSource(df)
+    color_mapper = LinearColorMapper(palette = "Viridis256", low = min(profit_list), high = max(profit_list))
     p.circle(x = 'pday', y = 'profit', color = transform('profit', color_mapper), size = 5, alpha = 0.6, source = msource)
     color_bar = ColorBar(color_mapper = color_mapper, label_standoff = 12, location = (0,0), title = '强度')
     p.add_layout(color_bar, 'right')
@@ -277,16 +279,17 @@ def create_industry_figure():
     return fig
 
 def create_roe_figure(val_source):
-    TOOLTIPS = [("roa", "@roa")]
+    TOOLTIPS = [("roe", "@rroe")]
     TOOLS = [HoverTool(tooltips = TOOLTIPS)]
     fig = figure(plot_height = 2 * profit_fig.plot_height, plot_width = dist_fig.plot_width, x_axis_type='datetime', tools=TOOLS, toolbar_location=None)
-    fig.vbar(x = 'date', bottom = 0, top = 'roa', width = 50, color = 'blue', source = val_source)
+    fig.vbar(x = 'date', bottom = 0, top = 'rroe', width = 50, color = 'blue', source = val_source)
     return fig
 
 cdoc = curdoc()
 mmap = MarauderMap()
 stock_info_client = CStockInfo()
 base_df = stock_info_client.get()
+
 cdoc.title = "活点地图"
 code_text = TextInput(value = None, title = "代码:", width = 420)
 code_text.on_change('value', update_stock)

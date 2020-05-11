@@ -42,11 +42,6 @@ def generate(orders, date_arrary, dirname, start, end):
         order_info = orders.loc[orders['create_time'].str.startswith(cdate)]
         order_info.at[:, 'create_time'] = order_info.loc[:, 'create_time'].str.split().str[1].str[0:8]
         order_info = order_info.reset_index(drop = True)
-        t_index = MarkdownTable(headers = ["今日行情", "看局"])
-        t_index.addRow(["开盘1小时", ""])
-        t_index.addRow(["全天行情", ""])
-        t_index.addRow(["是否一致", ""])
-        md.addTable(t_index)
         t_index = MarkdownTable(headers = ["名称", "方向", "数量", "价格", "时间", "对错", "分析"])
         for index in range(len(order_info)):
             data_list = order_info.loc[index].tolist()
@@ -69,8 +64,8 @@ def main():
     unlock_path = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/follow_trend.json"
     key_path = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/key.pri"
     futuTrader = FutuTrader(host = ct.FUTU_HOST_LOCAL, port = ct.FUTU_PORT, trd_env = TrdEnv.REAL, market = ct.US_MARKET_SYMBOL, unlock_path = unlock_path, key_path = key_path)
-    start = '2020-04-25'
-    end   = '2020-04-28'
+    start = '2020-05-04'
+    end   = '2020-05-08'
     orders = futuTrader.get_history_orders(start = start, end = end)
     date_arrary = get_dates_array(start, end, dformat = "%Y-%m-%d", asending = True)
     generate(orders, date_arrary, dirname, start, end)
