@@ -29,9 +29,13 @@ def get_data(mdate):
     df = pd.merge(df, base_df, how='inner', on=['code'])
     df = df[(df['timeToMarket'] < int((datetime.now() - timedelta(days = 60)).strftime('%Y%m%d'))) | df.code.isin(list(ct.WHITE_DICT.keys()))]
     csi_df = csi_client.get_k_data(mdate)
-    if csi_df is None or csi_df.empty: return None
-    csi_df = csi_df.drop('name', axis=1)
-    df = pd.merge(csi_df, df, how='inner', on=['code'])
+    if csi_df is None or csi_df.empty:
+        df['sw_industry'] = '无数据' 
+        df['tind_name'] = '无数据'
+        df['find_name'] = '无数据' 
+    else:
+        csi_df = csi_df.drop('name', axis=1)
+        df = pd.merge(csi_df, df, how='inner', on=['code'])
     return df
 
 def update_compare_map(attr, old, new):
@@ -77,9 +81,13 @@ def create_mmap_figure(mdate):
     df = pd.merge(df, base_df, how='inner', on=['code'])
     df = df[(df['timeToMarket'] < int((datetime.now() - timedelta(days = 60)).strftime('%Y%m%d'))) | df.code.isin(list(ct.WHITE_DICT.keys()))]
     csi_df = csi_client.get_k_data(mdate)
-    if csi_df is None or csi_df.empty: return p
-    csi_df = csi_df.drop('name', axis=1)
-    df = pd.merge(csi_df, df, how='inner', on=['code'])
+    if csi_df is None or csi_df.empty: 
+        df['sw_industry'] = '无数据' 
+        df['tind_name'] = '无数据'
+        df['find_name'] = '无数据' 
+    else:
+        csi_df = csi_df.drop('name', axis=1)
+        df = pd.merge(csi_df, df, how='inner', on=['code'])
     if df is None or df.empty: return p
     df = df[['code', 'name', 'profit', 'pday', 'sw_industry', 'tind_name', 'find_name']]
     df = df.reset_index(drop = True)
@@ -340,7 +348,8 @@ dist_source = ColumnDataSource()
 stock_source = ColumnDataSource()
 
 #code = '300760'
-#mdate = '2019-09-12'
+#mdate = '2020-05-26'
+#create_mmap_figure(mdate)
 #sobj = CStock(code)
 #sdf = sobj.get_k_data()
 #ddf = sobj.get_chip_distribution(mdate)
