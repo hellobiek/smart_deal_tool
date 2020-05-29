@@ -170,7 +170,6 @@ class CIndex(CMysqlObj):
         url          = self.INDEX_URLS[self.code][0]
         columns      = self.INDEX_URLS[self.code][1]
         column_names = self.INDEX_URLS[self.code][2]
-
         df = smart_get(pd.read_excel, url, usecols = columns)
         if df is None:
             logger.error("data for %s is empty" % self.code)
@@ -178,6 +177,8 @@ class CIndex(CMysqlObj):
         df.columns   = column_names
         df.code      = df.code.astype('str').str.zfill(6)
         df['date']   = cdate
+        if True == df.name.isnull().all():
+            df['name'] = '未给出'
         if 'wieight' not in df.columns:
             df['weight'] = 1/len(df)
         if 'flag' not in df.columns:
@@ -374,10 +375,10 @@ class TdxFgIndex(CIndex):
         return False
 
 if __name__ == '__main__':
-    tdi = TdxFgIndex(code = '880883', should_create_influxdb = True, should_create_mysqldb = True)
-    tdi.set_k_data()
-    #for code in ["000001", "000300", "000016", "000905", "399673", "399001", "399005", "399006"]:
-    #    av   = CIndex(code)
-    #    res  = av.set_components_data()
-    #    data = av.get_components_data()
-    #    print("code:%s, length:%s" % (code, len(data)))
+    #tdi = TdxFgIndex(code = '880883', should_create_influxdb = True, should_create_mysqldb = True)
+    #tdi.set_k_data()
+    for code in ["000001", "000300", "000016", "000905", "399673", "399001", "399005", "399006"]:
+        av   = CIndex(code)
+        res  = av.set_components_data()
+        data = av.get_components_data()
+        print("code:%s, length:%s" % (code, len(data)))
