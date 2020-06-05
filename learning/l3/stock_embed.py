@@ -16,7 +16,6 @@ from algotrade.model.follow_trend import FollowTrendModel
 # The data is from 2003 - 2008. This is reasonably calm: (not too long ago so
 # that we get high-tech firms, and before the 2008 crash). This kind of
 # historical data can be obtained for from APIs like the quandl.com and
-# alphavantage.co ones.
 start_date = '2018-11-01'
 end_date   = '2019-08-01'
 redis_host = "127.0.0.1"

@@ -12,11 +12,11 @@ import const as ct
 import numpy as np
 import pandas as pd
 import tushare as ts
+from gevent.pool import Pool
 from base.credis import CRedis
 from base.clog import getLogger
-from gevent.pool import Pool
-from multiprocessing import Process, Queue
 from datetime import datetime, timedelta
+from multiprocessing import Process, Queue
 logger = getLogger(__name__)
 def trace_func(*dargs, **dkargs):
     def wrapper(func):
@@ -323,3 +323,9 @@ def get_market(code):
 
 def get_pre_str(code):
     return "1" if get_market(code) == ct.MARKET_SH else "0"
+
+def get_vantage_client(fpath):
+    from alpha_vantage.timeseries import TimeSeries
+    with open(fpath) as f: vantage_dict = json.load(f)
+    vantage_key = vantage_dict['key']
+    return TimeSeries(key = vantage_key, output_format = 'pandas')
