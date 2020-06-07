@@ -46,7 +46,7 @@ class FollowTrendModel(QModel):
         self.min_hlzh = 15
         self.min_ppercent = 50
         self.profit = 0
-        self.max_profit = 7
+        self.max_profit = 100
         self.min_roe = 6
         self.min_market_val = 100
         self.pledge_rate = 50

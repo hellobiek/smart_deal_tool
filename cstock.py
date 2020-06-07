@@ -262,13 +262,18 @@ class CStock(CMysqlObj):
         df['turnover'] = 100 * df['volume'] / df['outstanding']
         return df
 
-    def is_need_reright(self, cdate, price_change_info):
-        if len(price_change_info) == 0: return False
+    def is_need_reright(self, cdate, price_change_info, quantity_change_info):
+        if len(price_change_info) == 0 and len(quantity_change_info): return False
         now_date = transfer_date_string_to_int(cdate)
         p_index = price_change_info.date.index[-1]
         p_date = price_change_info.date[p_index]
         if now_date == p_date:
-            logger.debug("{} for {} is need reright".format(self.code, cdate))
+            logger.debug("{} for {} is need reright for price info changed".format(self.code, cdate))
+            return True
+        p_index = quantity_change_info.date.index[-1]
+        p_date = quantity_change_info.date[p_index]
+        if now_date == p_date:
+            logger.debug("{} for {} is need reright for quantity info changed".format(self.code, cdate))
             return True
         return False
 
@@ -424,7 +429,7 @@ class CStock(CMysqlObj):
     def set_k_data(self, bonus_info, index_info, stock_info, cdate = None):
         time2Market = self.get_time2market(stock_info)
         quantity_change_info, price_change_info = self.collect_right_info(bonus_info)
-        if cdate is None or self.is_need_reright(cdate, price_change_info): 
+        if cdate is None or self.is_need_reright(cdate, price_change_info, quantity_change_info): 
             return self.set_all_data(quantity_change_info, price_change_info, index_info, time2Market)
         else:
             today_df, pre_date = self.read(cdate)
@@ -568,12 +573,12 @@ class CStock(CMysqlObj):
 
 if __name__ == '__main__':
     mdate = None
-    #mdate = '2019-11-12'
+    #mdate = '2020-06-05'
     from cindex import CIndex
     index_info = CIndex('000001').get_k_data(mdate)
     stock_info = CStockInfo().get()
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    cstock = CStock('001914', should_create_influxdb = True, should_create_mysqldb = True)
+    cstock = CStock('603833', should_create_influxdb = True, should_create_mysqldb = True)
     logger.info("start compute")
     cstock.set_k_data(bonus_info, index_info, stock_info, cdate = mdate)
     logger.info("enter set base floating profit")

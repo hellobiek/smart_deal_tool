@@ -39,13 +39,18 @@ class HGT(object):
             df = df.loc[(df.date >= start_date) & (df.date <= end_date)]
             df = df.reset_index(drop = True)
         else:
-            if get_market(code) == ct.MARKET_SH:
+            if code == "ALL_SH":
                 df = self.sh_connect_client.get_k_data_in_range(start_date, end_date, dtype = ct.HGT_STOCK)
-            else:
+            elif code == "ALL_SZ":
                 df = self.sz_connect_client.get_k_data_in_range(start_date, end_date, dtype = ct.HGT_STOCK)
-            df = df.loc[df.code == code]
-            df = df.reset_index(drop = True)
-            df['delta'] = df['percent'] - df['percent'].shift(1)
+            else:
+                if get_market(code) == ct.MARKET_SH:
+                    df = self.sh_connect_client.get_k_data_in_range(start_date, end_date, dtype = ct.HGT_STOCK)
+                else:
+                    df = self.sz_connect_client.get_k_data_in_range(start_date, end_date, dtype = ct.HGT_STOCK)
+                df = df.loc[df.code == code]
+                df = df.reset_index(drop = True)
+                df['delta'] = df['percent'] - df['percent'].shift(1)
         return df
 
 if __name__ == "__main__":

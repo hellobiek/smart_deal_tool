@@ -57,7 +57,6 @@ app.layout = html.Div([
     dcc.Tabs(id="tabs", value='tabs', children=[
         dcc.Tab(label='中位控盘', value='follow_trend'),
         dcc.Tab(label='低位吸筹', value='low-control'),
-        dcc.Tab(label='否极泰来', value='depth-will'),
     ]),
     html.Div(id='model-situation', children='model-situation-table'),
     html.Div([
@@ -264,20 +263,6 @@ def render_content(model_name, start_date, end_date):
             html.H3('Tab content 2'),
             dcc.Graph(
                 id = 'graph-2-tabs',
-                figure = {
-                    'data': [{
-                        'x': [1, 2, 3],
-                        'y': [5, 10, 6],
-                        'type': 'bar'
-                    }]
-                }
-            )
-        ])
-    elif model_name == 'depth-will':
-        return html.Div([
-            html.H3('Tab content 3'),
-            dcc.Graph(
-                id = 'graph-3-tabs',
                 figure = {
                     'data': [{
                         'x': [1, 2, 3],
