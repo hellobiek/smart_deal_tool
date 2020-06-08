@@ -11,6 +11,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 from flask_caching import Cache
 from rstock import RIndexStock
+from cstock_info import CStockInfo
 from visualization.dash.hgt import HGT
 from visualization.dash.rzrq import RZRQ
 from datetime import datetime, timedelta
@@ -83,11 +84,15 @@ def get_money_flow_data_from_hgt(start, end):
     rstock = RIndexStock(dbinfo = ct.OUT_DB_INFO, redis_host = redis_host)
     rstock_info = rstock.get_data(end)
     rstock_info = rstock_info[['code', 'outstanding']]
+    stock_info_client = CStockInfo(dbinfo = ct.OUT_DB_INFO, redis_host = redis_host, stocks_dir = stocks_dir, base_stock_path = base_stock_path)
+    base_df = stock_info_client.get()
+    base_df = base_df[['code', 'timeToMarket', 'industry', 'sw_industry']]
+    rstock_info = pd.merge(rstock_info, base_df, how='inner', on=['code'])
     df = pd.merge(sh_data, rstock_info, how='left', on=['code'])
     df = df.dropna(axis=0, how='any')
     df = df.reset_index(drop = True)
     df['percent'] = 100 * df['volume'] / df['outstanding']
-    df = df[['date', 'code', 'name', 'percent', 'volume', 'outstanding']]
+    df = df[['date', 'code', 'name', 'timeToMarket', 'industry', 'sw_industry', 'percent', 'volume', 'outstanding']]
     start_data = df.loc[df.date == start]
     start_data = start_data.sort_values(by = 'percent', ascending= False)
     start_data = start_data.reset_index(drop = True)
@@ -102,7 +107,7 @@ def get_money_flow_data_from_hgt(start, end):
     cdata = pd.merge(end_data, start_data, how='left', on=['code'])
     cdata = cdata.dropna(axis=0, how='any')
     cdata['delta_percent'] = cdata['percent'] - cdata['spercent']
-    cdata = cdata[['date', 'code', 'name', 'delta_percent', 'volume', 'outstanding']]
+    cdata = cdata[['date', 'code', 'name', 'timeToMarket', 'industry', 'sw_industry', 'delta_percent', 'volume', 'outstanding']]
     cdata['delta_percent'] = round(cdata['delta_percent'], 2)
     cdata = cdata.sort_values(by = 'delta_percent', ascending= False)
     cdata = cdata.reset_index(drop = True)
@@ -143,6 +148,7 @@ def render_content(model_name, start_date, end_date):
                     columns = [{"name": i, "id": i} for i in top150.columns],
                     data = top150.to_dict('records'),
                     style_cell={'textAlign': 'center'},
+                    sort_action = "native",
                 ),
                 html.H3('持股比例增加最多的50只股票(持有股本/流通股本)'),
                 dash_table.DataTable(
