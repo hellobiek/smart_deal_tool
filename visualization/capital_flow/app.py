@@ -16,7 +16,7 @@ from visualization.dash.hgt import HGT
 from visualization.dash.rzrq import RZRQ
 from datetime import datetime, timedelta
 from dash.dependencies import Input, Output
-top150 = None
+top100 = None
 add_data = None
 del_data = None
 redis_host = "127.0.0.1"
@@ -50,7 +50,7 @@ app.layout = html.Div([
         min_date_allowed = datetime(2017, 1, 1),
         max_date_allowed = datetime.now(),
         initial_visible_month = datetime.now(),
-        start_date = datetime.now() - timedelta(30),
+        start_date = datetime.now() - timedelta(7),
         end_date = datetime.now()
     ),
     html.Div(id='output-start-date', style={'display': 'none'}),
@@ -83,7 +83,7 @@ def get_money_flow_data_from_hgt(start, end):
     sh_data = sh_data.reset_index(drop = True)
     rstock = RIndexStock(dbinfo = ct.OUT_DB_INFO, redis_host = redis_host)
     rstock_info = rstock.get_data(end)
-    rstock_info = rstock_info[['code', 'outstanding']]
+    rstock_info = rstock_info[['code', 'totals']]
     stock_info_client = CStockInfo(dbinfo = ct.OUT_DB_INFO, redis_host = redis_host, stocks_dir = stocks_dir, base_stock_path = base_stock_path)
     base_df = stock_info_client.get()
     base_df = base_df[['code', 'timeToMarket', 'industry', 'sw_industry']]
@@ -91,35 +91,35 @@ def get_money_flow_data_from_hgt(start, end):
     df = pd.merge(sh_data, rstock_info, how='left', on=['code'])
     df = df.dropna(axis=0, how='any')
     df = df.reset_index(drop = True)
-    df['percent'] = 100 * df['volume'] / df['outstanding']
-    df = df[['date', 'code', 'name', 'timeToMarket', 'industry', 'sw_industry', 'percent', 'volume', 'outstanding']]
+    df['percent'] = 100 * df['volume'] / df['totals']
+    df = df[['date', 'code', 'name', 'timeToMarket', 'industry', 'sw_industry', 'percent', 'volume', 'totals']]
     start_data = df.loc[df.date == start]
     start_data = start_data.sort_values(by = 'percent', ascending= False)
     start_data = start_data.reset_index(drop = True)
     end_data = df.loc[df.date == end]
     end_data = end_data.sort_values(by = 'percent', ascending= False)
     end_data = end_data.reset_index(drop = True)
-    top150 = end_data.head(150)
-    top150 = top150.reset_index(drop = True)
-    top150['percent'] = round(top150['percent'], 2)
+    top100 = end_data.loc[end_data.percent > 5]
+    top100 = top100.reset_index(drop = True)
+    top100['percent'] = round(top100['percent'], 2)
     start_data = start_data[['code', 'percent']]
     start_data = start_data.rename(columns = {"percent": "spercent"})
     cdata = pd.merge(end_data, start_data, how='left', on=['code'])
     cdata = cdata.dropna(axis=0, how='any')
     cdata['delta_percent'] = cdata['percent'] - cdata['spercent']
-    cdata = cdata[['date', 'code', 'name', 'timeToMarket', 'industry', 'sw_industry', 'delta_percent', 'volume', 'outstanding']]
+    cdata = cdata[['date', 'code', 'name', 'timeToMarket', 'industry', 'sw_industry', 'delta_percent', 'volume', 'totals']]
     cdata['delta_percent'] = round(cdata['delta_percent'], 2)
     cdata = cdata.sort_values(by = 'delta_percent', ascending= False)
     cdata = cdata.reset_index(drop = True)
     add_data = cdata.loc[cdata.delta_percent > 0]
     add_data = add_data.sort_values(by = 'delta_percent', ascending= False)
-    add_data = add_data.head(50)
+    add_data = add_data.head(30)
     add_data = add_data.reset_index(drop = True)
     del_data = cdata.loc[cdata.delta_percent < 0]
     del_data = del_data.sort_values(by = 'delta_percent', ascending= True)
-    del_data = del_data.head(50)
+    del_data = del_data.head(30)
     del_data = del_data.reset_index(drop = True)
-    return top150, add_data, del_data
+    return top100, add_data, del_data
 
 @app.callback(
     [Output('output-start-date', 'children'), Output('output-end-date', 'children')],
@@ -135,22 +135,22 @@ def update_date(start_date, end_date):
 @app.callback(Output('hold-situation', 'children'),
               [Input('tabs', 'value'), Input('output-start-date', 'children'), Input('output-end-date', 'children')])
 def render_content(model_name, start_date, end_date):
-    global top150, add_data, del_data
+    global top100, add_data, del_data
     if model_name == 'hk-flow':
-        top150, add_data, del_data = get_money_flow_data_from_hgt(start_date, end_date)
-        if top150 is None:
+        top100, add_data, del_data = get_money_flow_data_from_hgt(start_date, end_date)
+        if top100 is None:
             return html.Div([html.H3('数据有错误:{}'.format(del_data))])
         else:
             return html.Div([
-                html.H3('持股比例最多的150只股票(持有股本/流通股本)'),
+                html.H3('持股比例最多的100只股票(持有股本/总股本)'),
                 dash_table.DataTable(
                     id = 'hgt-data',
-                    columns = [{"name": i, "id": i} for i in top150.columns],
-                    data = top150.to_dict('records'),
+                    columns = [{"name": i, "id": i} for i in top100.columns],
+                    data = top100.to_dict('records'),
                     style_cell={'textAlign': 'center'},
                     sort_action = "native",
                 ),
-                html.H3('持股比例增加最多的50只股票(持有股本/流通股本)'),
+                html.H3('持股比例增加最多的30只股票(持有股本/总股本)'),
                 dash_table.DataTable(
                     id = 'hgt-add-data',
                     columns = [{"name": i, "id": i} for i in add_data.columns],
@@ -158,7 +158,7 @@ def render_content(model_name, start_date, end_date):
                     style_cell={'textAlign': 'center'},
                     sort_action = "native",
                 ),
-                html.H3('持股比例减少最多的50只股票(持有股本/流通股本)'),
+                html.H3('持股比例减少最多的30只股票(持有股本/总股本)'),
                 dash_table.DataTable(
                     id = 'hgt-del-data',
                     columns = [{"name": i, "id": i} for i in del_data.columns],
