@@ -156,6 +156,7 @@ def render_content(model_name, start_date, end_date):
                     columns = [{"name": i, "id": i} for i in add_data.columns],
                     data = add_data.to_dict('records'),
                     style_cell={'textAlign': 'center'},
+                    sort_action = "native",
                 ),
                 html.H3('持股比例减少最多的50只股票(持有股本/流通股本)'),
                 dash_table.DataTable(
@@ -163,6 +164,7 @@ def render_content(model_name, start_date, end_date):
                     columns = [{"name": i, "id": i} for i in del_data.columns],
                     data = del_data.to_dict('records'),
                     style_cell={'textAlign': 'center'},
+                    sort_action = "native",
                 ),
             ])
     elif model_name == 'leveraged-funds':

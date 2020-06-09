@@ -63,27 +63,26 @@ class CStock(CMysqlObj):
                     data.at[start_index:, 'outstanding'] = next_outstanding
                     data.at[start_index:, 'totals'] = next_totals
                 continue
-
-            end_index = dates[len(dates) - 1]
+            
+            end_index = dates[-1] + 1
             #if cur_outstanding != last_pre_outstanding:
             #   logger.debug("%s 日期:%s 前流通盘:%s 不等于 预期前流通盘:%s" % (self.code, start_date, cur_outstanding, last_pre_outstanding))
             #elif cur_totals != last_pre_totals:
             #   logger.debug("%s 日期:%s 后流通盘:%s 不等于 预期后流通盘:%s" % (self.code, start_date, cur_totals, last_pre_totals))
-            data.at[start_index:end_index - 1, 'outstanding'] = cur_outstanding
-            data.at[start_index:end_index - 1, 'totals'] = cur_totals
-            cur_outstanding = next_outstanding
-            cur_totals = next_totals
+            data.at[start_index:end_index, 'outstanding'] = cur_outstanding
+            data.at[start_index:end_index, 'totals'] = cur_totals
             start_index = end_index
 
             #finish the last date
             if info_index == len(info) - 1:
-                data.at[start_index:, 'outstanding'] = cur_outstanding
-                data.at[start_index:, 'totals'] = cur_totals
+                data.at[start_index:, 'outstanding'] = next_outstanding
+                data.at[start_index:, 'totals'] = next_totals
 
         data['totals']      = data['totals'].astype(int)
         data['totals']      = data['totals'] * 10000
         data['outstanding'] = data['outstanding'].astype(int)
         data['outstanding'] = data['outstanding'] * 10000
+
         data = data[data.volume < data.outstanding]
         data = data.reset_index(drop = True)
         return data
@@ -573,12 +572,12 @@ class CStock(CMysqlObj):
 
 if __name__ == '__main__':
     mdate = None
-    #mdate = '2020-06-05'
+    #mdate = '2020-06-08'
     from cindex import CIndex
     index_info = CIndex('000001').get_k_data(mdate)
     stock_info = CStockInfo().get()
     bonus_info = pd.read_csv("/data/tdx/base/bonus.csv", sep = ',', dtype = {'code' : str, 'market': int, 'type': int, 'money': float, 'price': float, 'count': float, 'rate': float, 'date': int})
-    cstock = CStock('300766', should_create_influxdb = True, should_create_mysqldb = True)
+    cstock = CStock('000538', should_create_influxdb = True, should_create_mysqldb = True)
     logger.info("start compute")
     cstock.set_k_data(bonus_info, index_info, stock_info, cdate = mdate)
     logger.info("enter set base floating profit")
