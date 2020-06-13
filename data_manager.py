@@ -69,7 +69,7 @@ class DataManager:
         now_time = datetime.now()
         _date = now_time.strftime('%Y-%m-%d')
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
-        aft_open_hour,aft_open_minute,aft_open_second = (18,00,00)
+        aft_open_hour,aft_open_minute,aft_open_second = (17,30,00)
         aft_open_time = datetime(y,m,d,aft_open_hour,aft_open_minute,aft_open_second)
         aft_close_hour,aft_close_minute,aft_close_second = (23,59,59)
         aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)
@@ -444,7 +444,7 @@ class DataManager:
         else:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info, stock_info)
             succeed = True
-            if not process_concurrent_run(cfunc, failed_list, num = 4):
+            if not process_concurrent_run(cfunc, failed_list, num = 1):
                 succeed = False
             return succeed
             #start_date = get_day_nday_ago(cdate, num = 4, dformat = "%Y-%m-%d")
@@ -570,7 +570,7 @@ if __name__ == '__main__':
     #    mysql_client.delete_db('s%s' % code)
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
-    mdate = '2020-05-27'
+    mdate = '2020-06-12'
     #dm.logger.info("start compute!")
     #dm.init_rindex_valuation_info(mdate)
     #dm.init_rvaluation_info(mdate)
