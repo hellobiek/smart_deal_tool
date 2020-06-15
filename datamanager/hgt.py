@@ -56,6 +56,11 @@ class StockConnect(object):
             table_name = self.get_stock_table_name(cdate)
         return table_name
 
+    def get_top10_stocks(self, cdate):
+        table_name = self.get_table_name(cdate, ct.HGT_TOPTEN)
+        sql = "select * from %s where date=\"%s\"" % (table_name, cdate)
+        return self.mysql_client.get(sql)
+
     def get_stock_table_name(self, cdate):
         cdates = cdate.split('-')
         return "%s_stock_day_%s_%s" % (self.dbname, cdates[0], (int(cdates[1])-1)//3 + 1)

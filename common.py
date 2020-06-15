@@ -329,3 +329,22 @@ def get_vantage_client(fpath):
     with open(fpath) as f: vantage_dict = json.load(f)
     vantage_key = vantage_dict['key']
     return TimeSeries(key = vantage_key, output_format = 'pandas')
+
+def str_of_num(num):
+    def strofsize(num, level):
+        if level >= 2:
+            return num, level
+        elif num >= 10000:
+            num /= 10000
+            level += 1
+            return strofsize(num, level)
+        else:
+            return num, level
+    flag = -1 if num < 0 else 1
+    num = abs(num)
+    units = ['', '万', '亿']
+    num, level = strofsize(num, 0)
+    if level > len(units):
+        level -= 1
+    num = num * flag
+    return '{}{}'.format(round(num, 3), units[level])

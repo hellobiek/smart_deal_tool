@@ -10,6 +10,7 @@ import pandas as pd
 import dash_core_components as dcc
 import dash_html_components as html
 from flask_caching import Cache
+from common import str_of_num 
 from rstock import RIndexStock
 from cstock_info import CStockInfo
 from visualization.dash.hgt import HGT
@@ -67,6 +68,20 @@ def get_money_flow_data_from_rzrq(code, start, end):
     rzrq_client = RZRQ(dbinfo = ct.OUT_DB_INFO, redis_host = redis_host, fpath = tushare_file_path)
     data = rzrq_client.get_data(code, start, end)
     return data
+
+@cache.memoize()
+def get_top20_stock_info_from_hgt(cdate):
+    hgt_client = HGT(dbinfo = ct.OUT_DB_INFO, redis_host = redis_host)
+    info = hgt_client.get_top10_info(cdate)
+    info['net_turnover'] = info['buy_turnover'] - info['sell_turnover']
+    info = info.sort_values(by = 'net_turnover', ascending= False)
+    info = info.drop('rank', axis = 1)
+    info = info.reset_index(drop = True)
+    info['total_turnover'] = info['total_turnover'].apply(lambda x:str_of_num(x))
+    info['net_turnover'] = info['net_turnover'].apply(lambda x:str_of_num(x))
+    info['buy_turnover'] = info['buy_turnover'].apply(lambda x:str_of_num(x))
+    info['sell_turnover'] = info['sell_turnover'].apply(lambda x:str_of_num(x))
+    return info
 
 @cache.memoize()
 def get_money_flow_data_from_hgt(start, end):
@@ -138,35 +153,56 @@ def render_content(model_name, start_date, end_date):
     global top100, add_data, del_data
     if model_name == 'hk-flow':
         top100, add_data, del_data = get_money_flow_data_from_hgt(start_date, end_date)
-        if top100 is None:
-            return html.Div([html.H3('数据有错误:{}'.format(del_data))])
+        top20_info = get_top20_stock_info_from_hgt(end_date)
+        if top20_info is None or top20_info.empty:
+            return html.Div([html.H3('{} : 二十大热门股没有数据'.format(end_date))])
         else:
-            return html.Div([
-                html.H3('持股比例最多的100只股票(持有股本/总股本)'),
-                dash_table.DataTable(
-                    id = 'hgt-data',
-                    columns = [{"name": i, "id": i} for i in top100.columns],
-                    data = top100.to_dict('records'),
-                    style_cell={'textAlign': 'center'},
-                    sort_action = "native",
-                ),
-                html.H3('持股比例增加最多的30只股票(持有股本/总股本)'),
-                dash_table.DataTable(
-                    id = 'hgt-add-data',
-                    columns = [{"name": i, "id": i} for i in add_data.columns],
-                    data = add_data.to_dict('records'),
-                    style_cell={'textAlign': 'center'},
-                    sort_action = "native",
-                ),
-                html.H3('持股比例减少最多的30只股票(持有股本/总股本)'),
-                dash_table.DataTable(
-                    id = 'hgt-del-data',
-                    columns = [{"name": i, "id": i} for i in del_data.columns],
-                    data = del_data.to_dict('records'),
-                    style_cell={'textAlign': 'center'},
-                    sort_action = "native",
-                ),
-            ])
+            if top100 is None:
+                return html.Div([
+                    html.H3('{}日的20大成交额股票（按照净买入额排序）'.format(end_date)),
+                    dash_table.DataTable(
+                        id = 'hgt-top20-data',
+                        columns = [{"name": i, "id": i} for i in top20_info.columns],
+                        data = top20_info.to_dict('records'),
+                        style_cell={'textAlign': 'center'},
+                        sort_action = "native",
+                    ),
+                    html.H3('{}: 港股通数据有错误'.format(end_date))])
+            else:
+                return html.Div([
+                    html.H3('{}日的20大成交额股票（按照净买入额排序）'.format(end_date)),
+                    dash_table.DataTable(
+                        id = 'hgt-top20-data',
+                        columns = [{"name": i, "id": i} for i in top20_info.columns],
+                        data = top20_info.to_dict('records'),
+                        style_cell={'textAlign': 'center'},
+                        sort_action = "native",
+                    ),
+                    html.H3('{}日持股比例最多的100只股票(持有股本/总股本)'.format(end_date)),
+                    dash_table.DataTable(
+                        id = 'hgt-data',
+                        columns = [{"name": i, "id": i} for i in top100.columns],
+                        data = top100.to_dict('records'),
+                        style_cell={'textAlign': 'center'},
+                        sort_action = "native",
+                    ),
+                    html.H3('持股比例增加最多的30只股票(持有股本/总股本)'),
+                    dash_table.DataTable(
+                        id = 'hgt-add-data',
+                        columns = [{"name": i, "id": i} for i in add_data.columns],
+                        data = add_data.to_dict('records'),
+                        style_cell={'textAlign': 'center'},
+                        sort_action = "native",
+                    ),
+                    html.H3('持股比例减少最多的30只股票(持有股本/总股本)'),
+                    dash_table.DataTable(
+                        id = 'hgt-del-data',
+                        columns = [{"name": i, "id": i} for i in del_data.columns],
+                        data = del_data.to_dict('records'),
+                        style_cell={'textAlign': 'center'},
+                        sort_action = "native",
+                    ),
+                ])
     elif model_name == 'leveraged-funds':
         return html.Div([
             html.H3('Tab content 2'),

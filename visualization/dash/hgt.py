@@ -17,6 +17,12 @@ class HGT(object):
         self.sh_df = self.get_data(ct.SH_MARKET_SYMBOL, start_date, end_date)
         self.sz_df = self.get_data(ct.SZ_MARKET_SYMBOL, start_date, end_date)
 
+    def get_top10_info(self, cdate):
+        sh_info = self.sh_connect_client.get_top10_stocks(cdate)
+        sz_info = self.sz_connect_client.get_top10_stocks(cdate)
+        sh_info = sh_info.append(sz_info)
+        return sh_info
+
     def get_data(self, code, start_date, end_date):
         if code == ct.SH_MARKET_SYMBOL:
             df = self.sh_connect_client.get_k_data(dtype = ct.HGT_CAPITAL)
