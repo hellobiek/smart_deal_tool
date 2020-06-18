@@ -43,7 +43,8 @@ class HkexSpider(BasicSpider):
 
     def parse(self, response):
         try:
-            jsonstr = response.text.split("=")[1]
+            jsonstr = response.text.split("=")[1].strip()
+            if jsonstr.contains("阅\\文"): jsonstr = jsonstr.replace("阅\\文", "阅文")
             data = json.loads(jsonstr)
             sse_northbond = data[0]
             sse_northbond_overview_item = self.parseTradeOverviewItem(sse_northbond, "sse", "north")
