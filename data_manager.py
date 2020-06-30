@@ -440,11 +440,11 @@ class DataManager:
         failed_list = stock_info.code.tolist()
         if cdate is None:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info, stock_info)
-            return process_concurrent_run(cfunc, failed_list, num = 3)
+            return process_concurrent_run(cfunc, failed_list, num = 6)
         else:
             cfunc = partial(_set_stock_info, cdate, bonus_info, index_info, stock_info)
             succeed = True
-            if not process_concurrent_run(cfunc, failed_list, num = 1):
+            if not process_concurrent_run(cfunc, failed_list, num = 6):
                 succeed = False
             return succeed
             #start_date = get_day_nday_ago(cdate, num = 4, dformat = "%Y-%m-%d")
