@@ -26,7 +26,9 @@ def get_up_data(mdate):
     df = df.rename(columns = {"ts_code": "code", "trade_date": "date"})
     df = df[['date', 'code']]
     df = pd.merge(df, base_df, how='inner', on=['code'])
+    df = df.loc[df.timeToMarket - int(mdate) < -30]
     df = df[['date', 'code', 'name']]
+    df = df.reset_index(drop = True)
     return df
 
 def generate(dirname, mdate):
@@ -38,7 +40,7 @@ def generate(dirname, mdate):
     t_index = MarkdownTable(headers = ["日期", "代码", "名称", "概念", "分析"])
     for index in range(len(info)):
         data_list = info.loc[index].tolist()
-        content_list = [data_list[0], data_list[1], data_list[2], '    ', '']
+        content_list = [data_list[0], data_list[1], data_list[2], '', '']
         content_list = [str(i) for i in content_list]
         t_index.addRow(content_list)
     md.addTable(t_index)
