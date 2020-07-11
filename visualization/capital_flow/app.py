@@ -64,10 +64,46 @@ app.layout = html.Div([
 ])
 
 @cache.memoize()
-def get_money_flow_data_from_rzrq(code, start, end):
+def get_money_flow_data_from_rzrq(start, end):
     rzrq_client = RZRQ(dbinfo = ct.OUT_DB_INFO, redis_host = redis_host, fpath = tushare_file_path)
-    data = rzrq_client.get_data(code, start, end)
-    return data
+    data = rzrq_client.get_data("ALL", start, end)
+
+    if start not in set(data.date.tolist()):
+        return None, None, "{} 没有数据".format(start)
+    if end not in set(data.date.tolist()):
+        return None, None, "{} 没有数据".format(end)
+    data['code'] = data['code'].str[0:6]
+    data['rzcje'] = data['rzmre'] + data['rzche']
+    data = data.reset_index(drop = True)
+
+    rstock = RIndexStock(dbinfo = ct.OUT_DB_INFO, redis_host = redis_host)
+    rstock_info = rstock.get_data(end)
+    rstock_info = rstock_info.drop('date', axis = 1)
+
+    stock_info_client = CStockInfo(dbinfo = ct.OUT_DB_INFO, redis_host = redis_host, stocks_dir = stocks_dir, base_stock_path = base_stock_path)
+    base_df = stock_info_client.get()
+    base_df = base_df[['code', 'name', 'timeToMarket', 'industry', 'sw_industry']]
+
+    rstock_info = pd.merge(rstock_info, base_df, how='inner', on=['code'])
+    df = pd.merge(data, rstock_info, how='left', on=['code'])
+
+    df['asserts'] = df['close'] * df['outstanding'] / 10e7
+    df['asserts'] = round(df['asserts'], 2)
+    df['rzye'] = round(df['rzye'], 2)
+    df['rzcje'] = round(df['rzcje'], 2)
+    df['rzche'] = round(df['rzche'], 2)
+    df['rzmre'] = round(df['rzmre'], 2)
+    df['rzrqye'] = round(df['rzrqye'], 2)
+
+    df = df[['date', 'code', 'name', 'rzye', 'rzmre', 'rzche', 'rzrqye', 'rzcje', 'asserts', 'industry', 'sw_industry']]
+    df = df.dropna(axis=0, how='any')
+    df = df.reset_index(drop = True)
+
+    s_data = df.loc[df.date == start]
+    s_data = s_data.reset_index(drop = True)
+    e_data = df.loc[df.date == end]
+    e_data = e_data.reset_index(drop = True)
+    return s_data, e_data, None
 
 @cache.memoize()
 def get_top20_stock_info_from_hgt(cdate):
@@ -150,8 +186,8 @@ def update_date(start_date, end_date):
 @app.callback(Output('hold-situation', 'children'),
               [Input('tabs', 'value'), Input('output-start-date', 'children'), Input('output-end-date', 'children')])
 def render_content(model_name, start_date, end_date):
-    global top100, add_data, del_data
     if model_name == 'hk-flow':
+        global top100, add_data, del_data
         top100, add_data, del_data = get_money_flow_data_from_hgt(start_date, end_date)
         top20_info = get_top20_stock_info_from_hgt(end_date)
         if top20_info is None or top20_info.empty:
@@ -204,19 +240,54 @@ def render_content(model_name, start_date, end_date):
                     ),
                 ])
     elif model_name == 'leveraged-funds':
+        s_data, e_data, msg = get_money_flow_data_from_rzrq(start_date, end_date)
+        if s_data is None or e_data is None:
+            return html.Div([html.H3(msg)])
+
+        add_data = e_data[['code', 'name', 'rzrqye', 'industry']]
+        add_data = add_data.rename(columns = {"rzrqye": "end_rzrqye"})
+
+        del_data = s_data[['code', 'rzrqye']]
+        del_data = del_data.rename(columns = {"rzrqye": "start_rzrqye"})
+
+        df = pd.merge(add_data, del_data, how='left', on=['code'])
+        df['delta_rzrqye'] = round(df['end_rzrqye'] - df['start_rzrqye'], 2)
+        df = df[['code', 'name', 'industry', 'start_rzrqye', 'end_rzrqye', 'delta_rzrqye']]
+        add_data = df.nlargest(30, 'delta_rzrqye')
+        df['delta_rzrqye'] = df['delta_rzrqye'] * -1
+        del_data = df.nlargest(30, 'delta_rzrqye')
+        del_data['delta_rzrqye'] = del_data['delta_rzrqye'] * -1
         return html.Div([
-            html.H3('Tab content 2'),
-            dcc.Graph(
-                id = 'graph-2-tabs',
-                figure = {
-                    'data': [{
-                        'x': [1, 2, 3],
-                        'y': [5, 10, 6],
-                        'type': 'bar'
-                    }]
-                }
-            )
+            html.H3('{}日的融资成交额股票（按照净买入额排序）'.format(end_date)),
+            dash_table.DataTable(
+                id = 'rzrq-data',
+                columns = [{"name": i, "id": i} for i in e_data.columns],
+                data = e_data.to_dict('records'),
+                style_cell={'textAlign': 'center'},
+                sort_action = "native",
+            ),
+            html.H3('持股比例增加最多的30只股票(融资融券余额/流通市值)'),
+            dash_table.DataTable(
+                id = 'rzrq-add-data',
+                columns = [{"name": i, "id": i} for i in add_data.columns],
+                data = add_data.to_dict('records'),
+                style_cell={'textAlign': 'center'},
+                sort_action = "native",
+            ),
+            html.H3('持股比例减少最多的30只股票(融资融券余额/流通市值)'),
+            dash_table.DataTable(
+                id = 'rzrq-del-data',
+                columns = [{"name": i, "id": i} for i in del_data.columns],
+                data = del_data.to_dict('records'),
+                style_cell={'textAlign': 'center'},
+                sort_action = "native",
+            ),
         ])
 
 if __name__ == '__main__':
+    #start_date = '2020-07-03'
+    #end_date = '2020-07-08'
+    #s_data, e_data, msg = get_money_flow_data_from_rzrq(start_date, end_date)
+    #import /Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/visualization/capital_flowpdb
+    #pdb.set_trace()
     app.run_server(debug = True, port = 9998)

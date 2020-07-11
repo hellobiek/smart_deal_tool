@@ -23,7 +23,7 @@ class DataPreparer:
         now_time = datetime.now()
         _date = now_time.strftime('%Y-%m-%d')
         y,m,d = time.strptime(_date, "%Y-%m-%d")[0:3]
-        aft_open_hour,aft_open_minute,aft_open_second = (16,30,00)
+        aft_open_hour,aft_open_minute,aft_open_second = (17,00,00)
         aft_open_time = datetime(y,m,d,aft_open_hour,aft_open_minute,aft_open_second)
         aft_close_hour,aft_close_minute,aft_close_second = (22,00,00)
         aft_close_time = datetime(y,m,d,aft_close_hour,aft_close_minute,aft_close_second)

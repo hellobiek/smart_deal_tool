@@ -30,9 +30,12 @@ class RZRQ(object):
             df = df.loc[df.code == 'SZSE']
             df['code'] = '深圳市场'
         else:
-            code_label = add_suffix(code)
-            df = df.loc[df.code == code_label]
-            df['code'] = code
+            if code == "ALL":
+                df = df.loc[~((df.code == 'SSE') | (df.code == 'SZSE'))]
+            else:
+                code_label = add_suffix(code)
+                df = df.loc[df.code == code_label]
+                df['code'] = code
         df = df.round(2)
         df['rzye']   = df['rzye']/1e+8
         df['rzmre']  = df['rzmre']/1e+8
