@@ -27,7 +27,7 @@ def get_up_data(mdate):
     df = df.rename(columns = {"ts_code": "code", "trade_date": "date"})
     df = df[['date', 'code']]
     df = pd.merge(df, base_df, how='inner', on=['code'])
-    df = df.loc[df.timeToMarket - int(mdate) < -30]
+    df = df.loc[df.timeToMarket - int(mdate) < -100]
     df = df.sort_values(by = 'industry', ascending= True)
     df = df.reset_index(drop = True)
     df = df[['date', 'code', 'name']]
@@ -53,7 +53,7 @@ def generate(dirname, mdate):
         f.write(md.getStream())
 
 def main():
-    mdate = '20200710'
+    mdate = '20200714'
     dirname = '/Users/hellobiek/Documents/workspace/blog/blog/source/_posts'
     generate(dirname, mdate)
 
