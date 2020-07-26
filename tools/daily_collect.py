@@ -53,7 +53,7 @@ def generate(dirname, mdate):
         f.write(md.getStream())
 
 def main():
-    mdate = '20200714'
+    mdate = '20200720'
     dirname = '/Users/hellobiek/Documents/workspace/blog/blog/source/_posts'
     generate(dirname, mdate)
 
