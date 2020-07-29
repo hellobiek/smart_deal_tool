@@ -23,7 +23,7 @@ def get_top20_stock_info_from_hgt(cdate):
     info['sell_turnover'] = info['sell_turnover'].apply(lambda x:str_of_num(x))
     return info
 
-def generate(dirname, mdate):
+def generate_top10(dirname, mdate):
     filename = 'topten_review_{}.md'.format(mdate)
     fullfilepath = os.path.join(dirname, filename)
     top20_info = get_top20_stock_info_from_hgt(mdate)
@@ -40,7 +40,7 @@ def generate(dirname, mdate):
         f.write(md.getStream())
 
 def main():
-    mdate = '2020-06-18'
+    mdate = '2020-07-29'
     dirname = '/Users/hellobiek/Documents/workspace/blog/blog/source/_posts'
     generate(dirname, mdate)
 

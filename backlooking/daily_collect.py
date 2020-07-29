@@ -33,7 +33,7 @@ def get_up_data(mdate):
     df = df[['date', 'code', 'name']]
     return df
 
-def generate(dirname, mdate):
+def generate_daily(dirname, mdate):
     info = get_up_data(mdate)
     if info.empty:
         print("{} data is empty".format(mdate))
@@ -53,7 +53,7 @@ def generate(dirname, mdate):
         f.write(md.getStream())
 
 def main():
-    mdate = '20200720'
+    mdate = '20200729'
     dirname = '/Users/hellobiek/Documents/workspace/blog/blog/source/_posts'
     generate(dirname, mdate)
 

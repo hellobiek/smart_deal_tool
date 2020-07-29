@@ -22,7 +22,7 @@ def get_hero_list_info(mdate, data_dir):
     df_three = df_three.reset_index(drop = True)
     return df_one, df_three
 
-def generate(mdate, data_dir, dirname):
+def generate_hero(mdate, data_dir, dirname):
     filename = 'hero_list_{}.md'.format(mdate)
     fullfilepath = os.path.join(dirname, filename)
     hero_info_one, hero_info_three = get_hero_list_info(mdate, data_dir)
@@ -45,10 +45,10 @@ def generate(mdate, data_dir, dirname):
         f.write(md.getStream())
 
 def main():
-    mdate = '2020-07-24'
+    mdate = '2020-07-29'
     data_dir = '/Volumes/data/quant/stock/data/crawler/top_list'
     dirname = '/Users/hellobiek/Documents/workspace/blog/blog/source/_posts'
-    generate(mdate, data_dir, dirname)
+    generate_hero(mdate, data_dir, dirname)
 
 if __name__ == "__main__": 
     main()
