@@ -57,21 +57,23 @@ DTYPE_DICT = {'date': int,
               't10n': float, #十大股东持股数量合计(top 10 stock holder num)
               'nth': float, #国家队持股(national team holdings)
               'largest_holding': float, #第一大股东的持股数量
-              'qfii_holders': float, #QFII机构数
+              'institution_holders': int, #机构总数
+              'institution_holding': float, #机构持股数量
+              'qfii_holders': int, #QFII机构数
               'qfii_holding': float, #QFII持股量
-              'social_security_holders': float, #社保机构数
+              'social_security_holders': int, #社保机构数
               'social_security_holding': float, #社保持股量
-              'broker_holders': float, #券商机构数
+              'broker_holders': int, #券商机构数
               'broker_holding': float, #券商持股量
-              'insurance_holders': float, #保险机构数
+              'insurance_holders': int, #保险机构数
               'insurance_holding': float, #保险持股量
-              'annuity_holders': float, #年金机构数
+              'annuity_holders': int, #年金机构数
               'annuity_holding': float, #年金持股量
-              'fund_holders': float, #基金机构数
+              'fund_holders': int, #基金机构数
               'fund_holding': float, #基金持股量
-              'private_holders': float, #私募机构数
+              'private_holders': int, #私募机构数
               'private_holding': float, #私募持股量
-              'financial_company_holders': float, #财务公司机构数
+              'financial_company_holders': int, #财务公司机构数
               'financial_company_holding': float, #财务公司持股量
               'publish': int}
 
@@ -117,7 +119,7 @@ cdef class CValuation(object):
         #178.存货周转天数(days sales of inventory)、210.资产负债率(debt asset ratio)、213.存货比率(inventory asset ratio)、
         #28.在建工程(construction in process)、34.开发支出(development expenditure)、230.营业收入(revenue)、
         #231.营业利润(operating profit ratio)、35.商誉(goodwill)、242.股东人数(holders)、
-        #243.第一大股东的持股数量、248.QFII机构数、249.QFII持股量、250.券商机构数、251.券商持股量、
+        #243.第一大股东的持股数量、246.机构总量（家）、247.机构持股总量(股)、248.QFII机构数、249.QFII持股量、250.券商机构数、251.券商持股量、
         #252.保险机构数、253.保险持股量、254.基金机构数、255.基金持股量
         #256.社保机构数、257.社保持股量、258.私募机构数、259.私募持股量
         #260.财务公司机构数、261.财务公司持股量、262.年金机构数、263.年金持股量
@@ -177,6 +179,8 @@ cdef class CValuation(object):
                  'goodwill', #商誉(goodwill)
                  'holders',
                  'largest_holding', #第一大股东的持股数量
+                 'institution_holders', #机构总数
+                 'institution_holding', #机构持股数量
                  'qfii_holders', #QFII机构数
                  'qfii_holding', #QFII持股量
                  'broker_holders', #券商机构数
@@ -237,15 +241,15 @@ cdef class CValuation(object):
                             row[prefix%47], row[prefix%48], row[prefix%51], row[prefix%55], row[prefix%63],
                             row[prefix%77], row[prefix%78], row[prefix%79], row[prefix%80], row[prefix%173],
                             row[prefix%178], row[prefix%210], row[prefix%213], row[prefix%28], row[prefix%34],
-                            row[prefix%230], row[prefix%231], row[prefix%35], row[prefix%242], row[prefix%243], 
-                            row[prefix%248], row[prefix%249], row[prefix%250], row[prefix%251], row[prefix%252], 
-                            row[prefix%253], row[prefix%254], row[prefix%255], row[prefix%256], row[prefix%257], 
-                            row[prefix%258], row[prefix%259], row[prefix%260], row[prefix%261], row[prefix%262], 
-                            row[prefix%263], row[prefix%183], row[prefix%184], row[prefix%189], row[prefix%191],
-                            row[prefix%21], row[prefix%27], row[prefix%199], row[prefix%202], row[prefix%225],
-                            row[prefix%220], row[prefix%229], row[prefix%228], row[prefix%159], row[prefix%160],
-                            row[prefix%161], row[prefix%219], row[prefix%163], row[prefix%164], row[prefix%165], 
-                            row[prefix%95], row[prefix%232], top10holdings, rroe, nth, pdate])
+                            row[prefix%230], row[prefix%231], row[prefix%35], row[prefix%242], row[prefix%243],
+                            row[prefix%246], row[prefix%247], row[prefix%248], row[prefix%249], row[prefix%250],
+                            row[prefix%251], row[prefix%252], row[prefix%253], row[prefix%254], row[prefix%255],
+                            row[prefix%256], row[prefix%257], row[prefix%258], row[prefix%259], row[prefix%260],
+                            row[prefix%261], row[prefix%262], row[prefix%263], row[prefix%183], row[prefix%184],
+                            row[prefix%189], row[prefix%191], row[prefix%21], row[prefix%27], row[prefix%199], 
+                            row[prefix%202], row[prefix%225], row[prefix%220], row[prefix%229], row[prefix%228],
+                            row[prefix%159], row[prefix%160], row[prefix%161], row[prefix%219], row[prefix%163],
+                            row[prefix%164], row[prefix%165], row[prefix%95], row[prefix%232], top10holdings, rroe, nth, pdate])
             result_df = DataFrame(report_list, columns = mcols)
             result_df = result_df.sort_values(['code'], ascending = 1)
             result_df['code'] = result_df['code'].map(lambda x: str(x).zfill(6))

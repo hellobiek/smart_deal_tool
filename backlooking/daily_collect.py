@@ -27,7 +27,6 @@ def get_up_data(mdate):
     tu_client = get_tushare_client(fpath)
     val_client = CValuation(valuation_path, bonus_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir)
     df = tu_client.daily(trade_date=mdate)
-    #df['amount'] = df['amount'] / 100000 
     df = df.loc[df.pct_chg > 9.5]
     df = df.reset_index(drop = True)
     df['ts_code'] = df['ts_code'].str[0:6]
@@ -37,8 +36,8 @@ def get_up_data(mdate):
     df = pd.merge(df, base_df, how='inner', on=['code'])
     df = df.loc[df.timeToMarket - int(mdate) < -100]
     df = df[['date', 'code', 'name', 'industry', 'timeToMarket']]
-    val_client.update_vertical_data(df, ['fund_holders'], int(mdate))
-    df = df[['date', 'code', 'name', 'industry', 'fund_holders']]
+    val_client.update_vertical_data(df, ['institution_holders', 'social_security_holders'], int(mdate))
+    df = df[['date', 'code', 'name', 'industry', 'institution_holders', 'social_security_holders']]
     df = df.sort_values(by = 'industry', ascending= True)
     df = df.reset_index(drop = True)
     return df
@@ -52,10 +51,10 @@ def generate_daily(dirname, mdate):
     fullfilepath = os.path.join(dirname, filename)
     md = MarkdownWriter()
     md.addHeader("{}交割单分析".format(mdate), 1)
-    t_index = MarkdownTable(headers = ["日期", "代码", "名称", "概念", "机构关注度", "分析"])
+    t_index = MarkdownTable(headers = ["日期", "代码", "名称", "概念", "机构总数", "社保家数", "分析"])
     for index in range(len(info)):
         data_list = info.loc[index].tolist()
-        content_list = [data_list[0], data_list[1], data_list[2], data_list[3], int(data_list[4]), '']
+        content_list = [data_list[0], data_list[1], data_list[2], data_list[3], data_list[4], data_list[5], '']
         content_list = [str(i) for i in content_list]
         t_index.addRow(content_list)
     md.addTable(t_index)
@@ -63,7 +62,7 @@ def generate_daily(dirname, mdate):
         f.write(md.getStream())
 
 def main():
-    mdate = '20200803'
+    mdate = '20200804'
     dirname = '/Users/hellobiek/Documents/workspace/blog/blog/source/_posts'
     generate_daily(dirname, mdate)
 
