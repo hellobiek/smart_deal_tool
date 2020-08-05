@@ -96,6 +96,7 @@ def divide_data(np.ndarray mdata, long pos, float price):
     return s_p_data, s_u_data, l_p_data, l_u_data
 
 def divide_volume(long volume, long s_p_volume_total, long s_u_volume_total, long l_p_volume_total, long l_u_volume_total, long volume_total):
+    if volume > volume_total: volume = long(0.62 * volume_total)
     cdef long s_p_volume = 0, s_u_volume = 0, l_p_volume = 0, l_u_volume = 0
     cdef long max_volume = max(s_p_volume_total, s_u_volume_total, l_p_volume_total, l_u_volume_total)
     if s_p_volume_total == max_volume:
