@@ -51,7 +51,7 @@ class HeroListSpider(BasicSpider):
             df = df[['Tdate', 'SCode', 'SName','JD','ClosePrice', 'Chgradio',\
                      'JmMoney', 'Bmoney', 'Smoney', 'ZeMoney', 'Turnover',\
                      'JmRate', 'ZeRate', 'Dchratio', 'Ltsz', 'Ctypedes']]
-            colunms_name = ['code', 'name', '解读', '收盘价', '涨跌幅',\
+            colunms_name = ['code', 'name', '解读', '收盘价', 'pchange',\
                             '净买额', '买入额', '卖出额', '成交额',\
                             '市场总成交额', '净买额占总成交比', '成交额占比',\
                             '换手率', '流通市值', '上榜原因']
@@ -68,7 +68,7 @@ class HeroListSpider(BasicSpider):
             df = df.reset_index(drop = True)
             for id_, row in df.iterrows():
                 page_url = 'http://data.eastmoney.com/stock/lhb,{},{}.html'.format(row['date'], row['code'])
-                yield FormRequest(url = page_url, method = 'GET', callback = self.parse_item, errback=self.errback_httpbin)
+                yield FormRequest(url = page_url, meta={'pchange': row['pchange'], 'name': row['name']}, method = 'GET', callback = self.parse_item, errback=self.errback_httpbin)
         except Exception as e:
             print(e)
 
@@ -101,13 +101,13 @@ class HeroListSpider(BasicSpider):
 
     def parse_item(self, response):
         try:
+            name = response.meta['name']
+            pchange = round(float(response.meta['pchange']), 2)
             content = response.text
-            name_info = Selector(text = content).xpath('/html[1]/body[1]/div[1]/div[2]/div[1]/div[2]/div[1]/div[1]/div[1]/div[1]/a[1]/text()').extract()
-            name = name_info[0].split('(')[0]
             selector = Selector(text = content).xpath('//div[@class="data-tips"]//div[@class="left con-br"]//text()').extract()
             for index in range(len(selector)):
                 stype = selector[index].split('类型：')[1]
-                stype = "3日" if stype.find("三个交易日") >= 0 else "1日"
+                stype = "3日" if stype.find("三个交易日") >= 0 or stype.find("3个交易日") >= 0 else "1日"
                 buy_links = Selector(text = content).xpath('//div[@class="content-sepe"]//table[@class="default_tab stock-detail-tab"]//tbody')
                 sell_links = Selector(text = content).xpath('//div[@class="content-sepe"]//table[@class="default_tab tab-2"]//tbody')
                 top_buy_data = self.html_parser([buy_links[index]])
@@ -117,7 +117,7 @@ class HeroListSpider(BasicSpider):
                 _, mdate, code = response.url.split(',')
                 code = code.split('.')[0]
                 if net_buy_value > 0 or net_sell_value > 0:
-                    info = pd.DataFrame([[mdate, code, name, stype, net_buy_value, net_sell_value]], columns=['date', 'code', 'name', 'type', 'buy', 'sell'])
+                    info = pd.DataFrame([[mdate, code, name, stype, pchange, net_buy_value, net_sell_value]], columns=['date', 'code', 'name', 'type', 'pchange', 'buy', 'sell'])
                     self.store_items(mdate, info)
         except Exception as e:
             print(e)
