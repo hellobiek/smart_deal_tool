@@ -3,6 +3,7 @@ import os
 import sys
 from os.path import abspath, dirname
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
+import numpy as np
 import const as ct
 import pandas as pd
 from cstock_info import CStockInfo
@@ -54,7 +55,7 @@ def generate_daily(dirname, mdate):
     t_index = MarkdownTable(headers = ["日期", "代码", "名称", "概念", "机构总数", "社保家数", "分析"])
     for index in range(len(info)):
         data_list = info.loc[index].tolist()
-        content_list = [data_list[0], data_list[1], data_list[2], data_list[3], data_list[4], data_list[5], '']
+        content_list = [data_list[0], data_list[1], data_list[2], data_list[3], 0 if np.isnan(data_list[4]) else int(data_list[4]), 0 if np.isnan(data_list[5]) else int(data_list[5]), '']
         content_list = [str(i) for i in content_list]
         t_index.addRow(content_list)
     md.addTable(t_index)
@@ -62,7 +63,7 @@ def generate_daily(dirname, mdate):
         f.write(md.getStream())
 
 def main():
-    mdate = '20200804'
+    mdate = '20200806'
     dirname = '/Users/hellobiek/Documents/workspace/blog/blog/source/_posts'
     generate_daily(dirname, mdate)
 
