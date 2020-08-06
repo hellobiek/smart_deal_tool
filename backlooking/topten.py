@@ -40,9 +40,9 @@ def generate_top10(dirname, mdate):
         f.write(md.getStream())
 
 def main():
-    mdate = '2020-08-03'
+    mdate = '2020-08-05'
     dirname = '/Users/hellobiek/Documents/workspace/blog/blog/source/_posts'
-    generate(dirname, mdate)
+    generate_top10(dirname, mdate)
 
 if __name__ == "__main__": 
     main()
