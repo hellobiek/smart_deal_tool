@@ -57,23 +57,23 @@ DTYPE_DICT = {'date': int,
               't10n': float, #十大股东持股数量合计(top 10 stock holder num)
               'nth': float, #国家队持股(national team holdings)
               'largest_holding': float, #第一大股东的持股数量
-              'institution_holders': int, #机构总数
+              'institution_holders': float, #机构总数
               'institution_holding': float, #机构持股数量
-              'qfii_holders': int, #QFII机构数
+              'qfii_holders': float, #QFII机构数
               'qfii_holding': float, #QFII持股量
-              'social_security_holders': int, #社保机构数
+              'social_security_holders': float, #社保机构数
               'social_security_holding': float, #社保持股量
-              'broker_holders': int, #券商机构数
+              'broker_holders': float, #券商机构数
               'broker_holding': float, #券商持股量
-              'insurance_holders': int, #保险机构数
+              'insurance_holders': float, #保险机构数
               'insurance_holding': float, #保险持股量
-              'annuity_holders': int, #年金机构数
+              'annuity_holders': float, #年金机构数
               'annuity_holding': float, #年金持股量
-              'fund_holders': int, #基金机构数
+              'fund_holders': float, #基金机构数
               'fund_holding': float, #基金持股量
-              'private_holders': int, #私募机构数
+              'private_holders': float, #私募机构数
               'private_holding': float, #私募持股量
-              'financial_company_holders': int, #财务公司机构数
+              'financial_company_holders': float, #财务公司机构数
               'financial_company_holding': float, #财务公司持股量
               'publish': int}
 
@@ -313,12 +313,16 @@ cdef class CValuation(object):
         return (code, stock_obj.set_val_data(vdf, mdate))
 
     def update_vertical_data(self, object df, list dtype_list, int mdate):
+        cdef int tdate
         cdef str dtype
         cdef dict item
         cdef object dval
-        mdate = pre_report_date_with(mdate)
         def cfunc(str code, int time2Market):
-            item = self.get_report_item(mdate, code)
+            tdate = report_date_with(mdate)
+            item = self.get_report_item(tdate, code)
+            if not item:
+                tdate = pre_report_date_with(mdate)
+                item = self.get_report_item(tdate, code)
             if 1 == len(dtype_list):
                 return item[dtype_list[0]] if item else None
             else:
