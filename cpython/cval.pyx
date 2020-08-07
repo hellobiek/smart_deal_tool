@@ -287,11 +287,11 @@ cdef class CValuation(object):
             if tdate > 20040101:
                 year_item = self.get_year_report_item(tdate, code, timeToMarket)
                 cur_item = self.get_actual_report_item(tdate, code, timeToMarket)
-                if len(year_item) > 0 and len(cur_item) > 0:
-                    if year_item['publish'] > cur_item['publish']:
-                        #年报比当前的财报公布的还晚
-                        self.logger.error("code:{}, tdate:{}, year report publish date:{}, cur report publish date:{}".format(code, tdate, year_item['publish'], cur_item['publish']))
-                        return tdate, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+                #if len(year_item) > 0 and len(cur_item) > 0:
+                #    if year_item['publish'] > cur_item['publish']:
+                #        #年报比当前的财报公布的还晚
+                #        self.logger.error("code:{}, tdate:{}, year report publish date:{}, cur report publish date:{}".format(code, tdate, year_item['publish'], cur_item['publish']))
+                #        return tdate, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
                 pe_value = self.pe(cur_item, year_item, close)
                 ttm_value = self.ttm(cur_item, code, close)
                 pb_value = self.pb(cur_item, close)
@@ -488,12 +488,12 @@ cdef class CValuation(object):
         if len(item) > 0 and item['publish'] <= mdate:
             PRE_CUR_ITEM = item
             return PRE_CUR_ITEM
+        elif len(item) > 0 and item['publish'] > mdate:
+            self.logger.debug("{} has not publish report for expected: {}, actual: {}, current :{}".format(code, report_date, item['publish'], mdate))
         elif len(item) == 0 and timeToMarket > report_date:
-            self.logger.debug("{} timeToMarket {}, report_date:%{}".format(code, timeToMarket, report_date))
+            self.logger.debug("{} timeToMarket {}, report_date:{}".format(code, timeToMarket, report_date))
             PRE_CUR_ITEM = dict()
             return PRE_CUR_ITEM
-            
-        self.logger.debug("{} has not publish report for normal months from {}, report_date:{}".format(code, mdate, report_date))
 
         report_date = prev_report_date_with(report_date)
         item = self.get_report_item(report_date, code)
@@ -502,7 +502,7 @@ cdef class CValuation(object):
             PRE_CUR_ITEM = item
             return PRE_CUR_ITEM
         elif len(item) == 0 and timeToMarket > report_date:
-            self.logger.debug("{} timeToMarket {}, report_date:%{}".format(code, timeToMarket, report_date))
+            self.logger.debug("{} timeToMarket {}, report_date:{}".format(code, timeToMarket, report_date))
             PRE_CUR_ITEM = dict()
             return PRE_CUR_ITEM
 
