@@ -6,6 +6,7 @@ sys.path.insert(0, dirname(dirname(abspath(__file__))))
 import numpy as np
 import const as ct
 import pandas as pd
+from rstock import RIndexStock
 from cstock_info import CStockInfo
 from cpython.cval import CValuation
 from common import get_tushare_client
@@ -36,9 +37,17 @@ def get_up_data(mdate):
     df = df[['date', 'code']]
     df = pd.merge(df, base_df, how='inner', on=['code'])
     df = df.loc[df.timeToMarket - int(mdate) < -100]
-    df = df[['date', 'code', 'name', 'industry', 'timeToMarket']]
+
+    rstock = RIndexStock(dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
+    pday_df = rstock.get_data(transfer_int_to_date_string(mdate))
+    pday_df['market_value'] = pday_df['totals'] * pday_df['close'] / 10e7
+    pday_df['market_value'] = pday_df['market_value'].round(2)
+    pday_df = pday_df[['code', 'market_value']]
+    df = pd.merge(df, pday_df, how='inner', on=['code'])
+
+    df = df[['date', 'code', 'name', 'industry', 'timeToMarket', 'market_value']]
     val_client.update_vertical_data(df, ['institution_holders', 'social_security_holders'], int(mdate))
-    df = df[['date', 'code', 'name', 'industry', 'institution_holders', 'social_security_holders']]
+    df = df[['date', 'code', 'name', 'industry', 'institution_holders', 'social_security_holders', 'market_value']]
     df = df.sort_values(by = 'industry', ascending= True)
     df = df.reset_index(drop = True)
     return df
@@ -52,10 +61,10 @@ def generate_daily(dirname, mdate):
     fullfilepath = os.path.join(dirname, filename)
     md = MarkdownWriter()
     md.addHeader("{}交割单分析".format(mdate), 1)
-    t_index = MarkdownTable(headers = ["日期", "代码", "名称", "概念", "机构总数", "社保家数", "分析"])
+    t_index = MarkdownTable(headers = ["日期", "代码", "名称", "概念", "机构总数", "社保家数", "市值", "分析"])
     for index in range(len(info)):
         data_list = info.loc[index].tolist()
-        content_list = [data_list[0], data_list[1], data_list[2], data_list[3], 0 if np.isnan(data_list[4]) else int(data_list[4]), 0 if np.isnan(data_list[5]) else int(data_list[5]), '']
+        content_list = [data_list[0], data_list[1], data_list[2], data_list[3], 0 if np.isnan(data_list[4]) else int(data_list[4]), 0 if np.isnan(data_list[5]) else int(data_list[5]), data_list[6], '']
         content_list = [str(i) for i in content_list]
         t_index.addRow(content_list)
     md.addTable(t_index)
