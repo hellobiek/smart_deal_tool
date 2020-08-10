@@ -14,7 +14,7 @@ from tools.markdown_table import MarkdownTable
 from tools.markdown_writer import MarkdownWriter
 from base.cdate import transfer_int_to_date_string
 dirname = '/Users/hellobiek/Documents/workspace/blog/blog/source/_posts'
-def get_up_data(mdate):
+def get_up_data(mdate, pre_date):
     fpath = '/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/tushare.json'
     stocks_dir = "/Volumes/data/quant/stock/data/tdx/history/days"
     base_stock_path = "/Volumes/data/quant/stock/data/tdx/history/days"
@@ -39,21 +39,22 @@ def get_up_data(mdate):
     df = df.loc[df.timeToMarket - int(mdate) < -100]
 
     rstock = RIndexStock(dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1')
-    pday_df = rstock.get_data(transfer_int_to_date_string(mdate))
+    pday_df = rstock.get_data(transfer_int_to_date_string(pre_date))
     pday_df['market_value'] = pday_df['totals'] * pday_df['close'] / 10e7
     pday_df['market_value'] = pday_df['market_value'].round(2)
     pday_df = pday_df[['code', 'market_value']]
     df = pd.merge(df, pday_df, how='inner', on=['code'])
 
     df = df[['date', 'code', 'name', 'industry', 'timeToMarket', 'market_value']]
+
     val_client.update_vertical_data(df, ['institution_holders', 'social_security_holders'], int(mdate))
     df = df[['date', 'code', 'name', 'industry', 'institution_holders', 'social_security_holders', 'market_value']]
     df = df.sort_values(by = 'industry', ascending= True)
     df = df.reset_index(drop = True)
     return df
 
-def generate_daily(dirname, mdate):
-    info = get_up_data(mdate)
+def generate_daily(dirname, mdate, pre_date):
+    info = get_up_data(mdate, pre_date)
     if info.empty:
         print("{} data is empty".format(mdate))
         return 
@@ -72,9 +73,10 @@ def generate_daily(dirname, mdate):
         f.write(md.getStream())
 
 def main():
-    mdate = '20200806'
+    mdate = '20200810'
+    pre_date = '20200807'
     dirname = '/Users/hellobiek/Documents/workspace/blog/blog/source/_posts'
-    generate_daily(dirname, mdate)
+    generate_daily(dirname, mdate, pre_date)
 
 if __name__ == "__main__": 
     main()
