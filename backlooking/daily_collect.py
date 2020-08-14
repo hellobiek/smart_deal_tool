@@ -29,6 +29,7 @@ def get_up_data(mdate, pre_date):
     tu_client = get_tushare_client(fpath)
     val_client = CValuation(valuation_path, bonus_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir)
     df = tu_client.daily(trade_date=mdate)
+    if df.empty: return df
     df = df.loc[df.pct_chg > 9.5]
     df = df.reset_index(drop = True)
     df['ts_code'] = df['ts_code'].str[0:6]
@@ -73,8 +74,8 @@ def generate_daily(dirname, mdate, pre_date):
         f.write(md.getStream())
 
 def main():
-    mdate = '20200810'
-    pre_date = '20200807'
+    mdate = '20200814'
+    pre_date = '20200813'
     dirname = '/Users/hellobiek/Documents/workspace/blog/blog/source/_posts'
     generate_daily(dirname, mdate, pre_date)
 

@@ -62,8 +62,8 @@ def main():
     unlock_path = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/follow_trend.json"
     key_path = "/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/key.pri"
     futuTrader = FutuTrader(host = ct.FUTU_HOST_LOCAL, port = ct.FUTU_PORT, trd_env = TrdEnv.REAL, market = ct.US_MARKET_SYMBOL, unlock_path = unlock_path, key_path = key_path)
-    start = '2020-08-05'
-    end   = '2020-08-05'
+    start = '2020-08-11'
+    end   = '2020-08-12'
     orders = futuTrader.get_history_orders(start = start, end = end)
     date_arrary = get_dates_array(start, end, dformat = "%Y-%m-%d", asending = True)
     generate(orders, date_arrary, dirname, start, end)
