@@ -5,6 +5,7 @@ import datetime, re, xlrd, json
 from scrapy import signals
 from datetime import datetime
 from scrapy import FormRequest
+from ccalendar import CCalendar
 from dspider.items import MarginItem
 from dspider.myspider import BasicSpider
 STOCK_PAGE_URL = 'http://datacenter.eastmoney.com/api/data/get?type=RPTA_WEB_RZRQ_GGMX&sty=ALL&source=WEB&p={}&ps=50&st=date&sr=-1&var=uBrzlcAb&&filter=(date=%27{}%27)' 
@@ -12,6 +13,7 @@ class MarginSpider(BasicSpider):
     cur_count = 0
     total_count = 0
     cur_page = 1
+    cal_client = CCalendar()
     name = 'marginSpider'
     custom_settings = {
         'ROBOTSTXT_OBEY': False,
@@ -57,11 +59,13 @@ class MarginSpider(BasicSpider):
         matching_urls = ["http://datacenter.eastmoney.com/api/data/get?type=RPTA_WEB_RZRQ_LSSH&sty=ALL&source=WEB&st=dim_date&sr=-1&p=1&ps=50&var=tDckWaEJ&filter=(scdm=%22007%22)&rt=53262182",\
                          "http://datacenter.eastmoney.com/api/data/get?type=RPTA_WEB_RZRQ_LSSH&sty=ALL&source=WEB&st=dim_date&sr=-1&p=1&ps=50&var=JIsFtHAl&filter=(scdm=%22001%22)&rt=53262409"]
         mdate = datetime.now().strftime('%Y-%m-%d')
-        self.cur_page = 1
-        for url in matching_urls:
-            yield FormRequest(url=url, callback=self.parse_market, meta={'date': mdate}, errback=self.errback_httpbin)
-        url = STOCK_PAGE_URL.format(self.cur_page, mdate)
-        yield FormRequest(url=url, callback=self.parse_stock, meta={'date': mdate}, errback=self.errback_httpbin)
+        if self.cal_client.is_trading_day(mdate):
+            mdate = self.cal_client.pre_trading_day(mdate)
+            self.cur_page = 1
+            for url in matching_urls:
+                yield FormRequest(url=url, callback=self.parse_market, meta={'date': mdate}, errback=self.errback_httpbin)
+            url = STOCK_PAGE_URL.format(self.cur_page, mdate)
+            yield FormRequest(url=url, callback=self.parse_stock, meta={'date': mdate}, errback=self.errback_httpbin)
 
     def parse_stock(self, response):
         try:
