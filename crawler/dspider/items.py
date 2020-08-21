@@ -200,3 +200,21 @@ class StockLimitItem(DspiderItem):
                                 dc['last_time'], dc['open_times'], dc['intensity'])
         insert_sql = "insert ignore into {}(date, code, price, pchange, prange, concept, fcb, flb, fdmoney, first_time,last_time, open_times, intensity) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)".format(table)
         return insert_sql, params
+
+class MarginItem(DspiderItem):
+    '''融资融券统计数据'''
+    date = scrapy.Field()
+    code = scrapy.Field()
+    rzye = scrapy.Field()   #融资余额
+    rzmre = scrapy.Field()  #融资买入额
+    rzche = scrapy.Field()  #融资偿还额
+    rqyl = scrapy.Field()   #融券余量
+    rqye = scrapy.Field()   #融券余额
+    rqmcl = scrapy.Field()  #融券卖出量
+    rqchl = scrapy.Field()  #融券偿还量
+    rzrqye = scrapy.Field() #融资融券余额
+    def get_insert_sql(self, table):
+        dc = dict(self)
+        params = (dc['date'], dc['code'], dc['rzye'], dc['rzmre'], dc['rzche'], dc['rqye'], dc['rqyl'], dc['rqmcl'], dc['rqchl'], dc['rzrqye'])
+        insert_sql = "insert ignore into {}(date, code, rzye, rzmre, rzche, rqye, rqyl, rqmcl, rqchl, rzrqye) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)".format(table)
+        return insert_sql, params

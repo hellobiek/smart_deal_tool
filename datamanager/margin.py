@@ -141,4 +141,4 @@ class Margin(object):
 
 if __name__ == '__main__':
     ma = Margin()
-    ma.update()
+    ma.update(end_date = '2020-08-18')

@@ -10,6 +10,8 @@ import const as ct
 from base.clog import getLogger
 from twisted.enterprise import adbapi
 from hkex import HkexCrawler
+from margin import MarginCrawler
+from common import create_redis_obj
 from investor import InvestorCrawler
 from investor import MonthInvestorCrawler
 from plate_valuation import PlateValuationCrawler
@@ -30,7 +32,7 @@ class Poster(object):
     def check(self):
         if not ct.SPIDERMON_VALIDATION_ERRORS_FIELD in self.item: return True
         errors = self.item[ct.SPIDERMON_VALIDATION_ERRORS_FIELD]
-        logger.error("%s check failed:%s" % (self.__class__, json.dumps(errors, indent=4)))
+        logger.error("{} check failed:{}, item:{}" % (self.__class__, json.dumps(errors, indent=4), self.item))
         return False
 
     def store(self):
@@ -263,6 +265,51 @@ class StockLimitItemPoster(Poster):
             if insert_sql == None and params == None: return
             self.cursor.execute(insert_sql, params)
             self.connect.commit()
+        except Exception as e:
+            logger.debug(e)
+
+    def on_error(self, failure):
+        if not (failure.type == IntegrityError and failure.value.args[0] == 1062):
+            logger.error(failure.type, failure.value, failure.getTraceback())
+
+class MarginItemPoster(Poster):
+    def __init__(self, item, dbinfo = ct.DB_INFO, redis_host = None):
+        super(MarginItemPoster, self).__init__(item)
+        self.dbname = MarginCrawler.get_dbname()
+        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
+        self.table = MarginCrawler.get_table_name(item['date'])
+        self.connect = pymysql.connect(host=dbinfo['host'], port=dbinfo['port'], db=self.dbname, user=dbinfo['user'], passwd=dbinfo['password'], charset=ct.UTF8)
+        self.cursor = self.connect.cursor()
+
+    def is_date_exists(self, table_name, cdate):
+        if self.redis.exists(table_name):
+            return self.redis.sismember(table_name, cdate)
+        return False
+
+    def is_table_exists(self, table_name):
+        if self.redis.exists(self.dbname):
+            return self.redis.sismember(self.dbname, table_name)
+        return False
+
+    def store(self):
+        try:
+            mdate = self.item['date']
+            code = self.item['code']
+            if not self.is_table_exists(self.table):
+                if not self.create_table(self.table):
+                    logger.error("create tick table failed")
+                    return
+                self.redis.sadd(self.dbname, self.table)
+
+            if self.is_date_exists(self.table, "{}{}".format(mdate, code)):
+                logger.debug("existed table:{}, date:{}".format(self.table, mdate))
+                return
+
+            insert_sql, params = self.item.get_insert_sql(self.table)
+            if insert_sql == None and params == None: return
+            self.cursor.execute(insert_sql, params)
+            self.connect.commit()
+            self.redis.sadd(self.table, "{}{}".format(mdate, code))
         except Exception as e:
             logger.debug(e)
 

@@ -1,4 +1,4 @@
-#coding=utf-8
+# -*- coding: utf-8 -*-
 from schematics.models import Model
 from schematics.types import URLType, StringType, ListType, FloatType, IntType
 class MonthInvestorSituationModel(Model):
@@ -91,3 +91,14 @@ class StockLimitModel(Model):
     last_time = StringType(required=True)
     concept = StringType()
 
+class MarginModel(Model):
+    date = StringType(required=True)
+    code = StringType(required=True)
+    rzye = FloatType(required=True)
+    rzmre = FloatType(required=True)
+    rzche = FloatType(required=True)
+    rqyl = FloatType(required=True)
+    rqye = FloatType(required=True)
+    rqmcl = FloatType(required=True)
+    rqchl = FloatType(required=True)
+    rzrqye = FloatType(required=True)

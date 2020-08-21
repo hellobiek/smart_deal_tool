@@ -1,0 +1,123 @@
+# -*- coding: utf-8 -*-
+import const as ct
+import pandas as pd
+import datetime, re, xlrd, json
+from scrapy import signals
+from datetime import datetime
+from scrapy import FormRequest
+from dspider.items import MarginItem
+from dspider.myspider import BasicSpider
+STOCK_PAGE_URL = 'http://datacenter.eastmoney.com/api/data/get?type=RPTA_WEB_RZRQ_GGMX&sty=ALL&source=WEB&p={}&ps=50&st=date&sr=-1&var=uBrzlcAb&&filter=(date=%27{}%27)' 
+class MarginSpider(BasicSpider):
+    cur_count = 0
+    total_count = 0
+    cur_page = 1
+    name = 'marginSpider'
+    custom_settings = {
+        'ROBOTSTXT_OBEY': False,
+        'SPIDERMON_ENABLED': True,
+        'DOWNLOAD_DELAY': 1.0,
+        'CONCURRENT_REQUESTS_PER_IP': 10,
+        'CONCURRENT_REQUESTS_PER_DOMAIN': 1,
+        'RANDOMIZE_DOWNLOAD_DELAY': False,
+        'SPIDERMON_VALIDATION_ADD_ERRORS_TO_ITEMS': True,
+        'SPIDERMON_VALIDATION_ERRORS_FIELD': ct.SPIDERMON_VALIDATION_ERRORS_FIELD,
+        'EXTENSIONS': {
+            'spidermon.contrib.scrapy.extensions.Spidermon': 500,
+        },
+        'ITEM_PIPELINES': {
+            'spidermon.contrib.scrapy.pipelines.ItemValidationPipeline': 200,
+            'dspider.pipelines.DspiderPipeline': 300,
+        },
+        'SPIDERMON_UNWANTED_HTTP_CODES': ct.DEFAULT_ERROR_CODES,
+        'SPIDERMON_VALIDATION_MODELS': {
+            MarginItem: 'dspider.validators.MarginModel',
+        },
+        'SPIDERMON_SPIDER_CLOSE_MONITORS': (
+            'dspider.monitors.SpiderCloseMonitorSuite',
+        )
+    }
+
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super(MarginSpider, cls).from_crawler(crawler, *args, **kwargs)
+        crawler.signals.connect(spider.item_scraped, signal=signals.item_scraped)
+        crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
+        return spider
+
+    def item_scraped(self, item, response, spider):
+        if item:
+            self.cur_count += 1
+
+    def spider_closed(self, spider, reason):
+        if self.cur_count != self.total_count + 2:
+            spider.logger.error('scraped {} items, total {} items'.format(self.cur_count, self.total_count + 2))
+
+    def start_requests(self):
+        matching_urls = ["http://datacenter.eastmoney.com/api/data/get?type=RPTA_WEB_RZRQ_LSSH&sty=ALL&source=WEB&st=dim_date&sr=-1&p=1&ps=50&var=tDckWaEJ&filter=(scdm=%22007%22)&rt=53262182",\
+                         "http://datacenter.eastmoney.com/api/data/get?type=RPTA_WEB_RZRQ_LSSH&sty=ALL&source=WEB&st=dim_date&sr=-1&p=1&ps=50&var=JIsFtHAl&filter=(scdm=%22001%22)&rt=53262409"]
+        mdate = datetime.now().strftime('%Y-%m-%d')
+        self.cur_page = 1
+        for url in matching_urls:
+            yield FormRequest(url=url, callback=self.parse_market, meta={'date': mdate}, errback=self.errback_httpbin)
+        url = STOCK_PAGE_URL.format(self.cur_page, mdate)
+        yield FormRequest(url=url, callback=self.parse_stock, meta={'date': mdate}, errback=self.errback_httpbin)
+
+    def parse_stock(self, response):
+        try:
+            if response.status != 200:
+                self.logger.error('crawl page from {} failed'.format(response.url))
+                yield None
+            info = json.loads(response.text.split('=')[1].split(';')[0])['result']
+            data = info['data']
+            df = pd.DataFrame(data)
+            mdate = response.meta['date']
+            if self.cur_page == 1: self.total_count = info['count']
+            while self.cur_page < info['pages']:
+                self.cur_page += 1
+                url = STOCK_PAGE_URL.format(self.cur_page, mdate)
+                yield FormRequest(url=url, callback=self.parse_stock, meta={'date': mdate}, errback=self.errback_httpbin)
+            for unit in data:
+                cur_date = unit['DATE'][0:10]
+                if cur_date != mdate: continue
+                item = MarginItem()
+                item['date'] = mdate
+                item['code'] = unit['SCODE']
+                item['rzye'] = float(self.value_of_none(unit['RZYE']))
+                item['rzmre'] = float(self.value_of_none(unit['RZMRE']))
+                item['rzche'] = float(self.value_of_none(unit['RZCHE']))
+                item['rqye'] = float(self.value_of_none(unit['RQYE']))
+                item['rqyl'] = float(self.value_of_none(unit['RQYL']))
+                item['rqmcl'] = float(self.value_of_none(unit['RQMCL']))
+                item['rqchl'] = float(self.value_of_none(unit['RQCHL']))
+                item['rzrqye'] = float(self.value_of_none(unit['RZRQYE']))
+                yield item
+        except Exception as e:
+            yield None 
+
+    def parse_market(self, response):
+        try:
+            if response.status != 200:
+                self.logger.error('crawl page from {} failed'.format(response.url))
+                yield None
+            mdate = response.meta['date']
+            data = json.loads(response.text.split('=')[1].split(';')[0])['result']['data']
+            df = pd.DataFrame(data)
+            df['DIM_DATE'] = df['DIM_DATE'].str[0:10]
+            info = df.loc[df.DIM_DATE == mdate]
+            if info.empty: yield None
+            code = info['XOB_MARKET_0001'].values[0]
+            item = MarginItem()
+            item['date'] = mdate
+            item['code'] = "SSE" if code.endswith('沪证') else "SZSE"
+            item['rzye'] = float(self.value_of_none(info['RZYE'].values[0]))
+            item['rzmre'] = float(self.value_of_none(info['RZMRE'].values[0]))
+            item['rzche'] = float(self.value_of_none(info['RZCHE'].values[0]))
+            item['rqye'] = float(self.value_of_none(info['RQYE'].values[0]))
+            item['rqyl'] = float(self.value_of_none(info['RQYL'].values[0]))
+            item['rqmcl'] = float(self.value_of_none(info['RQMCL'].values[0]))
+            item['rqchl'] = float(self.value_of_none(info['RQCHL'].values[0]))
+            item['rzrqye'] = float(self.value_of_none(info['RZRQYE'].values[0]))
+            yield item
+        except Exception as e:
+            yield None

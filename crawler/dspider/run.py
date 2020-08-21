@@ -15,6 +15,7 @@ from dspider.china_security_industry_valuation import ChinaSecurityIndustryValua
 from dspider.security_exchange_commission_valuation import SecurityExchangeCommissionValuationCrawler
 from dspider.investor import MonthInvestorCrawler
 from scrapy.utils.project import get_project_settings
+from dspider.spiders.marginSpider import MarginSpider 
 from dspider.spiders.heroListSpider import HeroListSpider
 from dspider.spiders.hkexSituationSpider import HkexSpider
 from dspider.spiders.stockLimitSpider import StockLimitSpider
@@ -42,7 +43,8 @@ def weekly_spider():
         settings = get_project_settings()
         myrunner = CrawlerRunner(settings)
         #myrunner.crawl(HkexSpider)
-        myrunner.crawl(HeroListSpider)
+        #myrunner.crawl(HeroListSpider)
+        myrunner.crawl(MarginSpider)
         #myrunner.crawl(SPledgeSituationSpider)
         #myrunner.crawl(InvestorSituationSpider)
         #myrunner.crawl(MonthInvestorSituationSpider)

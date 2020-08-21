@@ -3,6 +3,7 @@ import time
 import calendar
 import datetime
 from scrapy import Spider
+from base.clog import getLogger 
 from common import create_redis_obj
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -11,6 +12,7 @@ from twisted.internet.error import DNSLookupError
 from scrapy.spidermiddlewares.httperror import HttpError
 class BasicSpider(Spider):
     redis = create_redis_obj()
+    logger = getLogger(__name__)
     def get_nday_ago(self, mdate, num, dformat = "%Y.%m.%d"):
         t = time.strptime(mdate, dformat)
         y, m, d = t[0:3]
@@ -62,13 +64,16 @@ class BasicSpider(Spider):
     def errback_httpbin(self, failure):
         if failure.check(HttpError):
             response = failure.value.response
-            print('HttpError on %s' % response.url)
+            self.logger.error('HttpError on {}'.format(response.url))
         elif failure.check(DNSLookupError):
             request = failure.request
-            print('DNSLookupError on %s' %request.url)
+            self.logger.error('DNSLookupError on {}'.format(request.url))
         elif failure.check(TimeoutError):
             request = failure.request
-            print('TimeoutError on %s' % request.url)
+            self.logger.error('TimeoutError on {}'.format(request.url))
         else:
             request = failure.request
-            print('UnknownError on %s' % request.url)
+            self.logger.error('UnknownError on {}'.format(request.url))
+
+    def value_of_none(self, value, default_val = 0):
+        return default_val if value is None else value

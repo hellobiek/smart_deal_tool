@@ -258,64 +258,58 @@ class DataManager:
             self.set_update_info(12, exec_date, cdate)
 
         if finished_step < 13:
-            if not self.margin_client.update(exec_date, num = ndays):
-                self.logger.error("init yesterday margin failed")
+            if not self.init_stock_info(cdate):
+                self.logger.error("init stock info set failed")
                 return False
             self.set_update_info(13, exec_date, cdate)
 
         if finished_step < 14:
-            if not self.init_stock_info(cdate):
-                self.logger.error("init stock info set failed")
+            if not self.init_base_float_profit():
+                self.logger.error("init base float profit for all stock")
                 return False
             self.set_update_info(14, exec_date, cdate)
 
         if finished_step < 15:
-            if not self.init_base_float_profit():
-                self.logger.error("init base float profit for all stock")
+            if not self.init_valuation_info(cdate):
+                self.logger.error("init stock valuation info failed")
                 return False
             self.set_update_info(15, exec_date, cdate)
 
         if finished_step < 16:
-            if not self.init_valuation_info(cdate):
-                self.logger.error("init stock valuation info failed")
+            if not self.init_rvaluation_info(cdate):
+                self.logger.error("init r stock valuation info failed")
                 return False
             self.set_update_info(16, exec_date, cdate)
 
         if finished_step < 17:
-            if not self.init_rvaluation_info(cdate):
-                self.logger.error("init r stock valuation info failed")
+            if not self.init_rindex_valuation_info(cdate):
+                self.logger.error("init r index valuation info failed")
                 return False
             self.set_update_info(17, exec_date, cdate)
 
         if finished_step < 18:
-            if not self.init_rindex_valuation_info(cdate):
-                self.logger.error("init r index valuation info failed")
+            if not self.rindex_stock_data_client.update(exec_date, num = ndays):
+                self.logger.error("rstock data set failed")
                 return False
             self.set_update_info(18, exec_date, cdate)
 
         if finished_step < 19:
-            if not self.rindex_stock_data_client.update(exec_date, num = ndays):
-                self.logger.error("rstock data set failed")
+            if not self.set_bull_stock_ratio(exec_date, num = ndays):
+                self.logger.error("bull ratio set failed")
                 return False
             self.set_update_info(19, exec_date, cdate)
 
         if finished_step < 20:
-            if not self.set_bull_stock_ratio(exec_date, num = ndays):
-                self.logger.error("bull ratio set failed")
-                return False
-            self.set_update_info(20, exec_date, cdate)
-
-        if finished_step < 21:
             if not self.init_yesterday_hk_info(exec_date, num = ndays):
                 self.logger.error("init yesterday hk info failed")
                 return False
-            self.set_update_info(21, exec_date, cdate) 
+            self.set_update_info(20, exec_date, cdate) 
 
-        if finished_step < 22:
+        if finished_step < 21:
             if not self.set_stock_pools(cdate):
                 self.logger.error("choose stocks for model")
                 return False
-            self.set_update_info(22, exec_date, cdate) 
+            self.set_update_info(21, exec_date, cdate) 
 
         self.logger.info("updating succeed")
         return True
@@ -570,7 +564,7 @@ if __name__ == '__main__':
     #    mysql_client.delete_db('s%s' % code)
     #mdate = datetime.now().strftime('%Y-%m-%d')
     dm = DataManager()
-    mdate = '2020-06-12'
+    mdate = '2020-08-20'
     #dm.logger.info("start compute!")
     #dm.init_rindex_valuation_info(mdate)
     #dm.init_rvaluation_info(mdate)
