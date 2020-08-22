@@ -94,21 +94,6 @@ class StockFinancialDisclosureTimeSpider(BasicSpider):
         except:
             print("parse_item exception", e)
 
-    def errback_httpbin(self, failure):
-        print("errback", repr(failure))
-        if failure.check(HttpError):
-            response = failure.value.response
-            print('HttpError on %s', response.url)
-        elif failure.check(DNSLookupError):
-            request = failure.request
-            print('DNSLookupError on %s', request.url)
-        elif failure.check(TimeoutError):
-            request = failure.request
-            print('TimeoutError on %s', request.url)
-        else:
-            request = failure.request
-            print('Other Error on %s', request.url)
-
     def store_items(self, cur_date):
         df = pd.DataFrame(self.data_dict[cur_date], columns=["code", "first", "change", "actual"])
         df = df.sort_values(['code'], ascending = 1)
