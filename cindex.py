@@ -20,6 +20,7 @@ class CIndex(CMysqlObj):
     INDEX_URLS = {
         '000001': (ZZ_URL_HEAD % '000001', [0, 4, 5], ['date', 'code', 'name']),
         '000016': (ZZ_URL_HEAD % '000016', [0, 4, 5], ['date', 'code', 'name']),
+        '000688': (ZZ_URL_HEAD % '000688', [0, 4, 5], ['date', 'code', 'name']),
         '000300': (ZZ_URL_WEIGHT_HEAD % '000300', [0, 4, 5, 8], ['date', 'code', 'name', 'weight']),
         '000905': (ZZ_URL_WEIGHT_HEAD % '000905', [0, 4, 5, 8], ['date', 'code', 'name', 'weight']),
         '399001': (SZ_URL_HEAD % ('399001', float_random()), [0, 1, 5], ['code', 'name', 'weight']),
@@ -377,8 +378,7 @@ class TdxFgIndex(CIndex):
 if __name__ == '__main__':
     #tdi = TdxFgIndex(code = '880883', should_create_influxdb = True, should_create_mysqldb = True)
     #tdi.set_k_data()
-    for code in ["000001", "000300", "000016", "000905", "399673", "399001", "399005", "399006"]:
-        av   = CIndex(code)
-        res  = av.set_components_data()
-        data = av.get_components_data()
-        print("code:%s, length:%s" % (code, len(data)))
+    for code in ["000688"]:
+        av = CIndex(code)
+        res = av.set_components_data(mdate)
+        #data = av.get_components_data()

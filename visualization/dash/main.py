@@ -407,6 +407,7 @@ def get_overview_data():
         '399001': '深证成指',
         '399006': '创业板指',
         '000016': '上证50',
+        '000688': '科创50',
         '000905': '中证500'
     }
     overview_dict = {
@@ -415,7 +416,7 @@ def get_overview_data():
         '创业板指' : {'icon': 'dollar-sign', 'value': 0, 'change': 0, 'label': '创业板指', 'cdate': cdate},
         '上证50' : {'icon': 'dollar-sign', 'value': 0, 'change': 0, 'label': '上证50', 'cdate': cdate},
         '中证500' : {'icon': 'dollar-sign', 'value': 0, 'change': 0, 'label': '中证500', 'cdate': cdate},
-        '科创板指' : {'icon': 'dollar-sign', 'value': 0, 'change': 0, 'label': '科创板指', 'cdate': cdate}
+        '科创50' : {'icon': 'dollar-sign', 'value': 0, 'change': 0, 'label': '科创板指', 'cdate': cdate}
     }
     for code, name in code_dict.items():
         df = CIndex(code).get_k_data(cdate)
