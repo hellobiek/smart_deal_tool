@@ -80,7 +80,7 @@ class StockConnect(object):
         sql = 'create table if not exists %s(date varchar(10) not null,\
                                              code varchar(10) not null,\
                                              name varchar(90),\
-                                             volume int,\
+                                             volume bigint(20),\
                                              percent float,\
                                              PRIMARY KEY (date, code))' % table
         return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
