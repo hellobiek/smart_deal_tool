@@ -16,7 +16,7 @@ def main():
     dm = DataManager(ct.DB_INFO)
     log.info("init succeed")
     #threadList.append(CThread(dm.run, 600))
-    threadList.append(CThread(dm.update, 300))
+    threadList.append(CThread(dm.update, 450))
     threadList.append(sc.start())
 
     for thread in threadList:
