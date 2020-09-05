@@ -74,8 +74,8 @@ def generate_daily(dirname, mdate, pre_date):
         f.write(md.getStream())
 
 def main():
-    mdate = '20200903'
-    pre_date = '20200902'
+    mdate = '20200904'
+    pre_date = '20200903'
     dirname = '/Users/hellobiek/Documents/workspace/blog/blog/source/_posts'
     generate_daily(dirname, mdate, pre_date)
 

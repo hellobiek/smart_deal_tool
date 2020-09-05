@@ -15,8 +15,7 @@ def main():
     sc = Scheduler()
     dm = DataManager(ct.DB_INFO)
     log.info("init succeed")
-    #threadList.append(CThread(dm.run, 600))
-    threadList.append(CThread(dm.update, 450))
+    threadList.append(CThread(dm.run, 1500))
     threadList.append(sc.start())
 
     for thread in threadList:
