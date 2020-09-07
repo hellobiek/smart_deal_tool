@@ -56,8 +56,8 @@ class MarginSpider(BasicSpider):
     def spider_closed(self, spider, reason):
         if self.cur_count != self.total_count + 2:
             message = 'scraped {} items, total {} items'.format(self.cur_count, self.total_count + 2)
-            self.message_client.send_message(self.name, message)
             self.logger.error(message)
+            self.message_client.send_message(self.name, message)
 
     def start_requests(self):
         matching_urls = ["http://datacenter.eastmoney.com/api/data/get?type=RPTA_WEB_RZRQ_LSSH&sty=ALL&source=WEB&st=dim_date&sr=-1&p=1&ps=50&var=tDckWaEJ&filter=(scdm=%22007%22)&rt=53262182",\

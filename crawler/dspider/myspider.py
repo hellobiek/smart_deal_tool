@@ -12,9 +12,10 @@ from twisted.internet.error import TimeoutError
 from twisted.internet.error import DNSLookupError
 from scrapy.spidermiddlewares.httperror import HttpError
 class BasicSpider(Spider):
-    message_client = SendWechat()
+    name = ''
     redis = create_redis_obj()
     logger = getLogger(__name__)
+    message_client = SendWechat()
     def get_nday_ago(self, mdate, num, dformat = "%Y.%m.%d"):
         t = time.strptime(mdate, dformat)
         y, m, d = t[0:3]
@@ -66,16 +67,18 @@ class BasicSpider(Spider):
     def errback_httpbin(self, failure):
         if failure.check(HttpError):
             response = failure.value.response
-            self.logger.error('HttpError on {}'.format(response.url))
+            msg = 'HttpError on {}'.format(response.url)
         elif failure.check(DNSLookupError):
             request = failure.request
-            self.logger.error('DNSLookupError on {}'.format(request.url))
+            msg = 'DNSLookupError on {}'.format(request.url)
         elif failure.check(TimeoutError):
             request = failure.request
-            self.logger.error('TimeoutError on {}'.format(request.url))
+            msg = 'TimeoutError on {}'.format(request.url)
         else:
             request = failure.request
-            self.logger.error('UnknownError on {}'.format(request.url))
+            msg = 'UnknownError on {}'.format(request.url)
+        self.logger.error(msg)
+        self.message_client.send_message(self.name, msg)
 
     def value_of_none(self, value, default_val = 0):
         return default_val if value is None else value
