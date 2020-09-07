@@ -3,6 +3,8 @@ import const as ct
 import pandas as pd
 import datetime, re, xlrd, json
 from scrapy import signals
+from base.cdate import get_dates_array
+from common import add_suffix
 from datetime import datetime
 from scrapy import FormRequest
 from ccalendar import CCalendar
@@ -53,7 +55,9 @@ class MarginSpider(BasicSpider):
 
     def spider_closed(self, spider, reason):
         if self.cur_count != self.total_count + 2:
-            spider.logger.error('scraped {} items, total {} items'.format(self.cur_count, self.total_count + 2))
+            message = 'scraped {} items, total {} items'.format(self.cur_count, self.total_count + 2)
+            self.message_client.send_message(self.name, message)
+            self.logger.error(message)
 
     def start_requests(self):
         matching_urls = ["http://datacenter.eastmoney.com/api/data/get?type=RPTA_WEB_RZRQ_LSSH&sty=ALL&source=WEB&st=dim_date&sr=-1&p=1&ps=50&var=tDckWaEJ&filter=(scdm=%22007%22)&rt=53262182",\
@@ -86,7 +90,7 @@ class MarginSpider(BasicSpider):
                 if cur_date != mdate: continue
                 item = MarginItem()
                 item['date'] = mdate
-                item['code'] = unit['SCODE']
+                item['code'] = add_suffix(unit['SCODE'])
                 item['rzye'] = float(self.value_of_none(unit['RZYE']))
                 item['rzmre'] = float(self.value_of_none(unit['RZMRE']))
                 item['rzche'] = float(self.value_of_none(unit['RZCHE']))

@@ -4,6 +4,7 @@ import calendar
 import datetime
 from scrapy import Spider
 from base.clog import getLogger 
+from base.wechat import SendWechat
 from common import create_redis_obj
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -11,6 +12,7 @@ from twisted.internet.error import TimeoutError
 from twisted.internet.error import DNSLookupError
 from scrapy.spidermiddlewares.httperror import HttpError
 class BasicSpider(Spider):
+    message_client = SendWechat()
     redis = create_redis_obj()
     logger = getLogger(__name__)
     def get_nday_ago(self, mdate, num, dformat = "%Y.%m.%d"):
