@@ -2,6 +2,7 @@
 import os
 import re
 import time
+import random
 import datetime
 import const as ct
 import pandas as pd
@@ -17,6 +18,7 @@ from dspider.items import StockFinancialDisclosureTimeItem
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 class StockFinancialDisclosureTimeSpider(BasicSpider):
+    max_page = 0
     name = 'stockFinancialDisclosureTimeSpider'
     custom_settings = {
         'ROBOTSTXT_OBEY': False,
@@ -64,16 +66,16 @@ class StockFinancialDisclosureTimeSpider(BasicSpider):
             self.update_cookie()
             mcookie = {"v": self.sfsession.encode()}
             if type(response) is TextResponse:
-                time.sleep(60)
+                time.sleep(random.randint(30, 600))
                 self.logger.info("parse_item3:{}".format(response.url))
                 yield FormRequest(url = url, headers = self.headers, cookies = mcookie, method = 'GET', callback = self.parse_item, errback=self.errback_httpbin, dont_filter=True)
             else:
                 reg = re.compile(self.repatten)
                 if reg.search(url) is not None:
                     doc = pq(response.text)
-                    max_page = self.get_max_page(doc)
                     cur_date, cur_page = reg.search(url).groups()
                     cur_page = int(cur_page)
+                    max_page = self.get_max_page(doc, cur_page)
                     if not self.update_data(doc, cur_date): self.logger.info("empty url:{}".format(url))
                     if cur_page < max_page:
                         cur_page += 1
@@ -91,8 +93,8 @@ class StockFinancialDisclosureTimeSpider(BasicSpider):
                 else:
                     self.logger.info("parse_item4:{}".format(url))
                     yield FormRequest(url = url, headers = self.headers, cookies = mcookie, method = 'GET', callback = self.parse_item, errback = self.errback_httpbin, dont_filter = True)
-        except:
-            self.logger.info("parse_item exception:{}".format(e))
+        except Exception as e:
+            self.logger.error("parse_item exception:{}".format(e))
 
     def store_items(self, cur_date):
         df = pd.DataFrame(self.data_dict[cur_date], columns=["code", "first", "change", "actual"])
@@ -119,11 +121,12 @@ class StockFinancialDisclosureTimeSpider(BasicSpider):
             self.logger.error("update_cookie exception: {}".fotmat(e))
         return False
 
-    def get_max_page(self, doc):
-        span_text = doc("div.m-page.J-ajax-page span").text()
-        last_page = span_text.split("/")
-        max_page = int(last_page[1])
-        return max_page
+    def get_max_page(self, doc, cur_page):
+        if 1 == cur_page:
+            span_text = doc("div.m-page.J-ajax-page span").text()
+            last_page = span_text.split("/")
+            self.max_page = int(last_page[1])
+        return self.max_page
 
     def update_data(self, doc, cur_date):
         tr_node = doc("table tbody tr")

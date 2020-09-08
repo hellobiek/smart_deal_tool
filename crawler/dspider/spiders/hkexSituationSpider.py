@@ -36,7 +36,7 @@ class HkexSpider(BasicSpider):
         matching_url = "https://sc.hkex.com.hk/TuniS/www.hkex.com.hk/chi/csm/DailyStat/data_tab_daily_{}c.js"
         end_date = datetime.now().strftime('%Y.%m.%d')
         start_date = self.get_nday_ago(end_date, 10, dformat = '%Y.%m.%d')
-        while start_date <= end_date:
+        while start_date < end_date:
             start_date = self.get_tomorrow_date(sdate = start_date)
             url = matching_url.format(start_date.replace('.', ''))
             yield Request(url=url, callback=self.parse, errback=self.errback_httpbin)
