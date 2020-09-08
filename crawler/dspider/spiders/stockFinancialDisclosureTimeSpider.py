@@ -65,7 +65,7 @@ class StockFinancialDisclosureTimeSpider(BasicSpider):
             mcookie = {"v": self.sfsession.encode()}
             if type(response) is TextResponse:
                 time.sleep(60)
-                print("parse_item3", response.url)
+                self.logger.info("parse_item3:{}".format(response.url))
                 yield FormRequest(url = url, headers = self.headers, cookies = mcookie, method = 'GET', callback = self.parse_item, errback=self.errback_httpbin, dont_filter=True)
             else:
                 reg = re.compile(self.repatten)
@@ -74,25 +74,25 @@ class StockFinancialDisclosureTimeSpider(BasicSpider):
                     max_page = self.get_max_page(doc)
                     cur_date, cur_page = reg.search(url).groups()
                     cur_page = int(cur_page)
-                    if not self.update_data(doc, cur_date): print("empty url", url)
+                    if not self.update_data(doc, cur_date): self.logger.info("empty url:{}".format(url))
                     if cur_page < max_page:
                         cur_page += 1
                         page_url = self.start_urls[1].format(cur_date, cur_page)
-                        print("parse_item1", page_url)
-                        yield FormRequest(url = page_url, headers = self.headers, cookies = mcookie, method = 'GET', callback = self.parse_item, errback=self.errback_httpbin)
+                        self.logger.info("parse_item1:{}".format(page_url))
+                        yield FormRequest(url = page_url, headers = self.headers, cookies = mcookie, method = 'GET', callback = self.parse_item, errback=self.errback_httpbin, dont_filter=True)
                     else:
                         self.store_items(cur_date)
                         if len(self.date_list) > 0:
                             mdate = self.date_list.pop()
                             self.data_dict[mdate] = list()
                             page_url = self.start_urls[1].format(mdate, 1)
-                            print("parse_item2", page_url)
-                            yield FormRequest(url = page_url, headers = self.headers, cookies = mcookie, method = 'GET', callback = self.parse_item, errback=self.errback_httpbin)
+                            self.logger.info("parse_item2:{}".format(page_url))
+                            yield FormRequest(url = page_url, headers = self.headers, cookies = mcookie, method = 'GET', callback = self.parse_item, errback=self.errback_httpbin, dont_filter=True)
                 else:
-                    print("parse_item4", url)
+                    self.logger.info("parse_item4:{}".format(url))
                     yield FormRequest(url = url, headers = self.headers, cookies = mcookie, method = 'GET', callback = self.parse_item, errback = self.errback_httpbin, dont_filter = True)
         except:
-            print("parse_item exception", e)
+            self.logger.info("parse_item exception:{}".format(e))
 
     def store_items(self, cur_date):
         df = pd.DataFrame(self.data_dict[cur_date], columns=["code", "first", "change", "actual"])
@@ -116,7 +116,7 @@ class StockFinancialDisclosureTimeSpider(BasicSpider):
                 self.sfsession.update_server_time(server_time)
                 return True
         except Exception as e:
-            print("update_cookie", e)
+            self.logger.error("update_cookie exception: {}".fotmat(e))
         return False
 
     def get_max_page(self, doc):
