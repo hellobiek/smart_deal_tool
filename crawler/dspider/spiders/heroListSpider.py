@@ -5,11 +5,13 @@ import const as ct
 import numpy as np
 import pandas as pd
 from pathlib import Path
+from scrapy import signals
 from common import add_suffix
 from scrapy import FormRequest, Selector
 from datetime import datetime
 from dspider.myspider import BasicSpider
 class HeroListSpider(BasicSpider):
+    cur_count = 0
     name = 'herolistspider'
     custom_settings = {
         'ROBOTSTXT_OBEY': False,
@@ -35,9 +37,17 @@ class HeroListSpider(BasicSpider):
             'dspider.monitors.SpiderCloseMonitorSuite',
         )
     }
+
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super(HeroListSpider, cls).from_crawler(crawler, *args, **kwargs)
+        crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
+        return spider
+
     def start_requests(self):
         matching_url = "http://data.eastmoney.com/DataCenter_V3/stock2016/TradeDetail/pagesize=300,page=1,sortRule=-1,sortType=,startDate={},endDate={},gpfw=0,js=var%20data_tab_1.html?rt=26442172"
-        start_date = datetime.now().strftime('%Y-%m-%d')
+        #start_date = datetime.now().strftime('%Y-%m-%d')
+        start_date = '2020-09-08'
         url = matching_url.format(start_date, start_date)
         yield FormRequest(url=url, callback=self.parse_meta, errback=self.errback_httpbin)
 
@@ -65,12 +75,15 @@ class HeroListSpider(BasicSpider):
                                       'Ltsz':colunms_name[13], 'Ctypedes':colunms_name[14]})
             df['code'] = df['code'].map(lambda x : str(x).zfill(6))
             df = df.loc[df['code'].str.startswith('0') | df['code'].str.startswith('6') | df['code'].str.startswith('3')]
+            self.cur_count = 0
+            df = df.drop_duplicates(subset=['code'])
             df = df.reset_index(drop = True)
             for id_, row in df.iterrows():
                 page_url = 'http://data.eastmoney.com/stock/lhb,{},{}.html'.format(row['date'], row['code'])
+                self.logger.debug("begin parse url:{}".format(page_url))
                 yield FormRequest(url = page_url, meta={'pchange': row['pchange'], 'name': row['name']}, method = 'GET', callback = self.parse_item, errback=self.errback_httpbin)
         except Exception as e:
-            print(e)
+            self.logger.error("execption:{}".format(e))
 
     def html_parser(self, link_tables):
         table_list = []
@@ -118,6 +131,13 @@ class HeroListSpider(BasicSpider):
                 code = code.split('.')[0]
                 if net_buy_value > 0 or net_sell_value > 0:
                     info = pd.DataFrame([[mdate, code, name, stype, pchange, net_buy_value, net_sell_value]], columns=['date', 'code', 'name', 'type', 'pchange', 'buy', 'sell'])
+                    self.cur_count += 1
                     self.store_items(mdate, info)
         except Exception as e:
-            print(e)
+            self.logger.error("execption:{}".format(e))
+
+    def spider_closed(self, spider, reason):
+        message = 'scraped {} items'.format(self.cur_count)
+        self.logger.info("{} {}".format(self.name, message))
+        self.message_client.send_message(self.name, message)
+
