@@ -46,8 +46,7 @@ class HeroListSpider(BasicSpider):
 
     def start_requests(self):
         matching_url = "http://data.eastmoney.com/DataCenter_V3/stock2016/TradeDetail/pagesize=300,page=1,sortRule=-1,sortType=,startDate={},endDate={},gpfw=0,js=var%20data_tab_1.html?rt=26442172"
-        #start_date = datetime.now().strftime('%Y-%m-%d')
-        start_date = '2020-09-08'
+        start_date = datetime.now().strftime('%Y-%m-%d')
         url = matching_url.format(start_date, start_date)
         yield FormRequest(url=url, callback=self.parse_meta, errback=self.errback_httpbin)
 
@@ -125,7 +124,7 @@ class HeroListSpider(BasicSpider):
                 sell_links = Selector(text = content).xpath('//div[@class="content-sepe"]//table[@class="default_tab tab-2"]//tbody')
                 top_buy_data = self.html_parser([buy_links[index]])
                 top_sell_data = self.html_parser([sell_links[index]])
-                net_buy_value = int(top_buy_data['net'].sum()) if not top_buy_data.empty else 0
+                net_buy_value = int(abs(top_buy_data['net'].sum())) if not top_buy_data.empty else 0
                 net_sell_value = int(abs(top_sell_data['net'].sum())) if not top_sell_data.empty else 0
                 _, mdate, code = response.url.split(',')
                 code = code.split('.')[0]
