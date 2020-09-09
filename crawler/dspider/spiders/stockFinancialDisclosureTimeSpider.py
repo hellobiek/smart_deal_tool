@@ -8,6 +8,7 @@ import const as ct
 import pandas as pd
 from datetime import datetime
 from scrapy import FormRequest
+from base.clog import getLogger 
 from scrapy.http import TextResponse, HtmlResponse
 from pyquery import PyQuery as pq
 from dspider.myspider import BasicSpider
@@ -19,6 +20,7 @@ import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 class StockFinancialDisclosureTimeSpider(BasicSpider):
     max_page = 0
+    logger = getLogger(__name__)
     name = 'stockFinancialDisclosureTimeSpider'
     custom_settings = {
         'ROBOTSTXT_OBEY': False,
@@ -118,7 +120,7 @@ class StockFinancialDisclosureTimeSpider(BasicSpider):
                 self.sfsession.update_server_time(server_time)
                 return True
         except Exception as e:
-            self.logger.error("update_cookie exception: {}".fotmat(e))
+            self.logger.error("update_cookie exception: {}".format(e))
         return False
 
     def get_max_page(self, doc, cur_page):

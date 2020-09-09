@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import const as ct
 import pandas as pd
+from base.clog import getLogger 
 import datetime, re, xlrd, json
 from scrapy import signals
 from base.cdate import get_dates_array
@@ -16,6 +17,7 @@ class MarginSpider(BasicSpider):
     total_count = 0
     cur_page = 1
     cal_client = CCalendar()
+    logger = getLogger(__name__)
     name = 'marginSpider'
     custom_settings = {
         'ROBOTSTXT_OBEY': False,

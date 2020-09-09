@@ -17,6 +17,7 @@ class HeroListSpider(BasicSpider):
         'ROBOTSTXT_OBEY': False,
         'SPIDERMON_ENABLED': True,
         'DOWNLOAD_DELAY': 1.0,
+        'USER_AGENTS': ct.USER_AGENTS,
         'CONCURRENT_REQUESTS_PER_IP': 10,
         'CONCURRENT_REQUESTS_PER_DOMAIN': 1,
         'RANDOMIZE_DOWNLOAD_DELAY': False,
@@ -24,6 +25,11 @@ class HeroListSpider(BasicSpider):
         'SPIDERMON_VALIDATION_ERRORS_FIELD': ct.SPIDERMON_VALIDATION_ERRORS_FIELD,
         'EXTENSIONS': {
             'spidermon.contrib.scrapy.extensions.Spidermon': 500,
+        },
+        'DOWNLOADER_MIDDLEWARES': {
+            'dspider.user_agent.RandomUserAgent': 200,
+            'scrapy.contrib.downloadermiddleware.useragent.UserAgentMiddleware': None,
+            'scrapy.downloadermiddlewares.retry.RetryMiddleware': None
         },
         'ITEM_PIPELINES': {
             'spidermon.contrib.scrapy.pipelines.ItemValidationPipeline': 200,

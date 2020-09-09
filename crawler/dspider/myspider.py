@@ -3,7 +3,6 @@ import time
 import calendar
 import datetime
 from scrapy import Spider
-from base.clog import getLogger 
 from base.wechat import SendWechat
 from common import create_redis_obj
 from datetime import datetime, timedelta
@@ -14,7 +13,6 @@ from scrapy.spidermiddlewares.httperror import HttpError
 class BasicSpider(Spider):
     name = ''
     redis = create_redis_obj()
-    logger = getLogger(__name__)
     message_client = SendWechat()
     def get_nday_ago(self, mdate, num, dformat = "%Y.%m.%d"):
         t = time.strptime(mdate, dformat)
@@ -77,7 +75,6 @@ class BasicSpider(Spider):
         else:
             request = failure.request
             msg = 'UnknownError on {}'.format(request.url)
-        self.logger.error(msg)
         self.message_client.send_message(self.name, msg)
 
     def value_of_none(self, value, default_val = 0):
