@@ -477,7 +477,6 @@ class DataManager:
                 continue
             if not self.connect_client.update(cdate, num = num):
                 succeed = False
-
             self.connect_client.close()
             self.connect_client.quit()
         return succeed

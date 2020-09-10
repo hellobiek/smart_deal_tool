@@ -34,28 +34,31 @@ class FinDisclosureSpider(BasicSpider):
     }
     allowed_domains = ['www.cninfo.com.cn']
     start_url = 'http://www.cninfo.com.cn/new/information/getPrbookInfo'
-    params = {
-        "sectionTime": "",
-        "firstTime": "",
-        "lastTime": "",
-        "market": "szsh" ,
-        "stockCode": "",
-        "orderClos": "",
-        "isDesc": "",
-        "pagesize": "10000",
-        "pagenum": "1",
-    }
     def start_requests(self):
+        params = {
+            "sectionTime": "",
+            "firstTime": "",
+            "lastTime": "",
+            "market": "szsh" ,
+            "stockCode": "",
+            "orderClos": "",
+            "isDesc": "",
+            "pagesize": "10000",
+            "pagenum": "1",
+        }
         date_list = one_report_date_list(datetime.now().strftime('%Y-%m-%d'))
         for mdate in date_list:
-            self.params['sectionTime'] = mdate
-            yield FormRequest(url = self.start_url, method = 'POST', meta={'cur_date': mdate}, formdata = self.params, callback = self.parse, errback=self.errback_httpbin)
+            params['sectionTime'] = mdate
+            yield FormRequest(url = self.start_url, method = 'POST', meta={'cur_date': mdate}, formdata = params, callback = self.parse, errback=self.errback_httpbin)
 
     def get_change_date(self, row):
         if row['thr_change']: return row['thr_change']
         if row['sec_change']: return row['sec_change']
         if row['fir_change']: return row['fir_change']
         return ''
+
+    def str2int(self, mdate):
+        return mdate.replace("-", "").replace("00000000", "")
 
     def parse(self, response):
         try:
@@ -65,8 +68,11 @@ class FinDisclosureSpider(BasicSpider):
                 info = json.loads(jsonstr)
                 df = pd.DataFrame(info["prbookinfos"])
                 df.columns = ["report_date", "first", "fir_change", "sec_change", "thr_change", "actual", "org_code", "code", "name"]
-                df['change'] = df.apply(lambda row: self.get_change_date(row), axis = 1)
-                df = df[['code', 'first', 'change', 'actual']]
+                df['changed'] = df.apply(lambda row: self.get_change_date(row), axis = 1)
+                df = df[['code', 'first', 'changed', 'actual']]
+                df['first'] = df['first'].apply(lambda row: self.str2int(row))
+                df['actual'] = df['actual'].apply(lambda row: self.str2int(row))
+                df['changed'] = df['changed'].apply(lambda row: self.str2int(row))
                 df = df.sort_values(['code'], ascending = 1)
                 filepath = os.path.join(ct.STOCK_FINANCIAL_REPORT_ANNOUNCEMENT_DATE_PATH, "%s.csv" % cur_date)
                 df.to_csv(filepath, index=False, mode="w", encoding='utf8')

@@ -42,13 +42,13 @@ class Client:
         try:
             resp = self.opener.open(req, timeout=10).read()
         except request.HTTPError as e:
-            self.log.warning("server process request error: err_code=%s", e.code)
+            self.log.warning("server process request error: err_code={}, reason={}".format(e.code, e.reason))
             return -5, None
         except request.URLError as e:
-            self.log.warning("reach server error: reason=%s", e.reason)
+            self.log.warning("reach server error: err_code={}, reason={}".format(e.code, e.reason))
             return -10, None
         except Exception as e:
-            self.log.warning("other exception: msg=%s", e)
+            self.log.warning("other exception: msg={}".format(e))
             return -100, None
         return 0, resp
 
