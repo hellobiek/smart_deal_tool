@@ -59,7 +59,7 @@ class StockFinancialDisclosureTimeSpider(BasicSpider):
             self.data_dict[mdate] = list()
             mcookie = {"v": self.sfsession.encode()}
             page_url = self.start_urls[1].format(mdate, 1)
-            self.logger.info("start_request:%s", page_url)
+            self.logger.debug("start_request:%s", page_url)
             yield FormRequest(url = page_url, headers = self.headers, cookies = mcookie, method = 'GET', callback = self.parse_item)
 
     def parse_item(self, response):
@@ -68,7 +68,7 @@ class StockFinancialDisclosureTimeSpider(BasicSpider):
             self.update_cookie()
             mcookie = {"v": self.sfsession.encode()}
             if type(response) is TextResponse:
-                time.sleep(random.randint(30, 600))
+                #time.sleep(random.randint(120, 300))
                 self.logger.info("parse_item3:{}".format(response.url))
                 yield FormRequest(url = url, headers = self.headers, cookies = mcookie, method = 'GET', callback = self.parse_item, errback=self.errback_httpbin, dont_filter=True)
             else:

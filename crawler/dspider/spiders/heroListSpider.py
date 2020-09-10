@@ -7,11 +7,13 @@ import pandas as pd
 from pathlib import Path
 from scrapy import signals
 from common import add_suffix
+from base.clog import getLogger 
 from scrapy import FormRequest, Selector
 from datetime import datetime
 from dspider.myspider import BasicSpider
 class HeroListSpider(BasicSpider):
     cur_count = 0
+    logger = getLogger(__name__)
     name = 'herolistspider'
     custom_settings = {
         'ROBOTSTXT_OBEY': False,

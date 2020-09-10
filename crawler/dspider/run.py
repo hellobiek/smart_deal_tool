@@ -27,6 +27,7 @@ from dspider.spiders.investorMonthSituationSpider import MonthInvestorSituationS
 from dspider.spiders.stockFinancialDisclosureTimeSpider import StockFinancialDisclosureTimeSpider
 from dspider.spiders.chinaSecurityIndustryValuationSpider import ChinaSecurityIndustryValuationSpider
 from dspider.spiders.securityExchangeCommissionValuationSpider import SecurityExchangeCommissionValuationSpider
+from dspider.spiders.finDisclosureSpider import FinDisclosureSpider
 def init():
     #HkexCrawler()
     #SPledgeCrawler()
@@ -43,7 +44,7 @@ def weekly_spider():
         settings = get_project_settings()
         myrunner = CrawlerRunner(settings)
         #myrunner.crawl(HkexSpider)
-        myrunner.crawl(HeroListSpider)
+        #myrunner.crawl(HeroListSpider)
         #myrunner.crawl(MarginSpider)
         #myrunner.crawl(SPledgeSituationSpider)
         #myrunner.crawl(InvestorSituationSpider)
@@ -54,6 +55,7 @@ def weekly_spider():
         #myrunner.crawl(ChinaTreasuryRateSpider)
         #myrunner.crawl(StockFinancialDisclosureTimeSpider)
         #myrunner.crawl(StockLimitSpider)
+        myrunner.crawl(FinDisclosureSpider)
         d = myrunner.join()
         d.addBoth(lambda _: reactor.stop())
         reactor.run() #the script will block here until the crawling is finished
