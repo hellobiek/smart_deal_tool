@@ -2,6 +2,9 @@
 import time
 import calendar
 import datetime
+import const as ct
+import pandas as pd
+from pathlib import Path
 from scrapy import Spider
 from base.wechat import SendWechat
 from common import create_redis_obj
@@ -12,6 +15,8 @@ from twisted.internet.error import DNSLookupError
 from scrapy.spidermiddlewares.httperror import HttpError
 class BasicSpider(Spider):
     name = ''
+    status = False
+    message = ""
     redis = create_redis_obj()
     message_client = SendWechat()
     def get_nday_ago(self, mdate, num, dformat = "%Y.%m.%d"):
@@ -75,7 +80,23 @@ class BasicSpider(Spider):
         else:
             request = failure.request
             msg = 'UnknownError on {}'.format(request.url)
+        self.status = False
+        self.message = msg
         self.message_client.send_message(self.name, msg)
 
     def value_of_none(self, value, default_val = 0):
         return default_val if value is None else value
+
+    def collect_spider_info(self):
+        now_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        df = pd.DataFrame([[self.name, self.status, now_time, self.message]], columns = ['name', 'status', 'update', 'message'])
+        filepath = Path(ct.SPIDER_STATUS_FILE)
+        if not filepath.exists():
+            df.to_csv(filepath, index=False, header=True, mode='w', encoding='utf8')
+        else:
+            status_info = pd.read_csv(ct.SPIDER_STATUS_FILE)
+            if self.name in status_info.name.tolist():
+                status_info.update(df)
+                status_info.to_csv(ct.SPIDER_STATUS_FILE, index=False, mode="w", encoding='utf8')
+            else:
+                df.to_csv(filepath, index=False, header=True, mode='a+', encoding='utf8')

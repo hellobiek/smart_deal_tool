@@ -3,6 +3,7 @@ import os, json
 import datetime
 import const as ct
 import pandas as pd
+from scrapy import signals
 from datetime import datetime
 from scrapy import FormRequest
 from base.clog import getLogger
@@ -34,18 +35,17 @@ class FinDisclosureSpider(BasicSpider):
     }
     allowed_domains = ['www.cninfo.com.cn']
     start_url = 'http://www.cninfo.com.cn/new/information/getPrbookInfo'
+
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super(FinDisclosureSpider, cls).from_crawler(crawler, *args, **kwargs)
+        crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
+        return spider
+
     def start_requests(self):
-        params = {
-            "sectionTime": "",
-            "firstTime": "",
-            "lastTime": "",
-            "market": "szsh" ,
-            "stockCode": "",
-            "orderClos": "",
-            "isDesc": "",
-            "pagesize": "10000",
-            "pagenum": "1",
-        }
+        self.status = False
+        self.message = ""
+        params = {"sectionTime": "", "firstTime": "", "lastTime": "", "market": "szsh" , "stockCode": "", "orderClos": "", "isDesc": "", "pagesize": "10000", "pagenum": "1",}
         date_list = one_report_date_list(datetime.now().strftime('%Y-%m-%d'))
         for mdate in date_list:
             params['sectionTime'] = mdate
@@ -76,8 +76,14 @@ class FinDisclosureSpider(BasicSpider):
                 df = df.sort_values(['code'], ascending = 1)
                 filepath = os.path.join(ct.STOCK_FINANCIAL_REPORT_ANNOUNCEMENT_DATE_PATH, "%s.csv" % cur_date)
                 df.to_csv(filepath, index=False, mode="w", encoding='utf8')
-                message = 'scraped {} stock at {}'.format(len(df), datetime.now().strftime('%Y-%m-%d'))
-                self.logger.info("{} {}".format(self.name, message))
-                self.message_client.send_message(self.name, message)
+                self.status = True
+                self.message = "scraped {} disclosure info succeed".format(len(df))
         except Exception as e:
-            self.logger.error("execption:{}".format(e))
+            message = "get disclosure info exception:{}".format(e)
+            self.status = False
+            self.message = message
+            self.logger.error(message)
+
+    def spider_closed(self, spider, reason):
+        self.collect_spider_info()
+        self.send_message(self.name, "status:{}, message:{}".format(self.status, self.message))

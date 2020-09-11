@@ -103,6 +103,7 @@ class MarginSpider(BasicSpider):
                 item['rzrqye'] = float(self.value_of_none(unit['RZRQYE']))
                 yield item
         except Exception as e:
+            self.logger.error("execption:{}".format(e))
             yield None 
 
     def parse_market(self, response):
@@ -130,4 +131,5 @@ class MarginSpider(BasicSpider):
             item['rzrqye'] = float(self.value_of_none(info['RZRQYE'].values[0]))
             yield item
         except Exception as e:
+            self.logger.error("execption:{}".format(e))
             yield None

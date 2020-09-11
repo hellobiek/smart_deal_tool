@@ -183,6 +183,7 @@ const.BASE_STOCK_PATH = '/data/tdx/base/stocks.csv'
 const.VALUATION_PATH = "/data/valuation/reports.csv"
 const.REPORT_PUBLISH_DIR = '/data/crawler/stock/financial/report_announcement_date'
 const.PLEDGE_FILE_DIR = "/data/tdx/history/weeks/pledge"
+const.SPIDER_STATUS_FILE = "/data/crawler/status.csv"
 #############################
 const.MARKET_SH   = 1
 const.MARKET_SZ   = 0
@@ -4918,7 +4919,7 @@ const.BLACK_DICT = {
     "002069": "獐子岛：财务造假，奇葩公告，屡遭交易所问询",
     "002070": "ST众和：2018年公司净资产为负",
     "002071": "长城影视：商誉占比净资产超100％; 信息披露违法违规",
-    "002072": "凯瑞德：商誉占比净资产超100％",
+    "002072": "凯瑞德：商誉占比净资产超100％; 实控人、董事长吴联模，通过控制多个账户，释放彩票、基金、互联网金融等利好拉抬股价，大举获利，他操纵证券市场被罚没5.13亿元，同时被处罚终身市场禁入",
     "002074": "国轩高科: 增收不增利;变更募投项目;存货周转率下降现金销售减少;",
     "002076": "雪莱特：管理混乱，预盈变亏损，现金流持续为负，各种并购",
     "002077": "大港股份: 收购的标的存在商誉减值风险",
