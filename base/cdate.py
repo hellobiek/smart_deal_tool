@@ -169,6 +169,10 @@ def get_pre_date(sdate, target_day = calendar.FRIDAY, dformat = '%Y.%m.%d'):
     tdate = sdate.strftime(dformat)
     return tdate
 
+def is_some_day(sdate, target_day = calendar.FRIDAY, dformat = '%Y.%m.%d'):
+    sdate = datetime.strptime(sdate, dformat)
+    return True if sdate.weekday() == target_day else False
+
 def get_next_date(sdate, target_day = calendar.FRIDAY, dformat = '%Y.%m.%d'):
     #func: get next date
     #sdate: str, example: '2017-01-01'

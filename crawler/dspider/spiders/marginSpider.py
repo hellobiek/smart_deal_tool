@@ -11,11 +11,12 @@ from scrapy import FormRequest
 from ccalendar import CCalendar
 from dspider.items import MarginItem
 from dspider.myspider import BasicSpider
-STOCK_PAGE_URL = 'http://datacenter.eastmoney.com/api/data/get?type=RPTA_WEB_RZRQ_GGMX&sty=ALL&source=WEB&p={}&ps=50&st=date&sr=-1&var=uBrzlcAb&&filter=(date=%27{}%27)' 
+STOCK_PAGE_URL = 'http://datacenter.eastmoney.com/api/data/get?type=RPTA_WEB_RZRQ_GGMX&sty=ALL&source=WEB&p={}&ps=500&st=date&sr=-1&var=uBrzlcAb&&filter=(date=%27{}%27)' 
 class MarginSpider(BasicSpider):
     cur_count = 0
     total_count = 0
     cur_page = 1
+    max_page = 0
     cal_client = CCalendar()
     logger = getLogger(__name__)
     name = 'marginSpider'
@@ -56,18 +57,23 @@ class MarginSpider(BasicSpider):
             self.cur_count += 1
 
     def spider_closed(self, spider, reason):
+        message = 'scraped {} items, total {} items'.format(self.cur_count, self.total_count + 2)
+        self.message = message
         if self.cur_count != self.total_count + 2:
-            message = 'scraped {} items, total {} items'.format(self.cur_count, self.total_count + 2)
-            self.logger.error(message)
-            self.message_client.send_message(self.name, message)
+            self.status = False
+        else:
+            self.status = True
+        self.collect_spider_info()
 
     def start_requests(self):
+        self.cur_count = 0
         matching_urls = ["http://datacenter.eastmoney.com/api/data/get?type=RPTA_WEB_RZRQ_LSSH&sty=ALL&source=WEB&st=dim_date&sr=-1&p=1&ps=50&var=tDckWaEJ&filter=(scdm=%22007%22)&rt=53262182",\
-                         "http://datacenter.eastmoney.com/api/data/get?type=RPTA_WEB_RZRQ_LSSH&sty=ALL&source=WEB&st=dim_date&sr=-1&p=1&ps=50&var=JIsFtHAl&filter=(scdm=%22001%22)&rt=53262409"]
+                         "http://datacenter.eastmoney.com/api/data/get?type=RPTA_WEB_RZRQ_LSSH&sty=ALL&source=WEB&st=dim_date&sr=-1&p=1&ps=5&var=JIsFtHAl&filter=(scdm=%22001%22)&rt=53262409"]
         mdate = datetime.now().strftime('%Y-%m-%d')
         if self.cal_client.is_trading_day(mdate):
             mdate = self.cal_client.pre_trading_day(mdate)
             self.cur_page = 1
+            self.max_page = 1
             for url in matching_urls:
                 yield FormRequest(url=url, callback=self.parse_market, meta={'date': mdate}, errback=self.errback_httpbin)
             url = STOCK_PAGE_URL.format(self.cur_page, mdate)
@@ -76,16 +82,18 @@ class MarginSpider(BasicSpider):
     def parse_stock(self, response):
         try:
             if response.status != 200:
-                self.logger.error('crawl page from {} failed'.format(response.url))
+                self.logger.error('crawl page from url: {}, status: {} failed'.format(response.url, response.status))
                 yield None
             info = json.loads(response.text.split('=')[1].split(';')[0])['result']
             data = info['data']
             df = pd.DataFrame(data)
             mdate = response.meta['date']
-            if self.cur_page == 1: self.total_count = info['count']
-            while self.cur_page < info['pages']:
+            if self.cur_page == 1:
+                self.total_count = info['count']
+                self.max_page = info['pages']
+            for page in range(2, self.max_page + 1):
                 self.cur_page += 1
-                url = STOCK_PAGE_URL.format(self.cur_page, mdate)
+                url = STOCK_PAGE_URL.format(page, mdate)
                 yield FormRequest(url=url, callback=self.parse_stock, meta={'date': mdate}, errback=self.errback_httpbin)
             for unit in data:
                 cur_date = unit['DATE'][0:10]
@@ -103,13 +111,12 @@ class MarginSpider(BasicSpider):
                 item['rzrqye'] = float(self.value_of_none(unit['RZRQYE']))
                 yield item
         except Exception as e:
-            self.logger.error("execption:{}".format(e))
-            yield None 
+            self.logger.error("get stock margin info exception:{}".format(e))
 
     def parse_market(self, response):
         try:
             if response.status != 200:
-                self.logger.error('crawl page from {} failed'.format(response.url))
+                self.logger.error('crawl page from url: {} status: {} failed'.format(response.url, response.status))
                 yield None
             mdate = response.meta['date']
             data = json.loads(response.text.split('=')[1].split(';')[0])['result']['data']
@@ -131,5 +138,4 @@ class MarginSpider(BasicSpider):
             item['rzrqye'] = float(self.value_of_none(info['RZRQYE'].values[0]))
             yield item
         except Exception as e:
-            self.logger.error("execption:{}".format(e))
-            yield None
+            self.logger.error("get market margin info exception:{}".format(e))

@@ -1,12 +1,14 @@
 #coding=utf-8
 import json
 import const as ct
+from scrapy import signals
 from scrapy import Request
 from datetime import datetime
 from dspider.myspider import BasicSpider
 from dspider.items import HkexTradeOverviewItem, HkexTradeTopTenItem
 class HkexSpider(BasicSpider):
     name = 'hkexSpider'
+    scraped_dates = set()
     custom_settings = {
         'ROBOTSTXT_OBEY': False,
         'SPIDERMON_ENABLED': True,
@@ -33,6 +35,7 @@ class HkexSpider(BasicSpider):
         )
     }
     def start_requests(self):
+        self.scraped_dates = set()
         matching_url = "https://sc.hkex.com.hk/TuniS/www.hkex.com.hk/chi/csm/DailyStat/data_tab_daily_{}c.js"
         end_date = datetime.now().strftime('%Y.%m.%d')
         start_date = self.get_nday_ago(end_date, 10, dformat = '%Y.%m.%d')
@@ -113,3 +116,25 @@ class HkexSpider(BasicSpider):
             item['total_turnover'] = item.convert(trade_top_ten_tr[i]["td"][0][5], float)
             items.append(item)
         return items
+
+
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super(HkexSpider, cls).from_crawler(crawler, *args, **kwargs)
+        crawler.signals.connect(spider.item_scraped, signal=signals.item_scraped)
+        crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
+        return spider
+
+    def item_scraped(self, item, response, spider):
+        if item:
+            self.scraped_dates.add(item['date'])
+
+    def spider_closed(self, spider, reason):
+        mdate = datetime.now().strftime('%Y-%m-%d')
+        if mdate in self.scraped_dates:
+            self.status = True
+            self.message = "get data at {} succeed".format(mdate)
+        else:
+            self.status = False
+            self.message = "get data not include {}".format(mdate)
+        self.collect_spider_info()

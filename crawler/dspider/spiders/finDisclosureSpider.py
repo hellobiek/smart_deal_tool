@@ -80,10 +80,8 @@ class FinDisclosureSpider(BasicSpider):
                 self.message = "scraped {} disclosure info succeed".format(len(df))
         except Exception as e:
             message = "get disclosure info exception:{}".format(e)
-            self.status = False
             self.message = message
             self.logger.error(message)
 
     def spider_closed(self, spider, reason):
         self.collect_spider_info()
-        self.send_message(self.name, "status:{}, message:{}".format(self.status, self.message))

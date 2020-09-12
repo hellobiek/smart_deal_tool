@@ -6,7 +6,6 @@ import const as ct
 import pandas as pd
 from pathlib import Path
 from scrapy import Spider
-from base.wechat import SendWechat
 from common import create_redis_obj
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -18,7 +17,6 @@ class BasicSpider(Spider):
     status = False
     message = ""
     redis = create_redis_obj()
-    message_client = SendWechat()
     def get_nday_ago(self, mdate, num, dformat = "%Y.%m.%d"):
         t = time.strptime(mdate, dformat)
         y, m, d = t[0:3]
@@ -82,7 +80,6 @@ class BasicSpider(Spider):
             msg = 'UnknownError on {}'.format(request.url)
         self.status = False
         self.message = msg
-        self.message_client.send_message(self.name, msg)
 
     def value_of_none(self, value, default_val = 0):
         return default_val if value is None else value
@@ -96,7 +93,7 @@ class BasicSpider(Spider):
         else:
             status_info = pd.read_csv(ct.SPIDER_STATUS_FILE)
             if self.name in status_info.name.tolist():
-                status_info.update(df)
-                status_info.to_csv(ct.SPIDER_STATUS_FILE, index=False, mode="w", encoding='utf8')
+                status_info.loc[status_info.name == self.name] = [self.name, self.status, now_time, self.message]
+                status_info.to_csv(ct.SPIDER_STATUS_FILE, index=False, header=True, mode="w", encoding='utf8')
             else:
-                df.to_csv(filepath, index=False, header=True, mode='a+', encoding='utf8')
+                df.to_csv(filepath, index=False, header=False, mode='a+', encoding='utf8')

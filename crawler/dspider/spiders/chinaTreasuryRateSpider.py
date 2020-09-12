@@ -2,10 +2,15 @@
 import re
 import datetime
 import const as ct
+import pandas as pd
+from scrapy import signals
 from datetime import datetime
 from scrapy import FormRequest
+from base.wechat import SendWechat
 from dspider.myspider import BasicSpider
 from dspider.items import ChinaTreasuryRateItem
+from tools.markdown_table import MarkdownTable
+from tools.markdown_writer import MarkdownWriter
 treasury_rate_to_path = {
     "date"  :"/html[1]/body[1]/table[1]/tr[1]/th[1]/text()",#日期
     "name"  :"/html[1]/body[1]/table[1]/tr[2]/td[1]/text()",#名称
@@ -20,7 +25,7 @@ treasury_rate_to_path = {
 }
 
 class ChinaTreasuryRateSpider(BasicSpider):
-    name = 'chinaTreasuryRateSpider'
+    name = 'treasuryRateSpider'
     custom_settings = {
         'ROBOTSTXT_OBEY': False,
         'SPIDERMON_ENABLED': True,
@@ -45,12 +50,14 @@ class ChinaTreasuryRateSpider(BasicSpider):
             'dspider.monitors.SpiderCloseMonitorSuite',
         )
     }
+    scraped_dates = [] 
     allowed_domains = ['yield.chinabond.com.cn']
     start_url = "http://yield.chinabond.com.cn/cbweb-pbc-web/pbc/queryGjqxInfo"
     def start_requests(self):
         mformat = '%Y%m%d'
         formdata = dict()
         formdata['locale'] = 'cn_ZH'
+        self.scraped_dates = [] 
         end_date = datetime.now().strftime(mformat)
         start_date = self.get_nday_ago(end_date, 10, dformat = mformat)
         while start_date <= end_date:
@@ -71,3 +78,40 @@ class ChinaTreasuryRateSpider(BasicSpider):
             item[k] = value_str
         if not item.empty(): 
             yield item
+            self.scraped_dates.append(item['date'])
+
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super(ChinaTreasuryRateSpider, cls).from_crawler(crawler, *args, **kwargs)
+        crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
+        return spider
+
+    def send_message(self):
+        md = MarkdownWriter()
+        mdate = datetime.now().strftime('%Y-%m-%d')
+        title = "{} 爬虫信息".format(mdate)
+        status_info = pd.read_csv(ct.SPIDER_STATUS_FILE)
+        status_info['name'] = status_info['name'].str[0:-6]
+        md.addHeader(title, 1)
+        t_index = MarkdownTable(headers = ["名称", "状态", "时间"])
+        for index in range(len(status_info)):
+            data_list =  status_info.loc[index].tolist()
+            content_list = [data_list[0], data_list[1], data_list[2]]
+            content_list = ["{}\u3000".format(str(i)) for i in content_list]
+            t_index.addRow(content_list)
+        md.addTable(t_index)
+        message = md.getStream()
+        message_client = SendWechat()
+        message_client.send_message(title, message)
+
+    def spider_closed(self, spider, reason):
+        mdate = datetime.now().strftime('%Y-%m-%d')
+        if mdate in self.scraped_dates:
+            message = "get treasury rate {} info succeed".format(mdate)
+            self.status = True
+        else:
+            message = "get treasury rate {} info falied".format(mdate)
+            self.status = False
+        self.message = message
+        self.collect_spider_info()
+        self.send_message()

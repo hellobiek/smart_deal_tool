@@ -52,6 +52,15 @@ class HeroListSpider(BasicSpider):
         crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
         return spider
 
+    def spider_closed(self, spider, reason):
+        if self.cur_count == 0:
+            self.status = False
+            self.message = 'scraped 0 hero_list items'
+        else:
+            self.status = True
+            self.message = 'scraped {} items'.format(self.cur_count)
+        self.collect_spider_info()
+
     def start_requests(self):
         matching_url = "http://data.eastmoney.com/DataCenter_V3/stock2016/TradeDetail/pagesize=300,page=1,sortRule=-1,sortType=,startDate={},endDate={},gpfw=0,js=var%20data_tab_1.html?rt=26442172"
         start_date = datetime.now().strftime('%Y-%m-%d')
@@ -141,10 +150,5 @@ class HeroListSpider(BasicSpider):
                     self.cur_count += 1
                     self.store_items(mdate, info)
         except Exception as e:
-            self.logger.error("execption:{}".format(e))
-
-    def spider_closed(self, spider, reason):
-        message = 'scraped {} items'.format(self.cur_count)
-        self.logger.info("{} {}".format(self.name, message))
-        self.message_client.send_message(self.name, message)
+            self.logger.error("execption:{}".format(e)) 
 

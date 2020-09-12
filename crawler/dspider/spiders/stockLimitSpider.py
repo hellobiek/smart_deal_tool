@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from cmysql import CMySQL
 from scrapy import Request
+from scrapy import signals
 from datetime import datetime
 from ccalendar import CCalendar
 from base.clog import getLogger
@@ -16,10 +17,12 @@ from dspider.items import StockLimitItem
 from base.cdate import get_day_nday_ago, get_dates_array, transfer_int_to_date_string
 class StockLimitSpider(BasicSpider):
     name = 'stocklimitspider'
+    scraped_dates = [] 
     LIMIT_UP = 0
     LIMIT_DOWN = 1
     FIR_PAGE_ORDER = 'first'
     SEC_PAGE_ORDER = 'second'
+    logger = getLogger(__name__)
     LIMIT_URL_PRIFIX = "http://home.flashdata2.jrj.com.cn/limitStatistic/"
     LIMIT_URL_MID = ".js?_dc="
     allowed_domains = ['home.flashdata2.jrj.com.cn']
@@ -93,10 +96,12 @@ class StockLimitSpider(BasicSpider):
         else:
             return self.LIMIT_URL_PRIFIX + "dtForce/%s" % mdate + self.LIMIT_URL_MID + str(int(round(time.time() * 1000)))
 
+
     def start_requests(self):
         cal_client = CCalendar(without_init = True)
         end_date = datetime.now().strftime('%Y-%m-%d')
         start_date = self.get_nday_ago(end_date, 10, dformat = '%Y-%m-%d')
+        self.scraped_dates = []
         date_array = get_dates_array(start_date, end_date, asending = True)
         for mdate in date_array:
             if cal_client.is_trading_day(mdate):
@@ -125,10 +130,11 @@ class StockLimitSpider(BasicSpider):
                 df = df.reset_index(drop = True)
                 records = df.to_dict('records')
                 for record in df.to_dict('records'): yield StockLimitItem(record)
+                self.scraped_dates.append(mdate)
             else:
-                print("%s is None url" % response.url)
+                self.logger.error("{} response is {}".format(response.url, response.status))
         except Exception as e:
-            print(e)
+            self.logger.error("get stock margin info exception:{}".format(e))
 
     def parse(self, response):
         try:
@@ -142,6 +148,23 @@ class StockLimitSpider(BasicSpider):
                     sub_url = self.get_sub_url(cstr, mdate)
                     yield Request(url = sub_url, callback=self.parse_sub_url, errback=self.errback_httpbin, meta={'item': data, 'date': mdate})
             else:
-                print("%s is None url" % url)
+                self.logger.error("{} response is {}".format(response.url, response.status))
         except Exception as e:
-            print(e)
+            self.logger.error("get stock limit info exception:{}".format(e))
+
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super(StockLimitSpider, cls).from_crawler(crawler, *args, **kwargs)
+        crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
+        return spider
+
+    def spider_closed(self, spider, reason):
+        mdate = datetime.now().strftime('%Y-%m-%d')
+        if mdate in self.scraped_dates:
+            message = "get stock limit {} info succeed".format(mdate)
+            self.status = True
+        else:
+            message = "get stock limit {} info falied".format(mdate)
+            self.status = False
+        self.message = message
+        self.collect_spider_info()

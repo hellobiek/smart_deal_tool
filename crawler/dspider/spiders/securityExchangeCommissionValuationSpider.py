@@ -2,12 +2,18 @@
 import os
 import datetime
 import const as ct
+from pathlib import Path
+from scrapy import signals
 from datetime import datetime
 from scrapy import FormRequest
+from base.clog import getLogger 
 from dspider.myspider import BasicSpider
 from dspider.items import MyDownloadItem
 class SecurityExchangeCommissionValuationSpider(BasicSpider):
-    name = 'securityExchangeCommissionValuationSpider'
+    #name = 'securityExchangeCommissionValuationSpider'
+    name = 'sECValuationSpider'
+    file_name = ''
+    logger = getLogger(__name__)
     custom_settings = {
         'ROBOTSTXT_OBEY': False,
         'SPIDERMON_ENABLED': True,
@@ -36,6 +42,7 @@ class SecurityExchangeCommissionValuationSpider(BasicSpider):
     def start_requests(self):
         mformat = '%Y%m%d.zip'
         end_date = datetime.now().strftime(mformat)
+        self.file_name = end_date
         start_date = self.get_nday_ago(end_date, 10, dformat = mformat)
         while start_date <= end_date:
             furl =  self.start_url + start_date
@@ -47,5 +54,25 @@ class SecurityExchangeCommissionValuationSpider(BasicSpider):
             if response.status == 200:
                 fname = os.path.basename(response.url)
                 yield MyDownloadItem(file_urls = [response.url], file_name = fname)
+            else:
+                self.logger.error("get security exchange commission failed url:{} status:{}".format(response.url, response.status))
         except Exception as e:
-            print(e)
+            self.logger.error("get security exchange commission exception:{}".format(e))
+
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super(SecurityExchangeCommissionValuationSpider, cls).from_crawler(crawler, *args, **kwargs)
+        crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
+        return spider
+
+    def spider_closed(self, spider, reason):
+        mdate = datetime.now().strftime('%Y-%m-%d')
+        file_path = Path(ct.SECURITY_EXCHANGE_COMMISSION_INDUSTRY_VALUATION_ZIP_PATH)/"{}".format(self.file_name)
+        if file_path.exists():
+            message = "download security exchange commission {} at {} succeed".format(file_path, mdate)
+            self.status = True
+        else:
+            message = "download security exchange commission {} at {} failed".format(file_path, mdate)
+            self.status = False
+        self.message = message
+        self.collect_spider_info()
