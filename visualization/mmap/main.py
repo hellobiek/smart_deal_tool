@@ -45,8 +45,8 @@ def update_compare_map(attr, old, new):
     sdata = get_data(start_date)
     edata = get_data(end_date)
     if sdata is None or edata is None: return None
-    sdata = sdata.loc[(sdata.profit > 0) & (sdata.pday > 0)]
-    edata = edata.loc[(edata.profit > 0) & (edata.pday > 0)]
+    sdata = sdata.loc[(sdata.profit > 1) & (sdata.pday > 0)]
+    edata = edata.loc[(edata.profit > 1) & (edata.pday > 0)]
     sset = set(sdata.code.tolist())
     eset = set(edata.code.tolist())
     mlist = list(eset - sset)
