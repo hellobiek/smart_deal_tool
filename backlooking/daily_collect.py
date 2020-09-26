@@ -30,12 +30,11 @@ def get_up_data(mdate, pre_date):
     val_client = CValuation(valuation_path, bonus_path, report_dir, report_publish_dir, pledge_file_dir, rvaluation_dir)
     df = tu_client.daily(trade_date=mdate)
     if df.empty: return df
-    df = df.loc[df.pct_chg > 9.5]
-    df = df.reset_index(drop = True)
+
     df['ts_code'] = df['ts_code'].str[0:6]
     df['trade_date'] = transfer_int_to_date_string(mdate)
     df = df.rename(columns = {"ts_code": "code", "trade_date": "date"})
-    df = df[['date', 'code']]
+    df = df[['date', 'code', 'pct_chg']]
     df = pd.merge(df, base_df, how='inner', on=['code'])
     df = df.loc[df.timeToMarket - int(mdate) < -100]
 
@@ -45,9 +44,8 @@ def get_up_data(mdate, pre_date):
     pday_df['market_value'] = pday_df['market_value'].round(2)
     pday_df = pday_df[['code', 'market_value']]
     df = pd.merge(df, pday_df, how='inner', on=['code'])
-
+    df = df.loc[(df.pct_chg > 9.5) | ((df.market_value > 200) & (df.pct_chg > 6)) | ((df.market_value > 200) & (df.pct_chg < -7))]
     df = df[['date', 'code', 'name', 'industry', 'timeToMarket', 'market_value']]
-
     val_client.update_vertical_data(df, ['institution_holders', 'social_security_holders'], int(mdate))
     df = df[['date', 'code', 'name', 'industry', 'institution_holders', 'social_security_holders', 'market_value']]
     df = df.sort_values(by = 'industry', ascending= True)
@@ -74,8 +72,8 @@ def generate_daily(dirname, mdate, pre_date):
         f.write(md.getStream())
 
 def main():
-    mdate = '20200917'
-    pre_date = '20200916'
+    mdate = '20200925'
+    pre_date = '20200925'
     dirname = '/Users/hellobiek/Documents/workspace/blog/blog/source/_posts'
     generate_daily(dirname, mdate, pre_date)
 

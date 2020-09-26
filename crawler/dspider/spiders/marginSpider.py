@@ -49,8 +49,16 @@ class MarginSpider(BasicSpider):
     def from_crawler(cls, crawler, *args, **kwargs):
         spider = super(MarginSpider, cls).from_crawler(crawler, *args, **kwargs)
         crawler.signals.connect(spider.item_scraped, signal=signals.item_scraped)
+        crawler.signals.connect(spider.item_dropped, signal=signals.item_dropped)
+        crawler.signals.connect(spider.item_error, signal=signals.item_error)
         crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
         return spider
+
+    def item_error(self, item, response, spider, failure):
+        self.logger.error("wrong date:{}, code:{}, failure:{}".format(item['date'], item['code'], failure)
+
+    def item_dropped(self, item, spider, exception):
+        self.logger.error("exception date:{}, code:{}, failure:{}".format(item['date'], item['code'], exception)
 
     def item_scraped(self, item, response, spider):
         if item:
@@ -67,13 +75,13 @@ class MarginSpider(BasicSpider):
 
     def start_requests(self):
         self.cur_count = 0
+        self.cur_page = 1
+        self.max_page = 1
         matching_urls = ["http://datacenter.eastmoney.com/api/data/get?type=RPTA_WEB_RZRQ_LSSH&sty=ALL&source=WEB&st=dim_date&sr=-1&p=1&ps=50&var=tDckWaEJ&filter=(scdm=%22007%22)&rt=53262182",\
                          "http://datacenter.eastmoney.com/api/data/get?type=RPTA_WEB_RZRQ_LSSH&sty=ALL&source=WEB&st=dim_date&sr=-1&p=1&ps=5&var=JIsFtHAl&filter=(scdm=%22001%22)&rt=53262409"]
         mdate = datetime.now().strftime('%Y-%m-%d')
         if self.cal_client.is_trading_day(mdate):
             mdate = self.cal_client.pre_trading_day(mdate)
-            self.cur_page = 1
-            self.max_page = 1
             for url in matching_urls:
                 yield FormRequest(url=url, callback=self.parse_market, meta={'date': mdate}, errback=self.errback_httpbin)
             url = STOCK_PAGE_URL.format(self.cur_page, mdate)
@@ -91,9 +99,9 @@ class MarginSpider(BasicSpider):
             if self.cur_page == 1:
                 self.total_count = info['count']
                 self.max_page = info['pages']
-            for page in range(2, self.max_page + 1):
+            if self.cur_page < self.max_page:
                 self.cur_page += 1
-                url = STOCK_PAGE_URL.format(page, mdate)
+                url = STOCK_PAGE_URL.format(self.cur_page, mdate)
                 yield FormRequest(url=url, callback=self.parse_stock, meta={'date': mdate}, errback=self.errback_httpbin)
             for unit in data:
                 cur_date = unit['DATE'][0:10]
