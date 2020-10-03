@@ -219,19 +219,22 @@ class CMySQL:
                 cur.execute(sql, params)
                 conn.commit()
                 hasSucceed = True
+            except db.IntegrityError as s:
+                logger.debug("warning:%s" % str(s))
+                hasSucceed = True
             except db.Warning as w:
                 if 'conn' in dir(): conn.rollback()
                 logger.debug("warning:%s" % str(w))
                 hasSucceed = True
             except db.Error as e:
                 if 'conn' in dir(): conn.rollback()
-                logger.warning("error:%s" % str(e))
+                logger.debug("error:%s" % str(e))
             finally:
                 if 'cur' in dir(): cur.close()
                 if 'conn' in dir(): conn.close()
             if hasSucceed: return True
-            if retry_times > 1: 
-                time.sleep(ct.SHORT_SLEEP_TIME)
+            if retry_times > 1:
+                time.sleep(ct.SHORT_SLEEP_TIME * retry_times)
         logger.error("%s failed" % sql)
         return False
 

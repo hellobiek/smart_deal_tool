@@ -2,8 +2,10 @@
 import re
 import datetime
 import const as ct
+from scrapy import signals
 from datetime import datetime
 from scrapy import FormRequest
+from base.clog import getLogger
 from dspider.utils import datetime_to_str
 from dspider.myspider import BasicSpider
 from dspider.items import MonthInvestorSituationItem
@@ -54,8 +56,37 @@ class MonthInvestorSituationSpider(BasicSpider):
             'dspider.monitors.SpiderCloseMonitorSuite',
         )
     }
+    logger = getLogger(__name__)
     allowed_domains = ['www.chinaclear.cn']
     start_url = 'http://www.chinaclear.cn/cms-search/monthview.action?action=china'
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super(MonthInvestorSituationSpider, cls).from_crawler(crawler, *args, **kwargs)
+        crawler.signals.connect(spider.item_scraped, signal=signals.item_scraped)
+        crawler.signals.connect(spider.item_dropped, signal=signals.item_dropped)
+        crawler.signals.connect(spider.item_error, signal=signals.item_error)
+        crawler.signals.connect(spider.spider_error, signal=signals.spider_error)
+        crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
+        return spider
+
+    def item_error(self, item, response, spider, failure):
+        self.logger.error("wrong item date:{}, failure:{}".format(item['date'], failure.value))
+
+    def item_scraped(self, item, response, spider):
+        pass
+
+    def spider_error(self, failure, response, spider):
+        self.logger.error("wrong url:{}, failure:{}".format(response.url, failure.value))
+
+    def item_dropped(self, item, spider, exception):
+        self.logger.error("exception date:{}, failure:{}".format(item['date'], exception))
+
+    def spider_closed(self, spider, reason):
+        message = 'run at {}'.format(datetime.now().strftime('%Y年%m月'))
+        self.message = message
+        self.status = True
+        self.collect_spider_info()
+
     def start_requests(self):
         formdata = dict()
         formdata['channelIdStr'] = '08ce523457dd47d2aad6b41246964535'
@@ -71,7 +102,7 @@ class MonthInvestorSituationSpider(BasicSpider):
         patten = re.compile(r'[(|（](.*?)[）|)]', re.S)
         item = MonthInvestorSituationItem()
         tmpStr = response.xpath("/html[1]/body[1]/form[1]/div[3]/div[1]/font[1]/text()").extract_first()
-        if tmpStr is not None and tmpStr.find('没有找到相关信息，请检查查询条件') != -1: return
+        if ((tmpStr is None) or (tmpStr is not None and tmpStr.find('没有找到相关信息，请检查查询条件') != -1)): return
         unit = '万'
         for k in investor_count_to_path:
             if k == "date":
