@@ -54,10 +54,10 @@ class BlockTradingSpider(BasicSpider):
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
         spider = super(BlockTradingSpider, cls).from_crawler(crawler, *args, **kwargs)
-        crawler.signals.connect(spider.spider_error, signal=signals.spider_error)
         crawler.signals.connect(spider.item_scraped, signal=signals.item_scraped)
         crawler.signals.connect(spider.item_dropped, signal=signals.item_dropped)
         crawler.signals.connect(spider.item_error, signal=signals.item_error)
+        crawler.signals.connect(spider.spider_error, signal=signals.spider_error)
         crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
         return spider
 

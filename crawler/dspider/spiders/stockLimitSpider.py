@@ -156,8 +156,24 @@ class StockLimitSpider(BasicSpider):
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
         spider = super(StockLimitSpider, cls).from_crawler(crawler, *args, **kwargs)
+        crawler.signals.connect(spider.item_scraped, signal=signals.item_scraped)
+        crawler.signals.connect(spider.item_dropped, signal=signals.item_dropped)
+        crawler.signals.connect(spider.item_error, signal=signals.item_error)
+        crawler.signals.connect(spider.spider_error, signal=signals.spider_error)
         crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
         return spider
+
+    def spider_error(self, failure, response, spider):
+        self.logger.error("wrong url:{}, failure:{}".format(response.url, failure.value))
+
+    def item_error(self, item, response, spider, failure):
+        self.logger.error("wrong item date:{}, code:{}, failure:{}".format(item['date'], item['code'], failure.value))
+
+    def item_scraped(self, item, response, spider):
+        pass
+
+    def item_dropped(self, item, spider, exception):
+        self.logger.error("exception date:{}, code:{}, failure:{}".format(item['date'], item['code'], exception))
 
     def spider_closed(self, spider, reason):
         mdate = datetime.now().strftime('%Y-%m-%d')
