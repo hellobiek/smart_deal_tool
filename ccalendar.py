@@ -39,7 +39,9 @@ class CCalendar(object):
 
     def is_trading_day(self, mdate = None):
         tmp_date = mdate if mdate is not None else datetime.now().strftime('%Y-%m-%d')
-        return 1 == CCalendar.data.loc[CCalendar.data.calendarDate == tmp_date].isOpen.values[0]
+        info = CCalendar.data.loc[CCalendar.data.calendarDate == tmp_date]
+        if info.empty: return False
+        return 1 == info.isOpen.values[0]
 
     def trading_day_series(self, start, end):
         date_array = get_dates_array(start, end, asending = True)

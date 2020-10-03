@@ -70,9 +70,9 @@ class CMySQL:
                 df = pd.read_sql(sql, conn)
                 res = True
             except sqlalchemy.exc.OperationalError as e:
-                logger.info(e)
+                logger.warning(e)
             except Exception as e:
-                logger.debug(e)
+                logger.error(e)
             finally: 
                 if 'conn' in dir(): conn.close()
             if True == res:return set(df[key].tolist()) if not df.empty else set()
@@ -210,9 +210,9 @@ class CMySQL:
         logger.error("{} {} failed afer try {} times".format(self.dbname, sql, retry_times))
         return None
 
-    def exec_sql(self, sql, params = None):
+    def exec_sql(self, sql, params = None, retry_times = ct.RETRY_TIMES):
         hasSucceed = False
-        for i in range(ct.RETRY_TIMES):
+        for i in range(retry_times):
             try:
                 conn = db.connect(host=self.dbinfo['host'],user=self.dbinfo['user'],passwd=self.dbinfo['password'],db=self.dbname,charset=ct.UTF8,connect_timeout=3)
                 cur = conn.cursor()
@@ -225,12 +225,12 @@ class CMySQL:
                 hasSucceed = True
             except db.Error as e:
                 if 'conn' in dir(): conn.rollback()
-                logger.error("error:%s" % str(e))
+                logger.warning("error:%s" % str(e))
             finally:
                 if 'cur' in dir(): cur.close()
                 if 'conn' in dir(): conn.close()
             if hasSucceed: return True
-            if ct.RETRY_TIMES > 1: 
+            if retry_times > 1: 
                 time.sleep(ct.SHORT_SLEEP_TIME)
         logger.error("%s failed" % sql)
         return False

@@ -6,12 +6,14 @@ from pathlib import Path
 from scrapy import signals
 from datetime import datetime
 from scrapy import FormRequest
+from base.clog import getLogger
 from dspider.myspider import BasicSpider
 from dspider.items import MyDownloadItem, ChinaSecurityIndustryValuationItem
 class ChinaSecurityIndustryValuationSpider(BasicSpider):
     #name = 'chinaSecurityIndustryValuationSpider'
     name = 'cSIValuationSpider'
     file_name = ''
+    logger = getLogger(__name__)
     custom_settings = {
         'ROBOTSTXT_OBEY': False,
         'SPIDERMON_ENABLED': True,

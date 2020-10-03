@@ -129,7 +129,8 @@ class StockLimitSpider(BasicSpider):
                 df['concept'].fillna('', inplace = True)
                 df = df.reset_index(drop = True)
                 records = df.to_dict('records')
-                for record in df.to_dict('records'): yield StockLimitItem(record)
+                for record in df.to_dict('records'):
+                    yield StockLimitItem(record)
                 self.scraped_dates.append(mdate)
             else:
                 self.logger.error("{} response is {}".format(response.url, response.status))

@@ -102,3 +102,14 @@ class MarginModel(Model):
     rqmcl = FloatType(required=True)
     rqchl = FloatType(required=True)
     rzrqye = FloatType(required=True)
+
+class BlockTradingModel(Model):
+    date = StringType(required=True)
+    uid = StringType(required=True)
+    code = StringType(required=True)
+    name = StringType(required=True)
+    price = FloatType(required=True)
+    volume = FloatType(required=True)
+    amount = FloatType(required=True)
+    branch_buy = StringType(required=True)
+    branch_sell = StringType(required=True)

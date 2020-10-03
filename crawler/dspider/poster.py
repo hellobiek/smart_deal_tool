@@ -9,8 +9,8 @@ import pymysql.cursors
 import const as ct
 from base.clog import getLogger
 from twisted.enterprise import adbapi
+from cmysql import CMySQL
 from hkex import HkexCrawler
-from margin import MarginCrawler
 from common import create_redis_obj
 from investor import InvestorCrawler
 from investor import MonthInvestorCrawler
@@ -56,9 +56,8 @@ class HkexTradeOverviewPoster(Poster):
         self.mysql_reconnect_wait = 60
         self.dbname = get_hk_dbname(market = item['market'], direction = item['direction'])
         self.table = HkexCrawler.get_capital_table(self.dbname)
-        self.connect = pymysql.connect(host=dbinfo['host'], port=dbinfo['port'], db=self.dbname, user=dbinfo['user'], passwd=dbinfo['password'], charset=ct.UTF8)
-        self.cursor = self.connect.cursor()
-        #self.dbpool = adbapi.ConnectionPool("pymysql", host = dbinfo['host'], db = self.dbname, user = dbinfo['user'], password = dbinfo['password'], charset = "utf8", cursorclass = pymysql.cursors.DictCursor, use_unicode = True)
+        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
+        self.mysql_client = CMySQL(dbinfo, self.dbname, iredis = self.redis)
 
     def on_error(self, failure):
         args = failure.value.args
@@ -95,8 +94,8 @@ class HkexTradeOverviewPoster(Poster):
         try:
             insert_sql, params = self.item.get_insert_sql(self.table)
             if insert_sql == None and params == None: return
-            self.cursor.execute(insert_sql, params)
-            self.connect.commit()
+            if not self.mysql_client.exec_sql(insert_sql, params, retry_times = 3):
+                logger.error("store failed for :{}".format(self.item))
         except Exception as e:
             logger.debug(e)
 
@@ -106,9 +105,8 @@ class HkexTradeTopTenItemPoster(Poster):
         self.mysql_reconnect_wait = 60
         self.dbname = get_hk_dbname(market = item['market'], direction = item['direction'])
         self.table = HkexCrawler.get_topten_table(self.dbname)
-        self.connect = pymysql.connect(host=dbinfo['host'], port=dbinfo['port'], db=self.dbname, user=dbinfo['user'], passwd=dbinfo['password'], charset=ct.UTF8)
-        self.cursor = self.connect.cursor()
-        #self.dbpool = adbapi.ConnectionPool("pymysql", host = dbinfo['host'], db = self.dbname, user = dbinfo['user'], password = dbinfo['password'], charset = "utf8", cursorclass = pymysql.cursors.DictCursor, use_unicode = True)
+        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
+        self.mysql_client = CMySQL(dbinfo, self.dbname, iredis = self.redis)
 
     def on_error(self, failure):
         args = failure.value.args
@@ -137,16 +135,12 @@ class HkexTradeTopTenItemPoster(Poster):
             logger.error('MySQL: {} {} unhandled exception'.format(failure.type, args))
             return
 
-    def async_store(self):
-        query = self.dbpool.runInteraction(self.do_insert, self.item)
-        query.addErrback(self.on_error)
-
     def store(self):
         try:
             insert_sql, params = self.item.get_insert_sql(self.table)
             if insert_sql == None and params == None: return
-            self.cursor.execute(insert_sql, params)
-            self.connect.commit()
+            if not self.mysql_client.exec_sql(insert_sql, params, retry_times = 3):
+                logger.error("store failed for :{}".format(self.item))
         except Exception as e:
             logger.debug(e)
 
@@ -256,15 +250,15 @@ class StockLimitItemPoster(Poster):
         super(StockLimitItemPoster, self).__init__(item)
         self.dbname = StockLimitCrawler.get_dbname()
         self.table = StockLimitCrawler.get_tablename()
-        self.connect = pymysql.connect(host=dbinfo['host'], port=dbinfo['port'], db=self.dbname, user=dbinfo['user'], passwd=dbinfo['password'], charset=ct.UTF8)
-        self.cursor = self.connect.cursor()
+        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
+        self.mysql_client = CMySQL(dbinfo, self.dbname, iredis = self.redis)
 
     def store(self):
         try:
             insert_sql, params = self.item.get_insert_sql(self.table)
             if insert_sql == None and params == None: return
-            self.cursor.execute(insert_sql, params)
-            self.connect.commit()
+            if not self.mysql_client.exec_sql(insert_sql, params, retry_times = 3):
+                logger.error("store failed for :{}".format(self.item))
         except Exception as e:
             logger.debug(e)
 
@@ -275,11 +269,32 @@ class StockLimitItemPoster(Poster):
 class MarginItemPoster(Poster):
     def __init__(self, item, dbinfo = ct.DB_INFO, redis_host = None):
         super(MarginItemPoster, self).__init__(item)
-        self.dbname = MarginCrawler.get_dbname()
+        self.dbname = "margin"
         self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
-        self.table = MarginCrawler.get_table_name(item['date'])
+        self.mysql_client = CMySQL(dbinfo, self.dbname, iredis = self.redis)
         self.connect = pymysql.connect(host=dbinfo['host'], port=dbinfo['port'], db=self.dbname, user=dbinfo['user'], passwd=dbinfo['password'], charset=ct.UTF8)
         self.cursor = self.connect.cursor()
+
+    def get_dbname(self):
+        return self.dbname
+
+    def get_table_name(self, cdate):
+        cdates = cdate.split('-')
+        return "margin_day_{}_{}".format(cdates[0], (int(cdates[1])-1)//3 + 1)
+
+    def create_table(self, table):
+        sql = 'create table if not exists %s(date varchar(10) not null,\
+                                             code varchar(10) not null,\
+                                             rzye float,\
+                                             rzmre float,\
+                                             rzche float,\
+                                             rqye float,\
+                                             rqyl float,\
+                                             rqmcl float,\
+                                             rqchl float,\
+                                             rzrqye float,\
+                                             PRIMARY KEY (date, code))' % table
+        return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
 
     def is_date_exists(self, table_name, cdate):
         if self.redis.exists(table_name):
@@ -295,9 +310,10 @@ class MarginItemPoster(Poster):
         try:
             mdate = self.item['date']
             code = self.item['code']
+            self.table = self.get_table_name(mdate)
             if not self.is_table_exists(self.table):
                 if not self.create_table(self.table):
-                    logger.error("create tick table failed")
+                    logger.error("create margin table failed")
                     return
                 self.redis.sadd(self.dbname, self.table)
 
@@ -307,11 +323,78 @@ class MarginItemPoster(Poster):
 
             insert_sql, params = self.item.get_insert_sql(self.table)
             if insert_sql == None and params == None: return
-            self.cursor.execute(insert_sql, params)
-            self.connect.commit()
-            self.redis.sadd(self.table, "{}{}".format(mdate, code))
+            if self.mysql_client.exec_sql(insert_sql, params, retry_times = 3):
+                self.redis.sadd(self.table, "{}{}".format(mdate, code))
+            else:
+                logger.error("store failed for :{}".format(self.item))
         except Exception as e:
-            logger.debug(e)
+            logger.error(e)
+
+    def on_error(self, failure):
+        if not (failure.type == IntegrityError and failure.value.args[0] == 1062):
+            logger.error(failure.type, failure.value, failure.getTraceback())
+
+class BlockTradingItemPoster(Poster):
+    def __init__(self, item, dbinfo = ct.DB_INFO, redis_host = None):
+        super(BlockTradingItemPoster, self).__init__(item)
+        self.dbname = "block_trading"
+        self.redis = create_redis_obj() if redis_host is None else create_redis_obj(host = redis_host)
+        self.mysql_client = CMySQL(dbinfo, self.dbname, iredis = self.redis)
+
+    def create_table(self, table):
+        sql = 'create table if not exists %s(date varchar(10) not null,\
+                                              uid varchar(10) not null,\
+                                             code varchar(10) not null,\
+                                             name varchar(20) not null,\
+                                             price float,\
+                                             volume float,\
+                                             amount float,\
+                                             branch_buy varchar(200),\
+                                             branch_sell varchar(200),\
+                                             PRIMARY KEY (date, uid, code))' % table
+        return True if table in self.mysql_client.get_all_tables() else self.mysql_client.create(sql, table)
+
+    def get_dbname(self):
+        return self.dbname
+
+    def get_table_name(self, cdate):
+        cdates = cdate.split('-')
+        return "block_trading_day_{}_{}".format(cdates[0], (int(cdates[1])-1)//3 + 1)
+
+    def is_date_exists(self, table_name, cdate):
+        if self.redis.exists(table_name):
+            return self.redis.sismember(table_name, cdate)
+        return False
+
+    def is_table_exists(self, table_name):
+        if self.redis.exists(self.dbname):
+            return self.redis.sismember(self.dbname, table_name)
+        return False
+
+    def store(self):
+        try:
+            mdate = self.item['date']
+            code = self.item['code']
+            uid = self.item['uid']
+            self.table = self.get_table_name(mdate)
+            if not self.is_table_exists(self.table):
+                if not self.create_table(self.table):
+                    logger.error("create tick table failed")
+                    return
+                self.redis.sadd(self.dbname, self.table)
+
+            if self.is_date_exists(self.table, "{}{}{}".format(mdate, uid, code)):
+                logger.debug("existed table:{}, mdate:{}, uid:{}, code:{}".format(self.table, mdate, uid, code))
+                return
+
+            insert_sql, params = self.item.get_insert_sql(self.table)
+            if insert_sql == None and params == None: return
+            if self.mysql_client.exec_sql(insert_sql, params, retry_times = 3):
+                self.redis.sadd(self.table, "{}{}{}".format(mdate, uid, code))
+            else:
+                logger.error("store failed for :{}".format(self.item))
+        except Exception as e:
+            logger.error(e)
 
     def on_error(self, failure):
         if not (failure.type == IntegrityError and failure.value.args[0] == 1062):

@@ -55,10 +55,10 @@ class MarginSpider(BasicSpider):
         return spider
 
     def item_error(self, item, response, spider, failure):
-        self.logger.error("wrong date:{}, code:{}, failure:{}".format(item['date'], item['code'], failure)
+        self.logger.error("wrong date:{}, code:{}, failure:{}".format(item['date'], item['code'], failure))
 
     def item_dropped(self, item, spider, exception):
-        self.logger.error("exception date:{}, code:{}, failure:{}".format(item['date'], item['code'], exception)
+        self.logger.error("exception date:{}, code:{}, failure:{}".format(item['date'], item['code'], exception))
 
     def item_scraped(self, item, response, spider):
         if item:

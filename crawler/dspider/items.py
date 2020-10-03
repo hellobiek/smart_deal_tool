@@ -218,3 +218,20 @@ class MarginItem(DspiderItem):
         params = (dc['date'], dc['code'], dc['rzye'], dc['rzmre'], dc['rzche'], dc['rqye'], dc['rqyl'], dc['rqmcl'], dc['rqchl'], dc['rzrqye'])
         insert_sql = "insert ignore into {}(date, code, rzye, rzmre, rzche, rqye, rqyl, rqmcl, rqchl, rzrqye) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)".format(table)
         return insert_sql, params
+
+class BlockTradingItem(DspiderItem):
+    '''大宗交易统计数据'''
+    uid = scrapy.Field()
+    date = scrapy.Field()
+    code = scrapy.Field()
+    name = scrapy.Field()
+    price = scrapy.Field()
+    volume = scrapy.Field()
+    amount = scrapy.Field()
+    branch_buy = scrapy.Field()
+    branch_sell = scrapy.Field()
+    def get_insert_sql(self, table):
+        dc = dict(self)
+        params = (dc['date'], dc['uid'], dc['code'], dc['name'], dc['price'], dc['volume'], dc['amount'], dc['branch_buy'], dc['branch_sell'])
+        insert_sql = "insert ignore into {}(date, uid, code, name, price, volume, amount, branch_buy, branch_sell) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)".format(table)
+        return insert_sql, params

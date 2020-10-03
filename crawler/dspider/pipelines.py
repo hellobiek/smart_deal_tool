@@ -28,6 +28,7 @@ post_router = {
     items.ChinaTreasuryRateItem:poster.ChinaTreasuryRateItemPoster,
     items.StockLimitItem:poster.StockLimitItemPoster,
     items.MarginItem:poster.MarginItemPoster,
+    items.BlockTradingItem:poster.BlockTradingItemPoster,
 }
 
 class DspiderPipeline(object):

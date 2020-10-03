@@ -9,6 +9,7 @@ from scrapy.crawler import CrawlerRunner
 from dspider.hkex import HkexCrawler
 from dspider.spledge import SPledgeCrawler
 from dspider.investor import InvestorCrawler
+from dspider.block_trading import BlockTradingCrawler 
 from dspider.plate_valuation import PlateValuationCrawler
 from dspider.china_treasury_rate import ChinaTreasuryRateCrawler
 from dspider.china_security_industry_valuation import ChinaSecurityIndustryValuationCrawler
@@ -28,6 +29,7 @@ from dspider.spiders.stockFinancialDisclosureTimeSpider import StockFinancialDis
 from dspider.spiders.chinaSecurityIndustryValuationSpider import ChinaSecurityIndustryValuationSpider
 from dspider.spiders.securityExchangeCommissionValuationSpider import SecurityExchangeCommissionValuationSpider
 from dspider.spiders.finDisclosureSpider import FinDisclosureSpider
+from dspider.spiders.blockTradingSpider import BlockTradingSpider
 def init():
     #HkexCrawler()
     #SPledgeCrawler()
@@ -36,6 +38,7 @@ def init():
     #PlateValuationCrawler()
     #ChinaSecurityIndustryValuationCrawler()
     #ChinaTreasuryRateCrawler()
+    #BlockTradingCrawler(shoud_create_db = True)
     pass
 
 def weekly_spider():
@@ -49,13 +52,14 @@ def weekly_spider():
         #myrunner.crawl(PlateValuationSpider)
         #myrunner.crawl(ChinaSecurityIndustryValuationSpider)
         #myrunner.crawl(SecurityExchangeCommissionValuationSpider)
-        #myrunner.crawl(StockLimitSpider)
-        myrunner.crawl(MarginSpider)
+        myrunner.crawl(StockLimitSpider)
+        #myrunner.crawl(MarginSpider)
         #myrunner.crawl(FinDisclosureSpider)
         #myrunner.crawl(ChinaTreasuryRateSpider)
+        #myrunner.crawl(InvestorSituationSpider)
+        #myrunner.crawl(MonthInvestorSituationSpider)
+        #myrunner.crawl(BlockTradingSpider)
         ##myrunner.crawl(StockFinancialDisclosureTimeSpider)
-        ##myrunner.crawl(InvestorSituationSpider)
-        ##myrunner.crawl(MonthInvestorSituationSpider)
         d = myrunner.join()
         d.addBoth(lambda _: reactor.stop())
         reactor.run() #the script will block here until the crawling is finished
