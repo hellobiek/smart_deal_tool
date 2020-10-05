@@ -31,14 +31,14 @@ def transfer_int_to_date_string(cdate):
 
 def str_to_datetime(mdate:str, dformat = "%Y%m%d"):
     """将字符串转换成datetime类型"""
-    return datetime.strptime(mdate, dformat)
+    return datetime.strptime(mdate, dformat) if mdate else ''
 
 def int_to_datetime(mdate:int, dformat = "%Y%m%d"):
     return str_to_datetime(str(mdate), dformat)
 
 def datetime_to_str(mdate, dformat = "%Y%m%d"):
     """将datetime类型转换为日期型字符串,格式为2008-08-02"""
-    return mdate.strftime(dformat) 
+    return '' if (pd.isnull(mdate) or not mdate) else mdate.strftime(dformat)
 
 def datetime_to_int(mdate, dformat = "%Y%m%d"):
     """将datetime类型转换为日期型字符串,格式为2008-08-02"""

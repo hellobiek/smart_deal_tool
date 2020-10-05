@@ -30,6 +30,7 @@ from dspider.spiders.chinaSecurityIndustryValuationSpider import ChinaSecurityIn
 from dspider.spiders.securityExchangeCommissionValuationSpider import SecurityExchangeCommissionValuationSpider
 from dspider.spiders.finDisclosureSpider import FinDisclosureSpider
 from dspider.spiders.blockTradingSpider import BlockTradingSpider
+from dspider.spiders.backBuySpider import BackBuySpider
 def init():
     #HkexCrawler()
     #SPledgeCrawler()
@@ -58,7 +59,8 @@ def weekly_spider():
         #myrunner.crawl(ChinaTreasuryRateSpider)
         #myrunner.crawl(InvestorSituationSpider)
         #myrunner.crawl(MonthInvestorSituationSpider)
-        myrunner.crawl(BlockTradingSpider)
+        #myrunner.crawl(BlockTradingSpider)
+        myrunner.crawl(BackBuySpider)
         ##myrunner.crawl(StockFinancialDisclosureTimeSpider)
         d = myrunner.join()
         d.addBoth(lambda _: reactor.stop())

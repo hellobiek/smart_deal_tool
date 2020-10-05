@@ -4529,6 +4529,7 @@ const.SECURITY_EXCHANGE_COMMISSION_INDUSTRY_VALUATION_ZIP_PATH = '/data/crawler/
 const.SECURITY_EXCHANGE_COMMISSION_INDUSTRY_VALUATION_STOCK_PATH = '/data/crawler/security_exchange_commission_industry/valuation/stock'
 const.SECURITY_EXCHANGE_COMMISSION_INDUSTRY_VALUATION_INDUSTRY_PATH = '/data/crawler/security_exchange_commission_industry/valuation/industry'
 const.STOCK_FINANCIAL_REPORT_ANNOUNCEMENT_DATE_PATH = '/data/crawler/stock/financial/report_announcement_date'
+const.STOCK_BACKBUY_FILE_PATH = '/data/crawler/back_buy'
 const.STOCK_TOP_LIST_DATE_PATH = '/data/crawler/top_list'
 const.STOCK_MODEL_DIR = '/data/models'
 ###################################################
