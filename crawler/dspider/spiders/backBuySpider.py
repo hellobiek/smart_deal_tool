@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import json
+import json, os
 import const as ct
 import pandas as pd
 import urllib.parse
@@ -7,6 +7,7 @@ from scrapy import signals
 from datetime import datetime
 from scrapy import FormRequest
 from base.clog import getLogger 
+from ccalendar import CCalendar
 from base.cdate import str_to_datetime, datetime_to_str
 from dspider.myspider import BasicSpider
 '''
@@ -41,6 +42,7 @@ repuradvancedate: 提前完成日期
 '''
 class BackBuySpider(BasicSpider):
     name = 'backBuySpider'
+    cal_client = CCalendar()
     logger = getLogger(__name__)
     cur_page = 1
     max_page = 5
@@ -88,6 +90,8 @@ class BackBuySpider(BasicSpider):
                     'repuramount', 'repuradvancedate']]
             df = df.rename(columns = {"dim_scode": "code", "securityshortname": "name"})
             df.fillna('', inplace = True)
+            for key in ['repurobjective', 'remark']:
+                df[key] = df[key].str.replace(r'\r','')
             for key in ['dim_date', 'shmrsltnoticedate', 'updatedate', 'repurstartdate', 'repurenddate', 'repuradvancedate']:
                 df[key] = df[key].apply(lambda x:str_to_datetime(x, "%Y/%m/%d"))
                 df[key] = df[key].apply(lambda x:datetime_to_str(x, "%Y-%m-%d"))
@@ -99,23 +103,24 @@ class BackBuySpider(BasicSpider):
             return False
 
     def spider_closed(self, spider, reason):
-        df = pd.DataFrame(self.data)
-        df.drop_duplicates(subset=['dim_scode','dim_date'])
         mdate = datetime.now().strftime('%Y-%m-%d')
-        if len(df) == self.total_count: 
-            if self.save_data(df, mdate):
-                message = 'scraped backbuy info succeed for {}'.format(mdate)
-                self.status = True
-                self.message = message
+        if self.cal_client.is_trading_day(mdate):
+            df = pd.DataFrame(self.data)
+            df.drop_duplicates(subset=['dim_scode','dim_date'])
+            if len(df) == self.total_count:
+                if self.save_data(df, mdate):
+                    message = 'scraped backbuy info succeed for {}'.format(mdate)
+                    self.status = True
+                    self.message = message
+                else:
+                    message = 'store backbuy info failed for {}'.format(mdate)
+                    self.status = False
+                    self.message = message
             else:
-                message = 'store backbuy info failed for {}'.format(mdate)
+                message = 'scraped backbuy info failed for {}, actual count:{}, expected count:{}'.format(mdate, len(df), self.total_count)
                 self.status = False
-                self.message = message
-        else:
-            message = 'scraped backbuy info failed for {}, actual count:{}, expected count:{}'.format(mdate, len(df), self.total_count)
-            self.status = False
-            self.logger.error(messsage)
-        self.collect_spider_info()
+                self.logger.error(messsage)
+            self.collect_spider_info()
 
     def east_url(self, page, pagesize = 300):
         data = {'type': 'RPTA_WEB_GETHGLIST',
@@ -128,11 +133,13 @@ class BackBuySpider(BasicSpider):
         return "http://datacenter.eastmoney.com/api/data/get?" + urllib.parse.urlencode(data)
 
     def start_requests(self):
-        self.cur_page = 1
-        self.max_page = 5
-        self.total_count = 0
-        url = self.east_url(self.cur_page)
-        yield FormRequest(url=url, callback=self.parse, errback=self.errback_httpbin)
+        mdate = datetime.now().strftime('%Y-%m-%d')
+        if self.cal_client.is_trading_day(mdate):
+            self.cur_page = 1
+            self.max_page = 5
+            self.total_count = 0
+            url = self.east_url(self.cur_page)
+            yield FormRequest(url=url, callback=self.parse, errback=self.errback_httpbin)
 
     def parse(self, response):
         try:
