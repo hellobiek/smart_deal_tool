@@ -52,12 +52,14 @@ def pre_report_date_with(mdate:int):
     """
     year = int(mdate/10000)
     monthday = int(mdate%10000)
-    if monthday >= 101 and monthday <= 630:
+    if monthday >= 101 and monthday <= 430:
         return int((year - 1) * 10000 + 930)
-    elif monthday >= 701 and monthday <= 930:
+    elif monthday >= 501 and monthday <= 831:
         return int(year * 10000 + 331)
-    elif monthday >= 1001 and monthday <= 1231:
+    elif monthday >= 901 and monthday <= 1031:
         return int(year * 10000 + 630)
+    elif monthday >= 1101 and monthday <= 1231:
+        return int(year * 10000 + 930)
     else:
         raise Exception("can not reach this date:{}".format(monthday))
 
@@ -265,5 +267,7 @@ def parse_date23(mdate):
     return ret
 
 if __name__ == "__main__":
-    mdate = 20200708
-    print(report_date_with(mdate))
+    mdate = 20200930
+    xx = report_date_with(mdate)
+    yy = pre_report_date_with(xx)
+    print(yy)

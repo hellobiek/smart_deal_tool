@@ -24,7 +24,6 @@ from datamanager.margin  import Margin
 from datamanager.emotion import Emotion
 from algotrade.model.follow_trend import FollowTrendModel
 from datamanager.hgt import StockConnect
-from backlooking.creview import CReivew
 from rindustry import RIndexIndustryInfo
 from cpython.cval import CValuation
 from futu.common.constant import SubType
@@ -49,7 +48,6 @@ class DataManager:
         self.cal_client = CCalendar(dbinfo = dbinfo, redis_host = redis_host)
         self.index_info_client = IndexInfo()
         self.cvaluation_client = CValuation()
-        self.reviewer = CReivew(dbinfo, redis_host)
         self.comb_info_client = CombinationInfo(dbinfo, redis_host)
         self.stock_info_client = CStockInfo(dbinfo, redis_host)
         self.rindex_stock_data_client = RIndexStock(dbinfo, redis_host) 

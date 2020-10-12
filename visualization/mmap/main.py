@@ -78,6 +78,7 @@ def create_mmap_figure(mdate):
     TOOLS = [TapTool(), PanTool(), BoxZoomTool(), WheelZoomTool(), ResetTool(), BoxSelectTool(), HoverTool(tooltips = TOOLTIPS)]
     p = figure(plot_height=800, plot_width=1400, x_axis_label='时间', y_axis_label='强度', tools=TOOLS, toolbar_location="above", title="活点地图")
     df = mmap.get_data(mdate)
+    if df is None: return p
     df = pd.merge(df, base_df, how='inner', on=['code'])
     df = df[(df['timeToMarket'] < int((datetime.now() - timedelta(days = 60)).strftime('%Y%m%d'))) | df.code.isin(list(ct.WHITE_DICT.keys()))]
     csi_df = csi_client.get_k_data(mdate)
