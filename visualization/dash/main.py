@@ -291,9 +291,11 @@ def get_market_data(market, start_date, end_date):
     obj = StockExchange(market)
     if market == ct.SH_MARKET_SYMBOL:
         df = obj.get_k_data_in_range(start_date, end_date)
+        if df is None: return None
         df = df.loc[df.name == '上海市场']
     else:
         df = obj.get_k_data_in_range(start_date, end_date)
+        if df is None: return None
         df = df.loc[df.name == '深圳市场']
     df = df.round(2)
     df = df.drop_duplicates()

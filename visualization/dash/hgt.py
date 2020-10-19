@@ -26,6 +26,7 @@ class HGT(object):
     def get_data(self, code, start_date, end_date):
         if code == ct.SH_MARKET_SYMBOL:
             df = self.sh_connect_client.get_k_data(dtype = ct.HGT_CAPITAL)
+            if df is None: return
             total_buy = 294598
             df['net_buy'] = df['buy_turnover'] - df['sell_turnover']
             df['cum_buy'] = df['net_buy'].cumsum()
@@ -36,6 +37,7 @@ class HGT(object):
             df = df.reset_index(drop = True)
         elif code == ct.SZ_MARKET_SYMBOL:
             df = self.sz_connect_client.get_k_data(dtype = ct.HGT_CAPITAL)
+            if df is None: return
             total_buy = 231568
             df['net_buy'] = df['buy_turnover'] - df['sell_turnover']
             df['cum_buy'] = df['net_buy'].cumsum()
@@ -57,6 +59,7 @@ class HGT(object):
                 df = df.loc[df.code == code]
                 df = df.reset_index(drop = True)
                 df['delta'] = df['percent'] - df['percent'].shift(1)
+            if df is None: return
         return df
 
 if __name__ == "__main__":

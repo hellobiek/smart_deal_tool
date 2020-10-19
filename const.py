@@ -4533,6 +4533,13 @@ const.STOCK_BACKBUY_FILE_PATH = '/data/crawler/back_buy'
 const.STOCK_TOP_LIST_DATE_PATH = '/data/crawler/top_list'
 const.STOCK_MODEL_DIR = '/data/models'
 ###################################################
+const.COMPANY_INFO_FILE_PATH = "/data/crawler/fund/company/company_info"
+const.COMPANY_FUNDSCALE_PATH = "/data/crawler/fund/company/fund_scale"
+const.COMPANY_FUNDLIST_PATH = "/data/crawler/fund/company/fund_list"
+const.COMPANY_10STOCK_PATH = "/data/crawler/fund/company/top_ten"
+const.INDUSTRY_CATEGORY_PATH = "/data/crawler/fund/company/category"
+const.FUND_MANAGER_PATH = "/data/crawler/fund/manager"
+###################################################
 const.SELECTERS_DICT = {
     "StrongerThanMarketSelecter" : "S000001",
     "AntiMarketUpSelecter" : "S000002",
@@ -5077,7 +5084,7 @@ const.BLACK_DICT = {
     "002467": "二六三: 高商誉，减值风险大",
     "002469": "三维工程: 内幕交易案4人吃罚单，董秘疑向中学同学泄密",
     "002470": "金正大: 财报被更新为保留意见，是个垃圾",
-    "002471": "中超控股: 财报带强调事项段的无保留意见",
+    "002471": "中超控股: 财报带强调事项段的无保留意见; 花1亿买28把紫砂壶, 卖出3把收回2550万",
     "002473": "圣莱达：为保壳虚增收入",
     "002476": "宝莫股份: 配资黑名单, 5名高管辞职 去年公司亏损2.68亿元, 大股东高溢价减持",
     "002477": "雏鹰农牧：严重造假，有退市风险",
@@ -5683,7 +5690,7 @@ const.BLACK_DICT = {
     "600379": "宝光股份: 第二大股东西藏锋泓拟减持不超6%公司股份",
     "600601": "方正科技: 印刷电路板及宽带接入，虚构交易，连续亏损，14年并购标的后续业绩不达标而且开始连续亏损，涉嫌虚假陈述，被巨额索赔，负债高企; 子公司起诉多家公司拖欠货款 涉案金额3.86亿元",
     "600603": "广汇物流: 关联方交易过于频繁; 公司同业竞争的问题一直没有解决，且有愈演愈烈之势",
-    "600609": "金杯汽车：持股7.47%股东新金杯拟减持不超4.9%公司股份",
+    "600609": "金杯汽车：持股7.47%股东新金杯拟减持不超4.9%公司股份; 连续28年部分工，垃圾公司",
     "600610": "ST毅达：前任管理层处于失联状态, 财务账簿等财务会计资料下落不明",
     "600614": "鹏起科技：公司及实控人涉及借款纠纷68件，银行账户被冻结还公告不清楚具体原因，不动产被查封，违规担保，发不出工资，股份被冻结，忽悠式增持",
     "600615": "丰华股份：隆鑫控股控股，但是隆鑫控股需要在2019年还款90亿; 4.8亿信托谜案浮出水面 流入控股股东口袋",
