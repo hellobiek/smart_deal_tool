@@ -4538,6 +4538,12 @@ const.COMPANY_FUNDSCALE_PATH = "/data/crawler/fund/company/fund_scale"
 const.COMPANY_FUNDLIST_PATH = "/data/crawler/fund/company/fund_list"
 const.COMPANY_10STOCK_PATH = "/data/crawler/fund/company/top_ten"
 const.INDUSTRY_CATEGORY_PATH = "/data/crawler/fund/company/category"
+###################################################
+const.BASIC_INFO_PATH = "/data/crawler/fund/funding/basic_info"
+const.EARNING_PERDAY_PATH = "/data/crawler/fund/funding/earning_perday"
+const.FUND_EARNING_LIST_PATH = "/data/crawler/fund/funding/earning_list"
+const.FUND_TOP_TEN_STOCK_PATH = "/data/crawler/fund/funding/fund_stock10"
+###################################################
 const.FUND_MANAGER_PATH = "/data/crawler/fund/manager"
 ###################################################
 const.SELECTERS_DICT = {

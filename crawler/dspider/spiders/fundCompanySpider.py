@@ -2,7 +2,6 @@
 import const as ct
 import os, re, json, csv 
 from lxml import etree
-from pathlib import Path
 from datetime import datetime
 from base.clog import getLogger 
 from ccalendar import CCalendar

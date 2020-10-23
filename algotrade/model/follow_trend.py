@@ -48,7 +48,7 @@ class FollowTrendModel(QModel):
         self.profit = 0
         self.max_profit = 100
         self.min_roe = 6
-        self.min_market_val = 100
+        self.min_market_val = 150
         self.pledge_rate = 50
         self.existed_days = 1825
         self.max_tcs = 400e+8
