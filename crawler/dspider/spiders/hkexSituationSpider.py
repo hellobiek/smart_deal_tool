@@ -4,10 +4,12 @@ import const as ct
 from scrapy import signals
 from scrapy import Request
 from datetime import datetime
+from base.clog import getLogger 
 from dspider.myspider import BasicSpider
 from dspider.items import HkexTradeOverviewItem, HkexTradeTopTenItem
 class HkexSpider(BasicSpider):
     name = 'hkexSpider'
+    logger = getLogger(__name__)
     scraped_dates = set()
     custom_settings = {
         'ROBOTSTXT_OBEY': False,
@@ -77,7 +79,7 @@ class HkexSpider(BasicSpider):
             for i in range(len(szse_southbond_top_ten_items)):
                 yield szse_southbond_top_ten_items[i]
         except Exception as e:
-            print(e)
+            self.logger.error("wrong url:{}, failure:{}".format(response.url, failure.value))
 
     def parseTradeOverviewItem(self, need_parse_data, market, direction):
         trade_overview_tr = need_parse_data["content"][0]["table"]["tr"]
@@ -121,6 +123,7 @@ class HkexSpider(BasicSpider):
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
         spider = super(HkexSpider, cls).from_crawler(crawler, *args, **kwargs)
+        crawler.signals.connect(spider.spider_error, signal=signals.spider_error)
         crawler.signals.connect(spider.item_scraped, signal=signals.item_scraped)
         crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
         return spider
@@ -128,6 +131,9 @@ class HkexSpider(BasicSpider):
     def item_scraped(self, item, response, spider):
         if item:
             self.scraped_dates.add(item['date'])
+
+    def spider_error(self, failure, response, spider):
+        self.logger.error("wrong url:{}, failure:{}".format(response.url, failure.value))
 
     def spider_closed(self, spider, reason):
         mdate = datetime.now().strftime('%Y-%m-%d')

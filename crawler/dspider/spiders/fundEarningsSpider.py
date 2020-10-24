@@ -166,3 +166,20 @@ class FundEarningSpider(BasicSpider):
             writer = csv.DictWriter(f, fieldnames=item.keys())
             if flag == 0: writer.writeheader()
             writer.writerow(item)
+
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super(FundEarningSpider, cls).from_crawler(crawler, *args, **kwargs)
+        crawler.signals.connect(spider.spider_error, signal=signals.spider_error)
+        crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
+        return spider
+
+    def spider_error(self, failure, response, spider):
+        self.logger.error("wrong url:{}, failure:{}".format(response.url, failure.value))
+
+    def spider_closed(self, spider, reason):
+        result = self.fund_earning_list_flag & self.fund_earning_perday_flag & self.fund_basic_info_flag & self.fund_position_flag
+        self.status = True if result else False
+        message = 'scraped fund earning info {}'.format(succeed)
+        self.message = message
+        self.collect_spider_info()

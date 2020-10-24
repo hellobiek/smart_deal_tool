@@ -59,7 +59,7 @@ class FundCompanySpider(BasicSpider):
 
     def spider_closed(self, spider, reason):
         result = self.company_info_num & self.company_10stock_num & self.company_fundlist_num & self.industry_category_num & self.company_fundscale_num
-        succeed = "succeed" if result else "failed"
+        self.status = True if result else False
         message = 'scraped fund company info {}'.format(succeed)
         self.message = message
         self.collect_spider_info()
