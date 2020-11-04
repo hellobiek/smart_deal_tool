@@ -432,7 +432,7 @@ cdef class CValuation(object):
                     self.logger.debug("report_quarter == 2, code:{}, year_report:{} is None".format(code, "%d1231" % (year-1)))
                 else:
                     self.logger.debug("report_quarter == 2, code:{}, q3_report:{} is None".format(code, "%d0930" % (year-1)))
-                return (price * cur_item['tcs'])/ cur_item['npbo']
+                return 0.0 if cur_item['npbo'] == 0 else (price * cur_item['tcs'])/ cur_item['npbo']
     
             current_eps = (year_report['npbo'] - q3_report['npbo'] + cur_item['npbo']) / cur_item['tcs']
             return 0.0 if current_eps == 0 else price / current_eps
@@ -447,7 +447,7 @@ cdef class CValuation(object):
                     self.logger.debug("report_quarter == 1, code:%s, year_report:%s is None" % (code, "%d1231" % (year-1)))
                 else:
                     self.logger.debug("report_quarter == 1, code:%s, q2_report:%s is None" % (code, "%d0630" % (year-1)))
-                return (price * cur_item['tcs'])/ cur_item['npbo']
+                return 0.0 if cur_item['npbo'] == 0 else (price * cur_item['tcs'])/ cur_item['npbo']
             current_eps = (year_report['npbo'] - q2_report['npbo'] + cur_item['npbo']) / cur_item['tcs']
             return 0.0 if current_eps == 0 else price / current_eps
     
