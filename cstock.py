@@ -427,6 +427,7 @@ class CStock(CMysqlObj):
 
     def set_k_data(self, bonus_info, index_info, stock_info, cdate = None):
         if self.code == '003020': return True
+        if self.code == '003021': return True
         if self.code == '003004': return True
         #logger.debug("enter set k data for {} at {}".format(self.code, cdate))
         time2Market = self.get_time2market(stock_info)
