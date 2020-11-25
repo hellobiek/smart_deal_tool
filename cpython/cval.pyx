@@ -28,6 +28,7 @@ DTYPE_DICT = {'date': int,
               'roa': float, #净资产回报率(roa)
               'mf': float, #货币资金(money funds)
               'stb': float, #短期借款(short term borrowing)
+              'ltl': float, #长期借款(long term loan)
               'ar': float, #应收账款(accounts receivable)
               'br': float, #应收票据(bill receivable)
               'ta': float, #资产总计(total assets)

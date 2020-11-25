@@ -52,6 +52,7 @@ class FollowTrendModel(QModel):
         self.pledge_rate = 50
         self.existed_days = 1825
         self.max_tcs = 400e+8
+        self.max_ltlr = 30 
         self.feature_list = ['k', 'd', 'atr', 'hlzh', 'gamekline', 'ppercent', 'ma_5', 'ma_10', 'ma_20', 'ma_60', 'uprice', 'profit', 'boll', 'roc_ma', 'toc_ma']
         self.decider = RandomForestClassifier(n_estimators=3000, criterion='entropy', max_depth=None, max_features='auto', min_samples_split=2,
                                             min_samples_leaf=1, bootstrap=True, oob_score=False, n_jobs=1, random_state=None, verbose=0)
@@ -153,10 +154,16 @@ class FollowTrendModel(QModel):
             msg = "净资产收益率最小值小于{}%".format(self.min_roe)
             if isAny: return msg
             reasons.append(msg)
-        self.val_client.update_vertical_data(df, ['goodwill', 'ta', 'tcs'], transfer_date_string_to_int(mdate))
+        self.val_client.update_vertical_data(df, ['goodwill', 'ta', 'tcs', 'ltl'], transfer_date_string_to_int(mdate))
         tcs = df.to_dict('records')[0]['tcs']
         if tcs >= self.max_tcs:
             msg = "{}总股本大于阈值{}%".format(tcs, self.max_tcs)
+            if isAny: return msg
+            reasons.append(msg)
+        df['ltlr'] = 100 * df['ltl'] / df['ta']
+        ltlr = df.to_dict('records')[0]['ltlr']
+        if ltlr >= self.max_ltlr:
+            msg = "长期借款占总资产的比例大于{}%, 实际值：{}".format(self.max_ltlr, ltlr)
             if isAny: return msg
             reasons.append(msg)
         df['gwr'] = 100 * df['goodwill'] / df['ta']
@@ -209,9 +216,12 @@ class FollowTrendModel(QModel):
         df = df[df['min_roe'] > self.min_roe]
         #商誉上限
         if df.empty: return df
-        self.val_client.update_vertical_data(df, ['goodwill', 'ta', 'tcs'], transfer_date_string_to_int(mdate))
+        self.val_client.update_vertical_data(df, ['goodwill', 'ta', 'tcs', 'ltl'], transfer_date_string_to_int(mdate))
         df['gwr'] = 100 * df['goodwill'] / df['ta']
         df = df[df['gwr'] < self.gwr]
+        #长期借款占总资产上限
+        df['ltlr'] = 100 * df['ltl'] / df['ta']
+        df = df[df['ltlr'] < self.max_ltlr]
         #确保总股本小于域值
         df = df[df.tcs <= self.max_tcs]
         #最大基础浮动盈利 < 7，绩优股可以容忍大于7
@@ -410,6 +420,7 @@ if __name__ == '__main__':
     model_dir = "/Volumes/data/quant/stock/data/models"
     ftm = FollowTrendModel(valuation_path, bonus_path, stocks_dir, base_stock_path, report_dir, report_publish_dir, pledge_file_dir, 
                            rvaluation_dir, cal_file_path, model_dir, dbinfo = dbinfo, redis_host = redis_host, should_create_mysqldb = True)
-    ftm.train(start_date, end_date)
+    ftm.set_stock_pool('2020-11-25')
+    #ftm.train(start_date, end_date)
     #ftm.generate_stock_pool(start_date, end_date)
     #ftm.get_new_data('2019-10-30')
