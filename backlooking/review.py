@@ -9,7 +9,7 @@ from daily_collect import generate_daily
 from base.cdate import transfer_date_string_to_int
 
 def main():
-    mdate = '2020-11-25'
+    mdate = '2020-11-30'
     data_dir = '/Volumes/data/quant/stock/data/crawler/top_list'
     dirname = '/Users/hellobiek/Documents/workspace/blog/blog/source/_posts'
     generate_top10(dirname, mdate)
