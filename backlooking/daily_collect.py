@@ -44,7 +44,7 @@ def get_up_data(mdate, pre_date):
     pday_df['market_value'] = pday_df['market_value'].round(2)
     pday_df = pday_df[['code', 'market_value']]
     df = pd.merge(df, pday_df, how='inner', on=['code'])
-    df = df.loc[(df.pct_chg > 9.5) | ((df.market_value > 200) & (df.pct_chg > 6)) | ((df.market_value > 200) & (df.pct_chg < -7))]
+    df = df.loc[(df.pct_chg > 9.5) | ((df.market_value > 200) & (df.pct_chg > 6)) | ((df.market_value > 200) & (df.pct_chg <= -7))]
     df = df[['date', 'code', 'name', 'industry', 'timeToMarket', 'market_value']]
     val_client.update_vertical_data(df, ['institution_holders', 'social_security_holders'], int(mdate))
     df = df[['date', 'code', 'name', 'industry', 'institution_holders', 'social_security_holders', 'market_value']]
