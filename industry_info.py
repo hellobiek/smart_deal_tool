@@ -118,6 +118,7 @@ class IndustryInfo(object):
         industry_tdx_df = self.get_tdx_industry_code()
         industry_code_dict = self.get_industry_code_dict_from_tongdaxin(TONG_DA_XIN_CODE_PATH)
         industry_name_dict = self.get_industry_name_dict_from_tongdaxin(TONG_DA_XIN_INDUSTRY_PATH)
+        industry_name_dict['T020604'] = '其它建材'
         name_list = [industry_name_dict[key] for key in industry_code_dict]
         data = {'name':name_list, 'content':list(industry_code_dict.values())}
         df_new = pd.DataFrame.from_dict(data)
@@ -127,5 +128,6 @@ class IndustryInfo(object):
         return df[['code', 'name', 'content']]
 
 if __name__ == '__main__':
-    ci = IndustryInfo(dbinfo = ct.DB_INFO, redis_host = None, without_init = False)
-    data = ci.get_data()
+    ci = IndustryInfo(dbinfo = ct.DB_INFO, redis_host = None, without_init = True)
+    ci.update()
+    #data = ci.get_data()
