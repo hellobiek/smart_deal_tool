@@ -9,9 +9,13 @@ from spidermon.core.actions import Action
 logger = getLogger(__name__)
 class SendWechat(Action):
     def __init__(self, *args, **kwargs):
+        fptah = ct.WECHAT_FILE
+        if 'fpath' in kwargs:
+            fptah = kwargs['fpath']
+            kwargs.pop('fpath')
         super(SendWechat, self).__init__(*args, **kwargs)
         self.client = Client()
-        self.key = self.load_key(ct.WECHAT_FILE)
+        self.key = self.load_key(fptah)
 
     @classmethod
     def from_crawler_kwargs(cls, crawler):

@@ -7,6 +7,7 @@ import time
 import datetime
 import subprocess
 import const as ct
+from base.wechat import SendWechat
 from datetime import datetime
 from ccalendar import CCalendar
 from base.clog import getLogger
@@ -17,6 +18,7 @@ SCRIPT2 = ['/Users/hellobiek/Documents/workspace/golang/bin/tdx']
 class DataPreparer:
     def __init__(self):
         self.logger = getLogger(__name__)
+        self.message_client = SendWechat(fpath = '/Users/hellobiek/Documents/workspace/python/quant/smart_deal_tool/configure/wechat')
         self.cal_client = CCalendar(dbinfo = ct.OUT_DB_INFO, redis_host = '127.0.0.1', filepath = '/Volumes/data/quant/stock/conf/calAll.csv')
 
     def is_collecting_time(self):
@@ -63,6 +65,11 @@ class DataPreparer:
                         if ndate < mdate:
                             self.run(SCRIPT1, timeout = 3600)
                             self.run(SCRIPT2, timeout = 2400)
+                            ndate = get_latest_data_date(filepath = "/Volumes/data/quant/stock/data/stockdatainfo.json")
+                            if ndate >= mdate:
+                                self.message_client.send_message("{}数据收集".format(datetime.now().strftime('%Y-%m-%d')), "成功")
+                            else:
+                                self.message_client.send_message("{}数据收集".format(datetime.now().strftime('%Y-%m-%d')), "失败")
             except Exception as e:
                 self.logger.error(e)
             time.sleep(sleep_time)
