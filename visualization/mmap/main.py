@@ -28,6 +28,8 @@ def get_data(mdate):
     df = mmap.get_data(mdate)
     df = pd.merge(df, base_df, how='inner', on=['code'])
     df = df[(df['timeToMarket'] < int((datetime.now() - timedelta(days = 60)).strftime('%Y%m%d'))) | df.code.isin(list(ct.WHITE_DICT.keys()))]
+    df['mvalue'] = df['outstanding'] * df['close'] * 10e-9
+    df['mvalue'] = df['mvalue'].round()
     csi_df = csi_client.get_k_data(mdate)
     if csi_df is None or csi_df.empty:
         df['sw_industry'] = '无数据' 
@@ -52,7 +54,7 @@ def update_compare_map(attr, old, new):
     mlist = list(eset - sset)
     df = edata.loc[edata.code.isin(mlist)]
     df = df.reset_index(drop = True)
-    mdict = {'code': df.code.tolist(), 'name': df.name.tolist(), 'profit': df.profit.tolist(), 'pday': df.pday.tolist(),
+    mdict = {'code': df.code.tolist(), 'name': df.name.tolist(), 'profit': df.profit.tolist(), 'pday': df.pday.tolist(), 'mvalue': df.mvalue.tolist(),
             'sw_industry': df.sw_industry.tolist(), 'tind_name': df.tind_name.tolist(), 'find_name': df.find_name.tolist()}
     global csource
     csource.data = ColumnDataSource(mdict).data
@@ -90,7 +92,9 @@ def create_mmap_figure(mdate):
         csi_df = csi_df.drop('name', axis=1)
         df = pd.merge(csi_df, df, how='inner', on=['code'])
     if df is None or df.empty: return p
-    df = df[['code', 'name', 'profit', 'pday', 'sw_industry', 'tind_name', 'find_name']]
+    df['mvalue'] = df['outstanding'] * df['close'] * 10e-9
+    df['mvalue'] = df['mvalue'].round()
+    df = df[['code', 'name', 'profit', 'pday', 'mvalue', 'sw_industry', 'tind_name', 'find_name']]
     df = df.reset_index(drop = True)
     global msource, isource
     profit_list = df.profit.tolist()
@@ -113,6 +117,7 @@ def create_mmap_figure(mdate):
             d2['code'] = [];
             d2['name'] = [];
             d2['pday'] = [];
+            d2['mvalue'] = [];
             d2['profit'] = [];
             d2['sw_industry'] = [];
             d2['tind_name'] = [];
@@ -121,6 +126,7 @@ def create_mmap_figure(mdate):
                 d2['code'].push(d1['code'][inds[i]])
                 d2['name'].push(d1['name'][inds[i]])
                 d2['profit'].push(d1['profit'][inds[i]])
+                d2['mvalue'].push(d1['mvalue'][inds[i]])
                 d2['pday'].push(d1['pday'][inds[i]])
                 d2['sw_industry'].push(d1['sw_industry'][inds[i]])
                 d2['tind_name'].push(d1['tind_name'][inds[i]])
@@ -317,7 +323,7 @@ source_code = """
 tcallback = CustomJS(args = dict(source = tsource, text_row = code_text), code = source_code)
 tsource.selected.js_on_change('indices', tcallback)
 columns = [TableColumn(field = "code", title = "代码"), TableColumn(field = "name", title = "名字"), TableColumn(field = "pday", title = "牛熊天数", sortable = True), 
-           TableColumn(field = "profit",title = "牛熊程度", sortable = True), TableColumn(field = "sw_industry", title = "申万行业"),
+           TableColumn(field = "profit",title = "牛熊程度", sortable = True), TableColumn(field = "mvalue",title = "流通市值(亿)", sortable = True), TableColumn(field = "sw_industry", title = "申万行业"),
            TableColumn(field = "tind_name", title = "主行业"), TableColumn(field = "find_name", title = "子行业")]
 mtable = DataTable(source = tsource, columns = columns, width = 1400, height = 200)
 
@@ -349,7 +355,7 @@ dist_source = ColumnDataSource()
 stock_source = ColumnDataSource()
 
 #code = '300760'
-#mdate = '2020-05-26'
+#mdate = '2021-02-24'
 #create_mmap_figure(mdate)
 #sobj = CStock(code)
 #sdf = sobj.get_k_data()
