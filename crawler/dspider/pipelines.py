@@ -243,4 +243,4 @@ class SPledgePipline(FilesPipeline):
         return item
 
     def file_path(self, request, response = None, info=None):
-        return request.meta['item']['file_name'].replace('gpzyhgmx_', '')
+        return request.meta['item']['file_name'].replace('gpzyhgmx_', '').replace('--', '_')

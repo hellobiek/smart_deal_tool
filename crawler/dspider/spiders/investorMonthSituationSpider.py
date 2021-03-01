@@ -102,7 +102,7 @@ class MonthInvestorSituationSpider(BasicSpider):
         patten = re.compile(r'[(|（](.*?)[）|)]', re.S)
         item = MonthInvestorSituationItem()
         tmpStr = response.xpath("/html[1]/body[1]/form[1]/div[3]/div[1]/font[1]/text()").extract_first()
-        if ((tmpStr is None) or (tmpStr is not None and tmpStr.find('没有找到相关信息，请检查查询条件') != -1)): return
+        if (tmpStr is not None and tmpStr.find('没有找到相关信息，请检查查询条件') != -1): return
         unit = '万'
         for k in investor_count_to_path:
             if k == "date":

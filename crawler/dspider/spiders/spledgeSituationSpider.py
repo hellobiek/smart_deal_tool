@@ -34,7 +34,7 @@ class SPledgeSituationSpider(BasicSpider):
         )
     }
     allowed_domains = ['www.chinaclear.cn']
-    start_urls = ['http://www.chinaclear.cn/cms-rank/downloadFile']
+    start_urls = ['https://biz.chinaclear.cn/gpzy/exportStockPledgeInfoFile']
     def start_requests(self):
         formdata = dict()
         formdata['queryDate'] = ''
