@@ -54,7 +54,10 @@ class SPledgeSituationSpider(BasicSpider):
             sdate = get_pre_date(sdate = edate, target_day = calendar.SUNDAY, dformat = '%Y-%m-%d')
         sdate = sdate.replace('-', '')
         edate = edate.replace('-', '')
-        return "{}_{}.xls".format(sdate, edate) 
+        if sdate > '20210131':
+            return "%s_%s.xlsx" % (sdate, edate)
+        else:
+            return "%s_%s.xls" % (sdate, edate)
 
     def parse(self, response):
         fname = response.headers['Content-Disposition'].decode().split('=')[1]

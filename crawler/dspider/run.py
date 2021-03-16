@@ -54,7 +54,7 @@ def weekly_spider():
         #myrunner.crawl(HeroListSpider)
         #myrunner.crawl(PlateValuationSpider)
         #myrunner.crawl(FinDisclosureSpider)
-        #myrunner.crawl(SPledgeSituationSpider)
+        myrunner.crawl(SPledgeSituationSpider)
         #myrunner.crawl(ChinaSecurityIndustryValuationSpider)
         #myrunner.crawl(SecurityExchangeCommissionValuationSpider)
         #myrunner.crawl(ChinaTreasuryRateSpider)
