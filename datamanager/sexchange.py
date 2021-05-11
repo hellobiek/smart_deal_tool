@@ -157,16 +157,16 @@ class StockExchange(object):
                     transactions     = 0
                     turnover         = float(df.loc[df['指标名称'] == '股票平均换手率', '本日数值'].values[0])
                 else:
-                    amount           = float(df.loc[df['指标名称'].str.contains('总成交金额'), '本日数值'].values[0].replace(',', '')) / 100000000
+                    amount           = float(df.loc[df['指标名称'].str.contains('成交金额'), '本日数值'].values[0].replace(',', '')) / 100000000
                     number           = int(float(df.loc[df['指标名称'] == '上市公司数', '本日数值'].values[0].replace(',', '')))
-                    negotiable_value = float(df.loc[df['指标名称'].str.contains('上市公司流通市值'), '本日数值'].values[0].replace(',', '')) / 100000000
-                    market_value     = float(df.loc[df['指标名称'].str.contains('上市公司市价总值'), '本日数值'].values[0].replace(',', '')) / 100000000
+                    negotiable_value = float(df.loc[df['指标名称'].str.contains('流通市值'), '本日数值'].values[0].replace(',', '')) / 100000000
+                    market_value     = float(df.loc[df['指标名称'].str.contains('总市值'), '本日数值'].values[0].replace(',', '')) / 100000000
                     pe               = float(df.loc[df['指标名称'].str.contains('平均市盈率'), '本日数值'].values[0])
-                    totals           = float(df.loc[df['指标名称'].str.contains('总发行股本'), '本日数值'].values[0].replace(',', '')) / 100000000
-                    outstanding      = float(df.loc[df['指标名称'].str.contains('总流通股本'), '本日数值'].values[0].replace(',', '')) / 100000000
-                    volume           = float(df.loc[df['指标名称'].str.contains('总成交量') | \
-                                             df['指标名称'].str.contains('总成交股数'), '本日数值'].values[0].replace(',', '')) / 100000000
-                    transactions     = float(df.loc[df['指标名称'] == '总成交笔数', '本日数值'].values[0].replace(',', '')) / 10000
+                    totals           = float(df.loc[df['指标名称'].str.contains('总股本'), '本日数值'].values[0].replace(',', '')) / 100000000
+                    outstanding      = float(df.loc[df['指标名称'].str.contains('流通股本'), '本日数值'].values[0].replace(',', '')) / 100000000
+                    volume           = float(df.loc[df['指标名称'].str.contains('成交量') | \
+                                             df['指标名称'].str.contains('成交股数'), '本日数值'].values[0].replace(',', '')) / 100000000
+                    transactions     = float(df.loc[df['指标名称'] == '成交笔数', '本日数值'].values[0].replace(',', '')) / 10000
                     turnover         = 100 * volume / outstanding
                 data = {
                     'name': name,\
