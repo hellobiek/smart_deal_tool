@@ -2,4 +2,4 @@
 自己用的交易工具，自动打新。
 
 
-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
+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
